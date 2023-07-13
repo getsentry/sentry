@@ -256,12 +256,18 @@ class ProjectSerializerTest(TestCase):
             def _check_for_batch(self, feature_name, organization, actor):
                 return organization == early_adopter
 
+            def batch_has(self, *a, **k):
+                raise NotImplementedError("unreachable")
+
         def create_color_handler(color_flag, included_projects):
             class ProjectColorFeatureHandler(features.FeatureHandler):
                 features = {color_flag}
 
                 def has(self, feature, actor):
                     return feature.project in included_projects
+
+                def batch_has(self, *a, **k):
+                    raise NotImplementedError("unreachable")
 
             return ProjectColorFeatureHandler()
 

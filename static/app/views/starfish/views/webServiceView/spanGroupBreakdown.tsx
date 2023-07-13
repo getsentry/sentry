@@ -12,10 +12,13 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {
   DataDisplayType,
   DataRow,
 } from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_MODULE} = SpanMetricsFields;
 
 type Props = {
   colorPalette: string[];
@@ -92,7 +95,7 @@ export function SpanGroupBreakdown({
     } else if (event.seriesName === 'Other') {
       spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
     } else {
-      spansLinkQueryParams['span.module'] = 'Other';
+      spansLinkQueryParams[SPAN_MODULE] = 'Other';
       spansLinkQueryParams['span.category'] = event.seriesName;
     }
 

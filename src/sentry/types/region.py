@@ -92,6 +92,10 @@ class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
 
 
+class RegionMappingNotFound(RegionResolutionError):
+    """Indicate that a mapping to a region could not be found."""
+
+
 class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
@@ -131,7 +135,10 @@ def _parse_config(region_config: Any) -> Iterable[Region]:
         if isinstance(config_value, Region):
             yield config_value
         else:
-            config_value["category"] = RegionCategory[config_value["category"]]  # type: ignore
+            category = config_value["category"]  # type: ignore[unreachable]
+            config_value["category"] = (
+                category if isinstance(category, RegionCategory) else RegionCategory[category]
+            )
             yield Region(**config_value)
 
 

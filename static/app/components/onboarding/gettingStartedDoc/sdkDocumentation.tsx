@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -15,6 +16,12 @@ export const migratedDocs = [
   'javascript-ember',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-nextjs',
+  'javascript',
+  'python-django',
+  'react-native',
+  'java-spring-boot',
+  'php-laravel',
 ];
 
 type SdkDocumentationProps = {
@@ -25,10 +32,11 @@ type SdkDocumentationProps = {
   newOrg?: boolean;
 };
 
-type ModuleProps = {
-  activeProductSelection: ProductSolution[];
+export type ModuleProps = {
   dsn: string;
+  activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  platformKey?: PlatformKey;
 };
 
 // Loads the component containing the documentation for the specified platform
@@ -46,7 +54,7 @@ export function SdkDocumentation({
   const platformPath =
     platform?.type === 'framework'
       ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
-      : platform?.id;
+      : `${platform?.language}/${platform?.id}`;
 
   const {
     data: projectKeys = [],
@@ -81,6 +89,7 @@ export function SdkDocumentation({
       dsn={projectKeys[0].dsn.public}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
+      platformKey={platform?.id}
     />
   );
 }

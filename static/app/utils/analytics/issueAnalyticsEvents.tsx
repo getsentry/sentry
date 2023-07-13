@@ -46,12 +46,17 @@ export type IssueEventParameters = {
     group_id: string;
     is_high_priority: boolean;
   };
+  'issue_details.escalating_issues_banner_feedback_received': {
+    group_id: string;
+    should_be_escalating: boolean;
+  };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -209,6 +214,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.dismissed': 'Event Cause Dismissed',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
+  'issue_details.escalating_issues_banner_feedback_received':
+    'Issue Details: Escalating Issues Banner Feedback Received',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -275,4 +282,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',
+  'issue_details.open_replay_details_clicked':
+    'Issue Details: Open Replay Details Clicked',
 };

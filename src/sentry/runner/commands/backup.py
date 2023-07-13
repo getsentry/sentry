@@ -1,15 +1,108 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+from difflib import unified_diff
 from io import StringIO
+from typing import NamedTuple, NewType
 
 import click
 from django.apps import apps
 from django.core import management, serializers
+from django.core.serializers import serialize
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, connection, transaction
 
 from sentry.runner.decorators import configuration
+from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
 
 EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
+JSON_PRETTY_PRINTER = JSONEncoder(
+    default=better_default_encoder, indent=2, ignore_nan=True, sort_keys=True
+)
+
+ComparatorName = NewType("ComparatorName", str)
+ModelName = NewType("ModelName", str)
+
+
+# TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
+class InstanceID(NamedTuple):
+    """Every entry in the generated backup JSON file should have a unique model+pk combination, which serves as its identifier."""
+
+    model: ModelName
+    pk: int
+
+    def pretty(self) -> str:
+        return f"InstanceID(model: {self.model!r}, pk: {self.pk})"
+
+
+class ComparatorFinding(NamedTuple):
+    """Store all information about a single failed matching between expected and actual output."""
+
+    name: ComparatorName
+    on: InstanceID
+    reason: str = ""
+
+    def pretty(self) -> str:
+        return f"Finding(\n\tname: {self.name!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
+
+
+class ComparatorFindings:
+    """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
+
+    def __init__(self, findings: list[ComparatorFinding]):
+        self.findings = findings
+
+    def append(self, finding: ComparatorFinding) -> None:
+        self.findings.append(finding)
+
+    def pretty(self) -> str:
+        return "\n".join(f.pretty() for f in self.findings)
+
+
+def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
+    """Ensures that originally imported data correctly matches actual outputted data, and produces a list of reasons why not when it doesn't"""
+
+    def json_lines(obj: JSONData) -> list[str]:
+        """Take a JSONData object and pretty-print it as JSON."""
+
+        return JSON_PRETTY_PRINTER.encode(obj).splitlines()
+
+    findings = ComparatorFindings([])
+    exp_models = {}
+    act_models = {}
+    for model in expect:
+        id = InstanceID(model["model"], model["pk"])
+        exp_models[id] = model
+
+    # Ensure that the actual JSON contains no duplicates - we assume that the expected JSON did not.
+    for model in actual:
+        id = InstanceID(model["model"], model["pk"])
+        if id in act_models:
+            findings.append(ComparatorFinding("duplicate_entry", id))
+        else:
+            act_models[id] = model
+
+    # Report unexpected and missing entries in the actual JSON.
+    extra = sorted(act_models.keys() - exp_models.keys())
+    missing = sorted(exp_models.keys() - act_models.keys())
+    for id in extra:
+        del act_models[id]
+        findings.append(ComparatorFinding("unexpected_entry", id))
+    for id in missing:
+        del exp_models[id]
+        findings.append(ComparatorFinding("missing_entry", id))
+
+    # We only perform custom comparisons and JSON diffs on non-duplicate entries that exist in both
+    # outputs.
+    for id, act in act_models.items():
+        exp = exp_models[id]
+
+        # Finally, perform a diff on the remaining JSON.
+        diff = list(unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3))
+        if diff:
+            findings.append(ComparatorFinding("json_diff", id, "\n    " + "\n    ".join(diff)))
+
+    return findings
 
 
 @click.command(name="import")
@@ -140,6 +233,20 @@ def sort_dependencies():
     return model_list
 
 
+UTC_0 = timezone(timedelta(hours=0))
+
+
+class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
+    """A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
+    their implicit value is `.000`. This is necessary because the ECMA-262 compatible
+    `DjangoJSONEncoder` drops these by default."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.astimezone(UTC_0).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        return super().default(obj)
+
+
 @click.command()
 @click.argument("dest", default="-", type=click.File("w"))
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
@@ -173,6 +280,11 @@ def export(dest, silent, indent, exclude):
 
     if not silent:
         click.echo(">> Beginning export", err=True)
-    serializers.serialize(
-        "json", yield_objects(), indent=indent, stream=dest, use_natural_foreign_keys=True
+    serialize(
+        "json",
+        yield_objects(),
+        indent=indent,
+        stream=dest,
+        use_natural_foreign_keys=True,
+        cls=DatetimeSafeDjangoJSONEncoder,
     )

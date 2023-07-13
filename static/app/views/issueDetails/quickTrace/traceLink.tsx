@@ -12,9 +12,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type TraceLinkProps = {
   event: Event;
+  noTrace: boolean;
 };
 
-export function TraceLink({event}: TraceLinkProps) {
+export function TraceLink({event, noTrace}: TraceLinkProps) {
   const organization = useOrganization();
   const quickTrace = useContext(QuickTraceContext);
   const handleTraceLink = useCallback(() => {
@@ -33,13 +34,17 @@ export function TraceLink({event}: TraceLinkProps) {
     return null;
   }
   return (
-    <StyledLink to={generateTraceTarget(event, organization)} onClick={handleTraceLink}>
+    <StyledLink
+      to={generateTraceTarget(event, organization)}
+      onClick={handleTraceLink}
+      noTrace={noTrace}
+    >
       {t('View Full Trace')}
     </StyledLink>
   );
 }
 
-const StyledLink = styled(Link)`
-  margin-left: ${space(1)};
+const StyledLink = styled(Link)<{noTrace: boolean}>`
+  margin-left: ${p => (p.noTrace ? 0 : space(1))};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

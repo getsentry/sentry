@@ -7,9 +7,11 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_MODULE, SPAN_OP, SPAN_ACTION, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -40,8 +42,8 @@ export function ActionSelector({
     : [
         {value: '', label: 'All'},
         ...actions.map(datum => ({
-          value: datum['span.action'],
-          label: datum['span.action'],
+          value: datum[SPAN_ACTION],
+          label: datum[SPAN_ACTION],
         })),
       ];
 
@@ -57,7 +59,7 @@ export function ActionSelector({
           ...location,
           query: {
             ...location.query,
-            'span.action': newValue.value,
+            [SPAN_ACTION]: newValue.value,
           },
         });
       }}
@@ -82,18 +84,18 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const queryConditions: string[] = [];
-  queryConditions.push('has:span.description');
+  queryConditions.push(`has:${SPAN_DESCRIPTION}`);
 
   if (moduleName) {
-    queryConditions.push('has:span.action');
+    queryConditions.push(`has:${SPAN_ACTION}`);
   }
 
   if (![ModuleName.ALL, ModuleName.NONE].includes(moduleName)) {
-    queryConditions.push(`span.module:${moduleName}`);
+    queryConditions.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
+    queryConditions.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {
@@ -106,7 +108,7 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: ['span.action', 'count()'],
+      fields: [SPAN_ACTION, 'count()'],
       orderby: '-count',
       query: queryConditions.join(' '),
       dataset: DiscoverDatasets.SPANS_METRICS,
