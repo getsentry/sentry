@@ -2,13 +2,20 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Project} from 'sentry/types';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
-function mockProjectApiResponses(projects) {
+function mockProjectApiResponses(projects: Project[]) {
   MockApiClient.addMockResponse({
     method: 'GET',
     url: '/organizations/org-slug/projects/',
     body: projects,
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/docs/other/',
+    body: {},
   });
 
   MockApiClient.addMockResponse({

@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {
   migratedDocs,
@@ -45,11 +44,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
-
-// in this case, the default is rendered inside the hook
-const SetUpSdkDocHook = HookOrDefault({
-  hookName: 'component:set-up-sdk-doc',
-});
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
@@ -217,9 +211,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
   // but the purpose of the feature is to make the product selection feature in documents available to all users
   // and guide them to upgrade to a plan if one of the products is not available on their current plan.
-  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
-    'getting-started-doc-with-product-selection'
-  );
+  const gettingStartedDocWithProductSelection = true;
 
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -403,28 +395,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           activeProductSelection={products}
         />
       ) : (
-        <Fragment>
-          {isSelfHosted ? (
-            <SetUpGeneralSdkDoc
-              organization={organization}
-              projectSlug={project.slug}
-              platform={platform}
-            />
-          ) : showDocsWithProductSelection ? (
-            <DocWithProductSelection
-              project={project}
-              location={location}
-              currentPlatform={platform.key}
-            />
-          ) : (
-            <SetUpSdkDocHook
-              organization={organization}
-              project={project}
-              location={location}
-              platform={platform}
-            />
-          )}
-        </Fragment>
+        <SetUpGeneralSdkDoc
+          organization={organization}
+          projectSlug={project.slug}
+          platform={platform}
+        />
       )}
       <div>
         {isGettingStarted && showPerformancePrompt && (
