@@ -24,6 +24,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -488,13 +489,12 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
-        datetime_format = "%Y-%m-%d %I:%M %p"
-        expected_time = monitor.get_next_scheduled_checkin(last_checkin).strftime(datetime_format)
+        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
 
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
             reason=MonitorFailure.MISSED_CHECKIN,
-            occurrence_context={"expected_time": expected_time},
+            occurrence_context={"expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)},
         )
 
         monitor.refresh_from_db()
@@ -512,7 +512,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": f"No check-in reported at {expected_time}.",
+                "subtitle": f"No check-in reported at {expected_time.strftime(SUBTITLE_DATETIME_FORMAT)}.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
