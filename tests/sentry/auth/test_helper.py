@@ -273,6 +273,31 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_with_existing_om_invited_idp_provisioned(self, mock_messages):
+        user = self.set_up_user()
+        with assume_test_silo_mode(SiloMode.REGION):
+            existing_om = OrganizationMember.objects.create(
+                user_id=user.id,
+                organization=self.organization,
+                invite_status=InviteStatus.APPROVED.value,
+                flags=OrganizationMember.flags["idp:provisioned"],
+            )
+
+        auth_identity = self.handler.handle_attach_identity()
+        assert auth_identity.ident == self.identity["id"]
+        assert auth_identity.data == self.identity["data"]
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            persisted_om = OrganizationMember.objects.get(id=existing_om.id)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert getattr(persisted_om.flags, "idp:provisioned")
+            assert not getattr(persisted_om.flags, "sso:invalid")
+
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
     def test_existing_identity(self, mock_messages):
         user, existing_identity = self.set_up_user_identity()
 
