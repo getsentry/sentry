@@ -6,10 +6,10 @@ from pathlib import Path
 from click.testing import CliRunner
 from django.core.management import call_command
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.environment import Environment
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils import TransactionTestCase
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
@@ -22,7 +22,7 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
@@ -39,7 +39,7 @@ class ModelBackupTests(TransactionTestCase):
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write():
                 # Reset the Django database.
                 call_command("flush", verbosity=0, interactive=False)
 

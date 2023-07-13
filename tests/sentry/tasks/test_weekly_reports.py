@@ -11,8 +11,8 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
+from sentry.silo import unguarded_write
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -37,7 +37,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -65,7 +65,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -116,7 +116,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(user_id=self.user.id).update(
                 flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
             )
