@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
@@ -60,15 +61,11 @@ export function SpanOperationSelector({
 }
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const query = buildEventViewQuery(
+  const query = buildEventViewQuery({
     moduleName,
-    location,
-    undefined,
-    undefined,
-    spanCategory
-  )
-    .filter(Boolean)
-    .join(' ');
+    location: {...location, query: omit(location.query, SPAN_OP)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',

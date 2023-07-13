@@ -1,6 +1,7 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
@@ -83,15 +84,11 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const query = buildEventViewQuery(
+  const query = buildEventViewQuery({
     moduleName,
-    location,
-    undefined,
-    undefined,
-    spanCategory
-  )
-    .filter(Boolean)
-    .join(' ');
+    location: {...location, query: omit(location.query, SPAN_ACTION)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',

@@ -15,13 +15,19 @@ const SPAN_FILTER_KEYS = [
   '!span.category',
 ];
 
-export function buildEventViewQuery(
-  moduleName: ModuleName,
-  location: Location,
-  transaction?: string,
-  method?: string,
-  spanCategory?: string
-) {
+export function buildEventViewQuery({
+  moduleName,
+  location,
+  transaction,
+  method,
+  spanCategory,
+}: {
+  location: Location;
+  moduleName: ModuleName;
+  method?: string;
+  spanCategory?: string;
+  transaction?: string;
+}) {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))

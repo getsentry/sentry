@@ -1,15 +1,18 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_DOMAIN} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -68,15 +71,11 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const query = buildEventViewQuery(
+  const query = buildEventViewQuery({
     moduleName,
-    location,
-    undefined,
-    undefined,
-    spanCategory
-  )
-    .filter(Boolean)
-    .join(' ');
+    location: {...location, query: omit(location.query, SPAN_DOMAIN)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',

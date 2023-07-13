@@ -69,13 +69,13 @@ function getEventView(
   spanCategory?: string,
   sorts?: Sort[]
 ) {
-  const query = buildEventViewQuery(
+  const query = buildEventViewQuery({
     moduleName,
     location,
     transaction,
     method,
-    spanCategory
-  )
+    spanCategory,
+  })
     .filter(Boolean)
     .join(' ');
 
