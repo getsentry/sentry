@@ -77,7 +77,7 @@ function getConfiguration({
         <CodeSnippet dark language={language}>
           {language === 'javascript'
             ? beautify.js(code, {indent_size: 2, e4x: true})
-            : beautify.html(code, {indent_size: 2})}
+            : code.trim()}
         </CodeSnippet>
       )}
       {additionalInfo && <AdditionalInfo>{additionalInfo}</AdditionalInfo>}
