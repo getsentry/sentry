@@ -4,7 +4,6 @@ import pytest
 import responses
 
 from sentry import options
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.utils.codecov import (
     CodecovIntegrationError,
     get_codecov_data,
@@ -12,7 +11,7 @@ from sentry.integrations.utils.codecov import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, unguarded_write
 
 
 @control_silo_test(stable=True)
@@ -26,7 +25,7 @@ class TestCodecovIntegration(APITestCase):
         options.set("codecov.client-secret", "supersecrettoken")
 
     def test_no_github_integration(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Integration.objects.all().delete()
 
         has_integration, error = has_codecov_integration(self.organization)

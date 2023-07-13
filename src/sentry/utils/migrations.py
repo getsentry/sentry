@@ -1,6 +1,6 @@
 from django.db.models import F
 
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.testutils.silo import unguarded_write
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
@@ -15,5 +15,5 @@ def clear_flag(Model, flag_name, flag_attr_name="flags"):
             update_kwargs = {
                 flag_attr_name: F(flag_attr_name).bitand(~getattr(Model, flag_attr_name)[flag_name])
             }
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write():
                 Model.objects.filter(id=item.id).update(**update_kwargs)

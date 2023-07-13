@@ -6,11 +6,11 @@ from django.db import router
 from django.db.models import Count
 from django.utils import timezone
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.testutils.silo import unguarded_write
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -42,7 +42,7 @@ def _verify_mappings(expiration_threshold_time: datetime) -> None:
         org = organization_service.get_organization_by_id(
             id=mapping.organization_id, slug=mapping.slug
         )
-        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             if org is None and mapping.date_created <= expiration_threshold_time:
                 mapping.delete()
             elif org is not None:
@@ -65,7 +65,7 @@ def _remove_duplicate_mappings(expiration_threshold_time: datetime) -> None:
         )
         organization_id = dupe["organization_id"]
 
-        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             # Organization exists in the region silo
             found_org = organization_service.get_organization_by_id(id=organization_id)
             if found_org is None:
