@@ -687,7 +687,11 @@ class Group(Model):
             self,
             conditions,
         )
-        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event_for_environments([env.name for env in environments])
+        )
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release
