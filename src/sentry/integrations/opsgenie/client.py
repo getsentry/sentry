@@ -16,16 +16,8 @@ class OpsgenieSetupClient(ApiClient):
 
     def __init__(self, base_url: str, api_key: str) -> None:
         super().__init__()
-        self.base_url = base_url.rstrip()  # remove trailing spaces
+        self.base_url = f"{base_url}{OPSGENIE_API_VERSION}"
         self.api_key = api_key
-
-    @staticmethod
-    def build_api_url(base_url, path):
-        return "{}{}{}".format(base_url.rstrip("/"), OPSGENIE_API_VERSION, path)
-
-    def build_url(self, path: str) -> str:
-        path = self.build_api_url(self.base_url, path)
-        return super().build_url(path=path)
 
     def get_account(self):
         headers = {"Authorization": "GenieKey " + self.api_key}

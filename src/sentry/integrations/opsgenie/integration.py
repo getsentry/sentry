@@ -61,10 +61,14 @@ metadata = IntegrationMetadata(
 
 
 class InstallationForm(forms.Form):
-    base_url = forms.CharField(
+    base_url = forms.ChoiceField(
         label=_("Base URL"),
-        help_text=_("Either https://api.opsgenie.com/ or https://api.eu.opsgenie.com/"),
-        widget=forms.TextInput(attrs={"placeholder": "https://api.opsgenie.com/"}),
+        # help_text=_("Either https://api.opsgenie.com/ or https://api.eu.opsgenie.com/"),
+        # widget=forms.TextInput(attrs={"placeholder": "https://api.opsgenie.com/"}),
+        choices=[
+            ["https://api.opsgenie.com", "api.opsgenie.com"],
+            ["https://api.eu.opsgenie.com", "api.eu.opsgenie.com"],
+        ],
     )
     api_key = forms.CharField(
         label=("Opsgenie API Key"),
@@ -158,11 +162,14 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         api_key = state["installation_data"]["api_key"]
         base_url = state["installation_data"]["base_url"]
-
         account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
-
+        name = account.get("name")
         return {
-            "name": account.get("name"),
-            "external_id": account.get("name"),
-            "metadata": {"api_key": api_key, "base_url": base_url},
+            "name": name,
+            "external_id": name,
+            "metadata": {
+                "api_key": api_key,
+                "base_url": base_url,
+                "domain_name": f"{name}.app.opsgenie.com",
+            },
         }
