@@ -1,12 +1,18 @@
 import zipfile
 from hashlib import sha1
 from io import BytesIO
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
-from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
-from sentry.models import FileBlob
-from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleIndex
+from sentry.debug_files.artifact_bundles import (
+    FlatFileIdentifier,
+    FlatFileIndex,
+    get_redis_cluster_for_artifact_bundles,
+)
+from sentry.models import File, FileBlob
+from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive, ArtifactBundleIndex
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -162,3 +168,61 @@ class ArtifactLookupTest(TestCase):
         assert indexed[1].artifact_bundle == bundles[1]
         assert indexed[2].url == "~/path/to/other2.js"
         assert indexed[2].artifact_bundle == bundles[2]
+
+
+class FlatFileIndexTest(TestCase):
+    def mock_artifact_bundle(self, manifest):
+        file = make_compressed_zip_file(manifest)
+
+        file_obj = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file_obj.putfile(ContentFile(file))
+
+        now = timezone.now()
+
+        return ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id="5b14b2e6-141a-4584-a1bf-3b306af9d846",
+            file=file_obj,
+            artifact_count=10,
+            date_uploaded=now,
+            date_added=now,
+            date_last_modified=now,
+        )
+
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
+    def test_flat_file_index_with_no_index_stored_and_release(self, flat_file_index_store):
+        flat_file_index_store.load.return_value = {}
+        flat_file_index_store.identifier = FlatFileIdentifier(
+            project_id=self.project.id,
+            release="1.0",
+            dist="android",
+        )
+
+        artifact_bundle = self.mock_artifact_bundle(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
+                    "type": "minified_source",
+                    "content": b"app_idx1",
+                },
+                "path/in/zip/bar": {
+                    "url": "~/path/to/other1.js",
+                    "content": b"other1_idx1",
+                    "type": "minified_source",
+                },
+            }
+        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            flat_file_index: FlatFileIndex = FlatFileIndex.build(store=flat_file_index_store)
+            flat_file_index.merge(artifact_bundle, archive)
+            flat_file_index.save()
+
+        flat_file_index_store.save.assert_called_once_with(
+            {
+                "bundles": {artifact_bundle.id: artifact_bundle.date_last_modified},
+                "files_by_url": {"~/path/to/app.js": [1], "~/path/to/other1.js": [1]},
+            }
+        )
+
+    def test_flat_file_index_with_index_stored(self):
+        pass

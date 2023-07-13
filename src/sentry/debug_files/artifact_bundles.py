@@ -203,7 +203,7 @@ class FlatFileIndex:
 
     def _update_bundles(self, artifact_bundle: ArtifactBundle):
         if artifact_bundle.date_last_modified is None:
-            return
+            raise Exception("Can't index a bundle with no date last modified")
 
         existing_bundle_date = self._bundles.get(artifact_bundle.id)
         if (
@@ -228,6 +228,7 @@ class FlatFileIndex:
         entries = collection.get(key, [])
         entries.append(artifact_bundle_id)
         # TODO: we have to also sort by id in case timestamps are equal.
+
         # In case we can't find the bundle, we will put the invalid bundles at the end.
         entries.sort(key=lambda e: self._bundles.get(e, MINYEAR), reverse=True)
 
@@ -241,8 +242,19 @@ class FlatFileIndex:
             metrics.incr("artifact_bundle_flat_file_indexing.error_when_saving")
 
     def _save(self):
-        # TODO: implement saving in the database.
-        self.store.save({})
+        result: Dict[str, Any] = {}
+
+        if len(self._bundles) > 0:
+            result["bundles"] = self._bundles
+
+        if len(self._files_by_url) > 0:
+            result["files_by_url"] = self._files_by_url
+
+        if len(self._files_by_debug_id) > 0:
+            result["files_by_debug_id"] = self._files_by_debug_id
+
+        if len(result) > 0:
+            self.store.save(result)
 
 
 # ===== Indexing of Artifact Bundles =====
