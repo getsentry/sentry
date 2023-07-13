@@ -19,6 +19,7 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.models.release import _get_cache_key
+from sentry.silo import SiloMode
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -215,19 +216,28 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
+        expected_slug_prefix = ""
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            expected_slug_prefix = "r-na-"
+
         for (org_slug, group_id, params, expected) in [
-            ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
+            (
+                "org1",
+                23,
+                None,
+                f"http://testserver/organizations/{expected_slug_prefix}org1/issues/23/",
+            ),
             (
                 "org2",
                 42,
                 {"environment": "dev"},
-                "http://testserver/organizations/org2/issues/42/?environment=dev",
+                f"http://testserver/organizations/{expected_slug_prefix}org2/issues/42/?environment=dev",
             ),
             (
                 "\u00F6rg3",
                 86,
                 {"env\u00EDronment": "d\u00E9v"},
-                "http://testserver/organizations/org3/issues/86/?env%C3%ADronment=d%C3%A9v",
+                f"http://testserver/organizations/{expected_slug_prefix}org3/issues/86/?env%C3%ADronment=d%C3%A9v",
             ),
         ]:
             org = self.create_organization(slug=org_slug)
