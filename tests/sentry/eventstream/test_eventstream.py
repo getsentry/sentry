@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
@@ -24,12 +25,13 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 @region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
-        super().setUp()
-
+    @pytest.fixture(autouse=True)
+    def patch_get_producer(self):
         self.kafka_eventstream = KafkaEventStream()
         self.producer_mock = Mock()
-        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
+
+        with patch.object(KafkaEventStream, "get_producer", return_value=self.producer_mock):
+            yield
 
     def __build_event(self, timestamp):
         raw_event = {

@@ -26,7 +26,7 @@ def smtp_EHLO(self, arg):
         self.push("250 %s" % self._SMTPChannel__fqdn)
 
 
-SMTPChannel.smtp_EHLO = smtp_EHLO
+SMTPChannel.smtp_EHLO = smtp_EHLO  # type: ignore[method-assign]
 
 STATUS = {200: "200 Ok", 550: "550 Not found", 552: "552 Message too long"}
 

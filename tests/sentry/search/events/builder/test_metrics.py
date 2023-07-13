@@ -57,12 +57,17 @@ def _metric_percentile_definition(
 
 
 def _metric_conditions(org_id, metrics) -> List[Condition]:
+    def _resolve_must_succeed(*a, **k):
+        ret = indexer.resolve(*a, **k)
+        assert ret is not None
+        return ret
+
     return [
         Condition(
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
+                _resolve_must_succeed(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )

@@ -29,7 +29,7 @@ def patch_httprequest_repr():
     def safe_httprequest_repr(self):
         return f"<{self.__class__.__name__}: {self.method} {self.get_full_path()!r}>"
 
-    HttpRequest.__repr__ = safe_httprequest_repr
+    HttpRequest.__repr__ = safe_httprequest_repr  # type: ignore[method-assign]
 
 
 def patch_django_views_debug():

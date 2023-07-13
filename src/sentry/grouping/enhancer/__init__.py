@@ -312,11 +312,15 @@ class Rule:
         actions = [action for action in self.actions if action.is_modifier]
         if actions:
             return Rule(self.matchers, actions)
+        else:
+            return None
 
     def _as_updater_rule(self) -> Rule | None:
         actions = [action for action in self.actions if action.is_updater]
         if actions:
             return Rule(self.matchers, actions)
+        else:
+            return None
 
     def as_dict(self):
         matchers = {}

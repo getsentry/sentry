@@ -28,10 +28,10 @@ class DummySAML2Provider(SAML2Provider):
 @control_silo_test(stable=True)
 class SAML2ProviderTest(TestCase):
     def setUp(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="saml2", organization_id=self.organization.id
         )
-        self.provider = DummySAML2Provider(key=self.auth_provider.provider)
+        self.provider = DummySAML2Provider(key=auth_provider.provider)
         super().setUp()
 
     def test_build_config_adds_attributes(self):

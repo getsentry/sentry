@@ -162,7 +162,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-        group.has_replays = lambda: random.choice((True, False))
+        group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -467,7 +467,7 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state = {
+    state: dict[str, Any] = {
         "project": project,
         "groups": {},
         "rules": rules,

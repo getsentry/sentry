@@ -595,7 +595,7 @@ def convert_search_filter_to_snuba_query(
         name = f"tags[{name}]"
 
     if name in NO_CONVERSION_FIELDS:
-        return
+        return None
     elif name in key_conversion_map:
         return key_conversion_map[name](search_filter, name, params)
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():

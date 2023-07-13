@@ -76,7 +76,7 @@ class AuthenticationForm(forms.Form):
         UserModel = get_user_model()
         self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
         if not self.fields["username"].label:
-            self.fields["username"].label = capfirst(self.username_field.verbose_name)
+            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # typeddjango/django-stubs#1626
 
     def clean_username(self, value=None):
         if not value:

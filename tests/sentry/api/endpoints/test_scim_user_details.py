@@ -358,7 +358,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -376,7 +376,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+            AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
     def test_user_details_set_inactive_dict(self):
         member = self.create_member(
@@ -384,7 +384,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -402,7 +402,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+            AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
     def test_user_details_set_inactive_with_bool_string(self):
         member = self.create_member(
@@ -410,7 +410,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -428,7 +428,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+            AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
     def test_user_details_set_inactive_with_dict_bool_string(self):
         member = self.create_member(
@@ -436,7 +436,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -454,7 +454,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+            AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
     def test_invalid_patch_op(self):
         member = self.create_member(
@@ -462,7 +462,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -482,7 +482,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -520,7 +520,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
-                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+                user_id=member.user_id, auth_provider=self.auth_provider_inst, ident="test_ident"
             )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
@@ -531,7 +531,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
         with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
-            AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
+            AuthIdentity.objects.get(auth_provider=self.auth_provider_inst, id=member.id)
 
     def test_patch_inactive_alternate_schema(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)

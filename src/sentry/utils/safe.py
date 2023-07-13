@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Sequence, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -71,7 +71,7 @@ def trim(
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
-        result = {}
+        result: Any = {}
         _size += 2
         for k in sorted(value.keys(), key=lambda x: (len(force_str(value[x])), x)):
             v = value[k]
@@ -157,13 +157,13 @@ def set_path(data, *path, **kwargs):
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
     for p in path[:-1]:
-        if not isinstance(data, Mapping):
+        if not isinstance(data, MutableMapping):
             return False
         if data.get(p) is None:
             data[p] = {}
         data = data[p]
 
-    if not isinstance(data, Mapping):
+    if not isinstance(data, MutableMapping):
         return False
 
     p = path[-1]
@@ -195,11 +195,10 @@ def safe_urlencode(query, **kwargs):
     """
     # sequence of 2-element tuples
     if isinstance(query, (list, tuple)):
-        safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
-        return urlencode(safe_query, **kwargs)
-
-    if isinstance(query, dict):
-        safe_query = {k: "" if v is None else v for k, v in query.items()}
-        return urlencode(safe_query, **kwargs)
-
-    return urlencode(query, **kwargs)
+        query_seq = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(query_seq, **kwargs)
+    elif isinstance(query, dict):
+        query_d = {k: "" if v is None else v for k, v in query.items()}
+        return urlencode(query_d, **kwargs)
+    else:
+        return urlencode(query, **kwargs)

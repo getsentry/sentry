@@ -104,9 +104,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tagstore.get_release_tags"
-        ) as get_release_tags:
+        with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
             response = self.client.get(url, format="json")
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
