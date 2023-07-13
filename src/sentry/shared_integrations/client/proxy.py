@@ -4,6 +4,7 @@ import logging
 from typing import Any, Mapping
 
 from django.conf import settings
+from django.http import HttpResponse
 from requests import PreparedRequest
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -51,6 +52,13 @@ def infer_org_integration(
     return org_integration_id
 
 
+def get_proxy_url() -> str:
+    control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", "")
+    control_address = control_address.rstrip("/")
+    proxy_base_path = PROXY_BASE_PATH.lstrip("/")
+    return f"{control_address}/{proxy_base_path}"
+
+
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
@@ -79,7 +87,7 @@ class IntegrationProxyClient(ApiClient):
 
         if is_region_silo and subnet_secret and control_address:
             self._should_proxy_to_control = True
-            self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
+            self.proxy_url = get_proxy_url()
 
         if in_test_environment() and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")
@@ -131,3 +139,15 @@ class IntegrationProxyClient(ApiClient):
             },
         )
         return prepared_request
+
+    def should_delegate(self) -> bool:
+        return False
+
+    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
+        """
+        Rather than letting the internal integration proxy endpoint perform the 3rd-party API request, this method
+        perform the processing of that request whenever should_delegate() returns True.
+
+        This method should be implemented in cases when an integration uses a Python SDK API client (e.g. boto3).
+        """
+        raise NotImplementedError
