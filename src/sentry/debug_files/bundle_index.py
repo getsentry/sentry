@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, TypeVar
+from typing import Dict, List, Tuple, TypeVar
 
 from sentry.models.artifactbundle import ArtifactBundleArchive, SourceFileType
 
@@ -23,13 +23,14 @@ class BundleIndex:
         # Lookup tables by `url` and `debug_id/file_type` to a list of `self.bundles` indices,
         # sorted by the `timestamp` of the bundle.
         self._files_by_url: Dict[str, List[int]] = {}
-        self._files_by_debug_id: Dict[(str, str), List[int]] = {}
+        self._files_by_debug_id: Dict[Tuple[str, str], List[int]] = {}
 
     def get_meta_by_url(self, url: str) -> BundleMeta | None:
         entries = self._files_by_url.get(url)
-        if entries:
-            idx = entries[-1]
-            return self._bundles[idx]
+        if not entries:
+            return None  # mypy, you are really pedantic about this, hm?
+        idx = entries[-1]
+        return self._bundles[idx]
 
     # TODO: load from JSON
     # TODO: write as JSON
@@ -59,7 +60,7 @@ class BundleIndex:
 
             headers = ArtifactBundleArchive.normalize_headers(info.get("headers", {}))
             if index_debugids and (debug_id := headers.get("debug-id")):
-                debug_id = self.normalize_debug_id(debug_id)
+                debug_id = ArtifactBundleArchive.normalize_debug_id(debug_id)
                 file_type = info.get("type", "")
 
                 if debug_id and SourceFileType.from_lowercase_key(file_type):
