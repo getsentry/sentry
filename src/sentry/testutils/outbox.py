@@ -50,8 +50,11 @@ def assert_webhook_outboxes(
 ):
     expected_payload = ControlOutbox.get_webhook_payload_from_request(request=factory_request)
     expected_payload_dict = dataclasses.asdict(expected_payload)
-    assert ControlOutbox.objects.count() == len(region_names)
     region_names_set = set(region_names)
+
+    if ControlOutbox.objects.count() != len(region_names_set):
+        raise Exception("Found more ControlOutboxes than provided region_names")
+    assert ControlOutbox.objects.count() == len(region_names)
     for cob in ControlOutbox.objects.all():
         assert cob.payload == expected_payload_dict
         assert cob.shard_scope == OutboxScope.WEBHOOK_SCOPE
@@ -61,5 +64,7 @@ def assert_webhook_outboxes(
             region_names_set.remove(cob.region_name)
         except KeyError:
             raise Exception(
-                f"Found outbox for '{cob.region_name}', which was not in region_names: {str(region_names_set)}"
+                f"Found ControlOutbox for '{cob.region_name}', which was not in region_names: {str(region_names_set)}"
             )
+    if len(region_names_set) != 0:
+        raise Exception(f"ControlOutbox not found for some region_names: {str(region_names_set)}")
