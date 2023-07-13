@@ -147,7 +147,7 @@ class FlatFileIndex:
         # By default, a flat file index is empty.
         self._bundles: Dict[int, datetime] = {}
         self._files_by_url: Dict[str, List[int]] = {}
-        self._files_by_debug_id: Dict[(str, int), List[int]] = {}
+        self._files_by_debug_id: Dict[Tuple[str, int], List[int]] = {}
 
     @staticmethod
     def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
