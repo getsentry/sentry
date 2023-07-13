@@ -176,6 +176,55 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     @with_feature("organizations:issue-details-most-helpful-event")
+    def test_get_helpful_replay_id_order(self):
+        replay_id_1 = uuid.uuid4().hex
+        replay_id_2 = uuid.uuid4().hex
+        replay_id_1 = "b" + replay_id_1[1:]
+        replay_id_2 = "a" + replay_id_2[1:]
+
+        self.event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-order"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id_1},
+                },
+            },
+            project_id=self.project_1.id,
+        )
+        self.event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "fingerprint": ["group-order"],
+                "contexts": {
+                    "replay": {"replay_id": replay_id_2},
+                },
+            },
+            project_id=self.project_1.id,
+        )
+        self.event_f = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-order"],
+            },
+            project_id=self.project_1.id,
+        )
+
+        url = f"/api/0/issues/{self.event_d.group.id}/events/helpful/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_e.event_id)
+        assert response.data["previousEventID"] == str(self.event_d.event_id)
+        assert response.data["nextEventID"] == str(self.event_f.event_id)
+
+    @with_feature("organizations:issue-details-most-helpful-event")
     def test_with_empty_query(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, {"query": ""}, format="json")
