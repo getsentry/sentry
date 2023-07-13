@@ -13,9 +13,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -145,7 +144,7 @@ class ApiGatewayTestCase(APITestCase):
             SILO_MODE=SiloMode.REGION, SENTRY_REGION=self._REGION_CONFIG[0].name
         ):
             self.organization = self.create_organization()
-        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.get(organization_id=self.organization.id).update(
                 region_name="region1"
             )

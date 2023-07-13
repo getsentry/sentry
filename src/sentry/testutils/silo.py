@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import inspect
 import re
-import sys
-from collections import defaultdict
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
+from django.apps import apps
 from django.conf import settings
-from django.db import connections, router
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
-from django.db.models.signals import post_migrate
-from django.db.transaction import get_connection
 from django.test import override_settings
 
 from sentry import deletions
@@ -24,8 +19,7 @@ from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models import Actor, NotificationSetting
-from sentry.silo import SiloMode
-from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
+from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -197,158 +191,47 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
         yield
 
 
-def reset_test_role(role: str, using: str, create_role: bool) -> None:
-    connection_names = [conn.alias for conn in connections.all()]
-
-    if create_role:
-        role_exists = False
-        with get_connection(using).cursor() as connection:
-            connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-            role_exists = connection.fetchone()
-
-        if role_exists:
-            # Drop role permissions on each connection, or we can't drop the role.
-            for alias in connection_names:
-                with get_connection(alias).cursor() as conn:
-                    conn.execute(f"REASSIGN OWNED BY {role} TO postgres")
-                    conn.execute(f"DROP OWNED BY {role} CASCADE")
-
-            # Drop and re-create the role as required.
-            with get_connection(using).cursor() as conn:
-                conn.execute(f"DROP ROLE {role}")
-
-        with get_connection(using).cursor() as conn:
-            conn.execute(f"CREATE ROLE {role}")
-
-    # Create permissions on the current connection as we'll build up permissions incrementally.
-    with get_connection(using).cursor() as conn:
-        conn.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
-
-
-_role_created: bool = False
-_role_privileges_created: MutableMapping[str, bool] = {}
-
-
-def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
-    global _role_created
-    if "pytest" not in sys.argv[0] or not settings.USE_ROLE_SWAPPING_IN_TESTS:
-        return
-
-    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.models import (
-        Organization,
-        OrganizationMapping,
-        OrganizationMember,
-        OrganizationMemberMapping,
-    )
-    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
-
-    if not app_config or app_config.name != "sentry":
-        return
-
-    with get_connection(using).cursor() as conn:
-        conn.execute("SET ROLE 'postgres'")
-
-    if not _role_privileges_created.get(using, False):
-        reset_test_role(role="postgres_unprivileged", using=using, create_role=not _role_created)
-        _role_created = True
-        _role_privileges_created[using] = True
-
-    # Protect Foreign Keys using hybrid cloud models from being deleted without using the privileged user.
-    # Deletion should only occur when the developer is actively aware of the need to generate outboxes.
-    seen_models: MutableSet[type] = set()
-    for model in iter_models(app_config.name):
-        for field in model._meta.fields:
-            if not isinstance(field, HybridCloudForeignKey):
-                continue
-            fk_model = field.foreign_model
-            if fk_model is None or fk_model in seen_models:
-                continue
-            seen_models.add(fk_model)
-
-            restrict_role(
-                role="postgres_unprivileged", model=fk_model, revocation_type="DELETE", using=using
-            )
-
-    # Protect organization members from being updated without also invoking the correct outbox logic.
-    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
-    # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
-    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="UPDATE")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="UPDATE")
-    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
-    # identifiers are not snowflake ids.
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
-
-    restrict_role(
-        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
-    )
-
-
-# Listen to django's migration signal so that we're not trapped inside
-# test method transactions.
-post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
-
-
-def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:
-    if router.db_for_write(model) != using:
-        return
-
-    using = router.db_for_write(model)
-    with get_connection(using).cursor() as connection:
-        connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
-
-
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
-_fencing_counters: MutableMapping[str, int] = defaultdict(int)
-
-
-@contextlib.contextmanager
-def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
-    """
-    Used to indicate that the wrapped block is safe to do
-    mutations on outbox backed records.
-    In production this context manager has no effect, but
-    in tests it emits 'fencing' queries that are audited at the
-    end of each test run by validate_protected_queries
-    """
-    if "pytest" not in sys.argv[0]:
-        yield
-        return
-
-    using = determine_using_by_silo_mode(using)
-    _fencing_counters[using] += 1
-
-    with get_connection(using).cursor() as conn:
-        fence_value = _fencing_counters[using]
-        conn.execute("SELECT %s", [f"start_role_override_{fence_value}"])
-        try:
-            yield
-        finally:
-            conn.execute("SELECT %s", [f"end_role_override_{fence_value}"])
-
-
 def protected_table(table: str, operation: str) -> re.Pattern:
     return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
 
-protected_operations = (
-    protected_table("sentry_organizationmember", "insert"),
-    protected_table("sentry_organizationmember", "update"),
-    protected_table("sentry_organizationmember", "delete"),
-    protected_table("sentry_organization", "insert"),
-    protected_table("sentry_organization", "update"),
-    protected_table("sentry_organizationmapping", "insert"),
-    protected_table("sentry_organizationmapping", "update"),
-    protected_table("sentry_organizationmembermapping", "insert"),
-)
+_protected_operations: List[re.Pattern] = []
 
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
+
+def get_protected_operations() -> List[re.Pattern]:
+    if len(_protected_operations):
+        return _protected_operations
+
+    # Protect Foreign Keys using hybrid cloud models from being deleted without using the
+    # privileged user. Deletion should only occur when the developer is actively aware
+    # of the need to generate outboxes.
+    seen_models: MutableSet[type] = set()
+    for app_config in apps.get_app_configs():
+        for model in iter_models(app_config.name):
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
+                    continue
+                fk_model = field.foreign_model
+                if fk_model is None or fk_model in seen_models:
+                    continue
+                seen_models.add(fk_model)
+                _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+
+    # Protect inserts/updates that require outbox messages.
+    _protected_operations.extend(
+        [
+            protected_table("sentry_organizationmember", "insert"),
+            protected_table("sentry_organizationmember", "update"),
+            protected_table("sentry_organizationmember", "delete"),
+            protected_table("sentry_organization", "insert"),
+            protected_table("sentry_organization", "update"),
+            protected_table("sentry_organizationmapping", "insert"),
+            protected_table("sentry_organizationmapping", "update"),
+            protected_table("sentry_organizationmembermapping", "insert"),
+        ]
+    )
+
+    return _protected_operations
 
 
 def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
@@ -361,7 +244,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
     fence_depth = 0
     for query in queries:
         sql = query["sql"]
-        match = fence_re.match(sql)
+        match = match_fence_query(sql)
         if match:
             operation = match.group("operation")
             if operation == "start":
@@ -371,7 +254,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
             else:
                 raise AssertionError("Invalid fencing operation encounted")
 
-        for protected in protected_operations:
+        for protected in get_protected_operations():
             if protected.match(sql):
                 if fence_depth == 0:
                     msg = [
@@ -396,8 +279,6 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
 
 
 def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
-    from django.apps import apps
-
     for app, app_models in apps.all_models.items():
         if app == app_name or app_name is None:
             for model in app_models.values():

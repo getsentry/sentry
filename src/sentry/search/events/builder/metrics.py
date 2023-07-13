@@ -97,17 +97,18 @@ class MetricsQueryBuilder(QueryBuilder):
     def _resolve_on_demand_spec(
         self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
-        if not is_on_demand_query(dataset, query):
-            return None
-
         field = selected_cols[0] if selected_cols else None
         if not self.is_alerts_query or not field:
             return None
+
+        if not is_on_demand_query(dataset, field, query):
+            return None
+
         try:
             return OndemandMetricSpec(field, query)
-
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            return None
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
         if not self.is_performance or not self.is_alerts_query:

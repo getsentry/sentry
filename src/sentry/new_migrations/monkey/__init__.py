@@ -4,7 +4,7 @@ from django.db import models
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
 
-LAST_VERIFIED_DJANGO_VERSION = (2, 2)
+LAST_VERIFIED_DJANGO_VERSION = (3, 2)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 the Django migration library in several places, please verify that we have the latest
 code, and that the monkeypatching still works as expected. Currently the main things
@@ -79,4 +79,4 @@ def monkey_migrations():
     executor.MigrationExecutor = SentryMigrationExecutor
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
-    models.Field.deconstruct = deconstruct
+    models.Field.deconstruct = deconstruct  # type: ignore[method-assign]
