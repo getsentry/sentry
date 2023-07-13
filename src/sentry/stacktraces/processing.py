@@ -1,6 +1,6 @@
 import logging
-from collections import namedtuple
 from datetime import datetime
+from typing import Any, NamedTuple
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,12 +14,21 @@ from sentry.utils.safe import get_path, safe_execute
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
 
-StacktraceInfo = namedtuple(
-    "StacktraceInfo", ["stacktrace", "container", "platforms", "is_exception"]
-)
-StacktraceInfo.__hash__ = lambda x: id(x)
-StacktraceInfo.__eq__ = lambda a, b: a is b
-StacktraceInfo.__ne__ = lambda a, b: a is not b
+
+class StacktraceInfo(NamedTuple):
+    stacktrace: Any
+    container: Any
+    platforms: Any
+    is_exception: Any
+
+    def __hash__(self) -> int:
+        return id(self)
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    def __ne__(self, other: object) -> bool:
+        return self is not other
 
 
 class ProcessableFrame:

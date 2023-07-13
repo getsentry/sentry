@@ -40,3 +40,8 @@ def test_bad_fresh_install_validation(tmp_path):
     with pytest.raises(ValidationError) as excinfo:
         import_export_then_validate(tmp_path, "fresh-install.json")
     assert len(excinfo.value.info.findings) == 2
+
+
+@django_db_all(transaction=True, reset_sequences=True)
+def test_datetime_formatting(tmp_path):
+    import_export_then_validate(tmp_path, "datetime-formatting.json")
