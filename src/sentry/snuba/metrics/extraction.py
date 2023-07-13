@@ -19,6 +19,7 @@ from typing_extensions import NotRequired
 
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -35,10 +36,10 @@ QUERY_HASH_KEY = "query_hash"
 # TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
-
 # Maps from Discover's field names to event protocol paths. See Relay's
 # ``FieldValueProvider`` for supported fields. All fields need to be prefixed
 # with "event.".
+# List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level fields
     "release": "release",
@@ -63,7 +64,6 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "os.name": "contexts.os.name",
     "os.version": "contexts.os.version",
     "browser.name": "contexts.browser.name",
-    "browser.version": "contexts.browser.version",
     "transaction.op": "contexts.trace.op",
     "transaction.status": "contexts.trace.status",
     "http.status_code": "contexts.response.status_code",
@@ -110,8 +110,28 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
 }
 
+# Query fields that on their own do not require on-demand metric extraction.
+_STANDARD_METRIC_FIELDS = [
+    "release",
+    "dist",
+    "environment",
+    "transaction",
+    "platform",
+    "transaction.status",
+    "transaction.op",
+    "http.method",
+    "http.status_code",
+    "browser.name",
+    "os.name",
+    "geo.country_code",
+    "event.type",
+]
+
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
+
+QueryOp = Literal["AND", "OR"]
+QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 class ComparingRuleCondition(TypedDict):
@@ -182,11 +202,41 @@ def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
 
 
 def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[str]) -> bool:
-    """Returns ``True`` if the dataset and query combination can't be supported by standard metrics."""
+    """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
+
     if not dataset or not query:
         return False
 
-    return Dataset(dataset) == Dataset.PerformanceMetrics and "transaction.duration" in query
+    if Dataset(dataset) != Dataset.PerformanceMetrics:
+        return False
+
+    try:
+        return not _is_standard_metrics_compatible(event_search.parse_search_query(query))
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        return False
+
+
+def _is_standard_metrics_compatible(tokens: Sequence[QueryToken]) -> bool:
+    """
+    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+    """
+
+    for token in tokens:
+        if not _is_standard_metrics_search_filter(token):
+            return False
+
+    return True
+
+
+def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
+    if isinstance(token, SearchFilter):
+        return token.key.name in _STANDARD_METRIC_FIELDS
+
+    if isinstance(token, ParenExpression):
+        return _is_standard_metrics_compatible(token.children)
+
+    return True
 
 
 class OndemandMetricSpec:
@@ -277,8 +327,6 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 T = TypeVar("T")
 
 
