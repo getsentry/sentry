@@ -30,7 +30,7 @@ function GroupEvents({params, location, group}: Props) {
 
   const {groupId} = params;
 
-  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
+  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor', 'query']});
 
   const handleSearch = useCallback(
     (query: string) =>
