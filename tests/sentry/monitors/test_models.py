@@ -338,7 +338,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "An error occurred during the last check-in.",
+                "subtitle": "An error occurred during the latest check-in.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -512,7 +512,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": f"No check-in reported at {expected_time.strftime(SUBTITLE_DATETIME_FORMAT)}.",
+                "subtitle": f"No check-in reported on {expected_time.strftime(SUBTITLE_DATETIME_FORMAT)}.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
