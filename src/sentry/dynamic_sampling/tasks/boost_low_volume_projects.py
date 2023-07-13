@@ -91,7 +91,6 @@ def boost_low_volume_projects() -> None:
                 boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
     except TimeoutException:
         log_task_timeout(context)
-
     else:
         log_task_execution(context)
 

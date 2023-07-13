@@ -6,7 +6,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.utils.types import Any
 
