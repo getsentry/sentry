@@ -5,7 +5,6 @@ from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
-from django.db import router
 from django.test import override_settings
 from django.urls import re_path
 from rest_framework.permissions import AllowAny
@@ -13,8 +12,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -138,14 +135,7 @@ class ApiGatewayTestCase(APITestCase):
             adding_headers={"test": "header"},
         )
 
-        with override_regions([self._REGION]), override_settings(
-            SILO_MODE=SiloMode.REGION, SENTRY_REGION=self._REGION.name
-        ):
-            self.organization = self.create_organization()
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-                region_name=self._REGION.name
-            )
+        self.organization = self.create_organization(region=self._REGION)
 
         # Echos the request body and header back for verification
         def return_request_body(request):

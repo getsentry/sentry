@@ -8,7 +8,7 @@ from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils import TestCase
-from sentry.testutils.region import override_regions
+from sentry.testutils.region import override_region_config, override_regions
 from sentry.types.region import (
     Region,
     RegionCategory,
@@ -151,19 +151,8 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(
-            SILO_MODE=SiloMode.CONTROL,
-            SENTRY_REGION_CONFIG=json.dumps(region_config),
-            SENTRY_MONOLITH_REGION="na",
-        ):
-            organization = self.create_organization(name="test name")
-            organization_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
-            organization_mapping.name = "test name"
-            organization_mapping.region_name = "na"
-            organization_mapping.idempotency_key = "test"
-
-            with unguarded_write():
-                organization_mapping.save()
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
+            organization = self.create_organization(name="test name", region="na")
 
             user = self.create_user()
             organization_service.add_organization_member(

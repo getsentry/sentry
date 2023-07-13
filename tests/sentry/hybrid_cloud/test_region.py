@@ -1,7 +1,6 @@
 import pytest
 from django.test import override_settings
 
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
@@ -12,7 +11,7 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -27,18 +26,7 @@ class RegionResolutionTest(TestCase):
             Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
         ]
         self.target_region = self.regions[0]
-        self.organization = self._create_org_in_region(self.target_region)
-
-    def _create_org_in_region(self, target_region):
-        with override_regions(self.regions), override_settings(
-            SILO_MODE=SiloMode.REGION, SENTRY_REGION=target_region.name
-        ):
-            organization = self.create_organization()
-        org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
-        with unguarded_write():
-            org_mapping.region_name = target_region.name
-            org_mapping.save()
-        return organization
+        self.organization = self.create_organization(region=self.target_region)
 
     def test_by_organization_object(self):
         with override_regions(self.regions):
@@ -89,7 +77,8 @@ class RegionResolutionTest(TestCase):
                 region_resolution.resolve({})
 
         with override_regions(self.regions), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self._create_org_in_region(self.regions[1])
+            region = self.regions[1]
+            self.create_organization(region=region)
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
 
