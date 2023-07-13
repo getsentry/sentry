@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken, File, FileBlob, FileBlobIndex, FileBlobOwner
 from sentry.models.debugfile import ProjectDebugFile
+from sentry.silo import SiloMode
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -15,14 +16,14 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
 class DifAssembleEndpoint(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(
@@ -191,9 +192,13 @@ class DifAssembleEndpoint(APITestCase):
             }
         )
 
-        file = assemble_file(
+        assemble_result = assemble_file(
             AssembleTask.DIF, self.project, "test", total_checksum, chunks, "project.dif"
-        )[0]
+        )
+
+        assert assemble_result is not None
+
+        file = assemble_result.bundle
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status != ChunkFileState.ERROR
         assert file.checksum == total_checksum

@@ -110,6 +110,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_default_organization(self) -> RpcOrganization:
+        return serialize_rpc_organization(Organization.get_default())
+
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
@@ -396,13 +399,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org.save()
         return serialize_rpc_organization(org)
 
-    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
         with outbox_context(transaction.atomic()):
-            org_member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
-            )
+            try:
+                org_member = OrganizationMember.objects.get(
+                    organization_id=organization_id, user_id=user_id
+                )
+            except OrganizationMember.DoesNotExist:
+                return None
+
             org_member.remove_user()
-            org_member.save()
+            if org_member.email:
+                org_member.save()
+            else:
+                return None
+
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:

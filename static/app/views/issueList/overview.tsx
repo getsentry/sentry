@@ -20,7 +20,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -304,13 +305,7 @@ class IssueListOverview extends Component<Props, State> {
     if (location.query.sort) {
       return location.query.sort as string;
     }
-
-    const hasBetterPrioritySort = this.props.organization.features.includes(
-      'issue-list-better-priority-sort'
-    );
-    return hasBetterPrioritySort
-      ? IssueSortOptions.BETTER_PRIORITY
-      : DEFAULT_ISSUE_STREAM_SORT;
+    return DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {

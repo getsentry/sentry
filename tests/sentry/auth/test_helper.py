@@ -20,9 +20,10 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.redis import clusters
 
@@ -58,7 +59,7 @@ class AuthIdentityHandlerTest(TestCase):
         return self._handler_with(self.identity)
 
     def _handler_with(self, identity):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             rpc_organization = serialize_rpc_organization(self.organization)
         return AuthIdentityHandler(
             self.auth_provider,
@@ -112,7 +113,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         ]
 
     def test_associated_existing_member_invite_by_email(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             member = OrganizationMember.objects.create(
                 organization=self.organization, email=self.email
             )
@@ -147,7 +148,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_associate_pending_invite(self):
         # The org member invite should have a non matching email, but the
         # member id and token will match from the session, allowing association
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             member = OrganizationMember.objects.create(
                 organization=self.organization, email="different.email@example.com", token="abc"
             )
@@ -253,7 +254,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity_with_existing_om(self, mock_messages):
         user = self.set_up_user()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             existing_om = OrganizationMember.objects.create(
                 user_id=user.id, organization=self.organization
             )
@@ -262,7 +263,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             persisted_om = OrganizationMember.objects.get(id=existing_om.id)
             assert getattr(persisted_om.flags, "sso:linked")
             assert not getattr(persisted_om.flags, "sso:invalid")
@@ -292,7 +293,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         AuthIdentity.objects.create(
             user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             OrganizationMember.objects.create(user_id=other_user.id, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity()

@@ -7,11 +7,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ApiApplication} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import Row from 'sentry/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -20,10 +22,10 @@ const ROUTE_PREFIX = '/settings/account/api/';
 type Props = RouteComponentProps<{}, {}>;
 type State = {
   appList: ApiApplication[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ApiApplications extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ApiApplications extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['appList', '/api-applications/']];
   }
 

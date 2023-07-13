@@ -12,7 +12,7 @@ import {Platform} from 'sentry/data/platformCategories';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
-import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
+import {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -165,7 +165,8 @@ export type ComponentHooks = {
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:enhanced-org-stats': () => React.ComponentType<UsageStatsOrganizationProps>;
+  'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:escalating-issues-banner-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;

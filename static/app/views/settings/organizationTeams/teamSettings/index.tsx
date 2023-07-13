@@ -9,14 +9,15 @@ import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
@@ -24,9 +25,9 @@ type Props = RouteComponentProps<{teamId: string}, {}> & {
   team: Team;
 };
 
-type State = AsyncView['state'];
+type State = DeprecatedAsyncView['state'];
 
-class TeamSettings extends AsyncView<Props, State> {
+class TeamSettings extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return 'Team Settings';
   }

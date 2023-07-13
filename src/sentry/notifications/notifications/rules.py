@@ -23,7 +23,9 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
+    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
+    get_replay_id,
     get_rules,
     get_transaction_data,
     has_alert_integration,
@@ -173,6 +175,17 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
+        has_session_replay = features.has("organizations:session-replay", self.organization)
+        show_replay_link = features.has(
+            "organizations:session-replay-issue-emails", self.organization
+        )
+        if has_session_replay and show_replay_link and get_replay_id(self.event):
+            context.update(
+                {
+                    "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
+                }
+            )
+
         template_name = (
             self.event.occurrence.evidence_data.get("template_name")
             if isinstance(self.event, GroupEvent) and self.event.occurrence
@@ -182,6 +195,7 @@ class AlertRuleNotification(ProjectNotification):
         if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
+
             context.update(
                 {
                     "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],

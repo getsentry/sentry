@@ -10,6 +10,7 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -37,6 +38,7 @@ type Row = {
   'sps()': number;
   'sps_percent_change()': number;
   'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
 };
 
 type Column = GridColumnHeader<keyof Row>;
@@ -55,14 +57,16 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
+  SpanMetricsFields;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `p95(${SPAN_SELF_TIME})`,
   `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
+  'time_spent_percentage(local)',
   'http_error_count()',
   'http_error_count_percent_change()',
 ]);
@@ -105,14 +109,14 @@ export default function SpansTable({
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
-        hasData={data.length > 0}
+        hasData={data?.length > 0}
         isLoading={isLoading}
         disabled={shouldTrackVCD}
       >
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName)}
+          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -141,7 +145,7 @@ function renderBodyCell(
   endpoint?: string,
   endpointMethod?: string
 ): React.ReactNode {
-  if (column.key === 'span.description') {
+  if (column.key === SPAN_DESCRIPTION) {
     const queryString = {
       ...location.query,
       endpoint,
@@ -149,16 +153,16 @@ function renderBodyCell(
     };
     return (
       <OverflowEllipsisTextContainer>
-        {row['span.group'] ? (
+        {row[SPAN_GROUP] ? (
           <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
-              row['span.group']
-            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
+              queryString ? `?${qs.stringify(queryString)}` : ''
+            }`}
           >
-            {row['span.description'] || '<null>'}
+            {row[SPAN_DESCRIPTION] || '<null>'}
           </Link>
         ) : (
-          row['span.description'] || '<null>'
+          row[SPAN_DESCRIPTION] || '<null>'
         )}
       </OverflowEllipsisTextContainer>
     );
@@ -198,26 +202,26 @@ function getDescriptionHeader(moduleName: ModuleName) {
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName): Column[] {
+function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
   const description = getDescriptionHeader(moduleName);
 
   const domain = getDomainHeader(moduleName);
 
   const order: Column[] = [
     {
-      key: 'span.op',
+      key: SPAN_OP,
       name: 'Operation',
       width: 120,
     },
     {
-      key: 'span.description',
+      key: SPAN_DESCRIPTION,
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName !== ModuleName.ALL
       ? [
           {
-            key: 'span.domain',
+            key: SPAN_DOMAIN,
             name: domain,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
@@ -257,12 +261,21 @@ function getColumns(moduleName: ModuleName): Column[] {
           } as Column,
         ]
       : []),
-    {
+  ];
+
+  if (defined(transaction)) {
+    order.push({
+      key: 'time_spent_percentage(local)',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
+    });
+  } else {
+    order.push({
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
-    },
-  ];
+    });
+  }
 
   return order;
 }

@@ -88,8 +88,6 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
-ADMIN_ENABLED = DEBUG
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -358,7 +356,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -1082,16 +1079,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule_auto_transition_new": {
-        "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job every 6 hours
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_transition_regressed": {
-        "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_archive_issues": {
@@ -1298,9 +1289,11 @@ SENTRY_FEATURES = {
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": False,
+    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # Enables automatically linking repositories using commit webhook data
+    "organizations:auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1335,6 +1328,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable Discord integration
     "organizations:integrations-discord": False,
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1419,8 +1414,6 @@ SENTRY_FEATURES = {
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Normalize transactions from legacy SDKs (source:unknown).
-    "organizations:transaction-name-normalize-legacy": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1552,14 +1545,14 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled experimental session replay errors view, replacing issues
-    "organizations:session-replay-errors-tab": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trace-table": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1718,7 +1711,7 @@ SENTRY_PROJECT_KEY = None
 SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
+SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
@@ -1767,6 +1760,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 0
+
+# upsampling multiplier that we'll increase in steps till we're at 100% throughout
+SENTRY_MULTIPLIER_APM_SAMPLING = 1
 
 # ----
 # end APM config
@@ -2093,6 +2089,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    "openid",
+    "profile",
+    "email",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2127,6 +2126,14 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("openid", "Confirms authentication status and provides basic information."),),
+    (
+        (
+            "profile",
+            "Read personal information like name, avatar, date of joining etc. Requires openid scope.",
+        ),
+    ),
+    (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -2657,7 +2664,7 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
-STATUS_PAGE_ID = None
+STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
@@ -2683,6 +2690,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
+    "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
 
 
@@ -2695,6 +2703,7 @@ SENTRY_SDK_CONFIG = {
     "auto_enabling_integrations": False,
     "_experiments": {
         "custom_measurements": True,
+        "enable_backpressure_handling": True,
     },
 }
 
@@ -3235,8 +3244,8 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 # This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
-# How long is the migration phase for grouping updates?
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+# How long the migration phase for grouping lasts
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3455,16 +3464,17 @@ if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
 if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
+    region_port = os.environ.get("SENTRY_BACKEND_PORT", "8010")
     SENTRY_REGION_CONFIG = [
         {
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://us.localhost:8000",
+            "address": f"http://us.localhost:{region_port}",
             "api_token": "dev-region-silo-token",
         }
     ]
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
             "is_allowed": True,
@@ -3592,3 +3602,6 @@ DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 # If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
 # to the buffer service.
 SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
+
+# Feature flag to turn off role-swapping to help bridge getsentry transition.
+USE_ROLE_SWAPPING_IN_TESTS = True

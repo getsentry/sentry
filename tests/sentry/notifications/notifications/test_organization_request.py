@@ -1,12 +1,13 @@
-from sentry.models import NotificationSetting, OrganizationMember
+from sentry.models import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -21,7 +22,7 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
@@ -37,17 +38,16 @@ class GetParticipantsTest(TestCase):
         }
 
     def test_turn_off_settings(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.APPROVAL,
-            NotificationSettingOptionValues.ALWAYS,
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.APPROVAL,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
             user_id=self.user.id,
         )
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.APPROVAL,
-            NotificationSettingOptionValues.ALWAYS,
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.EMAIL,
+            notification_type=NotificationSettingTypes.APPROVAL,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
             user_id=self.user2.id,
         )
 

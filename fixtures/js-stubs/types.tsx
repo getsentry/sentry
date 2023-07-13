@@ -15,18 +15,20 @@ type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
 ) => Result;
 
+type OverridableVariadicStub<Params = any, Result = Params> = (
+  ...params: Array<Partial<Params>>
+) => Result;
+
 type OverridableStubList<Params = any, Result = Params> = (
   params?: Array<Partial<Params>>
 ) => Result[];
 
 type TestStubFixtures = {
   AccessRequest: OverridableStub;
-  AccountAppearance: OverridableStub;
   AccountEmails: OverridableStubList;
   ActivityFeed: OverridableStub;
   AllAuthenticators: SimpleStub;
   ApiApplication: OverridableStub;
-  ApiKey: OverridableStub;
   ApiToken: OverridableStub;
   AsanaCreate: SimpleStub;
   AsanaPlugin: SimpleStub;
@@ -44,9 +46,11 @@ type TestStubFixtures = {
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
+  Dashboard: OverridableVariadicStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
+  DeprecatedApiKey: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
@@ -187,8 +191,8 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
-
   VstsPlugin: SimpleStub;
+  Widget: OverridableVariadicStub;
 
   // TODO: These need propertly typed still
   // Widget(queries = {...DEFAULT_QUERIES}, options)

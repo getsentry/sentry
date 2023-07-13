@@ -11,8 +11,10 @@ from .parsers import (
     GithubRequestParser,
     GitlabRequestParser,
     JiraRequestParser,
+    JiraServerRequestParser,
     MsTeamsRequestParser,
     SlackRequestParser,
+    VstsRequestParser,
 )
 from .parsers.base import BaseRequestParser
 
@@ -22,9 +24,11 @@ ACTIVE_PARSERS = [
     GithubRequestParser,
     GitlabRequestParser,
     JiraRequestParser,
+    JiraServerRequestParser,
     SlackRequestParser,
     MsTeamsRequestParser,
     BitbucketRequestParser,
+    VstsRequestParser,
 ]
 
 

@@ -6,8 +6,9 @@ from freezegun import freeze_time
 from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
 from sentry.models import Integration
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 from . import FireTest
@@ -18,7 +19,7 @@ from . import FireTest
 class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def setUp(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="msteams",
                 name="Galactic Empire",

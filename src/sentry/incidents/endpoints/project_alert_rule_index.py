@@ -14,12 +14,13 @@ from sentry.api.paginator import (
     OffsetPaginator,
 )
 from sentry.api.serializers import CombinedRuleSerializer, serialize
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import Rule, RuleStatus
+from sentry.models import Rule
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
@@ -40,7 +41,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, ["date_added"])
         rule_intermediary = CombinedQuerysetIntermediary(
             Rule.objects.filter(
-                project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+                project=project,
+                status=ObjectStatus.ACTIVE,
             ),
             ["date_added"],
         )

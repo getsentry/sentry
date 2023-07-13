@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {RouteComponentProps, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -15,7 +15,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -56,11 +56,11 @@ type State = {
 
 const DEFAULT_SORT = 'count';
 
-class GroupTagValues extends AsyncComponent<
-  Props & AsyncComponent['props'] & WithRouterProps,
-  State & AsyncComponent['state']
+class GroupTagValues extends DeprecatedAsyncComponent<
+  Props & DeprecatedAsyncComponent['props'] & WithRouterProps,
+  State & DeprecatedAsyncComponent['state']
 > {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [

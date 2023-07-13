@@ -1,5 +1,6 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
@@ -27,7 +28,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -51,15 +52,15 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ManageDashboards extends AsyncView<Props, State> {
+class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -67,9 +68,9 @@ class ManageDashboards extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'dashboards',
         `/organizations/${organization.slug}/dashboards/`,
