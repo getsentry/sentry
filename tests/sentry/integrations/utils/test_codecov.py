@@ -10,8 +10,9 @@ from sentry.integrations.utils.codecov import (
     has_codecov_integration,
 )
 from sentry.models.integrations.integration import Integration
+from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test, unguarded_write
+from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test(stable=True)

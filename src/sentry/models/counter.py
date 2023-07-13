@@ -13,7 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 
 
 @region_silo_only_model
@@ -93,8 +93,6 @@ def increment_project_counter(project, delta=1, using="default"):
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
 def create_counter_function(app_config, using, **kwargs):
-    from sentry.silo import unguarded_write
-
     if app_config and app_config.name != "sentry":
         return
 

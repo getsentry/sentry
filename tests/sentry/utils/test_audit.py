@@ -9,10 +9,10 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, unguarded_write
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.audit import (
     create_audit_entry,
     create_audit_entry_from_user,

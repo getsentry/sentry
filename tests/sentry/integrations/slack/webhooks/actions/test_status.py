@@ -20,9 +20,9 @@ from sentry.models import (
     Release,
 )
 from sentry.models.activity import Activity, ActivityIntegration
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri

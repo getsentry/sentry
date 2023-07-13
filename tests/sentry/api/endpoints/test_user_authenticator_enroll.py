@@ -8,11 +8,11 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 

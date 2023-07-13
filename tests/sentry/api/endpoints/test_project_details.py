@@ -28,9 +28,10 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import region_silo_test, unguarded_write
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 

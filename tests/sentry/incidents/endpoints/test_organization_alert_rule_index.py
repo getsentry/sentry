@@ -18,11 +18,12 @@ from sentry.models import AuditLogEntry, Rule
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.silo import unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test, unguarded_write
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
