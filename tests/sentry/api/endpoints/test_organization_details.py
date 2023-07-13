@@ -981,22 +981,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 

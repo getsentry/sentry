@@ -474,7 +474,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
         if not item_list:
-            return
+            return None
 
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]

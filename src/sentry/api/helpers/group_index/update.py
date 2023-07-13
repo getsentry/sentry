@@ -829,7 +829,6 @@ def handle_assigned_to(
                 had_to_deassign=assignment["updated_assignment"],
             )
         return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
-
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
@@ -841,3 +840,4 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=True,
             )
+        return None
