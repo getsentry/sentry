@@ -6,5 +6,6 @@ urlpatterns = [
     re_path(
         r"^webhook/$",
         GitHubEnterpriseWebhookEndpoint.as_view(),
+        name="sentry-integration-github-enterprise-webhook",
     )
 ]
