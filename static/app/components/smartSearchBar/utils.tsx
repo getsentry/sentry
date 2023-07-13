@@ -154,7 +154,9 @@ interface SearchGroups {
 }
 
 function isSearchGroup(searchItem: SearchItem | SearchGroup): searchItem is SearchGroup {
-  return (searchItem as SearchGroup).children !== undefined;
+  return (
+    (searchItem as SearchGroup).children !== undefined && searchItem.type === 'header'
+  );
 }
 
 export function createSearchGroups(
