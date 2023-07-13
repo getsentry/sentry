@@ -1,7 +1,9 @@
-# SDK Crash Detection
+SDK Crash Detection
+-------
 
 
-## Background
+Background
+=======
 
 As an APM company, the reliability of our SDKs is one of our most essential quality goals. If our SDK breaks the customer, we fail.
 Our SDK philosophy refers to this as `degrade gracefully <https://develop.sentry.dev/sdk/philosophy/#degrade-gracefully>`_.
@@ -15,7 +17,8 @@ other quality mechanisms should find such severe bugs. Furthermore, the solution
 In the beginning, this solution only works for the Cocoa SDK crashes. We will roll out this feature to more SDKs in the future.
 
 
-## Solution
+Solution
+=======
 
 The SDK crash detection hooks into post-processing and checks the stacktraces of every event.
 
