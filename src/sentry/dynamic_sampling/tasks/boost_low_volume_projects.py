@@ -75,9 +75,10 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
-    context = TaskContext(boost_low_volume_projects.__name__, MAX_SECONDS)
+    context = TaskContext("sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_SECONDS)
     fetch_projects_timer = Timer()
     iterator_name = GetActiveOrgs.__name__
+
     try:
         for orgs in TimedIterator(
             context, iterator_name, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)
@@ -91,6 +92,7 @@ def boost_low_volume_projects() -> None:
                 boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
     except TimeoutException:
         log_task_timeout(context)
+        raise
     else:
         log_task_execution(context)
 
@@ -126,20 +128,8 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     """
     function_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
     with timer:
-        current_context = context.get_current_context(
-            function_name,
-            {
-                "execution_time": 0,
-                "data": {
-                    "num_rows_total": 0,
-                    "num_rows_current": 0,
-                },
-            },
-        )
-
-        context_data = current_context["data"]
-        # no rows return yet
-        context_data["num_rows_current"] = 0
+        current_context = context.get_function_state(function_name)
+        current_context.num_iterations += 1
 
         if query_interval is None:
             query_interval = timedelta(hours=1)
@@ -227,15 +217,19 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                         row["drop_count"],
                     )
                 )
+                current_context.num_projects += 1
 
-            context_data["num_rows_total"] += count
-            context_data["num_rows_current"] += count
+            current_context.num_db_calls += 1
+            current_context.num_rows_total += count
+            current_context.num_orgs += len(aggregated_projects)
+            current_context.execution_time = timer.current()
 
-            context.set_current_context(function_name, timer.current(), context_data)
+            context.set_function_state(function_name, current_context)
 
             if not more_results:
                 break
         else:
+            context.set_function_state(function_name, current_context)
             raise TimeoutException(context)
 
         return aggregated_projects

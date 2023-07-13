@@ -1,4 +1,3 @@
-import logging
 import math
 import time
 from datetime import datetime, timedelta
@@ -32,15 +31,13 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     get_sliding_window_size,
 )
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
-
-logger = logging.getLogger(__name__)
 
 
 class TimeoutException(Exception):
@@ -62,7 +59,7 @@ class ContextIterator(Protocol):
     def __next__(self):
         ...
 
-    def get_current_state(self) -> Any:
+    def get_current_state(self) -> DynamicSamplingLogState:
         """
         Return some current iterator state that can be used for logging
         The return value should be convertible to JSON
@@ -92,9 +89,8 @@ class TimedIterator(Iterator[Any]):
         with self.iterator_execution_time:
             val = next(self.inner)
             state = self.inner.get_current_state()
-            self.context.set_current_context(
-                self.name, self.iterator_execution_time.current(), state
-            )
+            state.execution_time = self.iterator_execution_time.current()
+            self.context.set_function_state(self.name, state)
             return val
 
 
@@ -113,21 +109,21 @@ class GetActiveOrgs:
         )
         self.offset = 0
         self.last_result: List[Tuple[int, int]] = []
-        self.has_more_results = False
+        self.has_more_results = True
         self.max_orgs = max_orgs
         self.max_projects = max_projects
-        self.orgs_fetched = 0
-        self.projects_fetched = 0
+        self.log_state = DynamicSamplingLogState()
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
             return self._get_from_cache()
 
-        if not self.has_more_results:
+        if self.has_more_results:
             # not enough for the current iteration and data still in the db top it up from db
             query = (
                 Query(
@@ -157,15 +153,18 @@ class GetActiveOrgs:
             request = Request(
                 dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
             )
+            self.log_state.num_db_calls += 1
             data = raw_snql_query(
                 request,
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
             count = len(data)
-            self.has_more_results = count <= CHUNK_SIZE
+
+            self.has_more_results = count > CHUNK_SIZE
             self.offset += CHUNK_SIZE
-            if not self.has_more_results:
+            if self.has_more_results:
                 data = data[:-1]
+            self.log_state.num_rows_total += len(data)
             for row in data:
                 self.last_result.append((row["org_id"], row["num_projects"]))
 
@@ -183,10 +182,7 @@ class GetActiveOrgs:
         part of the ContexIterator protocol
 
         """
-        return {
-            "orgsFetched": self.orgs_fetched,
-            "projectsFetched": self.projects_fetched,
-        }
+        return self.log_state
 
     def _enough_results_cached(self):
         """
@@ -222,8 +218,8 @@ class GetActiveOrgs:
                 # we got to the number of elements desired
                 ret_val = self._get_orgs(self.last_result[: idx + 1])
                 self.last_result = self.last_result[idx + 1 :]
-                self.orgs_fetched += 1
-                self.projects_fetched += count_projects
+                self.log_state.num_orgs += 1
+                self.log_state.num_projects += count_projects
                 return ret_val
         # if we are here we haven't reached our max limit, return everything
         ret_val = self._get_orgs(self.last_result)

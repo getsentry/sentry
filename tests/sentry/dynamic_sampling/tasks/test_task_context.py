@@ -2,7 +2,7 @@ import time
 
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 
 
 def test_task_context_expiration_time():
@@ -24,20 +24,33 @@ def test_task_context_data():
     * it keeps various function contexts separated from each other
     """
     context = TaskContext("my-task", 3)
-    assert context.get_current_context("func1") is None
-    assert context.get_current_context("func1", {"key": "default-value"}) == {
-        "key": "default-value"
-    }
-    context.set_current_context("func1", 2.2, {"key": "some-value"})
-    assert context.get_current_context("func1") == {
-        "executionTime": 2.2,
-        "data": {"key": "some-value"},
-    }
-    assert context.get_current_context("func1", {"key": "default-value"}) == {
-        "executionTime": 2.2,
-        "data": {"key": "some-value"},
-    }
-    assert context.get_current_context("func2") is None
-    assert context.get_current_context("func2", {"key": "default-value"}) == {
-        "key": "default-value"
-    }
+    assert context.get_function_state("func1") == DynamicSamplingLogState()
+
+    context.set_function_state("func1", DynamicSamplingLogState(num_rows_total=1, num_db_calls=2))
+    assert context.get_function_state("func1") == DynamicSamplingLogState(
+        num_rows_total=1, num_db_calls=2
+    )
+    assert context.get_function_state("func2") == DynamicSamplingLogState()
+
+    context.set_function_state(
+        "func2",
+        DynamicSamplingLogState(
+            num_rows_total=1,
+            num_db_calls=2,
+            num_iterations=3,
+            num_projects=4,
+            num_orgs=5,
+            execution_time=2.3,
+        ),
+    )
+    assert context.get_function_state("func1") == DynamicSamplingLogState(
+        num_rows_total=1, num_db_calls=2
+    )
+    assert context.get_function_state("func2") == DynamicSamplingLogState(
+        num_rows_total=1,
+        num_db_calls=2,
+        num_iterations=3,
+        num_projects=4,
+        num_orgs=5,
+        execution_time=2.3,
+    )
