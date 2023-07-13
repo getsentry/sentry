@@ -190,6 +190,8 @@ function SlowestFunctionEntry({
     const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
+    // it is more efficient to filter on the fingerprint
+    // than it is to filter on the package + function
     conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
 
     return conditions.formatString();
