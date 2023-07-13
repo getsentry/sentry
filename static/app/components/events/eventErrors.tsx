@@ -56,8 +56,10 @@ function shouldErrorBeShown(error: EventErrorData, event: Event) {
   if (
     error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
     event.sdk?.name === 'sentry.cocoa' &&
+    event.data?.name === 'contexts.trace.sampled' &&
     semverCompare(event.sdk?.version || '', '8.7.4') === -1
   ) {
+    // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
     return false;
   }
   return true;
