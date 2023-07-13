@@ -2,7 +2,6 @@ import pytest
 from django.core.signing import BadSignature
 
 from fixtures.sudo_testutils import BaseTestCase
-from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sudo.settings import COOKIE_AGE, COOKIE_NAME
 from sudo.utils import grant_sudo_privileges, has_sudo_privileges, revoke_sudo_privileges
 
@@ -102,37 +101,3 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
     def test_missing_keys(self):
         self.login()
         self.assertFalse(has_sudo_privileges(self.request))
-
-
-class IsSafeUrlTestCase(BaseTestCase):
-    def test_success(self):
-        self.assertTrue(url_has_allowed_host_and_scheme("/", allowed_hosts=None))
-        self.assertTrue(url_has_allowed_host_and_scheme("/foo/", allowed_hosts=None))
-        self.assertTrue(url_has_allowed_host_and_scheme("/", allowed_hosts={"example.com"}))
-        self.assertTrue(
-            url_has_allowed_host_and_scheme("http://example.com/foo", allowed_hosts={"example.com"})
-        )
-
-    def test_failure(self):
-        self.assertFalse(url_has_allowed_host_and_scheme(None, allowed_hosts=None))
-        self.assertFalse(url_has_allowed_host_and_scheme("", allowed_hosts={""}))
-        self.assertFalse(
-            url_has_allowed_host_and_scheme(
-                "http://mattrobenolt.com/", allowed_hosts={"example.com"}
-            )
-        )
-        self.assertFalse(url_has_allowed_host_and_scheme("///example.com/", allowed_hosts=None))
-        self.assertFalse(
-            url_has_allowed_host_and_scheme("ftp://example.com", allowed_hosts={"example.com"})
-        )
-        self.assertFalse(
-            url_has_allowed_host_and_scheme(
-                "http://example.com\\@mattrobenolt.com", allowed_hosts={"example.com"}
-            )
-        )
-        self.assertFalse(
-            url_has_allowed_host_and_scheme("http:///example.com", allowed_hosts={"example.com"})
-        )
-        self.assertFalse(
-            url_has_allowed_host_and_scheme("\x08//example.com", allowed_hosts={"example.com"})
-        )
