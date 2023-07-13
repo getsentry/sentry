@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Dict
 
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from requests import Request, Response
-from rest_framework.request import Request as DrfRequest
 
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
@@ -45,7 +44,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def client(self, client):
         self._client = client
 
-    def _validate_sender(self, request: DrfRequest) -> bool:
+    def _validate_sender(self, request: HttpRequest) -> bool:
         """
         Returns True if the sender is deemed sufficiently trustworthy.
         """
@@ -65,7 +64,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         return is_valid
 
-    def _validate_request(self, request: DrfRequest) -> bool:
+    def _validate_request(self, request: HttpRequest) -> bool:
         """
         Returns True if a client could be generated from the request
         """
@@ -110,7 +109,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         return True
 
-    def _should_operate(self, request: DrfRequest) -> bool:
+    def _should_operate(self, request: HttpRequest) -> bool:
         """
         Returns True if this endpoint should proxy the incoming integration request.
         """
