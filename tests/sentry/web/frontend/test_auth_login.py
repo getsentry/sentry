@@ -462,6 +462,10 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
+    def setUp(self):
+        super().setUp()
+        options.set("auth.allow-registration", False)
+
     def test_renders_correct_template_existent_org(self):
         resp = self.client.get(
             self.path,
