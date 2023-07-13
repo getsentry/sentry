@@ -209,7 +209,7 @@ function BaseSlider(
       skipWrapper
       isHoverable
       position="bottom"
-      offset={8}
+      offset={-15}
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
