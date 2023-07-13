@@ -1,10 +1,9 @@
-from urllib.parse import urlencode
-
 import pytest
 import responses
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
@@ -35,8 +34,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.post(self.init_path_without_guide, data=self.config)
         assert resp.status_code == 200
 
-        resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"name": name})))
-
         mock_request = responses.calls[0].request
 
         assert mock_request.headers["Authorization"] == "GenieKey " + self.config["api_key"]
@@ -44,14 +41,13 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         mock_response = responses.calls[0].response
         assert json.loads(mock_response.content) == resp_data
 
-        assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
-
     @responses.activate
     def test_installation(self):
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
+        org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
+        assert org_integration.organization_id == self.organization.id
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
 
