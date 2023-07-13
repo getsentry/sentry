@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import MINYEAR, datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar
 
@@ -202,6 +202,9 @@ class FlatFileIndex:
             self._iterate_over_debug_ids(artifact_bundle, archive)
 
     def _update_bundles(self, artifact_bundle: ArtifactBundle):
+        if artifact_bundle.date_last_modified is None:
+            return
+
         existing_bundle_date = self._bundles.get(artifact_bundle.id)
         if (
             existing_bundle_date is None
@@ -225,7 +228,9 @@ class FlatFileIndex:
         entries = collection.get(key, [])
         entries.append(artifact_bundle_id)
         # TODO: we have to also sort by id in case timestamps are equal.
-        entries.sort(key=lambda e: self._bundles[e])
+        # In case we can't find the bundle, we will put the invalid bundles at the end.
+        entries.sort(key=lambda e: self._bundles.get(e, MINYEAR), reverse=True)
+
         collection[key] = entries
 
     def save(self):
