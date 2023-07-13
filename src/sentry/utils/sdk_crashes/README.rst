@@ -17,8 +17,11 @@ In the beginning, this solution only works for the Cocoa SDK crashes. We will ro
 
 ## Solution
 
-The SDK crash detection hooks into [post-processing](https://github.com/getsentry/sentry/blob/4040cb3c5b6bc8089c089b61b069dcc68de75fea/src/sentry/tasks/post_process.py#L1063-L1086)
-and checks the stacktraces of every event. If the event is fatal, caused by one of our SDKs,
+The SDK crash detection hooks into post-processing and checks the stacktraces of every event.
+
+https://github.com/getsentry/sentry/blob/4040cb3c5b6bc8089c089b61b069dcc68de75fea/src/sentry/tasks/post_process.py#L1063-L1086
+
+If the event is fatal, caused by one of our SDKs,
 the code strips away most of the data based on an allow list and stores the event to a dedicated Sentry project. The event_stripper only keeps
 SDK and system library frames. For grouping to work correctly, the event_stripper sets in_app to true for all SDK frames, but the grouping
 config will change it to in_app false for all Cocoa SDK frames. To not change the grouping logic, we add the following stacktrace rule
