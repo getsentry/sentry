@@ -127,7 +127,6 @@ class DigestNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         has_session_replay = features.has("organizations:session-replay", organization)
         show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
-
         return {
             **get_digest_as_context(digest),
             "has_alert_integration": has_alert_integration(project),
