@@ -2,6 +2,7 @@ import {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {NONE_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/noneOption';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
@@ -43,6 +44,10 @@ export function buildEventViewQuery({
         return `(!span.category:db OR ${SPAN_OP}:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
           ','
         )}]`;
+      }
+
+      if (value === NONE_OPTION_VALUE) {
+        return `!has:${key}`;
       }
 
       return `${key}:${isArray ? `[${value}]` : value}`;

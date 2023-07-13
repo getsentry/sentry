@@ -11,6 +11,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {
+  NONE_OPTION_VALUE,
+  NoneOption,
+} from 'sentry/views/starfish/views/spans/selectors/noneOption';
 
 const {SPAN_DOMAIN} = SpanMetricsFields;
 
@@ -37,10 +41,18 @@ export function DomainSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => ({
-      value: datum['span.domain'],
-      label: datum['span.domain'],
-    })),
+    ...domains.map(datum => {
+      if (datum[SPAN_DOMAIN] === '') {
+        return {
+          value: NONE_OPTION_VALUE,
+          label: <NoneOption />,
+        };
+      }
+      return {
+        value: datum['span.domain'],
+        label: datum['span.domain'],
+      };
+    }),
   ];
 
   return (
