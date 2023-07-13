@@ -27,6 +27,8 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
   useEffect(() => {
     if (detailKey) {
       setState({collapsed: false});
+    } else {
+      setState({collapsed: true});
     }
   }, [detailKey]);
 
