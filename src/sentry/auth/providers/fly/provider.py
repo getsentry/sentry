@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, cast
 
 from sentry import options
-from sentry.auth.partnership_config import SPONSOR_OAUTH_NAME, ChannelName
+from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 

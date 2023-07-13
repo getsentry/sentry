@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from sentry.auth.partnership_config import ChannelName
+from sentry.auth.partnership_configs import ChannelName
 
 
 class Config(AppConfig):
