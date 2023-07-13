@@ -503,7 +503,7 @@ class MetricChart extends PureComponent<Props, State> {
       newAlertOrQuery: false,
     });
 
-    if (isOnDemandMetricAlert(rule.query)) {
+    if (isOnDemandMetricAlert(rule.dataset, rule.query)) {
       return this.renderEmpty(
         t(
           'This alert includes advanced conditions, which is a feature that is currently in early access. Charts are not yet supported at this time.'

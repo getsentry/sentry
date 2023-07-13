@@ -118,6 +118,7 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
@@ -980,6 +981,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.USER_USERNAME]: {
     desc: t('Username of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.USER_SEGMENT]: {
+    desc: t('Segment of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

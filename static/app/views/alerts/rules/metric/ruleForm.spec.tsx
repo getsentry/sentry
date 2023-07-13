@@ -360,6 +360,7 @@ describe('Incident Rules Form', () => {
       const invalidOnDemandMetricRule = TestStubs.MetricRule({
         aggregate: 'percentile()',
         query: 'transaction.duration:<1s',
+        dataset: 'generic_metrics',
       });
 
       const onSubmitSuccess = jest.fn();
