@@ -29,9 +29,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_link_all_repos(self, get_jwt):
+    def _add_responses(self):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -55,6 +53,11 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 ],
             },
         )
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_link_all_repos(self, get_jwt):
+        self._add_responses()
 
         link_all_repos(
             integration_key=self.key,
@@ -190,29 +193,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     def test_link_all_repos_repo_creation_error(self, get_jwt, mock_repo, mock_capture_exception):
         mock_repo.side_effect = IntegrityError
 
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
-        responses.add(
-            responses.GET,
-            self.base_url + "/installation/repositories?per_page=100",
-            status=200,
-            json={
-                "total_count": 2,
-                "repositories": [
-                    {
-                        "id": 1,
-                        "full_name": "getsentry/sentry",
-                    },
-                    {
-                        "id": 2,
-                        "full_name": "getsentry/snuba",
-                    },
-                ],
-            },
-        )
+        self._add_responses()
 
         link_all_repos(
             integration_key=self.key,
