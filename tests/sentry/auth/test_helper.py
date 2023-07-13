@@ -273,13 +273,12 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_new_identity_with_existing_om_invited_idp_provisioned(self, mock_messages):
+    def test_new_identity_with_existing_om_idp_provisioned(self, mock_messages):
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
             existing_om = OrganizationMember.objects.create(
                 user_id=user.id,
                 organization=self.organization,
-                invite_status=InviteStatus.APPROVED.value,
                 flags=OrganizationMember.flags["idp:provisioned"],
             )
 
