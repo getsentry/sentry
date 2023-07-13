@@ -488,7 +488,7 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
-        expected_time = monitor.get_next_scheduled_checkin_without_margin(last_checkin)
+        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
             reason=MonitorFailure.MISSED_CHECKIN,
