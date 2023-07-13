@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import inspect
 import re
 import sys
-from collections import defaultdict
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
@@ -25,7 +23,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models import Actor, NotificationSetting
 from sentry.silo import SiloMode
-from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
+from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -304,35 +302,6 @@ def restrict_role(role: str, model: Any, revocation_type: str, using: str = "def
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
 
 
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
-_fencing_counters: MutableMapping[str, int] = defaultdict(int)
-
-
-@contextlib.contextmanager
-def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
-    """
-    Used to indicate that the wrapped block is safe to do
-    mutations on outbox backed records.
-    In production this context manager has no effect, but
-    in tests it emits 'fencing' queries that are audited at the
-    end of each test run by validate_protected_queries
-    """
-    if "pytest" not in sys.argv[0]:
-        yield
-        return
-
-    using = determine_using_by_silo_mode(using)
-    _fencing_counters[using] += 1
-
-    with get_connection(using).cursor() as conn:
-        fence_value = _fencing_counters[using]
-        conn.execute("SELECT %s", [f"start_role_override_{fence_value}"])
-        try:
-            yield
-        finally:
-            conn.execute("SELECT %s", [f"end_role_override_{fence_value}"])
-
-
 def protected_table(table: str, operation: str) -> re.Pattern:
     return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
@@ -348,8 +317,6 @@ protected_operations = (
     protected_table("sentry_organizationmembermapping", "insert"),
 )
 
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
-
 
 def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
     """
@@ -361,7 +328,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
     fence_depth = 0
     for query in queries:
         sql = query["sql"]
-        match = fence_re.match(sql)
+        match = match_fence_query(sql)
         if match:
             operation = match.group("operation")
             if operation == "start":

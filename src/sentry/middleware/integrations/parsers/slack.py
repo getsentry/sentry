@@ -107,6 +107,8 @@ class SlackRequestParser(BaseRequestParser):
             params = unsign(self.match.kwargs.get("signed_params"))
             return Integration.objects.filter(id=params.get("integration_id")).first()
 
+        return None
+
     def get_response_from_first_region(self):
         regions = self.get_regions_from_organizations()
         first_region = regions[0]

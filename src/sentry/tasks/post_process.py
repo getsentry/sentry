@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -386,6 +387,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
