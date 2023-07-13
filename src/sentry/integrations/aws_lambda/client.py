@@ -1,6 +1,7 @@
 import boto3
 
 from sentry import options
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.utils import json
 
 
@@ -8,6 +9,7 @@ class ConfigurationError(Exception):
     pass
 
 
+@control_silo_function
 def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
     """
     account_number - account number in AWS
