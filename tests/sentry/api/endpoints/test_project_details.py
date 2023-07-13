@@ -8,7 +8,6 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import (
@@ -29,7 +28,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -169,6 +168,29 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
         )
         assert not response.data["hasAlertIntegrationInstalled"]
+
+    def test_filters_disabled_plugins(self):
+        from sentry.plugins.base import plugins
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert response.data["plugins"] == []
+
+        asana_plugin = plugins.get("asana")
+        asana_plugin.enable(project)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert len(response.data["plugins"]) == 1
+        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
 
     def test_project_renamed_302(self):
         project = self.create_project()
@@ -603,7 +625,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -612,7 +634,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER
@@ -978,6 +1000,78 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") == "http://example.com"
+            assert poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") == "wat"
+            assert poll_project_recap_server.called
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_no_feature(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"projects:recap-server": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 400
+            assert project.get_option("sentry:recap_server_url") is None
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 400
+            assert project.get_option("sentry:recap_server_token") is None
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_no_modification(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        project.update_option("sentry:recap_server_url", "http://example.com")
+        project.update_option("sentry:recap_server_token", "wat")
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") == "http://example.com"
+            assert not poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") == "wat"
+            assert not poll_project_recap_server.called
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_deletion(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        project.update_option("sentry:recap_server_url", "http://example.com")
+        project.update_option("sentry:recap_server_token", "wat")
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") is None
+            assert not poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") is None
+            assert not poll_project_recap_server.called
+
 
 @region_silo_test
 class CopyProjectSettingsTest(APITestCase):
@@ -1108,7 +1202,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1135,7 +1229,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")

@@ -20,12 +20,12 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -275,20 +275,20 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         for default_value, project_value, is_subscribed, has_details in combinations:
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 UserOption.objects.clear_local_cache()
 
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -296,13 +296,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -324,13 +324,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
                 NotificationSetting.objects.update_settings(
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -346,12 +346,12 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 NotificationSetting.objects.update_settings(
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 

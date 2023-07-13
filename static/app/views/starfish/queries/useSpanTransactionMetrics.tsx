@@ -9,9 +9,11 @@ import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
   'p50(span.self_time)': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
@@ -38,6 +40,7 @@ export const useSpanTransactionMetrics = (
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    referrer: _referrer,
   });
 };
 
@@ -50,7 +53,7 @@ function getEventView(
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   const search = new MutableSearch('');
-  search.addFilterValues('span.group', [cleanGroupId]);
+  search.addFilterValues(SPAN_GROUP, [cleanGroupId]);
   search.addFilterValues('transaction.op', ['http.server']);
 
   if (transactions.length > 0) {
@@ -71,10 +74,11 @@ function getEventView(
         `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
         'time_spent_percentage(local)',
         'transaction.op',
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

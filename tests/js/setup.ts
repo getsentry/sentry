@@ -4,7 +4,7 @@ import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter} from 'react-router';
+import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import MockDate from 'mockdate';
@@ -121,6 +121,9 @@ jest.mock('@sentry/react', function sentryReact() {
     Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    BrowserTracing: jest.fn().mockReturnValue({}),
+    BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
+    addGlobalEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
     }),
@@ -185,6 +188,20 @@ const routerFixtures = {
     stepBack: () => {},
     ...params,
   }),
+
+  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
+    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
+  ): RouteComponentProps<RouteParams, {}> => {
+    const router = TestStubs.router(params);
+    return {
+      location: router.location,
+      params: router.params as RouteParams & {},
+      routes: router.routes,
+      route: router.routes[0],
+      routeParams: router.params,
+      router,
+    };
+  },
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {

@@ -26,6 +26,8 @@ export const SORTABLE_FIELDS = new Set([
   'sps_percent_change()',
   'time_spent_percentage()',
   'time_spent_percentage(local)',
+  'http_error_count()',
+  'http_error_count_percent_change()',
 ]);
 
 export const renderHeadCell = ({column, location, sort}: Options) => {
@@ -60,7 +62,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
   );
 };
 
-export const getAlignment = (key: string): Alignments => {
+const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);

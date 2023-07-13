@@ -1,8 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
-
-from typing_extensions import NotRequired
+from typing import Any, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -14,16 +12,18 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    MetricSpec,
+    OndemandMetricSpec,
+    RuleCondition,
+    is_on_demand_snuba_query,
+)
+from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger(__name__)
 
-
 # GENERIC METRIC EXTRACTION
-
-
-# Name component of MRIs used for custom alert metrics.
-# TODO: Move to a common module.
-CUSTOM_ALERT_METRIC_NAME = "transactions/alert"
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
@@ -31,71 +31,6 @@ _METRIC_EXTRACTION_VERSION = 1
 # Maximum number of custom metrics that can be extracted for alert rules with
 # advanced filter expressions.
 _MAX_ALERT_METRICS = 100
-
-# Base type for conditions to evaluate on payloads.
-# TODO: Streamline with dynamic sampling.
-RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
-
-
-class ComparingRuleCondition(TypedDict):
-    """RuleCondition that compares a named field to a reference value."""
-
-    op: Literal["eq", "gt", "gte", "lt", "lte", "glob"]
-    name: str
-    value: Any
-
-
-class LogicalRuleCondition(TypedDict):
-    """RuleCondition that applies a logical operator to a sequence of conditions."""
-
-    op: Literal["and", "or"]
-    inner: Sequence[RuleCondition]
-
-
-class NotRuleCondition(TypedDict):
-    """RuleCondition that negates an inner condition."""
-
-    op: Literal["not"]
-    inner: RuleCondition
-
-
-class TagSpec(TypedDict):
-    """
-    Configuration for a tag to add to a metric.
-
-    Tags values can be static if defined through `value` or dynamically queried
-    from the payload if defined through `field`. These two options are mutually
-    exclusive, behavior is undefined if both are specified.
-    """
-
-    key: str
-    field: NotRequired[str]
-    value: NotRequired[str]
-    condition: NotRequired[RuleCondition]
-
-
-class MetricSpec(TypedDict):
-    """
-    Specification for a metric to extract from some data.
-
-    The metric type is given as part of the MRI (metric reference identifier)
-    which must follow the form: `<type>:<namespace>/<name>@<unit>`.
-
-    How the metric's value is obtained depends on the metric type:
-     - Counter metrics are a special case, since the default product counters do
-       not count any specific field but rather the occurrence of the event. As
-       such, there is no value expression, and the field is set to `None`.
-       Semantics of specifying remain undefined at this point.
-     - Distribution metrics require a numeric value.
-     - Set metrics require a string value, which is then emitted into the set as
-       unique value. Insertion of numbers and other types is undefined.
-    """
-
-    category: Literal["transaction"]
-    mri: str
-    field: NotRequired[Optional[str]]
-    condition: NotRequired[RuleCondition]
-    tags: NotRequired[Sequence[TagSpec]]
 
 
 class MetricExtractionConfig(TypedDict):
@@ -125,7 +60,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     metrics: List[MetricSpec] = []
     for alert in alerts:
-        if metric := _convert_alert_to_metric(alert):
+        if metric := convert_query_to_metric(alert.snuba_query):
             metrics.append(metric)
 
     if not metrics:
@@ -141,33 +76,27 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
-    if not alert.is_custom_metric:
+def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+    """
+    If the passed snuba_query is a valid query for on-demand metric extraction,
+    returns a MetricSpec for the query. Otherwise, returns None.
+    """
+    try:
+        if not is_on_demand_snuba_query(snuba_query):
+            return None
+
+        spec = OndemandMetricSpec(snuba_query.aggregate, snuba_query.query)
+
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": spec.mri,
+            "field": spec.field,
+            "condition": spec.condition(),
+            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
+        }
+    except Exception as e:
+        logger.error(e, exc_info=True)
         return None
-
-    # TODO: Determine these based on the alert.snuba_query.field:
-    metric_type = "c"
-    metric_unit = "none"
-    field = None
-
-    condition = _convert_alert_query_to_condition(alert.snuba_query.query)
-    query_hash = str(alert.id)  # TODO: Hash field + condition
-
-    return {
-        "category": DataCategory.TRANSACTION.api_name(),
-        "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@{metric_unit}",
-        "field": field,
-        "condition": condition,
-        "tags": [{"key": "query_hash", "value": query_hash}],
-    }
-
-
-def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-    # TODO: Parse and convert the query using QueryBuilder
-    return {
-        "op": "and",
-        "inner": [],
-    }
 
 
 # CONDITIONAL TAGGING

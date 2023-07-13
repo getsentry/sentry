@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -319,7 +319,7 @@ class AuthLoginView(BaseView):
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.get_default()
+            org = organization_service.get_default_organization()
             next_uri = reverse("sentry-auth-organization", args=[org.slug])
             return HttpResponseRedirect(next_uri)
 

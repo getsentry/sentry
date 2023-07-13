@@ -14,12 +14,13 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -247,8 +248,7 @@ const getEventView = (
       yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
-      interval: getInterval(pageFilters.datetime, 'low'),
+      interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
       version: 2,
     },
     location
@@ -267,12 +267,14 @@ const buildDiscoverQueryConditions = (
       return `${key}:${appliedFilters[key]}`;
     });
 
+  result.push(`has:${SPAN_DESCRIPTION}`);
+
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:${moduleName}`);
+    result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    result.push('!span.op:db.redis');
+    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

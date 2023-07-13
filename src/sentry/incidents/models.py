@@ -408,12 +408,6 @@ class AlertRule(Model):
             pass
         return None
 
-    @property
-    def is_custom_metric(self):
-        # TODO(ogi): Remove this once we decide on a better way to determine if an alert rule is
-        # based on a a custom metric or not.
-        return "transaction.duration" in self.snuba_query.query
-
     def get_audit_log_data(self):
         return {"label": self.name}
 

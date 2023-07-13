@@ -1,10 +1,10 @@
 import logging
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Sequence, Union
 
 import sentry_sdk
 from django.conf import settings
 from django.db import transaction
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
@@ -71,13 +71,13 @@ def trim(
         return trim(value, _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
-        result = {}
+        result: Any = {}
         _size += 2
-        for k in sorted(value.keys(), key=lambda x: (len(force_text(value[x])), x)):
+        for k in sorted(value.keys(), key=lambda x: (len(force_str(value[x])), x)):
             v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(force_text(trim_v)) + 1
+            _size += len(force_str(trim_v)) + 1
             if _size >= max_size:
                 break
 
@@ -87,7 +87,7 @@ def trim(
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
-            _size += len(force_text(trim_v))
+            _size += len(force_str(trim_v))
             if _size >= max_size:
                 break
         if isinstance(value, tuple):
@@ -157,13 +157,13 @@ def set_path(data, *path, **kwargs):
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
     for p in path[:-1]:
-        if not isinstance(data, Mapping):
+        if not isinstance(data, MutableMapping):
             return False
         if data.get(p) is None:
             data[p] = {}
         data = data[p]
 
-    if not isinstance(data, Mapping):
+    if not isinstance(data, MutableMapping):
         return False
 
     p = path[-1]
@@ -195,11 +195,10 @@ def safe_urlencode(query, **kwargs):
     """
     # sequence of 2-element tuples
     if isinstance(query, (list, tuple)):
-        safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
-        return urlencode(safe_query, **kwargs)
-
-    if isinstance(query, dict):
-        safe_query = {k: "" if v is None else v for k, v in query.items()}
-        return urlencode(safe_query, **kwargs)
-
-    return urlencode(query, **kwargs)
+        query_seq = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(query_seq, **kwargs)
+    elif isinstance(query, dict):
+        query_d = {k: "" if v is None else v for k, v in query.items()}
+        return urlencode(query_d, **kwargs)
+    else:
+        return urlencode(query, **kwargs)

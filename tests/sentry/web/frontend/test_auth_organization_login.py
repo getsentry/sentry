@@ -1,10 +1,10 @@
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 
 from sentry.auth.authenticators import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
@@ -1068,7 +1068,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
-        self.auth_provider = AuthProvider.objects.create(
+        self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
         self.path = reverse("sentry-auth-organization", args=[self.organization.slug])
@@ -1109,7 +1109,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
@@ -1145,7 +1145,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
         # Check that OrganizationMember was created as a side effect
@@ -1187,7 +1187,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
         member = OrganizationMember.objects.get(

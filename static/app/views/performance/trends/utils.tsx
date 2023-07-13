@@ -3,8 +3,9 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -115,6 +116,10 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  neutral: {
+    lighter: theme.yellow200,
+    default: theme.yellow300,
+  },
   // TODO remove this once backend starts sending
   // TrendChangeType.IMPROVED as change type
   improvement: {
@@ -137,6 +142,8 @@ export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
+
+const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
 
 export function resetCursors() {
   const cursors = {};
@@ -242,7 +249,7 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: OrganizationSummary
+  canUseMetricsTrends: boolean = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
@@ -268,18 +275,20 @@ export function modifyTrendView(
     );
   }
 
-  if (!organization.features.includes('performance-new-trends')) {
+  if (!canUseMetricsTrends) {
     trendView.query = getLimitTransactionItems(trendView.query);
   } else {
     const query = new MutableSearch(trendView.query);
-    // remove metrics-incompatible filters
-    if (query.hasFilter('transaction.duration')) {
-      query.removeFilter('transaction.duration');
-    }
+    if (query.freeText.length > 0) {
+      const parsedFreeText = query.freeText.join(' ');
 
-    if (trendParameter.column && query.hasFilter(trendParameter.column)) {
-      query.removeFilter(trendParameter.column);
+      // the query here is a user entered condition, no need to escape it
+      query.setFilterValues('transaction', [wrapQueryInWildcards(parsedFreeText)], false);
+      query.freeText = [];
     }
+    query.tokens = query.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS.includes(token.key)
+    );
     trendView.query = query.formatString();
   }
 

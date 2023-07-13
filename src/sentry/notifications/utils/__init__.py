@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlparse
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import integrations
 from sentry.eventstore.models import Event, GroupEvent
@@ -200,6 +200,10 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     return organization.absolute_url(
         f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
+
+
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
+    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
 
 
 @dataclass
@@ -416,6 +420,20 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     split = participants_by_provider.split_participants_and_context()
     for (provider, participants, extra_context) in split:
         notify(provider, notification, participants, shared_context, extra_context)
+
+
+def get_replay_id(event: Event | GroupEvent) -> str | None:
+    tags_replay_id = event.get_tag("replayId")
+    if (
+        isinstance(event, GroupEvent)
+        and event.occurrence is not None
+        and event.occurrence.evidence_data
+    ):
+        evidence_replay_id = event.occurrence.evidence_data.get("replayId", "")
+        if evidence_replay_id:
+            return evidence_replay_id
+
+    return tags_replay_id
 
 
 @dataclass

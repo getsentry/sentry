@@ -186,12 +186,17 @@ export function getGroupDetailsQueryData({
 
 export function getGroupEventDetailsQueryData({
   environments,
+  query,
   stacktraceOnly,
 }: {
   environments?: string[];
+  query?: string;
   stacktraceOnly?: boolean;
 } = {}): Record<string, string | string[]> {
-  const defaultParams = {collapse: stacktraceOnly ? ['stacktraceOnly'] : ['fullRelease']};
+  const defaultParams = {
+    collapse: stacktraceOnly ? ['stacktraceOnly'] : ['fullRelease'],
+    ...(query ? {query} : {}),
+  };
 
   if (!environments || isEmpty(environments)) {
     return defaultParams;

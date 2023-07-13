@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 
 def validate_scope_list(value):
@@ -38,7 +39,7 @@ class OrgAuthToken(Model):
         validators=[validate_scope_list],
     )
 
-    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete="SET_NULL")
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now, null=False)
     date_last_used = models.DateTimeField(null=True, blank=True)
     project_last_used_id = HybridCloudForeignKey(
@@ -55,7 +56,7 @@ class OrgAuthToken(Model):
     __repr__ = sane_repr("organization_id", "token_hashed")
 
     def __str__(self):
-        return force_text(self.token_hashed)
+        return force_str(self.token_hashed)
 
     def get_audit_log_data(self):
         return {"name": self.name, "scopes": self.get_scopes()}
@@ -80,3 +81,25 @@ def is_org_auth_token_auth(auth: object) -> bool:
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "org_auth_token"
     return isinstance(auth, OrgAuthToken)
+
+
+def get_org_auth_token_id_from_auth(auth: object) -> int | None:
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, OrgAuthToken):
+        return auth.id
+    if isinstance(auth, AuthenticatedToken):
+        return auth.entity_id
+    return None
+
+
+def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
+    org_auth_token_id = get_org_auth_token_id_from_auth(auth)
+    organization_id = getattr(auth, "organization_id", None)
+    if org_auth_token_id is not None and organization_id is not None:
+        orgauthtoken_service.update_orgauthtoken(
+            organization_id=organization_id,
+            org_auth_token_id=org_auth_token_id,
+            date_last_used=timezone.now(),
+            project_last_used_id=project_ids[0] if len(project_ids) > 0 else None,
+        )

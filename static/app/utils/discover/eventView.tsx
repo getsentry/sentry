@@ -281,6 +281,29 @@ function validateTableMeta(tableMeta: MetaType | undefined): MetaType | undefine
   return tableMeta && Object.keys(tableMeta).length > 0 ? tableMeta : undefined;
 }
 
+export type EventViewOptions = {
+  createdBy: User | undefined;
+  display: string | undefined;
+  end: string | undefined;
+  environment: Readonly<string[]>;
+  fields: Readonly<Field[]>;
+  id: string | undefined;
+  name: string | undefined;
+  project: Readonly<number[]>;
+  query: string;
+  sorts: Readonly<Sort[]>;
+  start: string | undefined;
+  statsPeriod: string | undefined;
+  team: Readonly<('myteams' | number)[]>;
+  topEvents: string | undefined;
+  additionalConditions?: MutableSearch;
+  dataset?: DiscoverDatasets;
+  expired?: boolean;
+  interval?: string;
+  utc?: string | boolean | undefined;
+  yAxis?: string | string[] | undefined;
+};
+
 class EventView {
   id: string | undefined;
   name: string | undefined;
@@ -303,28 +326,7 @@ class EventView {
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
 
-  constructor(props: {
-    additionalConditions: MutableSearch;
-    createdBy: User | undefined;
-    display: string | undefined;
-    end: string | undefined;
-    environment: Readonly<string[]>;
-    fields: Readonly<Field[]>;
-    id: string | undefined;
-    name: string | undefined;
-    project: Readonly<number[]>;
-    query: string;
-    sorts: Readonly<Sort[]>;
-    start: string | undefined;
-    statsPeriod: string | undefined;
-    team: Readonly<('myteams' | number)[]>;
-    topEvents: string | undefined;
-    yAxis: string | string[] | undefined;
-    dataset?: DiscoverDatasets;
-    expired?: boolean;
-    interval?: string;
-    utc?: string | boolean | undefined;
-  }) {
+  constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
     const team = Array.isArray(props.team) ? props.team : [];
@@ -456,7 +458,7 @@ class EventView {
       fields,
       query: queryStringFromSavedQuery(saved),
       team: saved.teams ?? [],
-      project: saved.projects,
+      project: saved.projects ?? [],
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
@@ -1068,7 +1070,7 @@ class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined): string {
+  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
     const queryParts: string[] = [];
 
     if (this.query) {

@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_str, force_text
+from django.utils.encoding import force_str
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -17,6 +21,10 @@ class _CaseInsensitiveSigner(Signer):
     and sends the value as all lowercase.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("algorithm", "sha1")
+        super().__init__(*args, **kwargs)
+
     def signature(self, value: str) -> str:
         return super().signature(value).lower()
 
@@ -30,4 +38,4 @@ class _CaseInsensitiveSigner(Signer):
         if not constant_time_compare(sig.lower(), self.signature(value)):
             raise BadSignature(f'Signature "{sig}" does not match')
 
-        return force_text(value)
+        return force_str(value)

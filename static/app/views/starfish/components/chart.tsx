@@ -11,7 +11,6 @@ import {
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
-import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -31,6 +30,8 @@ import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
+  EChartDataZoomHandler,
+  EChartEventHandler,
   EChartHighlightHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
@@ -43,7 +44,6 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DAY, HOUR} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -87,7 +87,13 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onDataZoom?: EChartDataZoomHandler;
   onHighlight?: EChartHighlightHandler;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
@@ -170,6 +176,8 @@ function Chart({
   chartGroup,
   tooltipFormatterOptions = {},
   errored,
+  onLegendSelectChanged,
+  onDataZoom,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -331,8 +339,6 @@ function Chart({
     xAxisIndex: 0,
   }));
 
-  const xAxisInterval = getXAxisInterval(startTime, endTime);
-
   const xAxis: XAXisOption = disableXAxis
     ? {
         show: false,
@@ -340,19 +346,8 @@ function Chart({
         axisLine: {show: false},
       }
     : {
-        type: 'time',
-        maxInterval: xAxisInterval,
-        axisLabel: {
-          formatter: function (value: number) {
-            if (endTime.diff(startTime, 'days') > 30) {
-              return moment(value).format('MMMM DD');
-            }
-            if (startTime.isSame(endTime, 'day')) {
-              return moment(value).format('HH:mm');
-            }
-            return moment(value).format('MMMM DD HH:mm');
-          },
-        },
+        min: startTime.unix() * 1000,
+        max: endTime.unix() * 1000,
       };
 
   function getChart() {
@@ -364,8 +359,26 @@ function Chart({
       );
     }
 
+    // Trims off the last data point because it's incomplete
+    const trimmedSeries =
+      statsPeriod && !start && !end
+        ? series.map(serie => {
+            return {
+              ...serie,
+              data: serie.data.slice(0, -1),
+            };
+          })
+        : series;
+
     return (
-      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc}
+        onDataZoom={onDataZoom}
+      >
         {zoomRenderProps => {
           if (isLineChart) {
             return (
@@ -386,7 +399,7 @@ function Chart({
                 onMouseOver={onMouseOver}
                 onHighlight={onHighlight}
                 series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -414,7 +427,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={series}
+                series={trimmedSeries}
                 xAxis={xAxis}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
@@ -422,6 +435,7 @@ function Chart({
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
               />
             );
           }
@@ -431,12 +445,14 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={series}
+              series={trimmedSeries}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              onClick={onClick}
               {...areaChartProps}
+              onLegendSelectChanged={onLegendSelectChanged}
             />
           );
         }}
@@ -466,20 +482,6 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
     }
   }, [deps, synchronized]);
 }
-
-const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
-  const dateRange = endTime.diff(startTime);
-  if (dateRange >= 30 * DAY) {
-    return 7 * DAY;
-  }
-  if (dateRange >= 3 * DAY) {
-    return DAY;
-  }
-  if (dateRange >= 1 * DAY) {
-    return 12 * HOUR;
-  }
-  return HOUR;
-};
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

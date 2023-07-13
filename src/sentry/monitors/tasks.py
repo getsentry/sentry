@@ -77,9 +77,7 @@ def check_monitors(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin_without_margin(
-                    monitor_environment.last_checkin
-                )
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
             checkin = MonitorCheckIn.objects.create(
@@ -90,7 +88,10 @@ def check_monitors(current_datetime=None):
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+            monitor_environment.mark_failed(
+                reason=MonitorFailure.MISSED_CHECKIN,
+                occurrence_context={"expected_time": expected_time},
+            )
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
@@ -105,7 +106,7 @@ def check_monitors(current_datetime=None):
                 minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
             )
             # Check against date_updated to allow monitors to run for longer as
-            # long as they continute to send heart beats updating the checkin
+            # long as they continue to send heart beats updating the checkin
             if checkin.date_updated > current_datetime - timeout:
                 continue
 
@@ -114,9 +115,7 @@ def check_monitors(current_datetime=None):
                 "monitor_environment.checkin-timeout",
                 extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
             )
-            affected = MonitorCheckIn.objects.filter(
-                id=checkin.id, status=CheckInStatus.IN_PROGRESS
-            ).update(status=CheckInStatus.TIMEOUT)
+            affected = checkin.update(status=CheckInStatus.TIMEOUT)
             if not affected:
                 continue
 
@@ -128,6 +127,9 @@ def check_monitors(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
+                monitor_environment.mark_failed(
+                    reason=MonitorFailure.DURATION,
+                    occurrence_context={"duration": (timeout.seconds // 60) % 60},
+                )
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")

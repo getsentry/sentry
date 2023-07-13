@@ -4,7 +4,9 @@ import {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -129,7 +131,7 @@ class ProjectFiltersChart extends Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
+        <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
 
         <PanelBody withPadding>
           {isLoading && <Placeholder height="100px" />}

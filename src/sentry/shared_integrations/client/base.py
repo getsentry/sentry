@@ -9,6 +9,7 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -174,6 +175,9 @@ class BaseApiClient(TrackResponseMixin):
                     if raw_response:
                         return resp
                     resp.raise_for_status()
+            except RestrictedIPAddress as e:
+                self.track_response_data("restricted_ip_address", span, e)
+                raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
                 raise ApiHostError.from_exception(e) from e

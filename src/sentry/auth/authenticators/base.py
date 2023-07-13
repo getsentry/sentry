@@ -1,16 +1,24 @@
+from __future__ import annotations
+
 from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import options
 from sentry.utils.otp import TOTP, generate_secret_key
 
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
+    from sentry.models import Authenticator
+
 
 class ActivationResult:
-    type = None
+    type: str
 
 
 class ActivationMessageResult(ActivationResult):
@@ -46,14 +54,14 @@ class NewEnrollmentDisallowed(Exception):
 
 class AuthenticatorInterface:
     type = -1
-    interface_id = None
-    name = None
-    description = None
-    rotation_warning = None
+    interface_id: str
+    name: str | _StrPromise
+    description: str | _StrPromise
+    rotation_warning: str | _StrPromise | None = None
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
-    remove_button = _("Remove")
+    remove_button: str | _StrPromise | None = _("Remove")
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
@@ -91,14 +99,14 @@ class AuthenticatorInterface:
         """If the interface has an activation method that needs to be
         called this returns `True`.
         """
-        return self.activate.__func__ is not AuthenticatorInterface.activate
+        return type(self).activate is not AuthenticatorInterface.activate
 
     @property
     def can_validate_otp(self):
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
-        return self.validate_otp.__func__ is not AuthenticatorInterface.validate_otp
+        return type(self).validate_otp is not AuthenticatorInterface.validate_otp
 
     @property
     def config(self):
@@ -178,6 +186,10 @@ class AuthenticatorInterface:
 
 
 class OtpMixin:
+    # mixed in from base class
+    config: dict[str, Any]
+    authenticator: Authenticator | None
+
     def generate_new_config(self):
         return {"secret": generate_secret_key()}
 

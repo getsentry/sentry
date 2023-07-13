@@ -7,13 +7,14 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 
 import {StarfishView} from './starfishView';
 
@@ -21,7 +22,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   router: InjectedRouter;
   selection: PageFilters;
   withStaticFilters: boolean;
@@ -30,6 +30,7 @@ type Props = {
 export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
+      <StarfishProjectSelector />
       <StarfishDatePicker />
     </PageFilterBar>
   );

@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -38,7 +38,9 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.SIMPLE_TYPE,
+                    "filename": Allow.NEVER.with_explanation(
+                        "The filename path could contain the app name."
+                    ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,
                     "module": Allow.SIMPLE_TYPE,
@@ -80,6 +82,7 @@ EVENT_DATA_ALLOWLIST = {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
+            "simulator": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
@@ -93,19 +96,28 @@ EVENT_DATA_ALLOWLIST = {
 def strip_event_data(
     event_data: NodeData, sdk_crash_detector: SDKCrashDetector
 ) -> Mapping[str, Any]:
-    new_event_data = _strip_event_data_with_allowlist(event_data, EVENT_DATA_ALLOWLIST)
+    """
+    This method keeps only properties based on the ALLOW_LIST. For frames, both the allow list applies,
+    and the method only keeps SDK frames and system library frames.
+    """
 
-    if (new_event_data is None) or (new_event_data == {}):
+    frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
+    if not frames:
         return {}
 
-    stripped_frames: Sequence[Mapping[str, Any]] = []
-    frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
+    # We strip the frames first because applying the allowlist removes fields that are needed
+    # for deciding wether to keep a frame or not.
+    stripped_frames = _strip_frames(frames, sdk_crash_detector)
 
-    if frames is not None:
-        stripped_frames = _strip_frames(frames, sdk_crash_detector)
-        new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+    event_data_copy = dict(event_data)
+    event_data_copy["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
-    return new_event_data
+    stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
+
+    if not stripped_event_data:
+        return {}
+
+    return stripped_event_data
 
 
 def _strip_event_data_with_allowlist(
@@ -144,13 +156,32 @@ def _strip_event_data_with_allowlist(
 
 
 def _strip_frames(
-    frames: Sequence[Mapping[str, Any]], sdk_crash_detector: SDKCrashDetector
+    frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
 ) -> Sequence[Mapping[str, Any]]:
     """
-    Only keep SDK frames or non in app frames.
+    Only keep SDK frames or Apple system libraries.
+    We need to adapt this logic once we support other platforms.
     """
+
+    def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+        # Set in_app to True for SDK frames for grouping. Anyways the grouping config will set in_app false
+        # for all Cocoa SDK frames. To not change the grouping logic, we must add the following stacktrace
+        # rule  `stack.abs_path:Sentry.framework +app` to the project with the ID SDK_CRASH_DETECTION_PROJECT_ID.
+        if sdk_crash_detector.is_sdk_frame(frame):
+            frame["in_app"] = True
+
+            # The path field usually contains the name of the application, which we can't keep.
+            for field in sdk_crash_detector.fields_containing_paths:
+                if frame.get(field):
+                    frame[field] = "Sentry.framework"
+        else:
+            frame["in_app"] = False
+
+        return frame
+
     return [
-        frame
+        strip_frame(frame)
         for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", None) is False
+        if sdk_crash_detector.is_sdk_frame(frame)
+        or sdk_crash_detector.is_system_library_frame(frame)
     ]

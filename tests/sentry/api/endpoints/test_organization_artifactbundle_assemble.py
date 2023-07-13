@@ -6,12 +6,16 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
@@ -320,3 +324,95 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
+
+    def test_assemble_org_auth_token(self):
+        org2 = self.create_organization(owner=self.user)
+
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            version=self.release.version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
+        )
+
+        # right org, wrong permission level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(bad_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {bad_token_str}",
+        )
+        assert response.status_code == 403
+
+        # wrong org, right permission level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_org_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org2.id,
+                name="token 1",
+                token_hashed=hash_token(bad_org_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {bad_org_token_str}",
+        )
+        assert response.status_code == 403
+
+        # right org, right permission level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            good_token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [blob1.checksum],
+                    "projects": [self.project.slug],
+                },
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
+        assert response.status_code == 200
+
+        # Make sure org token usage was updated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == self.project.id

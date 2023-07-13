@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import sentry_relay
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from typing_extensions import TypeAlias
 
 from sentry.utils.geo import rust_geoip
@@ -117,7 +117,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "customers",
         "de",
         "debug",
-        "demo",
         "devinfra",
         "docs",
         "enterprise",

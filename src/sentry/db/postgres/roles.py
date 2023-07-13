@@ -6,6 +6,8 @@ import sys
 
 from django.db.transaction import get_connection
 
+from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
+
 
 @contextlib.contextmanager
 def in_test_psql_role_override(role_name: str, using: str | None = None):
@@ -14,9 +16,11 @@ def in_test_psql_role_override(role_name: str, using: str | None = None):
     back to its original.  Has no effect in production.
     """
 
-    if "pytest" not in sys.modules or os.environ.get("DB", "postgres") != "postgres":
+    if "pytest" not in sys.argv[0] or os.environ.get("DB", "postgres") != "postgres":
         yield
         return
+
+    using = determine_using_by_silo_mode(using)
 
     with get_connection(using).cursor() as conn:
         conn.execute("SELECT user")

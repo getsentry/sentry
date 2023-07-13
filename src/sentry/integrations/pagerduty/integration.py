@@ -5,7 +5,7 @@ from typing import Any
 
 from django.db import transaction
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import options
@@ -23,7 +23,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -66,7 +66,10 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyProxyClient(
+            org_integration_id=self.org_integration.id,
+            integration_key=integration_key,
+        )
 
     def get_organization_config(self):
         fields = [

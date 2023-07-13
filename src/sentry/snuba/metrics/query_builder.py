@@ -37,7 +37,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import WhereType
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -153,7 +153,7 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
     org_id: int,
     input_: Any,
     projects: Sequence[Project],
@@ -526,13 +526,13 @@ class QueryDefinition:
     @staticmethod
     def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
-            return
+            return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
     def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
-            return
+            return None
         return Offset(paginator_kwargs["offset"])
 
 
@@ -563,7 +563,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
+def parse_tag(use_case_id: UseCaseID, org_id: int, tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
     return reverse_resolve(use_case_id, org_id, tag_key)
 
@@ -726,7 +726,7 @@ class SnubaQueryBuilder:
         self,
         projects: Sequence[Project],
         metrics_query: MetricsQuery,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -738,7 +738,7 @@ class SnubaQueryBuilder:
     @staticmethod
     def generate_snql_for_action_by_fields(
         metric_action_by_field: MetricActionByField,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
@@ -951,7 +951,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
 
-            if self._use_case_id == UseCaseKey.PERFORMANCE:
+            if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
@@ -1125,7 +1125,7 @@ class SnubaResultConverter:
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._organization_id = organization_id
         self._intervals = intervals

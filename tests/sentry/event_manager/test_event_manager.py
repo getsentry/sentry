@@ -136,6 +136,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         group = event.group
+        assert group is not None
         assert group.platform == "python"
         assert event.platform == "python"
 
@@ -519,6 +520,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         group = event.group
+        assert group is not None
 
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
@@ -591,6 +593,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
@@ -649,6 +652,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
@@ -687,6 +691,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("1.0", project_id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "1.0"
         assert not has_pending_commit_resolution(group)
 
@@ -709,6 +714,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
+        assert group is not None
 
         # Add a few commits with no associated release
         repo = self.create_repo(project=group.project)
@@ -754,6 +760,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
+        assert group is not None
         repo = self.create_repo(project=group.project)
 
         # commit that resolved the issue is part of a PR, but all commits within the PR are unreleased
@@ -799,6 +806,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
+        assert group is not None
         release = self.create_release(project=self.project, version="1.1")
 
         repo = self.create_repo(project=group.project)
@@ -891,6 +899,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         group = event.group
+        assert group is not None
 
         org = group.organization
 
@@ -954,6 +963,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
                 )
                 event = manager.save(self.project.id)
+                assert event.group is not None
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, False, event.group.project_id
                 )
@@ -991,6 +1001,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         group = event.group
+        assert group is not None
 
         group.update(status=GroupStatus.RESOLVED, substatus=None)
         GroupLink.objects.create(
@@ -1003,10 +1014,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=time()))
         event = manager.save(self.project.id)
+        assert event.group is not None
         assert event.group_id == group.id
 
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.RESOLVED
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
@@ -1029,6 +1040,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
 
         group = event.group
+        assert group is not None
 
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
@@ -1043,10 +1055,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=time()))
 
         event = manager.save(self.project.id)
+        assert event.group is not None
         assert event.group_id == group.id
 
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.UNRESOLVED
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
@@ -1055,11 +1067,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
         with self.tasks():
             event = manager.save(self.project.id)
+        assert event.group is not None
 
         mock_is_resolved.return_value = True
         manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 100))
         with self.tasks():
             event2 = manager.save(self.project.id)
+        assert event2.group is not None
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
@@ -1154,11 +1168,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("1.0", project_id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "1.0"
 
         event = self.make_release_event("2.0", project_id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "1.0"
 
     def test_release_project_slug(self):
@@ -1169,6 +1185,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("1.0", project.id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "foo-1.0"
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
         assert release_tag == "foo-1.0"
@@ -1176,6 +1193,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("2.0", project.id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "foo-1.0"
 
     def test_release_project_slug_long(self):
@@ -1189,6 +1207,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = self.make_release_event("a" * partial_version_len, project.id)
 
         group = event.group
+        assert group is not None
         assert group.first_release.version == "foo-{}".format("a" * partial_version_len)
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
         assert release_tag == "foo-{}".format("a" * partial_version_len)
@@ -1235,6 +1254,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         event = manager.save(project.id)
+        assert event.group is not None
 
         def query(model, key, **kwargs):
             return tsdb.get_sums(
@@ -1274,6 +1294,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         with self.tasks():
             event = manager.save(self.project.id)
+        assert event.group is not None
 
         environment_id = Environment.get_for_organization_id(
             event.project.organization_id, "totally unique environment"
@@ -1482,6 +1503,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert data["type"] == "default"
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo bar"}
 
@@ -1499,6 +1521,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert data["type"] == "default"
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo bar"}
 
@@ -1511,6 +1534,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert data["type"] == "error"
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         assert group.data.get("type") == "error"
         assert group.data.get("metadata") == {
             "type": "Foo",
@@ -1536,6 +1560,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert data["type"] == "csp"
         event = manager.save(self.project.id)
         group = event.group
+        assert group is not None
         assert group.data.get("type") == "csp"
         assert group.data.get("metadata") == {
             "directive": "script-src",
@@ -2288,7 +2313,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 project=self.project,
             )
             manager.normalize()
-            manager.save(self.project.id, auto_upgrade_grouping=True)
+            manager.save(self.project.id)
 
             # No update yet
             project = Project.objects.get(id=self.project.id)
@@ -2306,7 +2331,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 project=self.project,
             )
             manager.normalize()
-            manager.save(self.project.id, auto_upgrade_grouping=True)
+            manager.save(self.project.id)
 
             # This should have moved us back to the default grouping
             project = Project.objects.get(id=self.project.id)
@@ -2357,6 +2382,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             ]
             assert event.group
             group = event.group
+            assert group is not None
             assert group.title == "N+1 Query"
             assert (
                 group.message
@@ -2419,6 +2445,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
             group = event.group
+            assert group is not None
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
@@ -2461,6 +2488,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             # sneakily make the group type wrong
             group = event.group
+            assert group is not None
             group.type = ErrorGroupType.type_id
             group.save()
             event = self.create_performance_issue(
@@ -2485,6 +2513,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
             # sneakily make the group type wrong
             group = event.group
+            assert group is not None
             group.type = PerformanceNPlusOneGroupType.type_id
             group.save()
             manager = EventManager(make_event())

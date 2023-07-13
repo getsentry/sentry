@@ -4,7 +4,7 @@ import logging
 from typing import Any
 from urllib.parse import urlencode
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
 from sentry import options
@@ -309,7 +309,13 @@ class VercelIntegration(IntegrationInstallation):
 
     def uninstall(self):
         client = self.get_client()
-        client.uninstall(self.get_configuration_id())
+        try:
+            client.uninstall(self.get_configuration_id())
+        except ApiError as error:
+            if error.code == 403:
+                pass
+            else:
+                raise error
 
 
 class VercelIntegrationProvider(IntegrationProvider):

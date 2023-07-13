@@ -4,6 +4,8 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -38,9 +40,12 @@ function SampleTable({
   );
   const organization = useOrganization();
 
+  const {setPageError} = usePageError();
+
   const {
     data: spans,
     isFetching: isFetchingSamples,
+    error: sampleError,
     refetch,
   } = useSpanSamples({
     groupId,
@@ -48,7 +53,11 @@ function SampleTable({
     transactionMethod,
   });
 
-  const {data: transactions, isFetching: isFetchingTransactions} = useTransactions(
+  const {
+    data: transactions,
+    isFetching: isFetchingTransactions,
+    error: transactionError,
+  } = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
@@ -84,22 +93,31 @@ function SampleTable({
     isFetchingSamples ||
     (!areNoSamples && isFetchingTransactions);
 
+  if (sampleError || transactionError) {
+    setPageError(t('An error has occured while loading the samples table'));
+  }
+
   return (
     <Fragment>
-      <SpanSamplesTable
-        onMouseLeaveSample={onMouseLeaveSample}
-        onMouseOverSample={onMouseOverSample}
-        highlightedSpanId={highlightedSpanId}
-        data={spans.map(sample => {
-          return {
-            ...sample,
-            op: spanMetrics['span.op'],
-            transaction: transactionsById[sample['transaction.id']],
-          };
-        })}
-        isLoading={isLoading}
-        p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
-      />
+      <VisuallyCompleteWithData
+        id="SpanSummary.Samples.SampleTable"
+        hasData={spans.length > 0}
+      >
+        <SpanSamplesTable
+          onMouseLeaveSample={onMouseLeaveSample}
+          onMouseOverSample={onMouseOverSample}
+          highlightedSpanId={highlightedSpanId}
+          data={spans.map(sample => {
+            return {
+              ...sample,
+              op: spanMetrics[SPAN_OP],
+              transaction: transactionsById[sample['transaction.id']],
+            };
+          })}
+          isLoading={isLoading}
+          p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+        />
+      </VisuallyCompleteWithData>
       <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>
     </Fragment>
   );

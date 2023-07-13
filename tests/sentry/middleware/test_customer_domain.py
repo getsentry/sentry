@@ -1,7 +1,7 @@
 from django.conf import settings
-from django.conf.urls import url
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -9,6 +9,8 @@ from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.utils import json
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -113,22 +115,41 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == request
 
     def test_ignores_region_subdomains(self):
-        regions = {"us", "eu"}
-        for region in regions:
-            request = RequestFactory().get("/")
-            request.subdomain = region
-            request.session = {"activeorg": "test"}
-            response = CustomerDomainMiddleware(lambda request: request)(request)
+        clear_global_regions()
+        region_configs = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "eu",
+                "snowflake_id": 1,
+                "address": "http://eu.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+        ]
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_configs)):
+            for region in region_configs:
+                request = RequestFactory().get("/")
+                request.subdomain = region["name"]
+                request.session = {"activeorg": "test"}
+                response = CustomerDomainMiddleware(lambda request: request)(request)
 
-            assert request.session == {"activeorg": "test"}
-            assert response == request
+                assert request.session == {"activeorg": "test"}
+                assert response == request
 
     def test_handles_redirects(self):
         self.create_organization(name="sentry")
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "sentry"
         request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+
+        def ignore_request(request: HttpRequest) -> HttpResponse:
+            raise NotImplementedError
+
+        response = CustomerDomainMiddleware(ignore_request)(request)
 
         assert request.session == {"activeorg": "sentry"}
         assert response.status_code == 302
@@ -159,16 +180,16 @@ class OrganizationTestEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
     ),
-    url(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
+    re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
 
 

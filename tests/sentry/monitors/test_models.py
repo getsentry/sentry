@@ -13,7 +13,9 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.monitors.models import (
+    CheckInStatus,
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
@@ -36,12 +38,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -53,12 +55,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -74,14 +76,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -93,7 +95,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -159,7 +161,7 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -204,7 +206,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -249,7 +251,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -298,7 +300,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -312,6 +314,13 @@ class MonitorEnvironmentTestCase(TestCase):
             monitor=monitor,
             environment=self.environment,
             status=monitor.status,
+        )
+
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
         )
 
         last_checkin = timezone.now()
@@ -328,7 +337,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "An error occurred during the last check-in.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -339,8 +348,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -376,7 +385,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -391,9 +400,17 @@ class MonitorEnvironmentTestCase(TestCase):
             environment=self.environment,
             status=monitor.status,
         )
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
         last_checkin = timezone.now()
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.DURATION
+            last_checkin=last_checkin,
+            reason=MonitorFailure.DURATION,
+            occurrence_context={"duration": 30},
         )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
@@ -407,7 +424,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "Check-in exceeded maximum duration of 30 minutes.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -418,8 +435,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -455,7 +472,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -471,8 +488,11 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
+        expected_time = monitor.get_next_scheduled_checkin(last_checkin)
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.MISSED_CHECKIN
+            last_checkin=last_checkin,
+            reason=MonitorFailure.MISSED_CHECKIN,
+            occurrence_context={"expected_time": expected_time},
         )
 
         monitor.refresh_from_db()
@@ -490,7 +510,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": f"No check-in reported at {expected_time}.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -501,8 +521,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": "None",
                         "important": False,
                     },
                 ],
