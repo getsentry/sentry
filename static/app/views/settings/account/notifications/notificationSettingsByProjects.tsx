@@ -95,9 +95,8 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
 
   handleOrgChange = (option: {label: string; value: string}) => {
     // handleOrgChange(option: {label: string; value: string}) {
-    const self = this;
     this.props.handleOrgChange(option);
-    setTimeout(() => self.reloadData(), 0);
+    setTimeout(() => this.reloadData(), 0);
   };
 
   renderBody() {
