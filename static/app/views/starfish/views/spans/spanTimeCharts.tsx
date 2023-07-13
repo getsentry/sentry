@@ -15,7 +15,6 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {useChartSortPageBySpansHandler} from 'sentry/views/starfish/utils/useChartSortPageBySpansHandler';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -142,7 +141,6 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       tooltipFormatterOptions={{
         valueFormatter: value => formatThroughput(value),
       }}
-      onDataZoom={useChartSortPageBySpansHandler('-sps()')}
     />
   );
 }
@@ -191,7 +189,6 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
-      onDataZoom={useChartSortPageBySpansHandler(`-p95(${SPAN_SELF_TIME})`)}
     />
   );
 }
@@ -229,7 +226,6 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[ERRORS_COLOR]}
-      onDataZoom={useChartSortPageBySpansHandler('-http_error_count()')}
     />
   );
 }
