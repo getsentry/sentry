@@ -12,12 +12,12 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
-from sentry.testutils.silo import unguarded_write
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView
 
@@ -91,7 +91,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         )
 
         # This is safe -- we're not syncing flags to the org member mapping table.
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])

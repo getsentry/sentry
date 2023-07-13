@@ -4,12 +4,12 @@ import pytest
 from django.conf import settings
 from django.test import override_settings
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import unguarded_write
 from sentry.types.region import (
     Region,
     RegionCategory,
@@ -59,7 +59,7 @@ class RegionMappingTest(TestCase):
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_regions(regions), unguarded_write():
+        with override_regions(regions), in_test_psql_role_override("postgres"):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
                 # Region does not exist
@@ -120,7 +120,7 @@ class RegionMappingTest(TestCase):
         organization_mapping.region_name = "na"
         organization_mapping.idempotency_key = "test"
 
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             organization_mapping.save()
 
         region_config = [

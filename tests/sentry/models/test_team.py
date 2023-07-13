@@ -1,3 +1,5 @@
+import pytest
+from django.db import ProgrammingError, transaction
 from django.test import override_settings
 
 from sentry.models import (
@@ -170,6 +172,13 @@ class TransferTest(TestCase):
 
 @region_silo_test
 class TeamDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        team = self.create_team(self.organization)
+        assert Team.objects.filter(id=team.id).exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Team.objects.filter(id=team.id).delete()
+        assert Team.objects.filter(id=team.id).exists()
+
     def test_hybrid_cloud_deletion(self):
         team = self.create_team(self.organization)
         NotificationSetting.objects.update_settings(

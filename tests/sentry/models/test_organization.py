@@ -1,8 +1,9 @@
 import copy
 from unittest import mock
 
+import pytest
 from django.core import mail
-from django.db import models
+from django.db import ProgrammingError, models, transaction
 
 from sentry import audit_log
 from sentry.api.base import ONE_DAY
@@ -421,6 +422,13 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
 @region_silo_test
 class OrganizationDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        org = self.create_organization()
+        assert Organization.objects.exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Organization.objects.filter(id=org.id).delete()
+        assert Organization.objects.exists()
+
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
         user = self.create_user()

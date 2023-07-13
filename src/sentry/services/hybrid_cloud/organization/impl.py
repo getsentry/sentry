@@ -7,6 +7,7 @@ from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
     ControlOutbox,
@@ -47,7 +48,6 @@ from sentry.services.hybrid_cloud.organization.serial import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
-from sentry.testutils.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
 
 
@@ -470,7 +470,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             # Flags are not replicated -- these updates are safe without outbox application.
             OrganizationMember.objects.filter(
                 organization_id=organization_id,
@@ -485,7 +485,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
