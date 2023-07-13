@@ -419,6 +419,7 @@ class Referrer(Enum):
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
+    GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
