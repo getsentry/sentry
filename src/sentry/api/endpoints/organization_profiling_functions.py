@@ -162,11 +162,13 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "data": {
                     k: {
                         "data": v["data"],
-                        # set data_* to the same as request_* for now
-                        # as we dont pass more historical data for context
                         "data_start": v["start"],
                         "data_end": v["end"],
-                        "request_start": v["start"],
+                        # We want to use the first 20% of the data as historical data
+                        # to help filter out false positives.
+                        # This means if there is a change in the first 20%, it will
+                        # not be detected as a breakpoint.
+                        "request_start": v["data"][len(v["data"]) // 5][0],
                         "request_end": v["end"],
                     }
                     for k, v in stats_data.items()
