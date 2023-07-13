@@ -124,7 +124,7 @@ export const steps = ({
       {
         language: 'javascript',
         description: t('Or, try a native crash with:'),
-        code: "throw new Error('My first Sentry error!');",
+        code: 'Sentry.nativeCrash();',
         additionalInfo: (
           <Fragment>
             {t(
