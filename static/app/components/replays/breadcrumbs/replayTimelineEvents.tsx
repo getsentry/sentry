@@ -105,8 +105,8 @@ function Event({
 
   // Sort the frame colors by color priority
   // Priority order: red300, yellow300, green300, purple300, gray300
-  const sortedUniqueColors: Color[] = uniqueColors.sort(function (x, y) {
-    const colorOrder = ['red300', 'yellow300', 'green300', 'purple300', 'gray300'];
+  const sortedUniqueColors = uniqueColors.sort(function (x, y) {
+    const colorOrder: Color[] = ['red300', 'yellow300', 'green300', 'purple300', 'gray300'];
     function getColorPos(c: Color) {
       return colorOrder.indexOf(c);
     }
