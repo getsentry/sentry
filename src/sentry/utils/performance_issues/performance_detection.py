@@ -269,8 +269,8 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
             "total_duration": 500,  # ms
-            "concurrency_threshold": 15,  # ms
-            "count": 5,
+            "concurrency_threshold": 5,  # ms
+            "count": 10,
             "allowed_span_ops": ["http.client"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
@@ -297,8 +297,8 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         },
         DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
             # time saved by running all queries in parallel
-            "min_time_saved": 500,
-            "consecutive_count_threshold": 2,
+            "min_time_saved": 2000,
+            "consecutive_count_threshold": 3,
             "max_duration_between_spans": 1000,  # ms
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {

@@ -41,15 +41,14 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.
-        nodedata_getstate = NodeData.__getstate__
-        del NodeData.__getstate__
+        nodedata_getstate = hasattr(NodeData, "__getstate__")
+        with mock.patch.object(NodeData, "__getstate__", nodedata_getstate):
+            del NodeData.__getstate__
 
-        # Old worker loading
-        try:
+            # Old worker loading
             event2 = pickle.loads(data)
             assert event2.data == event.data
-        finally:
-            NodeData.__getstate__ = nodedata_getstate
+        assert hasattr(NodeData, "__getstate__")
 
         # New worker loading
         event2 = pickle.loads(data)

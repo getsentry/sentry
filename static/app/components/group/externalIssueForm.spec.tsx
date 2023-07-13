@@ -154,51 +154,35 @@ describe('ExternalIssueForm', () => {
 
     describe('options loaded', () => {
       beforeEach(() => {
-        const mockFetchPromise = () =>
-          new Promise(resolve => {
-            setTimeout(() => {
-              resolve({
-                json: () =>
-                  Promise.resolve([
-                    {
-                      label: '#1337 ref(js): Convert Form to a FC',
-                      value: 1337,
-                    },
-                    {
-                      label: '#2345 perf: Make it faster',
-                      value: 2345,
-                    },
-                  ]),
-                ok: true,
-              });
-            }, 50);
-          });
-
-        window.fetch = jest.fn().mockImplementation(mockFetchPromise);
-
         MockApiClient.addMockResponse({
           url: `/groups/${group.id}/integrations/${integration.id}/?action=link`,
           body: formConfig,
         });
       });
 
-      afterEach(() => {
-        (window.fetch as jest.Mock).mockClear();
-        (window.fetch as jest.Mock | undefined) = undefined;
-      });
-
       it('fast typing is debounced and uses trailing call when fetching data', async () => {
+        const searchResponse = MockApiClient.addMockResponse({
+          url: '/search?field=externalIssue&query=faster&repo=scefali%2Ftest',
+          body: [
+            {
+              label: '#1337 ref(js): Convert Form to a FC',
+              value: 1337,
+            },
+            {
+              label: '#2345 perf: Make it faster',
+              value: 2345,
+            },
+          ],
+        });
+
         await renderComponent('Link');
         jest.useFakeTimers();
         const textbox = screen.getByRole('textbox', {name: 'Issue'});
         await userEvent.click(textbox, {delay: null});
         await userEvent.type(textbox, 'faster', {delay: null});
-        expect(window.fetch).toHaveBeenCalledTimes(0);
+        expect(searchResponse).not.toHaveBeenCalled();
         jest.advanceTimersByTime(300);
-        expect(window.fetch).toHaveBeenCalledTimes(1);
-        expect(window.fetch).toHaveBeenCalledWith(
-          '/search?field=externalIssue&query=faster&repo=scefali%2Ftest'
-        );
+        expect(searchResponse).toHaveBeenCalledTimes(1);
         expect(await screen.findByText('#2345 perf: Make it faster')).toBeInTheDocument();
       });
     });

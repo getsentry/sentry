@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -75,6 +75,16 @@ class IdentityService(RpcService):
         :param user_id:
         :param organization_id:
         :return:
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
+        """
+        Updates an Identity's data.
+        :param identity_id:
+        :return: RpcIdentity
         """
         pass
 

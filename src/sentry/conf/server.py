@@ -88,8 +88,6 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
-ADMIN_ENABLED = DEBUG
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -358,7 +356,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -1082,16 +1079,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule_auto_transition_new": {
-        "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job every 6 hours
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_transition_regressed": {
-        "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_archive_issues": {
@@ -3611,3 +3602,6 @@ DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 # If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
 # to the buffer service.
 SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
+
+# Feature flag to turn off role-swapping to help bridge getsentry transition.
+USE_ROLE_SWAPPING_IN_TESTS = True
