@@ -242,34 +242,41 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
+  const router = useRouter();
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
   const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'helpful' : 'latest');
+  const helpfulEventQuery =
+    hasMostHelpfulEventFeature && typeof location.query.query === 'string'
+      ? location.query.query
+      : undefined;
 
   const queryKey: ApiQueryKey = [
     `/issues/${groupId}/events/${eventIdUrl}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: hasMostHelpfulEventFeature ? location.query.query : undefined,
+        query: helpfulEventQuery,
       }),
     },
   ];
 
-  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
+  const tab = getCurrentTab({router});
+  const isOnDetailsTab = tab === Tab.DETAILS;
 
+  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
   const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
     // Latest/helpful event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isLatestOrHelpfulEvent,
+    enabled: isOnDetailsTab && isLatestOrHelpfulEvent,
     retry: (_, error) => error.status !== 404,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: !isLatestOrHelpfulEvent,
+    enabled: isOnDetailsTab && !isLatestOrHelpfulEvent,
     retry: (_, error) => error.status !== 404,
   });
 
@@ -340,7 +347,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery({groupId, eventId: params.eventId, environments});
+  } = useEventApiQuery({
+    groupId,
+    eventId: params.eventId,
+    environments,
+  });
 
   const {
     data: groupData,
