@@ -399,7 +399,7 @@ class ControlOutbox(OutboxBase):
     __repr__ = sane_repr(*coalesced_columns)
 
     @classmethod
-    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
