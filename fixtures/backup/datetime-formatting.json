@@ -1,0 +1,20 @@
+[
+  {
+    "model": "sites.site",
+    "pk": 1,
+    "fields": {
+      "domain": "example.com",
+      "name": "example.com"
+    }
+  },
+  {
+    "model": "sentry.option",
+    "pk": 1,
+    "fields": {
+      "key": "sentry:latest_version",
+      "last_updated": "2023-06-22T00:00:00.000Z",
+      "last_updated_by": "unknown",
+      "value": "\"23.6.1\""
+    }
+  }
+]
