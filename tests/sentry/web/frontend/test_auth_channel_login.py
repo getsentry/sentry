@@ -15,9 +15,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
         AuthProvider.objects.create(
             organization_id=self.organization.id, provider="fly", config=config_data
         )
-        self.path = (
-            f"{reverse('sentry-auth-channel',args=['fly'])}?organization_id={self.partner_org_id}"
-        )
+        self.path = reverse("sentry-auth-channel", args=["fly", self.partner_org_id])
 
     def test_redirect_for_logged_in_user(self):
         self.setup()
@@ -39,7 +37,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
     def test_with_next_uri(self):
         self.setup()
         self.login_as(self.user)
-        response = self.client.get(self.path + "&next=/projects/", follow=True)
+        response = self.client.get(self.path + "?next=/projects/", follow=True)
         assert response.status_code == 200
         assert response.redirect_chain == [
             ("/projects/", 302),
@@ -48,7 +46,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
     def test_subdomain_precedence(self):
         self.setup()
         another_org = self.create_organization(name="another org")
-        path = f"{reverse('sentry-auth-channel',args=['fly'])}?organization_id={another_org.id}"
+        path = reverse("sentry-auth-channel", args=["fly", another_org.id])
         response = self.client.get(
             path,
             HTTP_HOST=f"{self.organization.slug}.testserver",

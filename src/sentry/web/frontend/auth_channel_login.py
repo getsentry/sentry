@@ -11,12 +11,11 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 
 class AuthChannelLoginView(AuthOrganizationLoginView):
     @never_cache
-    def handle(self, request, channel):
+    def handle(self, request, channel, resource_id):
         if request.subdomain is not None:
             return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
 
         config_data = request.GET.get("config_data", "")
-        resource_id = request.GET.get("organization_id", "")
 
         if not config_data:
             # NOTE: This provider_config may differ per provider

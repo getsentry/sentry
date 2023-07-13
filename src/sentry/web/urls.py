@@ -212,7 +212,7 @@ urlpatterns += [
                     name="sentry-auth-organization",
                 ),
                 re_path(
-                    r"^channel/(?P<channel>[^/]+)/$",
+                    r"^channel/(?P<channel>[^/]+)/(?P<resource_id>[^/]+)/$",
                     AuthChannelLoginView.as_view(),
                     name="sentry-auth-channel",
                 ),
