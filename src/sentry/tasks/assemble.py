@@ -16,7 +16,11 @@ from django.utils import timezone
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
-from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
+from sentry.debug_files.artifact_bundles import (
+    FlatFileIdentifier,
+    index_artifact_bundles_for_release,
+    index_bundle_in_flat_file,
+)
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
@@ -471,7 +475,16 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         bundle_id = self.archive.extract_bundle_id()
 
-        self._bind_or_create_artifact_bundle(bundle_id=bundle_id, date_added=date_snapshot)
+        artifact_bundle, created = self._bind_or_create_artifact_bundle(
+            bundle_id=bundle_id, date_added=date_snapshot
+        )
+        identifier = FlatFileIdentifier(
+            # For now, we just take the first project since Sentry CLI uploads one project at a time.
+            project_id=self.projects_ids[0],
+            release=self.release or NULL_STRING,
+            dist=self.dist or NULL_STRING,
+        )
+        index_bundle_in_flat_file(artifact_bundle, identifier)
 
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
