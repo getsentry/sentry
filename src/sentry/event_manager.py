@@ -446,17 +446,18 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            platform = job["event"].platform or "unknown"
+            metric_tags = {"platform": job["event"].platform or "unknown"}
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differntiating based on platforms
-            with metrics.timer("event_manager.save.error", tags={"platform": platform}):
-                return self._save_error(project, job, projects, raw, cache_key)
+            with metrics.timer("event_manager.save.error", tags=metric_tags):
+                return self._save_error(project, job, projects, metric_tags, raw, cache_key)
 
     def _save_error(
         self,
         project: Project,
         job: Job,
         projects: ProjectsMapping,
+        metric_tags: Dict[str, str],
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
@@ -493,8 +494,12 @@ class EventManager:
         if do_background_grouping_before:
             _run_background_grouping(project, job)
 
-        secondary_hashes = calculate_secondary_hash_if_needed(project, job)
+        secondary_hashes = None
         migrate_off_hierarchical = False
+
+        if _check_to_run_secondary_grouping(project):
+            with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+                secondary_hashes = calculate_secondary_hash_if_needed(job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -515,7 +520,7 @@ class EventManager:
         with sentry_sdk.start_span(
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
-        ), metrics.timer("event_manager.calculate_event_grouping"):
+        ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -681,7 +686,17 @@ class EventManager:
         return job["event"]
 
 
-def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | CalculatedHashes:
+def _check_to_run_secondary_grouping(project: Project) -> bool:
+    result = False
+    # These two values are basically always set
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
+        result = True
+    return result
+
+
+def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -689,20 +704,16 @@ def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | Cal
     """
     secondary_hashes = None
     try:
-        # These two values are basically always set
-        secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-        secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-        if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-            with sentry_sdk.start_span(
-                op="event_manager",
-                description="event_manager.save.secondary_calculate_event_grouping",
-            ), metrics.timer("event_manager.secondary_grouping"):
-                secondary_event = copy.deepcopy(job["event"])
-                loader = SecondaryGroupingConfigLoader()
-                secondary_grouping_config = loader.get_config_dict(project)
-                secondary_hashes = _calculate_event_grouping(
-                    project, secondary_event, secondary_grouping_config
-                )
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.secondary_calculate_event_grouping",
+        ):
+            secondary_event = copy.deepcopy(job["event"])
+            loader = SecondaryGroupingConfigLoader()
+            secondary_grouping_config = loader.get_config_dict(project)
+            secondary_hashes = _calculate_event_grouping(
+                project, secondary_event, secondary_grouping_config
+            )
     except Exception:
         sentry_sdk.capture_exception()
 
