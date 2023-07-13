@@ -137,7 +137,7 @@ export function SlowestFunctionsWidget({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <Accordion>
+          <StyledAccordion>
             {(functionsQuery.data?.data ?? []).map((f, i) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
@@ -154,7 +154,7 @@ export function SlowestFunctionsWidget({
                 />
               );
             })}
-          </Accordion>
+          </StyledAccordion>
         )}
       </ContentContainer>
     </WidgetContainer>
@@ -190,8 +190,9 @@ function SlowestFunctionEntry({
     const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    conditions.setFilterValues('package', [String(func.package)]);
-    conditions.setFilterValues('function', [String(func.function)]);
+    // it is more efficient to filter on the fingerprint
+    // than it is to filter on the package + function
+    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
 
     return conditions.formatString();
   }, [func, query]);
@@ -305,6 +306,7 @@ function SlowestFunctionEntry({
 
 const functionsFields = [
   'project.id',
+  'fingerprint',
   'package',
   'function',
   'count()',
@@ -328,6 +330,11 @@ type FunctionTransactionField = (typeof functionTransactionsFields)[number];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordion = styled(Accordion)`
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledAccordionItem = styled(AccordionItem)`
