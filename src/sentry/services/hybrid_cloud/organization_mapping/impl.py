@@ -7,7 +7,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
-from sentry.testutils.silo import unguarded_write
+from sentry.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):

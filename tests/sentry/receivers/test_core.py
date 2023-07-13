@@ -3,8 +3,8 @@ from django.test.utils import override_settings
 
 from sentry.models import Organization, OrganizationMapping, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
+from sentry.silo import unguarded_write
 from sentry.testutils import TestCase
-from sentry.testutils.silo import unguarded_write
 
 
 class CreateDefaultProjectsTest(TestCase):

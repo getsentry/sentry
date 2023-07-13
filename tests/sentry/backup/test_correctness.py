@@ -5,8 +5,8 @@ from click.testing import CliRunner
 from freezegun import freeze_time
 
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.silo import unguarded_write
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.backup import ValidationError, tmp_export_to_file

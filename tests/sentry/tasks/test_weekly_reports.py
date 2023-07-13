@@ -12,6 +12,7 @@ from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
+from sentry.silo import unguarded_write
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -25,7 +26,6 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import unguarded_write
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome

@@ -47,7 +47,7 @@ from sentry.services.hybrid_cloud.organization.serial import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
-from sentry.testutils.silo import unguarded_write
+from sentry.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
 
 

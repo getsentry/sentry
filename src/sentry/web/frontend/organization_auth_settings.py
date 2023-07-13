@@ -16,8 +16,8 @@ from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.silo import unguarded_write
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
-from sentry.testutils.silo import unguarded_write
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView
 

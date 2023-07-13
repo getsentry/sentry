@@ -5,10 +5,10 @@ from django.db import router
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.silo import unguarded_write
 from sentry.tasks.organization_mapping import ORGANIZATION_MAPPING_EXPIRY, repair_mappings
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import unguarded_write
 
 
 @pytest.fixture(autouse=True)

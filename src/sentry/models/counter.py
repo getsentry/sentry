@@ -93,7 +93,7 @@ def increment_project_counter(project, delta=1, using="default"):
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
 def create_counter_function(app_config, using, **kwargs):
-    from sentry.testutils.silo import unguarded_write
+    from sentry.silo import unguarded_write
 
     if app_config and app_config.name != "sentry":
         return

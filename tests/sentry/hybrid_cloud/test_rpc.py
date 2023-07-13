@@ -21,10 +21,9 @@ from sentry.services.hybrid_cloud.rpc import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import unguarded_write
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 

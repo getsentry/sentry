@@ -467,7 +467,7 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
-    from sentry.testutils.silo import unguarded_write
+    from sentry.silo import unguarded_write
 
     # If we don't specify our flush, use the outer specified override
     if flush is None:

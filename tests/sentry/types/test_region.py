@@ -6,10 +6,9 @@ from django.test import override_settings
 
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import unguarded_write
 from sentry.types.region import (
     Region,
     RegionCategory,

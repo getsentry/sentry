@@ -3,7 +3,7 @@ from click.testing import CliRunner
 from django.db import IntegrityError
 
 from sentry.runner.commands.backup import export, import_
-from sentry.testutils.silo import unguarded_write
+from sentry.silo import unguarded_write
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
 

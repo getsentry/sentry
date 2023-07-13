@@ -1,6 +1,6 @@
 from django.db.models import F
 
-from sentry.testutils.silo import unguarded_write
+from sentry.silo import unguarded_write
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 

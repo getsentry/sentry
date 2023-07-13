@@ -6,9 +6,9 @@ from django.utils import timezone
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
+from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.testutils.silo import unguarded_write
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")

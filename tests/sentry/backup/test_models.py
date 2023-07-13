@@ -7,8 +7,8 @@ from click.testing import CliRunner
 from django.core.management import call_command
 
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils import TransactionTestCase
-from sentry.testutils.silo import unguarded_write
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
 

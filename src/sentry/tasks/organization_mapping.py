@@ -8,9 +8,9 @@ from django.utils import timezone
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.testutils.silo import unguarded_write
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
