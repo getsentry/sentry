@@ -137,6 +137,7 @@ from sentry.search.events.constants import (
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
+from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -167,7 +168,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .silo import exempt_from_silo_limits
+from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -279,13 +280,13 @@ class BaseTestCase(Fixtures):
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
         if isinstance(user, OrganizationMember):
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 user = User.objects.get(id=user.user_id)
 
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with exempt_from_silo_limits():
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
             login(request, user)
         request.user = user
 
@@ -1001,7 +1002,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1972,7 +1973,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
@@ -2260,12 +2261,12 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(
+        self.auth_provider_inst = AuthProviderModel(
             organization_id=self.organization.id, provider=provider
         )
-        self.auth_provider.enable_scim(self.user)
-        self.auth_provider.save()
-        self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
+        self.auth_provider_inst.enable_scim(self.user)
+        self.auth_provider_inst.save()
+        self.scim_user = ApiToken.objects.get(token=self.auth_provider_inst.get_scim_token()).user
         self.login_as(user=self.scim_user)
 
 

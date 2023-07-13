@@ -57,6 +57,9 @@ class MockUserBatchHandler(features.BatchFeatureHandler):
     def _check_for_batch(self, feature_name, user, actor):
         return user.name == "steve"
 
+    def batch_has(self, *a, **k):
+        raise NotImplementedError("unreachable")
+
 
 class FeatureManagerTest(TestCase):
     def test_feature_registry(self):
@@ -91,6 +94,9 @@ class FeatureManagerTest(TestCase):
                 if feature.project in self.false_set:
                     return False
                 return None
+
+            def batch_has(self, *a, **k):
+                raise NotImplementedError("unreachable")
 
         p1 = self.create_project()
         p2 = self.create_project()
@@ -177,6 +183,9 @@ class FeatureManagerTest(TestCase):
 
                     self.hit_counter += 1
                     return result
+
+                def batch_has(self, *a, **k):
+                    raise NotImplementedError("unreachable")
 
             return OrganizationTestHandler()
 

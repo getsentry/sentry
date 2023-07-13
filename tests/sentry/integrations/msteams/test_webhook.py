@@ -7,8 +7,9 @@ import pytest
 import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import jwt
 
 from .test_helpers import (
@@ -223,7 +224,7 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
@@ -235,7 +236,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert not Integration.objects.filter(id=integration.id)
 
     @responses.activate
@@ -244,7 +245,7 @@ class MsTeamsWebhookTest(APITestCase):
     def test_different_member_removed(self, mock_time, mock_decode):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
@@ -256,7 +257,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
@@ -468,7 +469,7 @@ class MsTeamsWebhookTest(APITestCase):
     def test_link_command_already_linked(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
             Identity.objects.create(
                 external_id=other_command["from"]["id"], idp=idp, user=self.user

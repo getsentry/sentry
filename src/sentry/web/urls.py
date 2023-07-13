@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
+from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.web import api
@@ -163,6 +164,11 @@ urlpatterns += [
                 re_path(
                     r"^token/$",
                     OAuthTokenView.as_view(),
+                ),
+                re_path(
+                    r"userinfo/$",
+                    OAuthUserInfoEndpoint.as_view(),
+                    name="sentry-api-0-oauth-userinfo",
                 ),
             ]
         ),
@@ -1071,6 +1077,10 @@ urlpatterns += [
                 re_path(
                     r"^msteams/",
                     include("sentry.integrations.msteams.urls"),
+                ),
+                re_path(
+                    r"^discord/",
+                    include("sentry.integrations.discord.urls"),
                 ),
             ]
         ),

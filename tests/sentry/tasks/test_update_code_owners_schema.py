@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock
+from unittest import mock
+
+import pytest
 
 from sentry.models import Integration, ProjectCodeOwners
 from sentry.tasks.codeowners import update_code_owners_schema
@@ -14,8 +16,10 @@ class UpdateCodeOwnersSchemaTest(TestCase):
         self.project_codeowner = self.create_codeowners(project=self.project)
         self.integration = Integration.objects.get()
 
-        self.mock_update = MagicMock()
-        ProjectCodeOwners.update_schema = self.mock_update
+    @pytest.fixture(autouse=True)
+    def patch_update_schema(self):
+        with mock.patch.object(ProjectCodeOwners, "update_schema") as self.mock_update:
+            yield
 
     def test_no_op(self):
         with self.feature("organizations:integrations-codeowners"):

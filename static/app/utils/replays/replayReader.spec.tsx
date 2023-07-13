@@ -155,7 +155,6 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.click'}),
-          expect.objectContaining({category: 'redux.action'}),
           expect.objectContaining({op: 'navigation.navigate'}),
         ],
       },

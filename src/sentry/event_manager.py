@@ -393,7 +393,6 @@ class EventManager:
         start_time: Optional[int] = None,
         cache_key: Optional[str] = None,
         skip_send_first_transaction: bool = False,
-        auto_upgrade_grouping: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -442,8 +441,17 @@ class EventManager:
             jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
+        else:
+            return self._save_error(project, job, projects, raw, cache_key)
 
-        # Only error events from this point onward
+    def _save_error(
+        self,
+        project: Project,
+        job: Job,
+        projects: ProjectsMapping,
+        raw: bool = False,
+        cache_key: Optional[str] = None,
+    ) -> Event:
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -480,25 +488,8 @@ class EventManager:
         if do_background_grouping_before:
             _run_background_grouping(project, job)
 
-        secondary_hashes = None
+        secondary_hashes = calculate_secondary_hash_if_needed(project, job)
         migrate_off_hierarchical = False
-
-        try:
-            secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-            secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-            if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-                with sentry_sdk.start_span(
-                    op="event_manager",
-                    description="event_manager.save.calculate_event_grouping",
-                ), metrics.timer("event_manager.secondary_grouping"):
-                    secondary_event = copy.deepcopy(job["event"])
-                    loader = SecondaryGroupingConfigLoader()
-                    secondary_grouping_config = loader.get_config_dict(project)
-                    secondary_hashes = _calculate_event_grouping(
-                        project, secondary_event, secondary_grouping_config
-                    )
-        except Exception:
-            sentry_sdk.capture_exception()
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -679,10 +670,38 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if auto_upgrade_grouping and _project_should_update_grouping(project):
+        if _project_should_update_grouping(project):
             _auto_update_grouping(project)
 
         return job["event"]
+
+
+def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | CalculatedHashes:
+    """Calculate secondary hash for event using a fallback grouping config for a period of time.
+    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
+    when the customer changes the grouping config.
+    This causes extra load in save_event processing.
+    """
+    secondary_hashes = None
+    try:
+        # These two values are basically always set
+        secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+        secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+        if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
+            with sentry_sdk.start_span(
+                op="event_manager",
+                description="event_manager.save.secondary_calculate_event_grouping",
+            ), metrics.timer("event_manager.secondary_grouping"):
+                secondary_event = copy.deepcopy(job["event"])
+                loader = SecondaryGroupingConfigLoader()
+                secondary_grouping_config = loader.get_config_dict(project)
+                secondary_hashes = _calculate_event_grouping(
+                    project, secondary_event, secondary_grouping_config
+                )
+    except Exception:
+        sentry_sdk.capture_exception()
+
+    return secondary_hashes
 
 
 def _project_should_update_grouping(project: Project) -> bool:

@@ -19,7 +19,8 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -27,7 +28,7 @@ import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -52,7 +53,7 @@ interface State extends AsyncViewState {
   teamMembers: TeamMember[];
 }
 
-class TeamMembers extends AsyncView<Props, State> {
+class TeamMembers extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -100,7 +101,7 @@ class TeamMembers extends AsyncView<Props, State> {
     }
   };
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
 
     return [

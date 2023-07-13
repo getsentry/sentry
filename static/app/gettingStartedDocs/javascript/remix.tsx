@@ -1,5 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -44,13 +45,13 @@ export const steps = ({
   sentryInitContentServer?: string[];
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
+    description: t(
+      'Sentry captures data by using an SDK within your application’s runtime.'
+    ),
     configurations: [
       {
-        description: t(
-          'Sentry captures data by using an SDK within your application’s runtime.'
-        ),
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/remix
@@ -62,13 +63,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
+    description: t(
+      'Import and initialize Sentry in your Remix entry points for both the client and server:'
+    ),
     configurations: [
       {
-        description: t(
-          'Import and initialize Sentry in your Remix entry points for both the client and server:'
-        ),
+        language: 'javascript',
         code: `
         import { useLocation, useMatches } from "@remix-run/react";
         import * as Sentry from "@sentry/remix";
@@ -80,19 +81,23 @@ export const steps = ({
         `,
       },
       {
-        description: tct(
-          `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
-          {
-            action: (
-              <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
-            ),
-            loader: (
-              <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
-            ),
-          }
+        language: 'javascript',
+        description: (
+          <p>
+            {tct(
+              `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
+              {
+                action: (
+                  <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
+                ),
+                loader: (
+                  <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
+                ),
+              }
+            )}
+          </p>
         ),
         code: `
-
         ${
           (sentryInitContentServer ?? []).length > 1
             ? `import { prisma } from "~/db.server";`
@@ -110,6 +115,7 @@ export const steps = ({
         description: t(
           'Lastly, wrap your Remix root with "withSentry" to catch React component errors and to get parameterized router transactions:'
         ),
+        language: 'javascript',
         code: `
 import {
   Links,
@@ -145,13 +151,13 @@ export default withSentry(App);
     ],
   },
   {
-    language: 'javascript',
     type: StepType.VERIFY,
+    description: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
     configurations: [
       {
-        description: t(
-          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-        ),
+        language: 'javascript',
         code: `
         return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,
@@ -186,17 +192,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithRemix({
+export function GettingStartedWithRemix({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -238,7 +238,9 @@ export default function GettingStartedWithRemix({
         sentryInitContentServer,
       })}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithRemix;

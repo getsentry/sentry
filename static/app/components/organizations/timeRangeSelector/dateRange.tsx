@@ -117,13 +117,13 @@ class BaseDateRange extends Component<Props, State> {
     const end = this.props.end ?? undefined;
     const {onChange, organization, router} = this.props;
     const startTime = e.target.value;
+    const newStartTime = setDateToTime(start, startTime, {local: true});
 
-    if (!startTime || !isValidTime(startTime)) {
+    if (!startTime || !isValidTime(startTime) || (end && newStartTime > end)) {
       this.setState({hasStartErrors: true});
       onChange({hasDateRangeErrors: true});
       return;
     }
-    const newTime = setDateToTime(start, startTime, {local: true});
 
     trackAnalytics('dateselector.time_changed', {
       organization,
@@ -133,7 +133,7 @@ class BaseDateRange extends Component<Props, State> {
     });
 
     onChange({
-      start: newTime,
+      start: newStartTime,
       end,
       hasDateRangeErrors: this.state.hasEndErrors,
     });
@@ -146,14 +146,14 @@ class BaseDateRange extends Component<Props, State> {
     const end = this.props.end ?? '';
     const {organization, onChange, router} = this.props;
     const endTime = e.target.value;
+    const newEndTime = setDateToTime(end, endTime, {local: true});
 
-    if (!endTime || !isValidTime(endTime)) {
+    if (!endTime || !isValidTime(endTime) || (start && start > newEndTime)) {
       this.setState({hasEndErrors: true});
       onChange({hasDateRangeErrors: true});
       return;
     }
 
-    const newTime = setDateToTime(end, endTime, {local: true});
     trackAnalytics('dateselector.time_changed', {
       organization,
       field_changed: 'end',
@@ -163,7 +163,7 @@ class BaseDateRange extends Component<Props, State> {
 
     onChange({
       start,
-      end: newTime,
+      end: newEndTime,
       hasDateRangeErrors: this.state.hasStartErrors,
     });
 

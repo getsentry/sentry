@@ -1,40 +1,10 @@
 import integrationDocsPlatforms from 'integration-docs-platforms';
 import sortBy from 'lodash/sortBy';
 
-import {migratedDocs} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {t} from 'sentry/locale';
 import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
-
-const migratedJavascriptPlatforms = {
-  id: 'javascript',
-  name: 'Browser JavaScript',
-  integrations: [
-    ...(integrationDocsPlatforms.platforms
-      .filter(platform => platform.id === 'javascript')?.[0]
-      ?.integrations?.filter(integration => !migratedDocs.includes(integration.id)) ??
-      []),
-    {
-      id: 'javascript-react',
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
-      name: 'React',
-      type: 'framework',
-    },
-    {
-      id: 'javascript-remix',
-      link: 'https://docs.sentry.io/platforms/javascript/guides/remix/',
-      name: 'Remix',
-      type: 'framework',
-    },
-    {
-      id: 'javascript-angular',
-      link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
-      name: 'Angular',
-      type: 'framework',
-    },
-  ],
-};
 
 const otherPlatform = {
   integrations: [
@@ -50,10 +20,7 @@ const otherPlatform = {
 };
 
 const platformIntegrations: PlatformIntegration[] = [
-  ...(integrationDocsPlatforms.platforms.filter(
-    platform => platform.id !== 'javascript'
-  ) ?? []),
-  migratedJavascriptPlatforms,
+  ...integrationDocsPlatforms.platforms,
   otherPlatform,
 ]
   .map(platform => {
