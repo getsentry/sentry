@@ -145,32 +145,40 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        prepared_request = Request(
-            method=request.method,
-            url=full_url,
-            headers=headers,
-            data=request.body,
-        ).prepare()
-        # Third-party authentication headers will be added in client.authorize_request which runs
-        # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client._request(
-            request.method,
-            self.proxy_path,
-            allow_text=True,
-            prepared_request=prepared_request,
-            raw_response=True,
-        )
-        response = HttpResponse(
-            content=raw_response.content,
-            status=raw_response.status_code,
-            reason=raw_response.reason,
-            content_type=raw_response.headers.get("Content-Type"),
-            # XXX: Can be added in Django 3.2
-            # headers=raw_response.headers
-        )
-        valid_headers = clean_outbound_headers(raw_response.headers)
-        for header, value in valid_headers.items():
-            response[header] = value
+        if self.client.should_delegate():
+            response: HttpResponse = self.client.delegate(
+                proxy_path=self.proxy_path, headers=headers, data=request.body
+            )
+            valid_headers = clean_outbound_headers(response.headers)
+            for header, value in valid_headers.items():
+                response[header] = value
+        else:
+            prepared_request = Request(
+                method=request.method,
+                url=full_url,
+                headers=headers,
+                data=request.body,
+            ).prepare()
+            # Third-party authentication headers will be added in client.authorize_request which runs
+            # in IntegrationProxyClient.finalize_request.
+            raw_response: Response = self.client._request(
+                request.method,
+                self.proxy_path,
+                allow_text=True,
+                prepared_request=prepared_request,
+                raw_response=True,
+            )
+            response = HttpResponse(
+                content=raw_response.content,
+                status=raw_response.status_code,
+                reason=raw_response.reason,
+                content_type=raw_response.headers.get("Content-Type"),
+                # XXX: Can be added in Django 3.2
+                # headers=raw_response.headers
+            )
+            valid_headers = clean_outbound_headers(raw_response.headers)
+            for header, value in valid_headers.items():
+                response[header] = value
         metrics.incr("hc.integration_proxy.success")
         logger.info("proxy_success", extra=self.log_extra)
         return response
