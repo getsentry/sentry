@@ -25,6 +25,7 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] 
 
 @control_silo_test(stable=True)
 class SlackCommandsHelpTest(SlackCommandsTest):
+    @responses.activate
     def test_missing_command(self):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
