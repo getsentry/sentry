@@ -12,7 +12,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
         self.organization = self.create_organization(name="test org", owner=self.user)
         self.partner_org_id = "foobar"
         config_data = FlyOAuth2Provider.build_config(resource={"id": self.partner_org_id})
-        self.auth_provider = AuthProvider.objects.create(
+        AuthProvider.objects.create(
             organization_id=self.organization.id, provider="fly", config=config_data
         )
         self.path = (
