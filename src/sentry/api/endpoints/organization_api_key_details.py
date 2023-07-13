@@ -3,8 +3,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationAdminPermission, OrganizationEndpoint
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationAdminPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ApiKey
@@ -16,11 +19,11 @@ class ApiKeySerializer(serializers.ModelSerializer):
         fields = ("label", "scope_list", "allowed_origins")
 
 
-@region_silo_endpoint
-class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
+@control_silo_endpoint
+class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization, api_key_id) -> Response:
+    def get(self, request: Request, organization_context, organization, api_key_id) -> Response:
         """
         Retrieves API Key details
         `````````````````````````
@@ -37,7 +40,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(api_key, request.user))
 
-    def put(self, request: Request, organization, api_key_id) -> Response:
+    def put(self, request: Request, organization_context, organization, api_key_id) -> Response:
         """
         Update an API Key
         `````````````````
@@ -73,7 +76,7 @@ class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, organization, api_key_id) -> Response:
+    def delete(self, request: Request, organization_context, organization, api_key_id) -> Response:
         """
         Deletes an API Key
         ``````````````````
