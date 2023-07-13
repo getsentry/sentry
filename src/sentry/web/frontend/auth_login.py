@@ -126,15 +126,14 @@ class AuthLoginView(BaseView):
             and request.path_info not in non_sso_urls
         )
 
-    def get_sso_redirect(self, request: Request):
+    def get_sso_redirect(self, request: Request) -> HttpResponseRedirect:
         """Returns a redirect response that will take a user to SSO login."""
-        url_prefix = generate_organization_url(
-            reverse("sentry-auth-organization", args=[request.subdomain])
-        )
-        absolute_url = absolute_uri(
+        url_prefix = generate_organization_url(request.subdomain)
+        url = absolute_uri(
             reverse("sentry-auth-organization", args=[request.subdomain]), url_prefix=url_prefix
         )
-        url = f"{absolute_url}?{request.GET.urlencode()}"
+        if request.GET:
+            url = f"{url}?{request.GET.urlencode()}"
         return HttpResponseRedirect(url)
 
     def get_registration_page(self, request: Request, context: dict) -> Response:
@@ -153,7 +152,7 @@ class AuthLoginView(BaseView):
 
     def get_login_page(self, request: Request, context: dict) -> Response:
         """Returns the standard login page."""
-        op = request.GET.get("op") if request.GET.get("op") == "sso" else "login"
+        op = "sso" if request.GET.get("op") == "sso" else "login"
         login_form = AuthenticationForm(request)
         context.update(
             {
@@ -176,6 +175,7 @@ class AuthLoginView(BaseView):
                 request=request, context=default_context, organization=organization
             )
         else:
+
             return self.handle_login_form_submit(
                 request=request, context=default_context, organization=organization
             )
@@ -220,6 +220,7 @@ class AuthLoginView(BaseView):
                 request=request, register_form=register_form, organization=organization
             )
         else:
+
             context.update(
                 {
                     "op": "register",
@@ -227,7 +228,7 @@ class AuthLoginView(BaseView):
                     "CAN_REGISTER": True,
                 }
             )
-            self.respond("sentry/login.html", context)
+            return self.respond("sentry/login.html", context)
 
     def get_register_form(self, request: Request, initial):
         """Extracts the register form from a request, then formats and returns it."""
@@ -428,7 +429,7 @@ class AuthLoginView(BaseView):
         default_context.update(additional_context.run_callbacks(request))
         return default_context
 
-    def get_join_request_link(self, organization):
+    def get_join_request_link(self, organization) -> str:
         if not organization:
             return None
 
@@ -611,3 +612,7 @@ class AuthLoginView(BaseView):
 
     def respond_login(self, request: Request, context, **kwargs):
         return self.respond("sentry/login.html", context)
+
+    def get_login_form(self, request: Request):
+        op = request.POST.get("op")
+        return AuthenticationForm(request, request.POST if op == "login" else None)
