@@ -19,6 +19,7 @@ export const migratedDocs = [
   'javascript-nextjs',
   'javascript',
   'python-django',
+  'react-native',
 ];
 
 type SdkDocumentationProps = {

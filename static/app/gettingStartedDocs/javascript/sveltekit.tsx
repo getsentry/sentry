@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
@@ -8,7 +8,6 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Configuration Start
 const replayIntegration = `
@@ -33,13 +32,14 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-        ),
-      }
+    description: (
+      <p>
+        {tct('Configure your app automatically with the [wizardLink:Sentry wizard].', {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+          ),
+        })}
+      </p>
     ),
     configurations: [
       {
@@ -51,7 +51,7 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: (
-      <ConfigureDescription>
+      <Fragment>
         {t(
           'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
         )}
@@ -81,27 +81,27 @@ export const steps = ({
             )}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
             ),
           })}
-        </div>
-      </ConfigureDescription>
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
         description: (
-          <ConfigureDescription>
+          <Fragment>
             <strong>{t('Configure the Sentry SDK:')}</strong>
-            <div>
+            <p>
               {tct(
                 'To configure the Sentry SDK, edit the [code:Sentry.init] options in [code:hooks.(client|server).(js|ts)]:',
                 {code: <code />}
               )}
-            </div>
-          </ConfigureDescription>
+            </p>
+          </Fragment>
         ),
         language: 'javascript',
         code: `
@@ -201,9 +201,3 @@ export function GettingStartedWithSvelteKit({
 }
 
 export default GettingStartedWithSvelteKit;
-
-const ConfigureDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;

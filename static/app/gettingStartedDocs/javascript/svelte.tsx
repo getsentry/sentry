@@ -53,9 +53,13 @@ export const steps = ({
   },
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
-      {code: <code />}
+    description: (
+      <p>
+        {tct(
+          "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
+          {code: <code />}
+        )}
+      </p>
     ),
     configurations: [
       {

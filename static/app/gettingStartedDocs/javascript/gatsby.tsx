@@ -56,14 +56,14 @@ export const steps = ({
     configurations: [
       {
         description: (
-          <div>
+          <p>
             {tct(
               'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
               {
                 code: <code />,
               }
             )}
-          </div>
+          </p>
         ),
         language: 'javascript',
         code: `
@@ -78,7 +78,7 @@ export const steps = ({
       },
       {
         description: (
-          <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
+          <p>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</p>
         ),
         language: 'javascript',
         code: `

@@ -1,15 +1,18 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 export function getUploadSourceMapsStep(guideLink: string) {
   return {
-    type: StepType.UPLOAD_SOURCE_MAPS,
-    description: tct(
-      'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
-      {
-        guideLink: <ExternalLink href={guideLink} />,
-      }
+    title: t('Upload Source Maps'),
+    description: (
+      <p>
+        {tct(
+          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
+          {
+            guideLink: <ExternalLink href={guideLink} />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
