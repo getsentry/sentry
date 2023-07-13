@@ -111,6 +111,8 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        proguard_uuid = str(proguard_uuid)
+
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
         if not difs:
             return Response(
