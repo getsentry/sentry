@@ -30,7 +30,9 @@ class RegionResolutionTest(TestCase):
         self.organization = self._create_org_in_region(self.target_region)
 
     def _create_org_in_region(self, target_region):
-        with override_settings(SENTRY_REGION=target_region.name):
+        with override_regions(self.regions), override_settings(
+            SILO_MODE=SiloMode.REGION, SENTRY_REGION=target_region.name
+        ):
             organization = self.create_organization()
         org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
         with unguarded_write():
