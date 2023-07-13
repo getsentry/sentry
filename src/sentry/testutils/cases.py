@@ -1973,7 +1973,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.MONOLITH)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
@@ -2261,12 +2261,12 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(
+        self.auth_provider_inst = AuthProviderModel(
             organization_id=self.organization.id, provider=provider
         )
-        self.auth_provider.enable_scim(self.user)
-        self.auth_provider.save()
-        self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
+        self.auth_provider_inst.enable_scim(self.user)
+        self.auth_provider_inst.save()
+        self.scim_user = ApiToken.objects.get(token=self.auth_provider_inst.get_scim_token()).user
         self.login_as(user=self.scim_user)
 
 

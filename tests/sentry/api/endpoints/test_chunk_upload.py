@@ -16,8 +16,9 @@ from sentry.api.endpoints.chunk import (
     MAX_REQUEST_SIZE,
 )
 from sentry.models import MAX_FILE_SIZE, ApiToken, FileBlob, Organization
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -28,7 +29,7 @@ class ChunkUploadTest(APITestCase):
 
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
@@ -130,7 +131,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content

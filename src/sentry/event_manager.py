@@ -449,10 +449,10 @@ class EventManager:
             metric_tags = {"platform": job["event"].platform or "unknown"}
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differntiating based on platforms
-            with metrics.timer("event_manager.save.error", tags=metric_tags):
-                return self._save_error(project, job, projects, metric_tags, raw, cache_key)
+            with metrics.timer("event_manager.save_error_events", tags=metric_tags):
+                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
-    def _save_error(
+    def save_error_events(
         self,
         project: Project,
         job: Job,

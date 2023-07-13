@@ -48,12 +48,12 @@ class RatelimitMiddleware:
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
                 if settings.SENTRY_SELF_HOSTED:
-                    return
+                    return None
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
                 view_class = getattr(view_func, "view_class", None)
                 if not view_class:
-                    return
+                    return None
 
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
@@ -65,7 +65,7 @@ class RatelimitMiddleware:
                     view_func, request, rate_limit_group, rate_limit_config
                 )
                 if request.rate_limit_key is None:
-                    return
+                    return None
 
                 category_str = request.rate_limit_key.split(":", 1)[0]
                 request.rate_limit_category = category_str
@@ -76,7 +76,7 @@ class RatelimitMiddleware:
                     rate_limit_config=rate_limit_config,
                 )
                 if rate_limit is None:
-                    return
+                    return None
 
                 request.rate_limit_metadata = above_rate_limit_check(
                     request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group

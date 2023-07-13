@@ -4,7 +4,10 @@ import pytest
 from django.utils import timezone
 from snuba_sdk import And, Column, Condition, Op, Or
 
-from sentry.search.events.builder import SpansMetricsQueryBuilder
+from sentry.search.events.builder import (
+    SpansMetricsQueryBuilder,
+    TimeseriesSpansMetricsQueryBuilder,
+)
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -224,3 +227,17 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         assert condition == create_condition(
             datetime.datetime(2015, 5, 1, 1), datetime.datetime(2015, 5, 1, 12), 60, 3600
         ), "Condition, 12h at boundary, but 15 min before the boundary for start"
+
+
+class TimeseriesMetricQueryBuilder(MetricsEnhancedPerformanceTestCase):
+    def test_split_granularity(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": [self.project.id],
+            "start": datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc),
+            "end": datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc),
+        }
+        query = TimeseriesSpansMetricsQueryBuilder(params, 86400)
+        condition, granularity = query.resolve_split_granularity()
+        assert granularity == query.granularity
+        assert condition == []
