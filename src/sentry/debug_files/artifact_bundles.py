@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar
 
 import sentry_sdk
@@ -44,6 +45,12 @@ def get_redis_cluster_for_artifact_bundles():
 # ===== Flat File Indexing of Artifact Bundles =====
 
 
+class FlatFileIndexingState(Enum):
+    SUCCESS = 0
+    CONFLICT = 1
+    ERROR = 2
+
+
 class FlatFileIdentifier(NamedTuple):
     project_id: int
     release: str
@@ -53,7 +60,8 @@ class FlatFileIdentifier(NamedTuple):
         # An identifier is indexing by release if release is set.
         return bool(self.release)
 
-    def to_indexing_by_debug_id(self) -> FlatFileIdentifier:
+    @staticmethod
+    def to_indexing_by_debug_id() -> FlatFileIdentifier:
         return FlatFileIdentifier(project_id=project_id, release=NULL_STRING, dist=NULL_STRING)
 
 
@@ -97,7 +105,9 @@ def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) 
     return result
 
 
-def index_bundle_in_flat_file(artifact_bundle: ArtifactBundle, identifier: FlatFileIdentifier):
+def index_bundle_in_flat_file(
+    artifact_bundle: ArtifactBundle, identifier: FlatFileIdentifier
+) -> FlatFileIndexingState:
     with ArtifactBundleArchive(artifact_bundle.file.get_file(), build_memory_map=True) as archive:
         identifiers = [identifier]
 
@@ -108,22 +118,22 @@ def index_bundle_in_flat_file(artifact_bundle: ArtifactBundle, identifier: FlatF
 
         # Before starting, we have to make sure that
         if not set_flat_files_being_indexed_if_null(identifiers):
-            # TODO: implement retrial with delay.
-            pass
+            return FlatFileIndexingState.CONFLICT
 
         for identifier in identifiers:
-            # We then build the existing index.
             index = FlatFileIndex.build(FlatFileIndexStore(identifier))
             if index is None:
-                return
+                return FlatFileIndexingState.ERROR
 
             # Once the in-memory index is built, we can merge it with the incoming bundle.
             if not index.merge(artifact_bundle, archive):
-                return
+                return FlatFileIndexingState.ERROR
 
             # At the end we want to save the newly created index.
             if not index.save():
-                return
+                return FlatFileIndexingState.ERROR
+
+    return FlatFileIndexingState.SUCCESS
 
 
 class FlatFileIndexStore:
@@ -184,10 +194,20 @@ class FlatFileIndex:
     def _merge(
         self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive, index_urls: bool
     ):
+        self._update_bundles(artifact_bundle)
+
         if index_urls:
             self._iterate_over_urls(artifact_bundle, archive)
         else:
             self._iterate_over_debug_ids(artifact_bundle, archive)
+
+    def _update_bundles(self, artifact_bundle: ArtifactBundle):
+        existing_bundle_date = self._bundles.get(artifact_bundle.id)
+        if (
+            existing_bundle_date is None
+            or existing_bundle_date < artifact_bundle.date_last_modified
+        ):
+            self._bundles[artifact_bundle.id] = artifact_bundle.date_last_modified
 
     def _iterate_over_debug_ids(
         self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive

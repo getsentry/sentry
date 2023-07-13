@@ -19,7 +19,6 @@ from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundles import (
     FlatFileIdentifier,
     index_artifact_bundles_for_release,
-    index_bundle_in_flat_file,
 )
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -33,6 +32,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
+from sentry.tasks.artifact_bundle_indexing import index_artifact_bundle
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -475,6 +475,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         bundle_id = self.archive.extract_bundle_id()
 
+        # We want to build all the required parameters for indexing.
         artifact_bundle, created = self._bind_or_create_artifact_bundle(
             bundle_id=bundle_id, date_added=date_snapshot
         )
@@ -484,7 +485,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
             release=self.release or NULL_STRING,
             dist=self.dist or NULL_STRING,
         )
-        index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        # We want to asynchronously compute the index, in order to speed up the process and have the possibility to
+        # reschedule the task in case of contention.
+        index_artifact_bundle.apply_async(
+            kwargs={"artifact_bundle": artifact_bundle, "identifier": identifier}
+        )
 
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
