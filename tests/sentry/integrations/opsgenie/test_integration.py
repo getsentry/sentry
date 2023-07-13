@@ -7,6 +7,7 @@ from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 
 
 class OpsgenieIntegrationTest(IntegrationTestCase):
@@ -18,6 +19,13 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
     def assert_setup_flow(self, name="cool-name"):
+        resp_data = {"data": {"name": name}}
+        responses.add(
+            responses.GET,
+            url="{}{}".format(self.config["base_url"].rstrip("/"), "/v2/account"),
+            json=resp_data,
+        )
+
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
 
@@ -26,20 +34,15 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(self.init_path_without_guide, data=self.config)
         assert resp.status_code == 200
-        responses.add(
-            responses.GET,
-            url="{}{}".format(self.config["base_url"].rstrip("/"), "/v2/account"),
-            json={"data": {"name": name}},
-        )
 
         resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"name": name})))
 
-        mock_api_key_verification = responses.calls[0].request
+        mock_request = responses.calls[0].request
 
-        assert (
-            mock_api_key_verification.headers["Authorization"]
-            == "GenieKey " + self.config["api_key"]
-        )
+        assert mock_request.headers["Authorization"] == "GenieKey " + self.config["api_key"]
+
+        mock_response = responses.calls[0].response
+        assert json.loads(mock_response.content) == resp_data
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)

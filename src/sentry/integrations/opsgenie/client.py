@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry.integrations.client import ApiClient
 
-OPSGENIE_API_VERSION = "/v2"
+OPSGENIE_API_VERSION = "v2"
 
 
 class OpsgenieSetupClient(ApiClient):
