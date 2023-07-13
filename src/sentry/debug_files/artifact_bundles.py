@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar
 
 import sentry_sdk
 from django.conf import settings
@@ -58,7 +58,8 @@ class FlatFileIdentifier(NamedTuple):
 
 
 def _generate_flat_file_indexing_cache_key(identifier: FlatFileIdentifier):
-    # TODO: implement a proper cache key since release and dist can have different characters that might create problems.
+    # TODO: implement a proper cache key since release and dist can have different characters that might create
+    #  problems.
     return f"ab::o:{identifier.project_id}:r:{identifier.release}:{identifier.dist}"
 
 
@@ -136,14 +137,17 @@ class FlatFileIndexStore:
         pass
 
 
+T = TypeVar("T")
+
+
 class FlatFileIndex:
     def __init__(self, store: FlatFileIndexStore):
         self.store = store
 
         # By default, a flat file index is empty.
-        self.bundles: Dict[int, datetime] = {}
-        self.files_by_url: Dict[str, List[dict]] = {}
-        self.files_by_debug_id: Dict[str, List[dict]] = {}
+        self._bundles: Dict[int, datetime] = {}
+        self._files_by_url: Dict[str, List[int]] = {}
+        self._files_by_debug_id: Dict[(str, int), List[int]] = {}
 
     @staticmethod
     def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
@@ -160,9 +164,9 @@ class FlatFileIndex:
     def _build(self) -> None:
         loaded_index = self.store.load()
 
-        self.bundles = loaded_index.get("bundles", {})
-        self.files_by_url = loaded_index.get("files_by_url", {})
-        self.files_by_debug_id = loaded_index.get("files_by_debug_id", {})
+        self._bundles = loaded_index.get("bundles", {})
+        self._files_by_url = loaded_index.get("files_by_url", {})
+        self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})
 
     def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
         try:
@@ -186,11 +190,20 @@ class FlatFileIndex:
         self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive
     ):
         for debug_id, source_file_type in archive.get_all_debug_ids():
-            pass
+            self._add_sorted_entry(
+                self._files_by_debug_id, (debug_id, source_file_type.value), artifact_bundle.id
+            )
 
     def _iterate_over_urls(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
         for url in archive.get_all_urls():
-            pass
+            self._add_sorted_entry(self._files_by_url, url, artifact_bundle.id)
+
+    def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, artifact_bundle_id: int):
+        entries = collection.get(key, [])
+        entries.append(artifact_bundle_id)
+        # TODO: we have to also sort by id in case timestamps are equal.
+        entries.sort(key=lambda e: self._bundles[e])
+        collection[key] = entries
 
     def save(self):
         try:
