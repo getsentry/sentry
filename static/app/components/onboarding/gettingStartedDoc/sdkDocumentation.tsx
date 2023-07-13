@@ -20,6 +20,8 @@ export const migratedDocs = [
   'javascript',
   'python-django',
   'react-native',
+  'java-spring-boot',
+  'php-laravel',
 ];
 
 type SdkDocumentationProps = {
