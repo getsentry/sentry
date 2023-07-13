@@ -4,7 +4,7 @@
 ## Background
 
 As an APM company, the reliability of our SDKs is one of our most essential quality goals. If our SDK breaks the customer, we fail.
-Our SDK philosophy refers to this as [degrade gracefully](https://develop.sentry.dev/sdk/philosophy/#degrade-gracefully).
+Our SDK philosophy refers to this as `degrade gracefully <https://develop.sentry.dev/sdk/philosophy/#degrade-gracefully>`.
 
 For some SDKs, like mobile SDKs, we primarily rely on users to report SDK crashes because we don't operate them in production. If users
 don't report them, we are unaware. Instead, we should detect crashes caused by our SDKs when they happen so we can proactively fix them.
