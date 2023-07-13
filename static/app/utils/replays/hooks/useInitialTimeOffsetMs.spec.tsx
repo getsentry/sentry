@@ -18,7 +18,8 @@ const replay = TestStubs.ReplayRecord();
 
 const NOON = '2023-04-14T12:00:00';
 const FIVE_PAST_NOON = '2023-04-14T12:05:00';
-// TODO: FIRE_PAST_NOON as a Stringified number
+const FIVE_PAST_TIMESTAMP_S = String(new Date(FIVE_PAST_NOON).getTime() / 1000);
+const FIVE_PAST_TIMESTAMP_MS = String(new Date(FIVE_PAST_NOON).getTime());
 
 function mockQuery(query: Record<string, string>) {
   MockUseLocation.mockReturnValue({
@@ -79,25 +80,32 @@ describe('useInitialTimeOffsetMs', () => {
   });
 
   describe('fromEventTimestamp', () => {
-    it('should calculate the difference between an event timestamp and the replay start timestamp', async () => {
-      const noon = '2023-04-14T12:00:00';
-      const fivePastNoon = '2023-04-14T12:05:00';
+    it.each([
+      {case: 'fromatted date', input: FIVE_PAST_NOON},
+      {case: 'unix timestamp (seconds)', input: FIVE_PAST_TIMESTAMP_S},
+      {case: 'unit timestamp (ms)', input: FIVE_PAST_TIMESTAMP_MS},
+    ])(
+      'should calculate the difference between an event timestamp ($case) and the replay start timestamp',
+      async ({input}) => {
+        mockQuery({event_t: input});
 
-      mockQuery({event_t: fivePastNoon});
+        const {result, waitForNextUpdate} = reactHooks.renderHook(
+          useInitialTimeOffsetMs,
+          {
+            initialProps: {
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              replayId: replay.id,
+              replayStartTimestampMs: new Date(NOON).getTime(),
+            },
+          }
+        );
+        await waitForNextUpdate();
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
-        initialProps: {
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-          replayId: replay.id,
-          replayStartTimestampMs: new Date(noon).getTime(),
-        },
-      });
-      await waitForNextUpdate();
-
-      // Expecting 5 minutes difference, in ms
-      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
-    });
+        // Expecting 5 minutes difference, in ms
+        expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
+      }
+    );
 
     it('should return 0 offset if there is no replayStartTimetsamp, then recalculate when the startTimestamp appears', async () => {
       mockQuery({event_t: FIVE_PAST_NOON});

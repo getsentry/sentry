@@ -80,7 +80,9 @@ function fromEventTimestamp({eventTimestamp, replayStartTimestampMs}): Result {
   if (replayStartTimestampMs !== undefined) {
     let date = new Date(eventTimestamp);
     if (!isValidDate(date)) {
-      date = new Date(parseInt(eventTimestamp, 10));
+      const asInt = parseInt(eventTimestamp, 10);
+      // Allow input to be `?event_t=$num_of_seconds` or `?event_t=$num_of_miliseconds`
+      date = asInt < 9999999999 ? new Date(asInt * 1000) : new Date(asInt);
     }
     const eventTimestampMs = date.getTime();
     if (eventTimestampMs >= replayStartTimestampMs) {
