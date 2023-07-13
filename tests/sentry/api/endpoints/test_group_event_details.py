@@ -1,6 +1,7 @@
 import uuid
 from uuid import uuid4
 
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
@@ -8,6 +9,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
@@ -139,7 +141,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
 
 @region_silo_test(stable=True)
 class GroupEventDetailsHelpfulEndpointTest(
-    GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase
+    GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):
     def test_get_helpful_feature_off(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
@@ -332,3 +334,46 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["id"] == str(event_e.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == str(event_f.event_id)
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_query_title(self):
+        title = "four score and seven years ago"
+        event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-title"],
+                "message": title,
+            },
+            project_id=self.project_1.id,
+        )
+
+        url = f"/api/0/issues/{event_e.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": f'title:"{title}"'}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(event_e.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_query_issue_platform_title(self):
+        issue_title = "king of england"
+        occurrence_data = self.build_occurrence_data(project_id=self.project.id, title=issue_title)
+        occurrence, group_info = process_event_and_issue_occurrence(
+            occurrence_data,
+            event_data={
+                "event_id": occurrence_data["event_id"],
+                "project_id": occurrence_data["project_id"],
+                "level": "info",
+            },
+        )
+
+        url = f"/api/0/issues/{group_info.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": f'title:"{issue_title}"'}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(occurrence.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
