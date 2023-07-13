@@ -8,7 +8,6 @@ from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, T
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
-from sentry.utils.types import Any
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -29,7 +28,7 @@ def test_timeout_exception():
 
 
 class FakeContextIterator:
-    def __init__(self, frozen_time: Any, tick_seconds):
+    def __init__(self, frozen_time, tick_seconds):
         self.count = 0
         self.frozen_time = frozen_time
         self.tick_seconds = tick_seconds

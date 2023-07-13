@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import List, cast
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -8,6 +9,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import Timer
+from sentry.models import Organization, Project
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -68,8 +70,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         proj_counts = {"p1_1": (1, 2), "p1_2": (3, 4), "p2_1": (5, 6), "p2_2": (7, 8)}  # keep,drop
 
         for org_info in proj_orgs:
-            org = org_info.get("org")
-            projects = org_info.get("projects")
+            org = cast(Organization, org_info.get("org"))
+            projects = cast(List[Project], org_info.get("projects"))
             for project in projects:
                 keep, drop = proj_counts[project.name]
                 self.store_performance_metric(
