@@ -12,14 +12,18 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct(
-      'The Django integration adds support for the [link:Django Web Framework] from Version 1.6 upwards.',
-      {link: <ExternalLink href="https://www.djangoproject.com/" />}
+    description: (
+      <p>
+        {tct(
+          'The Django integration adds support for the [link:Django Web Framework] from Version 1.6 upwards.',
+          {link: <ExternalLink href="https://www.djangoproject.com/" />}
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        description: <div>{tct('Install [code:sentry-sdk]:', {code: <code />})}</div>,
+        description: <p>{tct('Install [code:sentry-sdk]:', {code: <code />})}</p>,
         code: 'pip install --upgrade sentry-sdk',
       },
     ],
@@ -27,33 +31,33 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: (
-      <div>
+      <p>
         {tct(
           'To configure the SDK, initialize it with the Django integration in your [code:settings.py] file:',
           {code: <code />}
         )}
-      </div>
+      </p>
     ),
     configurations: [
       {
         language: 'python',
         code: `
-        import sentry_sdk
-        from sentry_sdk.integrations.django import DjangoIntegration
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
-        sentry_sdk.init(
-            dsn="${dsn}",
-            integrations=[DjangoIntegration()],
+sentry_sdk.init(
+  dsn="${dsn}",
+  integrations=[DjangoIntegration()],
 
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
-            traces_sample_rate=1.0,
+  # Set traces_sample_rate to 1.0 to capture 100%
+  # of transactions for performance monitoring.
+  # We recommend adjusting this value in production.
+  traces_sample_rate=1.0,
 
-            # If you wish to associate users to errors (assuming you are using
-            # django.contrib.auth) you may enable sending PII data.
-            send_default_pii=True
-        )
+  # If you wish to associate users to errors (assuming you are using
+  # django.contrib.auth) you may enable sending PII data.
+  send_default_pii=True
+)
         `,
       },
     ],
@@ -70,15 +74,15 @@ export const steps = ({
           'Visiting this route will trigger an error that will be captured by Sentry.'
         ),
         code: `
-        from django.urls import path
+from django.urls import path
 
-        def trigger_error(request):
-            division_by_zero = 1 / 0
+def trigger_error(request):
+  division_by_zero = 1 / 0
 
-        urlpatterns = [
-          path('sentry-debug/', trigger_error),
-          # ...
-        ]
+  urlpatterns = [
+    path('sentry-debug/', trigger_error),
+    # ...
+  ]
         `,
       },
     ],
