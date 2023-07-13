@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import unittest.result
 from urllib.parse import parse_qs
 
 import responses
@@ -12,18 +15,11 @@ from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json
-
-SENTRY_REGION_CONFIG = [
-    Region(
-        name="region1",
-        snowflake_id=1,
-        address="http://region1.testserver",
-        category=RegionCategory.MULTI_TENANT,
-    ),
-]
 
 
 @control_silo_endpoint
@@ -115,12 +111,17 @@ def provision_middleware():
     return middleware
 
 
-@override_settings(
-    SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG,
-    SENTRY_MONOLITH_REGION=SENTRY_REGION_CONFIG[0].name,
-    ROOT_URLCONF=__name__,
-)
+@override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
+    _REGION_CONFIG = [
+        Region(
+            name="region1",
+            snowflake_id=1,
+            address="http://region1.testserver",
+            category=RegionCategory.MULTI_TENANT,
+        ),
+    ]
+
     def setUp(self):
         super().setUp()
         clear_global_regions()
@@ -140,6 +141,10 @@ class ApiGatewayTestCase(APITestCase):
             adding_headers={"test": "header"},
         )
 
+        with override_regions(self._REGION_CONFIG), override_settings(
+            SILO_MODE=SiloMode.REGION, SENTRY_REGION=self._REGION_CONFIG[0].name
+        ):
+            self.organization = self.create_organization()
         with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.get(organization_id=self.organization.id).update(
                 region_name="region1"
@@ -163,3 +168,9 @@ class ApiGatewayTestCase(APITestCase):
         )
 
         self.middleware = provision_middleware()
+
+    def run(
+        self, result: unittest.result.TestResult | None = ...
+    ) -> unittest.result.TestResult | None:
+        with override_regions(self._REGION_CONFIG):
+            return super().run(result)
