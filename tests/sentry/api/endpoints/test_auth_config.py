@@ -28,7 +28,10 @@ class AuthConfigEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data["nextUri"] == "/organizations/ricks-org/issues/"
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert response.data["nextUri"] == "/organizations/ricks-org/issues/"
+        else:
+            assert response.data["nextUri"] == "/organizations/r-na-ricks-org/issues/"
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @assume_test_silo_mode(SiloMode.MONOLITH)  # Single org IS monolith mode

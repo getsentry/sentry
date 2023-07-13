@@ -305,7 +305,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user, slug="duplicate")
 
-        self.get_error_response(self.organization.slug, slug=org.slug, status_code=400)
+        response = self.get_success_response(self.organization.slug, slug=org.slug)
+        dupe_org = Organization.objects.get(id=response.data["id"])
+        assert dupe_org.slug != org.slug
 
     def test_short_slug(self):
         self.get_error_response(self.organization.slug, slug="a", status_code=400)
@@ -843,10 +845,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
-
-    def test_org_mapping_already_taken(self):
-        self.create_organization(slug="taken")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
 @region_silo_test

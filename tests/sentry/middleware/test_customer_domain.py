@@ -7,6 +7,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
+from sentry.models import Organization
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import RegionCategory, clear_global_regions
@@ -212,6 +214,14 @@ class End2EndTest(APITestCase):
         super().setUp()
         self.middleware = provision_middleware()
 
+    def get_and_assert_org_slug_for_silo(self, org: Organization, slug_base: str):
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert org.slug == slug_base
+        else:
+            assert org.slug == f"r-na-{slug_base}"
+
+        return org.slug
+
     def test_with_middleware_no_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
@@ -257,7 +267,9 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "test"
 
     def test_with_middleware_and_customer_domain(self):
-        self.create_organization(name="albertos-apples")
+        org = self.create_organization(name="albertos-apples")
+
+        slug = self.get_and_assert_org_slug_for_silo(org=org, slug_base="albertos-apples")
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # Induce activeorg session value of a non-existent org
@@ -275,33 +287,31 @@ class End2EndTest(APITestCase):
 
             # 'activeorg' session key is replaced
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
-                HTTP_HOST="albertos-apples.testserver",
+                reverse("org-events-endpoint", kwargs={"organization_slug": slug}),
+                HTTP_HOST=f"{slug}.testserver",
             )
-            assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
+            valid_response_data = {
+                "organization_slug": slug,
+                "subdomain": slug,
+                "activeorg": slug,
             }
+            assert response.data == valid_response_data
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
             # Redirect response for org slug path mismatch
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                HTTP_HOST=f"{slug}.testserver",
                 follow=True,
             )
+
             assert response.status_code == 200
-            assert response.redirect_chain == [("/api/0/albertos-apples/?querystring=value", 302)]
-            assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
-            }
+            assert response.redirect_chain == [(f"/api/0/{slug}/?querystring=value", 302)]
+            assert response.data == valid_response_data
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
             # Redirect response for subdomain and path mismatch
             response = self.client.get(
@@ -314,85 +324,84 @@ class End2EndTest(APITestCase):
             )
             assert response.status_code == 200
             assert response.redirect_chain == [
-                ("http://albertos-apples.testserver/api/0/albertos-apples/?querystring=value", 302)
+                (f"http://{slug}.testserver/api/0/{slug}/?querystring=value", 302)
             ]
-            assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
-            }
+            assert response.data == valid_response_data
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
             # No redirect for http methods that is not GET
             response = self.client.post(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                HTTP_HOST=f"{slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
 
     def test_with_middleware_and_non_staff(self):
-        self.create_organization(name="albertos-apples")
+        org = self.create_organization(name="albertos-apples")
+        slug = self.get_and_assert_org_slug_for_silo(org=org, slug_base="albertos-apples")
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # GET request
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse("org-events-endpoint", kwargs={"organization_slug": slug}),
                 data={"querystring": "value"},
                 # This should preferably be HTTP_HOST.
                 # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                SERVER_NAME="albertos-apples.testserver",
+                SERVER_NAME=f"{slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
             assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
+                "organization_slug": slug,
+                "subdomain": slug,
+                "activeorg": slug,
             }
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
             # POST request
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse("org-events-endpoint", kwargs={"organization_slug": slug}),
                 data={"querystring": "value"},
-                SERVER_NAME="albertos-apples.testserver",
+                SERVER_NAME=f"{slug}.testserver",
             )
             assert response.status_code == 200
 
             # # PUT request (not-supported)
             response = self.client.put(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse("org-events-endpoint", kwargs={"organization_slug": slug}),
                 data={"querystring": "value"},
-                SERVER_NAME="albertos-apples.testserver",
+                SERVER_NAME=f"{slug}.testserver",
             )
             assert response.status_code == 405
 
     def test_with_middleware_and_is_staff(self):
-        self.create_organization(name="albertos-apples")
+        org = self.create_organization(name="albertos-apples")
         is_staff_user = self.create_user(is_staff=True)
         self.login_as(user=is_staff_user)
 
+        slug = self.get_and_assert_org_slug_for_silo(org=org, slug_base="albertos-apples")
+
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
-                HTTP_HOST="albertos-apples.testserver",
+                reverse("org-events-endpoint", kwargs={"organization_slug": slug}),
+                HTTP_HOST=f"{slug}.testserver",
             )
             assert response.status_code == 200
             assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
+                "organization_slug": slug,
+                "subdomain": slug,
+                "activeorg": slug,
             }
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
     def test_without_middleware(self):
         self.create_organization(name="albertos-apples")
@@ -444,23 +453,24 @@ class End2EndTest(APITestCase):
             assert self.client.session["activeorg"] == "test"
 
     def test_with_middleware_and_nameless_view(self):
-        self.create_organization(name="albertos-apples")
+        org = self.create_organization(name="albertos-apples")
+        slug = self.get_and_assert_org_slug_for_silo(org=org, slug_base="albertos-apples")
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             response = self.client.get(
                 "/api/0/some-org/nameless/",
-                HTTP_HOST="albertos-apples.testserver",
+                HTTP_HOST=f"{slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [("/api/0/albertos-apples/nameless/", 302)]
+            assert response.redirect_chain == [(f"/api/0/{slug}/nameless/", 302)]
             assert response.data == {
-                "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
+                "organization_slug": slug,
+                "subdomain": slug,
+                "activeorg": slug,
             }
             assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            assert self.client.session["activeorg"] == slug
 
     def test_disallowed_customer_domain(self):
         with override_settings(
