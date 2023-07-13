@@ -306,7 +306,7 @@ export class DeprecatedLine extends Component<Props, State> {
             </SuspectFrameTag>
           ) : null}
           {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
-          <ExpanderWrapper>{this.renderExpander()}</ExpanderWrapper>
+          {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
     );
@@ -486,7 +486,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto ${space(1)};
   align-items: center;
 `;
 
@@ -527,9 +527,4 @@ const IconWrapper = styled('div')`
 
 const SuspectFrameTag = styled(Tag)`
   margin-right: ${space(1)};
-`;
-
-const ExpanderWrapper = styled('div')`
-  width: ${p => p.theme.iconSizes.sm};
-  margin-left: ${space(1)};
 `;
