@@ -2288,7 +2288,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 project=self.project,
             )
             manager.normalize()
-            manager.save(self.project.id, auto_upgrade_grouping=True)
+            manager.save(self.project.id)
 
             # No update yet
             project = Project.objects.get(id=self.project.id)
@@ -2306,7 +2306,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 project=self.project,
             )
             manager.normalize()
-            manager.save(self.project.id, auto_upgrade_grouping=True)
+            manager.save(self.project.id)
 
             # This should have moved us back to the default grouping
             project = Project.objects.get(id=self.project.id)
