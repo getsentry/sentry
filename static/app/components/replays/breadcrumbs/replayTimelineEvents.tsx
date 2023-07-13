@@ -97,7 +97,7 @@ function Event({
     }
   `;
 
-  // We want to make sure of showing all the different colors that we have
+  // We want to show the full variety of colors available.
   const uniqueColors = uniq(frames.map(getColor));
 
   // We just need to stack up to 3 times
@@ -106,7 +106,13 @@ function Event({
   // Sort the frame colors by color priority
   // Priority order: red300, yellow300, green300, purple300, gray300
   const sortedUniqueColors = uniqueColors.sort(function (x, y) {
-    const colorOrder: Color[] = ['red300', 'yellow300', 'green300', 'purple300', 'gray300'];
+    const colorOrder: Color[] = [
+      'red300',
+      'yellow300',
+      'green300',
+      'purple300',
+      'gray300',
+    ];
     function getColorPos(c: Color) {
       return colorOrder.indexOf(c);
     }
