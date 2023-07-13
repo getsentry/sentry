@@ -66,8 +66,8 @@ class InstallationForm(forms.Form):
         # help_text=_("Either https://api.opsgenie.com/ or https://api.eu.opsgenie.com/"),
         # widget=forms.TextInput(attrs={"placeholder": "https://api.opsgenie.com/"}),
         choices=[
-            ["https://api.opsgenie.com/", "api.opsgenie.com"],
-            ["https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"],
+            ("https://api.opsgenie.com/", "api.opsgenie.com"),
+            ("https://api.eu.opsgenie.com/", "api.eu.opsgenie.com"),
         ],
     )
     api_key = forms.CharField(
