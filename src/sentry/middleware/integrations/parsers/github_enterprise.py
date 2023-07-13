@@ -19,4 +19,4 @@ class GithubEnterpriseRequestParser(GithubRequestParser):
         host = get_host(request=self.request)
         if not host:
             return None
-        return get_github_external_id(event=event, host=get_host(request=self.request))
+        return get_github_external_id(event=event, host=host)
