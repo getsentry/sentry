@@ -364,7 +364,7 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
 
 
 @region_silo_only_model
-class ProguardArtifactRelease(Model):  # type: ignore
+class ProguardArtifactRelease(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField()
