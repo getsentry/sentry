@@ -640,7 +640,7 @@ def get_occurrence_data(reason: str, **kwargs):
             "group_type": MonitorCheckInMissed,
             "level": "warning",
             "reason": "missed_checkin",
-            "subtitle": f"No check-in reported at {expected_time}.",
+            "subtitle": f"No check-in reported on {expected_time}.",
         }
     elif reason == MonitorFailure.DURATION:
         timeout = kwargs.get("timeout", 30)
@@ -655,7 +655,7 @@ def get_occurrence_data(reason: str, **kwargs):
         "group_type": MonitorCheckInFailure,
         "level": "error",
         "reason": "error",
-        "subtitle": "An error occurred during the last check-in.",
+        "subtitle": "An error occurred during the latest check-in.",
     }
 
 
