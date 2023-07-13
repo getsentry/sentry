@@ -393,7 +393,6 @@ class EventManager:
         start_time: Optional[int] = None,
         cache_key: Optional[str] = None,
         skip_send_first_transaction: bool = False,
-        auto_upgrade_grouping: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -442,8 +441,17 @@ class EventManager:
             jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
+        else:
+            return self._save_error(project, job, projects, raw, cache_key)
 
-        # Only error events from this point onward
+    def _save_error(
+        self,
+        project: Project,
+        job: Job,
+        projects: ProjectsMapping,
+        raw: bool = False,
+        cache_key: Optional[str] = None,
+    ) -> Event:
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -662,7 +670,7 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if auto_upgrade_grouping and _project_should_update_grouping(project):
+        if _project_should_update_grouping(project):
             _auto_update_grouping(project)
 
         return job["event"]
@@ -682,7 +690,7 @@ def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | Cal
         if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
             with sentry_sdk.start_span(
                 op="event_manager",
-                description="event_manager.save.calculate_event_grouping",
+                description="event_manager.save.secondary_calculate_event_grouping",
             ), metrics.timer("event_manager.secondary_grouping"):
                 secondary_event = copy.deepcopy(job["event"])
                 loader = SecondaryGroupingConfigLoader()
