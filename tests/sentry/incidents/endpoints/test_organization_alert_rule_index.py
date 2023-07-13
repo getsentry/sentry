@@ -8,7 +8,6 @@ from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -23,7 +22,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import region_silo_test, unguarded_write
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -339,7 +338,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
 
         resp = self.get_response(self.organization.slug)
