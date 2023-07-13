@@ -370,6 +370,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             },
         )
 
+        assert group_info is not None
         url = f"/api/0/issues/{group_info.group.id}/events/helpful/"
         response = self.client.get(url, {"query": f'title:"{issue_title}"'}, format="json")
 
