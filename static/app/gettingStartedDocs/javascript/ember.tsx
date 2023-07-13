@@ -35,8 +35,8 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using ember-cli
-        ember install @sentry/ember
+# Using ember-cli
+ember install @sentry/ember
         `,
       },
     ],

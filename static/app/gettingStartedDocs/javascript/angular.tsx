@@ -89,15 +89,15 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn (Angular 12+)
-        yarn add @sentry/angular-ivy
-        # Using yarn (Angular 10 and 11)
-        yarn add @sentry/angular
+# Using yarn (Angular 12+)
+yarn add @sentry/angular-ivy
+# Using yarn (Angular 10 and 11)
+yarn add @sentry/angular
 
-        # Using npm (Angular 12+)
-        npm install --save @sentry/angular-ivy
-        # Using npm (Angular 10 and 11)
-        npm install --save @sentry/angular
+# Using npm (Angular 12+)
+npm install --save @sentry/angular-ivy
+# Using npm (Angular 10 and 11)
+npm install --save @sentry/angular
         `,
       },
     ],

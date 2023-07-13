@@ -109,9 +109,9 @@ export const steps = ({
         ),
         language: 'bash',
         code: `
-        yarn add @sentry/nextjs
-        # or
-        npm install --save @sentry/nextjs
+yarn add @sentry/nextjs
+# or
+npm install --save @sentry/nextjs
         `,
       },
       {

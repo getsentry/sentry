@@ -43,11 +43,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/vue
+# Using yarn
+yarn add @sentry/vue
 
-        # Using npm
-        npm install --save @sentry/vue
+# Using npm
+npm install --save @sentry/vue
         `,
       },
     ],
