@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -29,12 +29,22 @@ type NextStep = {
 
 export type LayoutProps = {
   steps: StepProps[];
+  /**
+   * An introduction displayed before the steps
+   */
+  introduction?: React.ReactNode;
   newOrg?: boolean;
   nextSteps?: NextStep[];
   platformKey?: PlatformKey;
 };
 
-export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps) {
+export function Layout({
+  steps,
+  platformKey,
+  nextSteps = [],
+  newOrg,
+  introduction,
+}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -45,6 +55,12 @@ export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps
 
   return (
     <Wrapper>
+      {introduction && (
+        <Fragment>
+          {introduction}
+          <Divider />
+        </Fragment>
+      )}
       {displayProductSelection && newOrg && (
         <ProductSelection
           defaultSelectedProducts={[
