@@ -227,7 +227,7 @@ def test_parse_replay_dead_click_actions():
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["type"] == "replay_actions"
     assert payload["replay_id"] == "1"
-    assert len(payload["clicks"]) == 1
+    assert len(payload["clicks"]) == 2
 
     action = payload["clicks"][0]
     assert action["node_id"] == 59
