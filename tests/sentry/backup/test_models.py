@@ -8,6 +8,7 @@ from click.testing import CliRunner
 from django.core.management import call_command
 
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import ApiApplication, ApiAuthorization
 from sentry.runner.commands.backup import import_, validate
 from sentry.testutils import TransactionTestCase
 from tests.sentry.backup import ValidationError, tmp_export_to_file
@@ -61,3 +62,19 @@ class ModelBackupTests(TransactionTestCase):
         user = self.create_user()
         self.create_organization(owner=user)
         self.import_export_then_validate()
+
+    def test_actor(self):
+        self.create_user(email="test@example.com")
+        self.create_team(name="pre save team", organization=self.organization)
+        self.import_export_then_validate()
+
+    def test_apiauth(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(name="test", owner=user)
+        ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        self.import_export_then_validate()
+
+    def test_api_app(self):
+        pass
