@@ -24,6 +24,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
     MonitorType,
 )
@@ -282,6 +283,13 @@ def _process_message(wrapper: Dict) -> None:
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
                 logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
+                return
+            except MonitorEnvironmentValidationFailed:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
+                )
+                logger.debug("monitor environment name too long: %s", monitor_slug)
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
