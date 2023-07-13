@@ -251,7 +251,7 @@ def get_replay_count_for_group(group: Group) -> int:
         dataset=Dataset.Events,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    return events
+    return len(events)
 
 
 def get_helpful_event_for_environments(
@@ -620,7 +620,7 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def has_replays(self):
-        return len(get_replay_count_for_group(self)) > 0
+        return get_replay_count_for_group(self) > 0
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic
