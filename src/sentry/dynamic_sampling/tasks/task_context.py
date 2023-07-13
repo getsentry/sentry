@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 
 @dataclass
@@ -18,7 +18,7 @@ class DynamicSamplingLogState:
     num_orgs: int = 0
     execution_time: float = 0.0
 
-    def to_dict(self) -> Dict[str, int]:
+    def to_dict(self) -> Dict[str, Union[int, float]]:
         return {
             "numRowsTotal": self.num_rows_total,
             "numDbCalls": self.num_db_calls,

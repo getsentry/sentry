@@ -5,7 +5,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
-from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -44,7 +44,7 @@ class FakeContextIterator:
         raise StopIteration()
 
     def get_current_state(self):
-        return self.count
+        return DynamicSamplingLogState(num_iterations=self.count)
 
 
 def test_timed_iterator_no_timout():
@@ -54,9 +54,23 @@ def test_timed_iterator_no_timout():
         it = TimedIterator(context, "ti1", FakeContextIterator(frozen_time, 1))
         # should iterate while there is no timeout
         assert (next(it)) == 1
-        assert context.get_current_context("ti1") == {"data": 1, "executionTime": 1}
+        assert context.get_function_state("ti1") == DynamicSamplingLogState(
+            num_rows_total=0,
+            num_db_calls=0,
+            num_iterations=1,
+            num_projects=0,
+            num_orgs=0,
+            execution_time=1.0,
+        )
         assert (next(it)) == 2
-        assert context.get_current_context("ti1") == {"data": 2, "executionTime": 2}
+        assert context.get_function_state("ti1") == DynamicSamplingLogState(
+            num_rows_total=0,
+            num_db_calls=0,
+            num_iterations=2,
+            num_projects=0,
+            num_orgs=0,
+            execution_time=2.0,
+        )
         with pytest.raises(StopIteration):
             next(it)
 
@@ -67,7 +81,14 @@ def test_timed_iterator_with_timeout():
         it = TimedIterator(context, "ti1", FakeContextIterator(frozen_time, 4))
         # should iterate while there is no timeout
         assert (next(it)) == 1
-        assert context.get_current_context("ti1") == {"data": 1, "executionTime": 4.0}
+        assert context.get_function_state("ti1") == DynamicSamplingLogState(
+            num_rows_total=0,
+            num_db_calls=0,
+            num_iterations=1,
+            num_projects=0,
+            num_orgs=0,
+            execution_time=4.0,
+        )
         # the next iteration will be at 4 seconds which is over time and should raise
         with pytest.raises(TimeoutException):
             next(it)

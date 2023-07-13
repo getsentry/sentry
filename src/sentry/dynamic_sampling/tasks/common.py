@@ -212,8 +212,8 @@ class GetActiveOrgs:
         count_projects = 0
         for idx, (org_id, num_projects) in enumerate(self.last_result):
             count_projects += num_projects
-            if idx <= self.max_orgs - 1 or (
-                self.max_projects is not None and count_projects <= self.max_projects
+            if idx >= (self.max_orgs - 1) or (
+                self.max_projects is not None and count_projects >= self.max_projects
             ):
                 # we got to the number of elements desired
                 ret_val = self._get_orgs(self.last_result[: idx + 1])
