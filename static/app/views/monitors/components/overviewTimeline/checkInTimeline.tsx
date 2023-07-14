@@ -80,6 +80,7 @@ const JobTick = styled('div')<{
 }>`
   position: absolute;
   background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
+  opacity: 0.7;
   width: 4px;
   height: 14px;
   ${p =>

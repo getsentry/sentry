@@ -1,27 +1,22 @@
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.variants import PerformanceProblemVariant
 from sentry.utils import json, metrics
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 
 logger = logging.getLogger(__name__)
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-from sentry.grouping.variants import PerformanceProblemVariant
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
-
-
 @region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````

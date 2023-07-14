@@ -526,13 +526,13 @@ class QueryDefinition:
     @staticmethod
     def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
-            return
+            return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
     def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
-            return
+            return None
         return Offset(paginator_kwargs["offset"])
 
 

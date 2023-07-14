@@ -2,6 +2,7 @@ from time import time
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 from django.http import HttpRequest
 
@@ -169,6 +170,8 @@ class TestAccountConfigView(TestCase):
 
 @control_silo_test(stable=True)
 class VstsIdentityProviderTest(TestCase):
+    client_secret = "12345678"
+
     def setUp(self):
         self.identity_provider_model = IdentityProvider.objects.create(type="vsts")
         self.identity = Identity.objects.create(
@@ -183,8 +186,13 @@ class VstsIdentityProviderTest(TestCase):
             },
         )
         self.provider = VSTSIdentityProvider()
-        self.client_secret = "12345678"
-        self.provider.get_oauth_client_secret = lambda: self.client_secret
+
+    @pytest.fixture(autouse=True)
+    def patch_get_oauth_client_secret(self):
+        with patch.object(
+            VSTSIdentityProvider, "get_oauth_client_secret", return_value=self.client_secret
+        ):
+            yield
 
     def get_refresh_token_params(self):
         refresh_token = "wertyui"

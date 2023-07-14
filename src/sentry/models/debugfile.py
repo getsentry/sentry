@@ -363,6 +363,24 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
         return None
 
 
+@region_silo_only_model
+class ProguardArtifactRelease(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField()
+    project_id = BoundedBigIntegerField()
+    release_name = models.CharField(max_length=250)
+    proguard_uuid = models.UUIDField(db_index=True)
+    project_debug_file = FlexibleForeignKey("sentry.ProjectDebugFile")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_proguardartifactrelease"
+
+        unique_together = (("project_id", "release_name", "proguard_uuid"),)
+
+
 class DifMeta:
     def __init__(
         self,
