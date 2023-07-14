@@ -70,9 +70,7 @@ sentry_sdk.init(
     configurations: [
       {
         language: 'python',
-        description: t(
-          'Visiting this route will trigger an error that will be captured by Sentry.'
-        ),
+
         code: `
 from django.urls import path
 
@@ -86,6 +84,9 @@ def trigger_error(request):
         `,
       },
     ],
+    additionalInfo: t(
+      'Visiting this route will trigger an error that will be captured by Sentry.'
+    ),
   },
 ];
 // Configuration End

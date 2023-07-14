@@ -735,6 +735,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
+    "sentry.dynamic_sampling.tasks.collect_orgs",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1100,6 +1101,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
+    },
+    "dynamic-sampling-collect-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
 }
 
@@ -1630,7 +1636,7 @@ SENTRY_FEATURES = {
     # Enable project creation for all and puts organization into test group
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
-    "organizations:team-roles": False,
+    "organizations:team-roles": True,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
