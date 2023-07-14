@@ -118,6 +118,9 @@ class AuthIdentityHandler:
         email = self.identity.get("email")
         if email:
             try:
+                # Fetches user via email
+                # This _should_ be the same user attached to the AuthIdentity instance
+                # ¯\_(ツ)_/¯
                 user = resolve_email_to_user(email)
             except AmbiguousUserFromEmail as e:
                 user = e.users[0]
@@ -147,6 +150,7 @@ class AuthIdentityHandler:
             sample_rate=1.0,
             skip_internal=False,
         )
+        # NOTE: same auth.login that is used in basic auth
         user_was_logged_in = auth.login(
             self.request,
             user,
@@ -765,6 +769,10 @@ class AuthHelper(Pipeline):
             return self.error(ERR_INVALID_IDENTITY)
 
         try:
+            # This is the user identity
+            # At this point in time, we've constructed the user identity from the identity provider
+            # And we are now going to submit the fetched identity through the
+            # Validation handler
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
             return self.error(str(error) or ERR_INVALID_IDENTITY)
@@ -810,7 +818,10 @@ class AuthHelper(Pipeline):
             name="sso_auth",
         )
         with TimedRetryPolicy(5)(lock.acquire):
+            # ====================== GRAB USER INSTANCE ======================
             try:
+                # THIS SELECTS THE USER MODEL WHICH IS ATTACHED TO OUR AUTH IDENTITY MODEL
+                # THIS IS THE FETCH USER IDENTITY STEP
                 auth_identity = AuthIdentity.objects.select_related("user").get(
                     auth_provider=auth_provider, ident=user_id
                 )
@@ -827,6 +838,9 @@ class AuthHelper(Pipeline):
                 except AuthIdentity.DoesNotExist:
                     auth_identity = None
 
+            # ====================== VALIDATION HANDLERS ======================
+            # THIS HANDLER IS SPECIFIC TO SSO FLOW
+            # unknown identity / link identity validations
             auth_handler = self.auth_handler(identity)
             if not auth_identity:
                 return auth_handler.handle_unknown_identity(self.state)

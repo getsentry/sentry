@@ -30,9 +30,10 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         Process a login request via username/password. SSO login is handled
         elsewhere.
         """
+        print("HIT API 0 AUTH LOGIN ENDPOINT")
         login_form = AuthenticationForm(request, request.data)
 
-        # Rate limit logins
+        # ====================== RATE LIMIT LOG INS ======================
         is_limited = ratelimiter.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
@@ -49,11 +50,21 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
             return self.respond_with_error(errors)
 
+        # ====================== VALIDATE FORM ======================
+
         if not login_form.is_valid():
             metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
             return self.respond_with_error(login_form.errors)
 
+        # ====================== GRAB USER INSTANCE ======================
+
         user = login_form.get_user()
+        print("GOT USER: ", user)
+
+        # ====================== VALIDATION HANDLERS ======================
+        # TODO:
+        #  - Handle validations via new/refactored handler logic
+        #
 
         auth.login(request, user, organization_id=organization.id if organization else None)
         metrics.incr("login.attempt", instance="success", skip_internal=True, sample_rate=1.0)

@@ -62,7 +62,7 @@ function LoginForm({authConfig}: Props) {
    * original login api
    * (gets passed down the form model to the client that sends the request)
    */
-  const form = new FormModel({apiOptions: {baseUrl: ''}});
+  // const form = new FormModel({apiOptions: {baseUrl: ''}});
 
   return (
     <FormWrapper hasLoginProvider={hasLoginProvider}>
@@ -97,7 +97,7 @@ function LoginForm({authConfig}: Props) {
           </LostPasswordLink>
         }
         // NOTE: passing form model in allows us to specify the base url (should we hit /api/0/... or hit the original api endpoints)
-        model={form}
+        // model={form}
       >
         {error && <Alert type="error">{error}</Alert>}
         <TextField

@@ -336,6 +336,7 @@ class AuthLoginView(BaseView):
 
     # XXX(dcramer): OAuth provider hooks this view
     def post(self, request: Request, **kwargs) -> Response:
+        print("HIT ORIGINAL AUTH LOGIN ENDPOINT")
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
             # if post is from "Single Sign On tab"

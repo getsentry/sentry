@@ -659,6 +659,9 @@ GROUP_URLS = [
     ),
 ]
 
+# 'Experimental' Auth api endpoints
+# These are hit at `api/0/auth/{login}`
+# Eventually these apis will become our new login apis
 AUTH_URLS = [
     re_path(
         r"^$",
@@ -2660,6 +2663,7 @@ urlpatterns = [
         include(SENTRY_APP_INSTALLATION_URLS),
     ),
     # Auth
+    # NOTE: experimental auth routes
     re_path(
         r"^auth/",
         include(AUTH_URLS),
