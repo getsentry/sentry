@@ -19,6 +19,7 @@ export const migratedDocs = [
   'javascript-nextjs',
   'javascript',
   'python-django',
+  'python-flask',
   'react-native',
   'java-spring-boot',
   'php-laravel',
