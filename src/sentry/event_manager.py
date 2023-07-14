@@ -499,7 +499,7 @@ class EventManager:
 
         if _check_to_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_hashes = calculate_secondary_hash_if_needed(job)
+                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
