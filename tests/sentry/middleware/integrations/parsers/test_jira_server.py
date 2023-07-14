@@ -38,12 +38,11 @@ class JiraServerRequestParserTest(TestCase):
         organization_mapping_service
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_endpoint(self):
+    def test_routing_endpoint_no_integration(self):
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route)
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        # Couldn't find an integration
         with mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo, mock.patch(
@@ -54,12 +53,16 @@ class JiraServerRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_control_silo.called
 
-        # Found the integration
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_endpoint_with_integration(self):
+        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
+        request = self.factory.post(route)
+        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
         organization_mapping_service.update(
             organization_id=self.organization.id, update={"region_name": "na"}
         )
-        with mock.patch(  # type: ignore[unreachable]
+        with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_integration, override_regions(self.region_config):
             mock_get_integration.return_value = self.integration
