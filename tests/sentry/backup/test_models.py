@@ -15,6 +15,12 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetQuery,
+    DashboardWidgetTypes,
+)
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
@@ -92,6 +98,15 @@ class ModelBackupTests(TransactionTestCase):
 
         return actual
 
+    def create_dashboard(self):
+        """Re-usable dashboard object for test cases."""
+
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        return Dashboard.objects.create(
+            title="Dashboard 1", created_by_id=user.id, organization=org
+        )
+
     def create_monitor(self):
         """Re-usable monitor object for test cases."""
 
@@ -124,6 +139,29 @@ class ModelBackupTests(TransactionTestCase):
         rule = self.create_alert_rule(include_all_projects=True)
         trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        return self.import_export_then_validate()
+
+    @targets_models(Dashboard)
+    def test_dashboard(self):
+        self.create_dashboard()
+        return self.import_export_then_validate()
+
+    @targets_models(DashboardTombstone)
+    def test_dashboard_tombstone(self):
+        DashboardTombstone.objects.create(organization=self.organization, slug="test-tombstone")
+        return self.import_export_then_validate()
+
+    @targets_models(DashboardWidget, DashboardWidgetQuery)
+    def test_dashboard_widget(self):
+        dashboard = self.create_dashboard()
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=1,
+            title="Test Widget",
+            display_type=0,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+        )
+        DashboardWidgetQuery.objects.create(widget=widget, order=1, name="Test Query")
         return self.import_export_then_validate()
 
     @targets_models(Environment)
