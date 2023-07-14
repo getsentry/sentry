@@ -9,6 +9,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundles import (
+    BundleMeta,
     FlatFileIdentifier,
     FlatFileIndex,
     get_redis_cluster_for_artifact_bundles,
@@ -223,10 +224,12 @@ class FlatFileIndexTest(TestCase):
 
         flat_file_index_store.save.assert_called_once_with(
             {
-                "bundles": {artifact_bundle.id: artifact_bundle.date_last_modified},
+                "bundles": [
+                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified)
+                ],
                 "files_by_url": {
-                    "~/path/to/app.js": [artifact_bundle.id],
-                    "~/path/to/other1.js": [artifact_bundle.id],
+                    "~/path/to/app.js": [0],
+                    "~/path/to/other1.js": [0],
                 },
             }
         )
@@ -260,10 +263,12 @@ class FlatFileIndexTest(TestCase):
 
         flat_file_index_store.save.assert_called_once_with(
             {
-                "bundles": {artifact_bundle.id: artifact_bundle.date_last_modified},
+                "bundles": [
+                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified)
+                ],
                 "files_by_debug_id": {
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [artifact_bundle.id],
-                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [artifact_bundle.id],
+                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
+                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
                 },
             }
         )
@@ -274,7 +279,7 @@ class FlatFileIndexTest(TestCase):
         existing_bundle_date = timezone.now() - timedelta(hours=1)
 
         flat_file_index_store.load.return_value = {
-            "bundles": {existing_bundle_id: existing_bundle_date},
+            "bundles": [BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date)],
             "files_by_url": {"~/path/to/app.js": [0]},
         }
         flat_file_index_store.identifier = FlatFileIdentifier(
@@ -303,13 +308,13 @@ class FlatFileIndexTest(TestCase):
 
         flat_file_index_store.save.assert_called_once_with(
             {
-                "bundles": {
-                    existing_bundle_id: existing_bundle_date,
-                    artifact_bundle.id: artifact_bundle.date_last_modified,
-                },
+                "bundles": [
+                    BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date),
+                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
+                ],
                 "files_by_url": {
-                    "~/path/to/app.js": [artifact_bundle.id, existing_bundle_id],
-                    "~/path/to/other1.js": [artifact_bundle.id],
+                    "~/path/to/app.js": [1, 0],
+                    "~/path/to/other1.js": [1],
                 },
             }
         )
@@ -320,7 +325,7 @@ class FlatFileIndexTest(TestCase):
         existing_bundle_date = timezone.now() - timedelta(hours=1)
 
         flat_file_index_store.load.return_value = {
-            "bundles": {existing_bundle_id: existing_bundle_date},
+            "bundles": [BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date)],
             "files_by_debug_id": {"f206e0e7-3d0c-41cb-bccc-11b716728e27": [0]},
         }
         flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
@@ -349,16 +354,13 @@ class FlatFileIndexTest(TestCase):
 
         flat_file_index_store.save.assert_called_once_with(
             {
-                "bundles": {
-                    existing_bundle_id: existing_bundle_date,
-                    artifact_bundle.id: artifact_bundle.date_last_modified,
-                },
+                "bundles": [
+                    BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date),
+                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
+                ],
                 "files_by_debug_id": {
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [
-                        artifact_bundle.id,
-                        existing_bundle_id,
-                    ],
-                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [artifact_bundle.id],
+                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [1, 0],
+                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [1],
                 },
             }
         )

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import MINYEAR, datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -136,11 +137,22 @@ def index_bundle_in_flat_file(
     return FlatFileIndexingState.SUCCESS
 
 
+@dataclass(frozen=True)
+class BundleMeta:
+    id: int
+    timestamp: datetime
+
+
+Bundles = List[BundleMeta]
+FilesByUrl = Dict[str, List[int]]
+FilesByDebugID = Dict[str, List[int]]
+
+
 class FlatFileIndexStore:
     def __init__(self, identifier: FlatFileIdentifier):
         self.identifier = identifier
 
-    def load(self) -> Dict[str, Any]:
+    def load(self) -> Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]:
         # TODO: load from the database.
         return {}
 
@@ -157,9 +169,9 @@ class FlatFileIndex:
         self.store = store
 
         # By default, a flat file index is empty.
-        self._bundles: Dict[int, datetime] = {}
-        self._files_by_url: Dict[str, List[int]] = {}
-        self._files_by_debug_id: Dict[str, List[int]] = {}
+        self._bundles: Bundles = []
+        self._files_by_url: FilesByUrl = {}
+        self._files_by_debug_id: FilesByDebugID = {}
 
     @staticmethod
     def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
@@ -176,10 +188,9 @@ class FlatFileIndex:
     def _build(self) -> None:
         loaded_index = self.store.load()
 
-        # TODO: change how we read.
-        self._bundles = loaded_index.get("bundles", {})
-        self._files_by_url = loaded_index.get("files_by_url", {})
-        self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})
+        self._bundles = loaded_index.get("bundles", [])  # type:ignore
+        self._files_by_url = loaded_index.get("files_by_url", {})  # type:ignore
+        self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})  # type:ignore
 
     def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
         try:
@@ -194,42 +205,46 @@ class FlatFileIndex:
     def _merge(
         self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive, index_urls: bool
     ):
-        self._update_bundles(artifact_bundle)
+        bundle_index = self._update_bundles(artifact_bundle)
 
         if index_urls:
-            self._iterate_over_urls(artifact_bundle, archive)
+            self._iterate_over_urls(bundle_index, archive)
         else:
-            self._iterate_over_debug_ids(artifact_bundle, archive)
+            self._iterate_over_debug_ids(bundle_index, archive)
 
-    def _update_bundles(self, artifact_bundle: ArtifactBundle):
+    def _update_bundles(self, artifact_bundle: ArtifactBundle) -> int:
         if artifact_bundle.date_last_modified is None:
             raise Exception("Can't index a bundle with no date last modified")
 
-        existing_bundle_date = self._bundles.get(artifact_bundle.id)
-        if (
-            existing_bundle_date is None
-            or existing_bundle_date < artifact_bundle.date_last_modified
-        ):
-            self._bundles[artifact_bundle.id] = artifact_bundle.date_last_modified
+        bundle_index: Optional[int] = None
+        for index, bundle in enumerate(self._bundles):
+            if bundle.id == artifact_bundle.id:
+                bundle_index = index
+                break
 
-    def _iterate_over_debug_ids(
-        self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive
-    ):
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+        )
+
+        if bundle_index is None:
+            self._bundles.append(bundle_meta)
+            return len(self._bundles) - 1
+        else:
+            self._bundles[bundle_index] = bundle_meta
+            return bundle_index
+
+    def _iterate_over_debug_ids(self, bundle_index: int, archive: ArtifactBundleArchive):
         for debug_id, _ in archive.get_all_debug_ids():
-            self._add_sorted_entry(self._files_by_debug_id, debug_id, artifact_bundle.id)
+            self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
-    def _iterate_over_urls(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
+    def _iterate_over_urls(self, bundle_index: int, archive: ArtifactBundleArchive):
         for url in archive.get_all_urls():
-            self._add_sorted_entry(self._files_by_url, url, artifact_bundle.id)
+            self._add_sorted_entry(self._files_by_url, url, bundle_index)
 
-    def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, artifact_bundle_id: int):
+    def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
-        entries.append(artifact_bundle_id)
-        # TODO: we have to also sort by id in case timestamps are equal.
-
-        # In case we can't find the bundle, we will put the invalid bundles at the end.
-        entries.sort(key=lambda e: self._bundles.get(e, MINYEAR), reverse=True)
-
+        entries.append(bundle_index)
+        entries.sort(key=lambda index: self._bundles[index].timestamp, reverse=True)
         collection[key] = entries
 
     def save(self):
