@@ -503,6 +503,64 @@ describe('EventView.fromSavedQuery()', function () {
   });
 });
 
+describe('EventView.fromNewQueryWithPageFilters()', function () {
+  const prebuiltQuery: NewQuery = {
+    id: undefined,
+    name: 'Page Filter Events',
+    query: '',
+    projects: undefined,
+    fields: ['title', 'project', 'timestamp'],
+    orderby: '-timestamp',
+    version: 2,
+  };
+
+  it('maps basic properties of a prebuilt query', function () {
+    const pageFilters = TestStubs.PageFilters();
+
+    const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: 'Page Filter Events',
+      fields: [{field: 'title'}, {field: 'project'}, {field: 'timestamp'}],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      query: '',
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: [],
+      yAxis: undefined,
+    });
+  });
+
+  it('merges page filter values', function () {
+    const pageFilters = TestStubs.PageFilters({
+      datetime: {
+        period: '3d',
+      },
+      projects: [42],
+      environments: ['prod'],
+    });
+
+    const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
+
+    expect(eventView).toMatchObject({
+      id: undefined,
+      name: 'Page Filter Events',
+      fields: [{field: 'title'}, {field: 'project'}, {field: 'timestamp'}],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      query: '',
+      project: [42],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '3d',
+      environment: ['prod'],
+      yAxis: undefined,
+    });
+  });
+});
+
 describe('EventView.fromNewQueryWithLocation()', function () {
   const prebuiltQuery: NewQuery = {
     id: undefined,

@@ -433,6 +433,18 @@ class EventView {
     return EventView.fromSavedQuery(saved);
   }
 
+  static fromNewQueryWithPageFilters(newQuery: NewQuery, pageFilters: PageFilters) {
+    return EventView.fromSavedQuery({
+      ...newQuery,
+      environment: newQuery.environment ?? pageFilters.environments,
+      projects: newQuery.projects ?? pageFilters.projects,
+      start: newQuery.start ?? pageFilters.datetime.start ?? undefined,
+      end: newQuery.end ?? pageFilters.datetime.end ?? undefined,
+      range: newQuery.range ?? pageFilters.datetime.period ?? undefined,
+      utc: newQuery.utc ?? pageFilters.datetime.utc ?? undefined,
+    });
+  }
+
   static getFields(saved: NewQuery | SavedQuery) {
     return saved.fields.map((field, i) => {
       const width =
