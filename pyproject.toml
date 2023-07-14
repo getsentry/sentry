@@ -442,7 +442,6 @@ module = [
     "sentry.discover.endpoints.discover_key_transactions",
     "sentry.discover.endpoints.serializers",
     "sentry.discover.tasks",
-    "sentry.event_manager",
     "sentry.eventstore.base",
     "sentry.eventstore.compressor",
     "sentry.eventstore.models",
