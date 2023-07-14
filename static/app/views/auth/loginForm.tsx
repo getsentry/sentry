@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -56,6 +57,12 @@ function LoginForm({authConfig}: Props) {
 
   const {githubLoginLink, vstsLoginLink} = authConfig;
   const hasLoginProvider = !!(githubLoginLink || vstsLoginLink);
+  /**
+   * Org options here allow us to point the form request to either the new api or the
+   * original login api
+   * (gets passed down the form model to the client that sends the request)
+   */
+  const form = new FormModel({apiOptions: {baseUrl: ''}});
 
   return (
     <FormWrapper hasLoginProvider={hasLoginProvider}>
@@ -89,6 +96,8 @@ function LoginForm({authConfig}: Props) {
             {t('Lost your password?')}
           </LostPasswordLink>
         }
+        // NOTE: passing form model in allows us to specify the base url (should we hit /api/0/... or hit the original api endpoints)
+        model={form}
       >
         {error && <Alert type="error">{error}</Alert>}
         <TextField
