@@ -54,7 +54,6 @@ def assert_webhook_outboxes(
 
     if ControlOutbox.objects.count() != len(region_names_set):
         raise Exception("Found more ControlOutboxes than provided region_names")
-    assert ControlOutbox.objects.count() == len(region_names)
     for cob in ControlOutbox.objects.all():
         assert cob.payload == expected_payload_dict
         assert cob.shard_scope == OutboxScope.WEBHOOK_SCOPE
