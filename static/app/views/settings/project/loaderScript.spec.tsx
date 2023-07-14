@@ -37,7 +37,7 @@ describe('LoaderScript', function () {
       statusCode: 400,
     });
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -51,7 +51,7 @@ describe('LoaderScript', function () {
 
     mockApi({organization, project, projectKeys: []});
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -67,7 +67,7 @@ describe('LoaderScript', function () {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -123,7 +123,7 @@ describe('LoaderScript', function () {
 
     mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -162,7 +162,7 @@ describe('LoaderScript', function () {
       },
     });
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -270,7 +270,7 @@ describe('LoaderScript', function () {
       },
     });
 
-    render(<LoaderScript organization={organization} project={project} />);
+    render(<LoaderScript project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
