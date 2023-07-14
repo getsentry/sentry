@@ -401,7 +401,8 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            user = organization.get_default_owner()
+            with assume_test_silo_mode(SiloMode.REGION):
+                user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
