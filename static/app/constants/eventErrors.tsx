@@ -11,3 +11,7 @@ export enum JavascriptProcessingErrors {
   JS_TOO_LARGE = 'js_too_large',
   JS_FETCH_TIMEOUT = 'js_fetch_timeout',
 }
+
+export enum CocoaProcessingErrors {
+  COCOA_INVALID_DATA = 'invalid_data',
+}
