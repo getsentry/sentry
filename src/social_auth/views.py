@@ -12,9 +12,9 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from social_auth.decorators import dsa_view
 from social_auth.exceptions import AuthException
 from social_auth.utils import backend_setting, clean_partial_pipeline, setting

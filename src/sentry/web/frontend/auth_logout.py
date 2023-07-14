@@ -1,9 +1,9 @@
 from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest, HttpResponse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from sentry.utils import auth
-from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sentry.web.frontend.base import BaseView
 
 
