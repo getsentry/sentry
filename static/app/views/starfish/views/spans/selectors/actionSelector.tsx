@@ -12,9 +12,9 @@ import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {
-  NONE_OPTION_VALUE,
-  NoneOption,
-} from 'sentry/views/starfish/views/spans/selectors/noneOption';
+  EMPTY_OPTION_VALUE,
+  EmptyOption,
+} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_ACTION} = SpanMetricsFields;
 
@@ -49,8 +49,8 @@ export function ActionSelector({
         ...actions.map(datum => {
           if (datum[SPAN_ACTION] === '') {
             return {
-              value: NONE_OPTION_VALUE,
-              label: <NoneOption />,
+              value: EMPTY_OPTION_VALUE,
+              label: <EmptyOption />,
             };
           }
           return {
