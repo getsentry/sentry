@@ -15,7 +15,6 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
-from sentry.snuba.utils import initialize_consumer_state
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
@@ -74,7 +73,6 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 max_batch_time=self.max_batch_time,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
-                initializer=initialize_consumer_state,
             )
         else:
             # By default we preserve the previous behavior.
