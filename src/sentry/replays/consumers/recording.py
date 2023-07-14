@@ -4,9 +4,8 @@ import random
 from typing import Any, Mapping
 
 import sentry_sdk
-from arroyo import configure_metrics
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTask, RunTaskInThreads, RunTaskWithMultiprocessing
+from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
@@ -17,6 +16,7 @@ from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
 from sentry.snuba.utils import initialize_consumer_state
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -110,11 +110,3 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_dict = context.message
 
     ingest_recording(message_dict, context.transaction, context.current_hub)
-
-
-def initialize_metrics() -> None:
-    from sentry.utils import metrics
-    from sentry.utils.arroyo import MetricsWrapper
-
-    metrics_wrapper = MetricsWrapper(metrics.backend, name="ingest_replays")
-    configure_metrics(metrics_wrapper)
