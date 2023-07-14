@@ -23,6 +23,7 @@ export const migratedDocs = [
   'java-spring-boot',
   'php-laravel',
   'go',
+  'rust',
 ];
 
 type SdkDocumentationProps = {
