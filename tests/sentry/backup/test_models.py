@@ -26,8 +26,11 @@ from sentry.utils.json import JSONData
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
 
-def targets_models(expected_models: list[Type]):
-    """A helper decorator that checks that every model that a test "targeted" was actually seen in the output, ensuring that we're actually testing the thing we think are. Additionally, this decorator is easily legible to static analysis, which allows for static checks to ensure that all `__include_in_export__ = True` models are being tested."""
+def targets_models(*expected_models: Type):
+    """A helper decorator that checks that every model that a test "targeted" was actually seen in
+    the output, ensuring that we're actually testing the thing we think we are. Additionally, this
+    decorator is easily legible to static analysis, which allows for static checks to ensure that
+    all `__include_in_export__ = True` models are being tested."""
 
     def decorator(func):
         def wrapped(*args, **kwargs):
@@ -60,14 +63,17 @@ class ModelBackupTests(TransactionTestCase):
 
     def import_export_then_validate(self) -> JSONData:
         """Test helper that validates that data imported from a temporary `.json` file correctly
-        matches the actual outputted export data."""
+        matches the actual outputted export data.
+
+        Return the actual JSON, so that we may use the `@targets_models` decorator to ensure that
+        we have at least one instance of all the "tested for" models in the actual output."""
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_expect = Path(tmpdir).joinpath(f"{self._testMethodName}.expect.json")
             tmp_actual = Path(tmpdir).joinpath(f"{self._testMethodName}.actual.json")
 
-            # Export the current state of the database into the "expected" temporary file, then parse it
-            # into a JSON object for comparison.
+            # Export the current state of the database into the "expected" temporary file, then
+            # parse it into a JSON object for comparison.
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
@@ -84,8 +90,6 @@ class ModelBackupTests(TransactionTestCase):
             if res.findings:
                 raise ValidationError(res)
 
-        # Return the actual JSON, so that we may use the `@targets_models` decorator to ensure that
-        # we have at least once instance of all the "tested for" models in the actual output.
         return actual
 
     def create_monitor(self):
@@ -101,12 +105,12 @@ class ModelBackupTests(TransactionTestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-    @targets_models([AlertRule, QuerySubscription, SnubaQuery, SnubaQueryEventType])
+    @targets_models(AlertRule, QuerySubscription, SnubaQuery, SnubaQueryEventType)
     def test_alert_rule(self):
         self.create_alert_rule()
         return self.import_export_then_validate()
 
-    @targets_models([AlertRuleActivity, AlertRuleExcludedProjects])
+    @targets_models(AlertRuleActivity, AlertRuleExcludedProjects)
     def test_alert_rule_excluded_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -114,7 +118,7 @@ class ModelBackupTests(TransactionTestCase):
         self.create_alert_rule(include_all_projects=True, excluded_projects=[excluded])
         return self.import_export_then_validate()
 
-    @targets_models([AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion])
+    @targets_models(AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion)
     def test_alert_rule_trigger(self):
         excluded = self.create_project()
         rule = self.create_alert_rule(include_all_projects=True)
@@ -122,17 +126,17 @@ class ModelBackupTests(TransactionTestCase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         return self.import_export_then_validate()
 
-    @targets_models([Environment])
+    @targets_models(Environment)
     def test_environment(self):
         self.create_environment()
         return self.import_export_then_validate()
 
-    @targets_models([Monitor])
+    @targets_models(Monitor)
     def test_monitor(self):
         self.create_monitor()
         return self.import_export_then_validate()
 
-    @targets_models([MonitorEnvironment])
+    @targets_models(MonitorEnvironment)
     def test_monitor_environment(self):
         monitor = self.create_monitor()
         env = Environment.objects.create(organization_id=monitor.organization_id, name="test_env")
@@ -142,7 +146,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets_models([Organization])
+    @targets_models(Organization)
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)
