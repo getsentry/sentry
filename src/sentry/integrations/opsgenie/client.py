@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.integrations.client import ApiClient
+from sentry.models import Integration
 
 OPSGENIE_API_VERSION = "v2"
 
@@ -22,3 +23,23 @@ class OpsgenieSetupClient(ApiClient):
     def get_account(self):
         headers = {"Authorization": "GenieKey " + self.api_key}
         return self.get(path="/account", headers=headers)
+
+
+class OpsgenieClient(ApiClient):
+    integration_name = "opsgenie"
+
+    def __init__(self, integration: Integration) -> None:
+        self.integration = integration
+        self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
+        self.api_key = self.metadata["api_key"]
+        super().__init__()
+
+    @property
+    def metadata(self):
+        return self.integration.metadata
+
+    def get_team_id(self, integration_key: str, team_name: str) -> str:
+        params = {"identifierType": "name"}
+        path = f"/teams/{team_name}"
+        headers = {"Authorization": "GenieKey " + integration_key}
+        return self.get(path=path, headers=headers, params=params)

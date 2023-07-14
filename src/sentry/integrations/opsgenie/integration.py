@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from requests.exceptions import MissingSchema
 from rest_framework.request import Request
+from rest_framework.serializers import ValidationError
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -21,7 +22,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import OpsgenieSetupClient
+from .client import OpsgenieClient, OpsgenieSetupClient
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -120,6 +121,9 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
+    def get_client(self) -> Any:
+        return OpsgenieClient(integration=self.model)
+
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
             {
@@ -137,6 +141,22 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        client = self.get_client()
+        # get the team ID/test the API key for a newly added row
+        # potential problem: the user could be rate limited if they hand-type every API key...
+        # another problem: the default error message isn't very helpful, but I don't know how to change it
+        teams = data["team_table"]
+        for team in teams:
+            if team["id"] != "":
+                continue
+            try:
+                resp = client.get_team_id(
+                    integration_key=team["integration_key"], team_name=team["team"]
+                )
+                team["id"] = resp["data"]["id"]
+            except ApiError:
+                raise ValidationError("Invalid integration key.")
+
         return super().update_organization_config(data)
 
     def get_config_data(self) -> Mapping[str, str]:
