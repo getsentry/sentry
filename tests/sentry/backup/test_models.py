@@ -65,6 +65,24 @@ class ModelBackupTests(TransactionTestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
+    def test_alert_rule(self):
+        self.create_alert_rule()
+        self.import_export_then_validate()
+
+    def test_alert_rule_excluded_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        excluded = self.create_project(organization=org)
+        self.create_alert_rule(include_all_projects=True, excluded_projects=[excluded])
+        self.import_export_then_validate()
+
+    def test_alert_rule_trigger(self):
+        excluded = self.create_project()
+        rule = self.create_alert_rule(include_all_projects=True)
+        trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        self.import_export_then_validate()
+
     def test_environment(self):
         self.create_environment()
         self.import_export_then_validate()
