@@ -2,11 +2,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithReactNative, steps} from './react-native';
+import {GettingStartedWithPHP, steps} from './php';
 
-describe('GettingStartedWithDjango', function () {
+describe('GettingStartedWithPHP', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithReactNative dsn="test-dsn" />);
+    const {container} = render(<GettingStartedWithPHP dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {

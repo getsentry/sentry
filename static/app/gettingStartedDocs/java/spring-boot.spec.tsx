@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithSpringBoot, steps} from './spring-boot';
 
 describe('GettingStartedWithSpringBoot', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithSpringBoot dsn="test-dsn" />);
 
     // Steps

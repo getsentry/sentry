@@ -21,11 +21,13 @@ export const migratedDocs = [
   'python-django',
   'react-native',
   'java-spring-boot',
+  'php',
   'php-laravel',
-  'native',
   'go',
   'rust',
   'minidump',
+  'native',
+  'native-qt',
 ];
 
 type SdkDocumentationProps = {
