@@ -50,7 +50,7 @@ class HTTPOverheadDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.HTTP_OVERHEAD
+    type = DetectorType.HTTP_OVERHEAD
     settings_key = DetectorType.HTTP_OVERHEAD
 
     def init(self):
@@ -110,7 +110,7 @@ class HTTPOverheadDetector(PerformanceDetector):
             ProblemIndicator(span, request_delay, new_monotonic)
         ]
 
-    def _is_span_eligible(self, span: Span) -> None:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_op = span.get("op", None)
         span_data = span.get("data", {})
         if not span_data:
