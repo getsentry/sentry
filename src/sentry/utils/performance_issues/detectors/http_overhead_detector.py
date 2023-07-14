@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
@@ -55,7 +56,7 @@ class HTTPOverheadDetector(PerformanceDetector):
 
     def init(self):
         self.stored_problems: dict[str, PerformanceProblem] = {}
-        self.location_to_indicators = {}
+        self.location_to_indicators = defaultdict(list)
 
     def visit_span(self, span: Span) -> None:
         span_data = span.get("data", {})
@@ -77,9 +78,6 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         if not location:
             return
-
-        if location not in self.location_to_indicators:
-            self.location_to_indicators[location] = []
 
         request_delay = request_start - span_start
 
