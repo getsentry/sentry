@@ -42,7 +42,7 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * (e.g.  `static/views/integrationPipeline`)
  */
 function getSentryIntegrations(_routes?: Function) {
-  const integrations = [];
+  const integrations = [new Sentry.Replay()];
 
   return integrations;
 }
@@ -74,6 +74,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
+    replaysOnSessionSampleRate: 1.0,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
     // @ts-expect-error not part of browser SDK types yet
