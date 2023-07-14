@@ -65,30 +65,18 @@ class IncidentManager(BaseManager):
         return cls.CACHE_KEY % (alert_rule_id, project_id)
 
     def get_active_incident(self, alert_rule, project):
-        cache_key = self._build_active_incident_cache_key(alert_rule.id, project.id)
-        incident = cache.get(cache_key)
-        if incident is None:
-            try:
-                incident = (
-                    Incident.objects.filter(
-                        type=IncidentType.ALERT_TRIGGERED.value,
-                        alert_rule=alert_rule,
-                        projects=project,
-                    )
-                    .exclude(status=IncidentStatus.CLOSED.value)
-                    .order_by("-date_added")[0]
+        try:
+            incident = (
+                Incident.objects.filter(
+                    type=IncidentType.ALERT_TRIGGERED.value,
+                    alert_rule=alert_rule,
+                    projects=project,
                 )
-            except IndexError:
-                # Set this to False so that we can have a negative cache as well.
-                incident = False
-            cache.set(cache_key, incident)
-            if incident is False:
-                incident = None
-        elif not incident:
-            # If we had a falsey not None value in the cache, then we stored that there
-            # are no current active incidents. Just set to None
+                .exclude(status=IncidentStatus.CLOSED.value)
+                .order_by("-date_added")[0]
+            )
+        except IndexError:
             incident = None
-
         return incident
 
     @classmethod
