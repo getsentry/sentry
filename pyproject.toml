@@ -703,7 +703,6 @@ module = [
     "sentry.monitors.endpoints.organization_monitor_index",
     "sentry.monitors.utils",
     "sentry.monitors.validators",
-    "sentry.monkey",
     "sentry.monkey.pickle",
     "sentry.net.http",
     "sentry.net.socket",
