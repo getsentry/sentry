@@ -777,35 +777,17 @@ def dev_consumer(consumer_names):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@kafka_options(
-    consumer_group="ingest-replay-recordings",
-    include_batching_options=True,
-    default_max_batch_size=20,
-)
+@kafka_options(consumer_group="ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
-@click.option("--processes", default=1, type=int)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def replays_recordings_consumer(**options):
     from sentry.consumers import print_deprecation_warning
 
     print_deprecation_warning("ingest-replay-recordings", options["group_id"])
     from sentry.replays.consumers import get_replays_recordings_consumer
 
-    consumer = get_replays_recordings_consumer(
-        auto_offset_reset=options["auto_offset_reset"],
-        force_cluster=options["force_cluster"],
-        force_topic=options["force_topic"],
-        group_id=options["group_id"],
-        input_block_size=options["input_block_size"],
-        max_batch_size=options["max_batch_size"],
-        max_batch_time=int(options["max_batch_time"] / 1000),  # millis to seconds
-        num_processes=options["processes"],
-        output_block_size=options["output_block_size"],
-        topic=options["topic"],
-    )
+    consumer = get_replays_recordings_consumer(**options)
     run_processor_with_signals(consumer)
 
 

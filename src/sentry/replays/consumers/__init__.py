@@ -19,11 +19,6 @@ def get_replays_recordings_consumer(
     topic: str,
     group_id: str,
     auto_offset_reset: str,
-    input_block_size: int,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    output_block_size: int,
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
@@ -40,11 +35,11 @@ def get_replays_recordings_consumer(
         # For information on configuring this consumer refer to this page:
         #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
         processor_factory=ProcessReplayRecordingStrategyFactory(
-            input_block_size=input_block_size,
-            max_batch_size=max_batch_size,
-            max_batch_time=max_batch_time,
-            num_processes=num_processes,
-            output_block_size=output_block_size,
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            output_block_size=1,
         ),
         commit_policy=ONCE_PER_SECOND,
     )
