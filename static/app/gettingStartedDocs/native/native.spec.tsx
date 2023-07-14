@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithNative, steps} from './native';
 
 describe('GettingStartedWithNative', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithNative dsn="test-dsn" />);
 
     // Steps

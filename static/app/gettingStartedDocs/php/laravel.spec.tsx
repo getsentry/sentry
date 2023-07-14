@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithLaravel, steps} from './laravel';
 
 describe('GettingStartedWithLaravel', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithLaravel dsn="test-dsn" />);
 
     // Steps

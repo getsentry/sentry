@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithRust, steps} from './rust';
 
 describe('GettingStartedWithRust', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithRust dsn="test-dsn" />);
 
     // Steps
