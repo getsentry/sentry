@@ -42,8 +42,10 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       },
       success: () => {
         const orgSlug = formData.organization;
-
-        this.props.router.push(normalizeUrl(`/organizations/${orgSlug}/projects/`));
+        const projectSlug = this.state.transferDetails.project.slug;
+        this.props.router.push(
+          normalizeUrl(`/settings/${orgSlug}/projects/${projectSlug}/teams/`)
+        );
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
