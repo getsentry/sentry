@@ -145,7 +145,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
           </Layout.Main>

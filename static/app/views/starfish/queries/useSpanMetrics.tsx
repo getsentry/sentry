@@ -4,7 +4,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanMetrics = {
   [metric: string]: number | string;
@@ -21,20 +24,22 @@ export type SpanSummaryQueryFilters = {
 };
 
 export const useSpanMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: SpanSummaryQueryFilters = {},
+  span: Pick<IndexedSpan, 'group'>,
+  queryFilters: SpanSummaryQueryFilters,
   fields: string[] = [],
-  referrer: string = 'span-metrics',
-  enabled: boolean = true
+  referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
   const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
+
+  const enabled =
+    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(span) && enabled,
+    enabled,
     referrer,
   });
 
@@ -52,7 +57,7 @@ function getEventView(
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${cleanGroupId}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''

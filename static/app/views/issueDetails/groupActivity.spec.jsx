@@ -453,4 +453,92 @@ describe('GroupActivity', function () {
       'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
     );
   });
+
+  it('renders escalating since it happened x times in time window', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            expired_snooze: {
+              count: 400,
+              window: 1,
+            },
+          },
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because 400 events happened in 1 minute'
+    );
+  });
+
+  it('renders escalating since x users were affected in time window', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            expired_snooze: {
+              user_count: 1,
+              user_window: 1,
+            },
+          },
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because 1 user was affected in 1 minute'
+    );
+  });
+
+  it('renders escalating since until date passed', function () {
+    const date = new Date('2018-10-30');
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_ESCALATING,
+          data: {
+            expired_snooze: {
+              until: date,
+            },
+          },
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry flagged this issue as escalating because Oct 30, 2018 12:00 AM passed'
+    );
+  });
+
+  it('renders archived forever', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_IGNORED,
+          data: {
+            ignoreCount: null,
+            ignoreDuration: null,
+            ignoreUntil: null,
+            ignoreUserCount: null,
+            ignoreUserWindow: null,
+            ignoreWindow: null,
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      organization: {features: ['escalating-issues']},
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar archived this issue forever'
+    );
+  });
 });

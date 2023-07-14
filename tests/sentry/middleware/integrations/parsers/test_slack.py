@@ -23,6 +23,13 @@ class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
+    @pytest.fixture(autouse=True)
+    def patch_get_region(self):
+        with patch.object(
+            SlackRequestParser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            yield
+
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -32,9 +39,7 @@ class SlackRequestParserTest(TestCase):
 
     def get_parser(self, path: str):
         self.request = self.factory.post(path)
-        parser = SlackRequestParser(self.request, self.get_response)
-        parser.get_regions_from_organizations = MagicMock(return_value=[self.region])
-        return parser
+        return SlackRequestParser(self.request, self.get_response)
 
     @pytest.mark.skip(reason="Will be implemented after frontend installation is setup")
     def test_installation(self):

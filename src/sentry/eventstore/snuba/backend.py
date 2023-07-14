@@ -103,6 +103,18 @@ class SnubaEventStorage(EventStorage):
                             direction=direction,
                         )
                     )
+                elif order_field_alias in (
+                    Columns.PROFILE_ID.value.alias,
+                    Columns.REPLAY_ID.value.alias,
+                ):
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function(
+                                "if", [Function("isNull", [Column(resolved_column_or_none)]), 0, 1]
+                            ),
+                            direction=direction,
+                        )
+                    )
                 else:
                     resolved_order_by.append(
                         OrderBy(Column(resolved_column_or_none), direction=direction)

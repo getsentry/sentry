@@ -532,7 +532,7 @@ def monkeypatch_drf_listfield_serializer_errors() -> None:
         return [self.child.run_validation(item) for item in data]
         # End code retained from < drf 3.8.x.
 
-    ListField.to_internal_value = to_internal_value
+    ListField.to_internal_value = to_internal_value  # type: ignore[method-assign]
 
     # We don't need to patch DictField since we don't use it
     # at the time of patching. This is fine since anything newly

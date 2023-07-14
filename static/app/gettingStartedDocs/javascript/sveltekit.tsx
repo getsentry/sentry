@@ -1,13 +1,13 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Configuration Start
 const replayIntegration = `
@@ -31,27 +31,27 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-        ),
-      }
+    description: (
+      <p>
+        {tct('Configure your app automatically with the [wizardLink:Sentry wizard].', {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+          ),
+        })}
+      </p>
     ),
     configurations: [
       {
+        language: 'bash',
         code: `npx @sentry/wizard -i sveltekit`,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: (
-      <ConfigureDescription>
+      <Fragment>
         {t(
           'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
         )}
@@ -81,28 +81,29 @@ export const steps = ({
             )}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
             ),
           })}
-        </div>
-      </ConfigureDescription>
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
         description: (
-          <ConfigureDescription>
+          <Fragment>
             <strong>{t('Configure the Sentry SDK:')}</strong>
-            <div>
+            <p>
               {tct(
                 'To configure the Sentry SDK, edit the [code:Sentry.init] options in [code:hooks.(client|server).(js|ts)]:',
                 {code: <code />}
               )}
-            </div>
-          </ConfigureDescription>
+            </p>
+          </Fragment>
         ),
+        language: 'javascript',
         code: `
         import * as Sentry from "@sentry/sveltekit";
 
@@ -114,13 +115,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         <!-- +page.svelte -->
         <button type="button" on:click={unknownFunction}>Break the world</button>
@@ -156,17 +157,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithReact({
+export function GettingStartedWithSvelteKit({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -200,13 +195,9 @@ export default function GettingStartedWithReact({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
 
-const ConfigureDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+export default GettingStartedWithSvelteKit;
