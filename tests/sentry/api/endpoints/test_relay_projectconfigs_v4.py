@@ -958,6 +958,7 @@ def test_return_partial_config_if_in_cache(
     call_endpoint,
     default_projectkey,
     default_project,
+    projectconfig_cache_get_mock_config,
 ):
     # Partial configs are handled as ``v2``, even if the param is ``v3``
     monkeypatch.setattr(
