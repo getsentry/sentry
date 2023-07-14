@@ -10,7 +10,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectStacktraceLinksTest(APITestCase):
     endpoint = "sentry-api-0-project-stacktrace-links"
     filepath = "foo/bar/baz.py"
