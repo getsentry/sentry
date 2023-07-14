@@ -40,6 +40,8 @@ type Query = {
 };
 
 export default function SpansView(props: Props) {
+  const moduleName = props.moduleName ?? ModuleName.ALL;
+
   const location = useLocation<Query>();
   const appliedFilters = pick(location.query, [
     SPAN_ACTION,
@@ -61,26 +63,26 @@ export default function SpansView(props: Props) {
 
       <PaddedContainer>
         <SpanTimeCharts
-          moduleName={props.moduleName || ModuleName.ALL}
+          moduleName={moduleName}
           appliedFilters={appliedFilters}
           spanCategory={props.spanCategory}
         />
       </PaddedContainer>
       <FilterOptionsContainer>
         <SpanOperationSelector
-          moduleName={props.moduleName}
+          moduleName={moduleName}
           value={appliedFilters[SPAN_OP] || ''}
           spanCategory={props.spanCategory}
         />
 
         <ActionSelector
-          moduleName={props.moduleName}
+          moduleName={moduleName}
           value={appliedFilters[SPAN_ACTION] || ''}
           spanCategory={props.spanCategory}
         />
 
         <DomainSelector
-          moduleName={props.moduleName}
+          moduleName={moduleName}
           value={appliedFilters[SPAN_DOMAIN] || ''}
           spanCategory={props.spanCategory}
         />
@@ -88,7 +90,7 @@ export default function SpansView(props: Props) {
 
       <PaddedContainer>
         <SpansTable
-          moduleName={props.moduleName || ModuleName.ALL}
+          moduleName={moduleName}
           spanCategory={props.spanCategory}
           sort={sort}
           limit={LIMIT}
