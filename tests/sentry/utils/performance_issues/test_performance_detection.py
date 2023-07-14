@@ -467,7 +467,11 @@ class PerformanceDetectionTest(TestCase):
             )
             in incr_mock.mock_calls
         )
-        detection_calls = [call for call in incr_mock.mock_calls if call.args[0] == "performance.performance_issue.detected"]
+        detection_calls = [
+            call
+            for call in incr_mock.mock_calls
+            if call.args[0] == "performance.performance_issue.detected"
+        ]
         assert len(detection_calls) == 1
         tags = detection_calls[0].kwargs["tags"]
 
@@ -479,7 +483,6 @@ class PerformanceDetectionTest(TestCase):
         # Ensure all other detections are set to false in tags
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
-
 
 
 @region_silo_test
