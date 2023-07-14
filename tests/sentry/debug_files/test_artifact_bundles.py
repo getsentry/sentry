@@ -419,7 +419,6 @@ class FlatFileIndexTest(FlatFileTestCase):
         )
 
 
-@freeze_time("2023-07-13T10:00:00.000Z")
 class FlatFileStoreTest(FlatFileTestCase):
     def test_flat_file_store_load(self):
         release = "1.0"
