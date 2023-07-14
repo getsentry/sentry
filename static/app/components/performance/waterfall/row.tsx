@@ -2,7 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
-import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
+import {
+  getBackgroundColor,
+  toPercent,
+} from 'sentry/components/performance/waterfall/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -70,10 +73,10 @@ export function RowReplayTimeIndicators() {
 
   return (
     <Fragment>
-      <RowIndicatorBar style={{left: `${(currentTime / durationMs) * 100}%`}} />
+      <RowIndicatorBar style={{left: toPercent(currentTime / durationMs)}} />
       {currentHoverTime !== undefined ? (
         <RowHoverIndicatorBar
-          style={{left: `${(currentHoverTime / durationMs) * 100}%`}}
+          style={{transform: toPercent(currentHoverTime / durationMs)}}
         />
       ) : null}
     </Fragment>
