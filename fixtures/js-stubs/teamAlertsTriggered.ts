@@ -1,4 +1,6 @@
-export function TeamAlertsTriggered(): Record<string, number> {
+import {AlertsTriggered} from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
+
+export function TeamAlertsTriggered(): AlertsTriggered {
   return {
     '2021-08-20T00:00:00Z': 3,
     '2021-08-21T00:00:00Z': 2,
