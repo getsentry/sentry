@@ -777,7 +777,7 @@ def dev_consumer(consumer_names):
 @run.command("ingest-replay-recordings")
 @log_options()
 @configuration
-@kafka_options(consumer_group="ingest-replay-recordings")
+@kafka_options("ingest-replay-recordings")
 @click.option(
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
