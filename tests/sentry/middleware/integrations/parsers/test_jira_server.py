@@ -35,6 +35,7 @@ class JiraServerRequestParserTest(TestCase):
         self.integration = self.create_integration(
             organization=self.organization, external_id="jira_server:1", provider="jira_server"
         )
+        organization_mapping_service
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_endpoint(self):
@@ -54,9 +55,13 @@ class JiraServerRequestParserTest(TestCase):
             assert get_response_from_control_silo.called
 
         # Found the integration
+
+        organization_mapping_service.update(
+            organization_id=self.organization.id, update={"region_name": "na"}
+        )
         with mock.patch(  # type: ignore[unreachable]
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-        ) as mock_get_integration:
+        ) as mock_get_integration, override_regions(self.region_config):
             mock_get_integration.return_value = self.integration
             parser.get_response()
             assert_webhook_outboxes(

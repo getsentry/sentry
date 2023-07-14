@@ -45,8 +45,7 @@ class VstsRequestParserTest(TestCase):
     def test_routing_properly(self):
         request = self.factory.post(
             self.path,
-            data=WORK_ITEM_UPDATED,
-            format="json",
+            json=WORK_ITEM_UPDATED,
             HTTP_SHARED_SECRET=self.shared_secret,
         )
         parser = VstsRequestParser(request=request, response_handler=self.get_response)
@@ -106,7 +105,6 @@ class VstsRequestParserTest(TestCase):
 
         request = self.factory.post(
             self.path,
-            format="json",
             HTTP_SHARED_SECRET=self.shared_secret,
         )
 
@@ -128,8 +126,7 @@ class VstsRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path,
-            data=WORK_ITEM_UPDATED,
-            format="json",
+            json=WORK_ITEM_UPDATED,
             HTTP_SHARED_SECRET=self.shared_secret,
         )
         parser = VstsRequestParser(request=request, response_handler=self.get_response)

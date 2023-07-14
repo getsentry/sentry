@@ -40,8 +40,7 @@ class MsTeamsRequestParserTest(TestCase):
     def test_routing_properly(self):
         request = self.factory.post(
             self.path,
-            data=GENERIC_EVENT,
-            format="json",
+            json=GENERIC_EVENT,
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
@@ -101,8 +100,7 @@ class MsTeamsRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path,
-            data=GENERIC_EVENT,
-            format="json",
+            json=GENERIC_EVENT,
             HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
         )
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
@@ -115,7 +113,7 @@ class MsTeamsRequestParserTest(TestCase):
             parser.get_response()
             assert_webhook_outboxes(
                 factory_request=request,
-                webhook_identifier=WebhookProviderIdentifier.JIRA,
+                webhook_identifier=WebhookProviderIdentifier.MSTEAMS,
                 region_names=[self.region.name],
             )
 
@@ -123,11 +121,7 @@ class MsTeamsRequestParserTest(TestCase):
     def test_get_integration_from_request(self):
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         expected_integration = Integration.objects.create(external_id=team_id, provider="msteams")
-        request = self.factory.post(
-            self.path,
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
-        )
+        request = self.factory.post(self.path, HTTP_AUTHORIZATION=f"Bearer {TOKEN}")
 
         region_silo_payloads = [
             EXAMPLE_TEAM_MEMBER_REMOVED,
