@@ -1636,7 +1636,7 @@ SENTRY_FEATURES = {
     # Enable project creation for all and puts organization into test group
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
-    "organizations:team-roles": False,
+    "organizations:team-roles": True,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
