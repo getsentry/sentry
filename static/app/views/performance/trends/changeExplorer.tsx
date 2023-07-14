@@ -196,7 +196,7 @@ function Header(props: HeaderProps) {
   } = props;
 
   const regression = trendChangeType === TrendChangeType.REGRESSION;
-  const next = getTransactionSummaryLink(
+  const transactionSummaryLink = getTransactionSummaryLink(
     trendView,
     transaction,
     projects,
@@ -214,18 +214,15 @@ function Header(props: HeaderProps) {
         <ChangeType regression={regression}>
           {regression ? t('Ongoing Regression') : t('Ongoing Improvement')}
         </ChangeType>
-        <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
-          <TransactionName style={{width: 'fit-content'}}>
-            {transaction.transaction}
-          </TransactionName>
-          <Button
-            style={{padding: space(0), height: 'min-content', minHeight: '0px'}}
+        <TransactionNameWrapper>
+          <TransactionName>{transaction.transaction}</TransactionName>
+          <ViewTransactionButton
             borderless
-            to={normalizeUrl(next)}
+            to={normalizeUrl(transactionSummaryLink)}
             icon={<IconOpen />}
             aria-label={t('View transaction summary')}
           />
-        </div>
+        </TransactionNameWrapper>
       </HeaderTextWrapper>
     </HeaderWrapper>
   );
@@ -289,6 +286,20 @@ const TransactionName = styled('h4')`
   margin-bottom: ${space(0)};
   ${p => p.theme.overflowEllipsis};
 `;
+
+const TransactionNameWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(3)};
+  width: fit-content;
+`;
+
+const ViewTransactionButton = styled(Button)`
+  padding: ${space(0)};
+  height: min-content;
+  min-height: 0px;
+`;
+
 const InfoLabel = styled('strong')`
   color: ${p => p.theme.gray300};
 `;
