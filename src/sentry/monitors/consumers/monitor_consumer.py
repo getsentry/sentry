@@ -289,7 +289,7 @@ def _process_message(wrapper: Dict) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
                 )
-                logger.debug("monitor environment name too long: %s", monitor_slug)
+                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
