@@ -69,11 +69,16 @@ export default function SpansView(props: Props) {
         />
       </PaddedContainer>
       <FilterOptionsContainer>
-        <SpanOperationSelector
-          moduleName={moduleName}
-          value={appliedFilters[SPAN_OP] || ''}
-          spanCategory={props.spanCategory}
-        />
+        {/* Specific modules like Database and API only show _one_ kind of span
+        op based on how we group them. So, the operation selector is pointless
+        there. */}
+        {[ModuleName.ALL, ModuleName.NONE].includes(moduleName) && (
+          <SpanOperationSelector
+            moduleName={moduleName}
+            value={appliedFilters[SPAN_OP] || ''}
+            spanCategory={props.spanCategory}
+          />
+        )}
 
         <ActionSelector
           moduleName={moduleName}
