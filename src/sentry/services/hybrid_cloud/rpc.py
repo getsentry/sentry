@@ -5,15 +5,14 @@ import hashlib
 import hmac
 import inspect
 import logging
-import urllib.response
 from abc import abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
-from urllib.request import Request, urlopen
 
 import django.urls
 import pydantic
+import requests
 import sentry_sdk
 from django.conf import settings
 
@@ -496,12 +495,13 @@ def dispatch_remote_call(
     span = sentry_sdk.start_span(
         op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
     )
-    with span, timer, _fire_request(url, path, request_body) as response:
-        charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
-        metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
-        response_body = response.read().decode(charset)
+    with span, timer:
+        response = _fire_request(url, path, request_body)
+        metrics.incr(
+            "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
+        )
 
-    serial_response = json.loads(response_body)
+    serial_response = response.json()
     return_value = serial_response["value"]
     return (
         None
@@ -510,18 +510,16 @@ def dispatch_remote_call(
     )
 
 
-def _fire_request(url: str, path: str, body: Any) -> urllib.response.addinfourl:
+def _fire_request(url: str, path: str, body: Any) -> requests.Response:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
-    request = Request(url)
-    request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
-    request.add_header("Content-Length", str(len(data)))
-
-    signature = generate_request_signature(path, body)
-    request.add_header("Authorization", f"Rpcsignature {signature}")
-
-    return urlopen(request, data)
+    signature = generate_request_signature(path, data)
+    headers = {
+        "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
+        "Authorization": f"Rpcsignature {signature}",
+    }
+    return requests.post(url, headers=headers, data=data)
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
