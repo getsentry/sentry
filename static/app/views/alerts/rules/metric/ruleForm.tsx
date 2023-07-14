@@ -37,6 +37,7 @@ import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {
+  hasNonStandardMetricSearchFilters,
   isOnDemandMetricAlert,
   isValidOnDemandMetricAlert,
 } from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -130,7 +131,10 @@ function determineAlertDataset(
     return selectedDataset;
   }
 
-  if (isOnDemandMetricAlert(query) && selectedDataset === Dataset.TRANSACTIONS) {
+  if (
+    hasNonStandardMetricSearchFilters(query) &&
+    selectedDataset === Dataset.TRANSACTIONS
+  ) {
     // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
     return Dataset.GENERIC_METRICS;
   }
@@ -522,7 +526,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   };
 
   validateOnDemandMetricAlert() {
-    return isValidOnDemandMetricAlert(this.state.aggregate, this.state.query);
+    return isValidOnDemandMetricAlert(
+      this.state.dataset,
+      this.state.aggregate,
+      this.state.query
+    );
   }
 
   handleSubmit = async (
@@ -844,7 +852,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
-        isOnDemandMetricAlert={isOnDemandMetricAlert(query)}
+        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>

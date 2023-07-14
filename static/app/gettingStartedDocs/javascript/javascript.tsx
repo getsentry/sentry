@@ -1,4 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -41,11 +42,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/browser
+# Using yarn
+yarn add @sentry/browser
 
-        # Using npm
-        npm install --save @sentry/browser
+# Using npm
+npm install --save @sentry/browser
         `,
       },
     ],
@@ -103,17 +104,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithJavaScript({
+export function GettingStartedWithJavaScript({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -148,7 +143,9 @@ export default function GettingStartedWithJavaScript({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithJavaScript;

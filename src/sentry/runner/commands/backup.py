@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from difflib import unified_diff
 from io import StringIO
 from typing import NamedTuple, NewType
@@ -7,6 +8,8 @@ from typing import NamedTuple, NewType
 import click
 from django.apps import apps
 from django.core import management, serializers
+from django.core.serializers import serialize
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, connection, transaction
 
 from sentry.runner.decorators import configuration
@@ -230,6 +233,20 @@ def sort_dependencies():
     return model_list
 
 
+UTC_0 = timezone(timedelta(hours=0))
+
+
+class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
+    """A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
+    their implicit value is `.000`. This is necessary because the ECMA-262 compatible
+    `DjangoJSONEncoder` drops these by default."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.astimezone(UTC_0).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        return super().default(obj)
+
+
 @click.command()
 @click.argument("dest", default="-", type=click.File("w"))
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
@@ -263,6 +280,11 @@ def export(dest, silent, indent, exclude):
 
     if not silent:
         click.echo(">> Beginning export", err=True)
-    serializers.serialize(
-        "json", yield_objects(), indent=indent, stream=dest, use_natural_foreign_keys=True
+    serialize(
+        "json",
+        yield_objects(),
+        indent=indent,
+        stream=dest,
+        use_natural_foreign_keys=True,
+        cls=DatetimeSafeDjangoJSONEncoder,
     )

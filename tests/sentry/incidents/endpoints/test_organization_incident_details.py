@@ -4,8 +4,9 @@ from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class BaseIncidentDetailsTest:
@@ -50,7 +51,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 
         expected = serialize(incident)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user_data = serialize(self.user)
         seen_by = [user_data]
 

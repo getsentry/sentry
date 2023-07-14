@@ -1,4 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -34,19 +35,23 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using ember-cli
-        ember install @sentry/ember
+# Using ember-cli
+ember install @sentry/ember
         `,
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
-      {
-        code: <code />,
-      }
+    description: (
+      <p>
+        {tct(
+          'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
+          {
+            code: <code />,
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
@@ -109,17 +114,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithEmber({
+export function GettingStartedWithEmber({
   dsn,
-  newOrg,
-  activeProductSelection,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -156,7 +155,9 @@ export default function GettingStartedWithEmber({
         sentryInitContent: sentryInitContent.join('\n'),
       })}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithEmber;

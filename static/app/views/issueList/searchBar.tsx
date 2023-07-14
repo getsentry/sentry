@@ -94,7 +94,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
   const hasSearchShortcuts = organization.features.includes('issue-search-shortcuts');
   const recommendedGroup: SearchGroup = {
-    title: t('Recommended'),
+    title: t('Popular Filters'),
     type: 'header',
     icon: <IconStar size="xs" />,
     childrenWrapper: RecommendedWrapper,
@@ -103,42 +103,36 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
         title: t('Issue Category'),
-        desc: t('Error or performance issues.'),
         value: 'issue.category:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Level'),
-        desc: t('Filter by fatal, error, etc.'),
+        title: t('Error Level'),
         value: 'level:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
         title: t('Assignee'),
-        desc: t('Filter by team or member.'),
         value: 'assigned_or_suggested:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Unhandled'),
-        desc: t('Filter by unhandled events.'),
+        title: t('Unhandled Events'),
         value: 'error.unhandled:true ',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Release'),
-        desc: t('Filter by release version.'),
-        value: 'release:',
+        title: t('Latest Release'),
+        value: 'release:latest ',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.TAG,
         title: t('Custom Tags'),
-        desc: t('Filter events by custom tags.'),
         // Shows only tags when clicked
         applyFilter: item => item.kind === FieldKind.TAG,
       },
@@ -169,6 +163,8 @@ const RecommendedWrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   padding: ${space(1)};
+  text-align: left;
+  line-height: 1.2;
 
   & > li {
     ${p => p.theme.overflowEllipsis}
@@ -182,6 +178,7 @@ const RecommendedWrapper = styled('div')`
     grid-template-rows: 1fr 1fr;
     gap: ${space(1.5)};
     padding: ${space(1.5)};
+    text-align: center;
 
     & > li {
       padding: ${space(1.5)} ${space(2)};

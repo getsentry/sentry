@@ -5,7 +5,6 @@ import responses
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
@@ -21,8 +20,9 @@ from sentry.models import (
     Release,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -78,6 +78,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 }
             ],
         }
+        assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=original_message,
@@ -126,6 +127,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 }
             ],
         }
+        assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=original_message,
@@ -145,7 +147,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             auth_idp = AuthProvider.objects.create(
                 organization_id=self.organization.id, provider="dummy"
             )
@@ -497,7 +499,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_no_integration(self, check_signing_secret_mock):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 403
@@ -637,7 +639,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_validation_error(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="manager")
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
@@ -658,7 +660,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
 
     def test_identity_not_linked(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             Identity.objects.filter(user=self.user).delete()
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id="")
 
@@ -683,7 +685,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")
 
         other_user = self.create_user()

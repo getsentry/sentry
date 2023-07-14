@@ -60,7 +60,7 @@ type Props = {
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `p95(${SPAN_SELF_TIME})`,
   `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
   'sps()',
@@ -109,7 +109,7 @@ export default function SpansTable({
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
-        hasData={data.length > 0}
+        hasData={data?.length > 0}
         isLoading={isLoading}
         disabled={shouldTrackVCD}
       >
@@ -202,7 +202,7 @@ function getDescriptionHeader(moduleName: ModuleName) {
   return 'Description';
 }
 
-export function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
+function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
   const description = getDescriptionHeader(moduleName);
 
   const domain = getDomainHeader(moduleName);

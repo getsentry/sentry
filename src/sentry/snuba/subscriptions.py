@@ -153,6 +153,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
         snuba_query=snuba_query,
         type=subscription_type,
     )
+
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )

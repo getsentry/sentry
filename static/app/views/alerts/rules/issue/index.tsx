@@ -103,9 +103,10 @@ const ACTION_MATCH_OPTIONS_MIGRATED = [
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
-  actionMatch: 'all',
+  actionMatch: 'any',
   filterMatch: 'all',
   actions: [],
+  // note we update the default conditions in onLoadAllEndpointsSuccess
   conditions: [],
   filters: [],
   name: '',
@@ -330,10 +331,25 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {rule} = this.state;
+    const {
+      params: {ruleId},
+    } = this.props;
     if (rule) {
       ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
         addErrorMessage(detail, {append: true})
       );
+    }
+    if (!ruleId) {
+      // now that we've loaded all the possible conditions, we can populate the
+      // value of conditions for a new alert
+      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
+      this.handleChange('conditions', [
+        {
+          id,
+          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          name: 'A new issue is created',
+        },
+      ]);
     }
   }
 

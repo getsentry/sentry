@@ -209,7 +209,7 @@ function BaseSlider(
       skipWrapper
       isHoverable
       position="bottom"
-      offset={8}
+      offset={-15}
     >
       <SliderGroup {...groupProps} className={className}>
         {label && (
@@ -303,6 +303,7 @@ const Slider = forwardRef(BaseSlider);
 export {Slider};
 
 const SliderGroup = styled('div')`
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;

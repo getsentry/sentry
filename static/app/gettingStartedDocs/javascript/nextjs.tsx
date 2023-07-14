@@ -1,13 +1,13 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 // Configuration Start
 const replayIntegration = `
@@ -36,13 +36,17 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct(
-      'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-        ),
-      }
+    description: (
+      <p>
+        {tct(
+          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
+          {
+            wizardLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+            ),
+          }
+        )}
+      </p>
     ),
     configurations: [
       {
@@ -54,7 +58,7 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: (
-      <ConfigureDescription>
+      <Fragment>
         {t('The Sentry wizard will automatically patch your application:')}
         <List symbol="bullet">
           <ListItem>
@@ -79,35 +83,35 @@ export const steps = ({
             )}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/" />
             ),
           })}
-        </div>
-      </ConfigureDescription>
+        </p>
+      </Fragment>
     ),
     configurations: [
       {
         description: (
-          <ConfigureDescription>
+          <Fragment>
             <strong>{t('Configure the Sentry SDK:')}</strong>
-            <div>
+            <p>
               {tct(
                 'Install Sentry’s Next.js SDK using either [code:yarn] or [code:npm]:',
                 {
                   code: <code />,
                 }
               )}
-            </div>
-          </ConfigureDescription>
+            </p>
+          </Fragment>
         ),
         language: 'bash',
         code: `
-        yarn add @sentry/nextjs
-        # or
-        npm install --save @sentry/nextjs
+yarn add @sentry/nextjs
+# or
+npm install --save @sentry/nextjs
         `,
       },
       {
@@ -162,17 +166,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithNextJs({
+export function GettingStartedWithNextJs({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -207,13 +205,9 @@ export default function GettingStartedWithNextJs({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
 
-const ConfigureDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+export default GettingStartedWithNextJs;
