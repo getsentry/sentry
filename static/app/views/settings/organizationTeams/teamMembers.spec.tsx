@@ -335,7 +335,7 @@ describe('TeamMembers', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('does not renders team-level roles', async function () {
+  it('renders team-level roles without flag', async function () {
     const me = TestStubs.Member({
       id: '123',
       email: 'foo@example.com',
@@ -357,9 +357,9 @@ describe('TeamMembers', function () {
     );
 
     const admins = screen.queryByText('Team Admin');
-    expect(admins).not.toBeInTheDocument();
+    expect(admins).toHaveLength(3);
     const contributors = screen.queryByText('Team Contributor');
-    expect(contributors).not.toBeInTheDocument();
+    expect(contributors).toHaveLength(2);
   });
 
   it('renders team-level roles with flag', async function () {
