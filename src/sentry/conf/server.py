@@ -87,6 +87,10 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+# override the settings dumped in the debug view
+DEFAULT_EXCEPTION_REPORTER_FILTER = (
+    "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
+)
 
 ADMINS = ()
 
