@@ -54,9 +54,9 @@ const formGroups: JsonFormObject[] = [
         type: 'select',
         required: false,
         options: [
-          {value: -1, label: t('Default (let Sentry decide)')},
-          {value: 1, label: t('Most recent call last')},
-          {value: 2, label: t('Most recent call first')},
+          {value: -1, label: t('Default')},
+          {value: 1, label: t('Oldest')},
+          {value: 2, label: t('Newest')},
         ],
         label: t('Stack Trace Order'),
         help: t('Choose the default ordering of frames in stack traces'),
