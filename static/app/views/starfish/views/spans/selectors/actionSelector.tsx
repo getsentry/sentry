@@ -32,7 +32,7 @@ export function ActionSelector({
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<[{'span.action': string}]>({
+  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,

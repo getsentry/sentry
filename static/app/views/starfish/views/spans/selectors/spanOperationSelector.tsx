@@ -29,7 +29,7 @@ export function SpanOperationSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: operations} = useSpansQuery<[{'span.op': string}]>({
+  const {data: operations} = useSpansQuery<{'span.op': string}[]>({
     eventView,
     initialData: [],
   });

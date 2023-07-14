@@ -32,7 +32,7 @@ export function useSpansQuery<T = any[]>({
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
@@ -132,7 +132,7 @@ export function useWrappedDiscoverQuery<T>({
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {

@@ -30,7 +30,7 @@ export function DomainSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains} = useSpansQuery<{'span.domain': string}[]>({
     eventView,
     initialData: [],
   });
