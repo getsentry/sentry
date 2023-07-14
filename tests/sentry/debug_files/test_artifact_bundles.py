@@ -12,10 +12,16 @@ from sentry.debug_files.artifact_bundles import (
     BundleMeta,
     FlatFileIdentifier,
     FlatFileIndex,
+    FlatFileIndexStore,
     get_redis_cluster_for_artifact_bundles,
 )
 from sentry.models import File, FileBlob
-from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive, ArtifactBundleIndex
+from sentry.models.artifactbundle import (
+    ArtifactBundle,
+    ArtifactBundleArchive,
+    ArtifactBundleFlatFileIndex,
+    ArtifactBundleIndex,
+)
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -173,8 +179,7 @@ class ArtifactLookupTest(TestCase):
         assert indexed[2].artifact_bundle == bundles[2]
 
 
-@freeze_time("2023-07-13T10:00:00.000Z")
-class FlatFileIndexTest(TestCase):
+class FlatFileTestCase(TestCase):
     def mock_artifact_bundle(self, manifest):
         file = make_compressed_zip_file(manifest)
 
@@ -193,6 +198,20 @@ class FlatFileIndexTest(TestCase):
             date_last_modified=now,
         )
 
+    def mock_artifact_bundle_flat_file_index(self, release, dist, file_contents):
+        return ArtifactBundleFlatFileIndex.create_flat_file_index(
+            project_id=self.project.id, release=release, dist=dist, file_contents=file_contents
+        )
+
+    def mock_flat_file_index(self):
+        return {
+            "bundles": [{"1": 1234}, {"2": 5678}],
+            "files_by_url": {"~/app.js": [0], "~/main.js": [1, 0]},
+        }
+
+
+@freeze_time("2023-07-13T10:00:00.000Z")
+class FlatFileIndexTest(FlatFileTestCase):
     @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
     def test_flat_file_index_with_no_index_stored_and_release(self, flat_file_index_store):
         flat_file_index_store.load.return_value = {}
@@ -398,3 +417,35 @@ class FlatFileIndexTest(TestCase):
                 },
             }
         )
+
+
+@freeze_time("2023-07-13T10:00:00.000Z")
+class FlatFileStoreTest(FlatFileTestCase):
+    def test_flat_file_store_load(self):
+        release = "1.0"
+        dist = "android"
+
+        flat_file_index = self.mock_flat_file_index()
+        file_contents = json.dumps(flat_file_index)
+        self.mock_artifact_bundle_flat_file_index(release, dist, file_contents)
+
+        identifier = FlatFileIdentifier(project_id=self.project.id, release=release, dist=dist)
+        store = FlatFileIndexStore(identifier)
+
+        result = store.load()
+
+        assert result == flat_file_index
+
+    def test_flat_file_store_save(self):
+        release = "1.0"
+        dist = "android"
+
+        identifier = FlatFileIdentifier(project_id=self.project.id, release=release, dist=dist)
+        store = FlatFileIndexStore(identifier)
+        flat_file_index = self.mock_flat_file_index()
+
+        store.save(flat_file_index)
+
+        indexes = ArtifactBundleFlatFileIndex.objects.all()
+        assert len(indexes) == 1
+        assert indexes[0].load_flat_file_index() == flat_file_index

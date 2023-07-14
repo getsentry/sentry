@@ -16,6 +16,7 @@ from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
+    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
@@ -23,7 +24,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.project import Project
-from sentry.utils import metrics, redis
+from sentry.utils import json, metrics, redis
 from sentry.utils.db import atomic_transaction
 from tests.sentry.sentry_metrics.test_kafka import project_id
 
@@ -152,13 +153,25 @@ class FlatFileIndexStore:
     def __init__(self, identifier: FlatFileIdentifier):
         self.identifier = identifier
 
-    def load(self) -> Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]:
-        # TODO: load from the database.
-        return {}
+    def load(self) -> Optional[Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]]:
+        try:
+            index = ArtifactBundleFlatFileIndex.objects.get(
+                project_id=self.identifier.project_id,
+                release_name=self.identifier.release,
+                dist_name=self.identifier.dist,
+            )
+            return index.load_flat_file_index()
+        except ArtifactBundleFlatFileIndex.DoesNotExist:
+            return None
 
     def save(self, flat_file_index: Dict[str, Any]):
-        # TODO: store in the database.
-        pass
+        # TODO: possibly implement a better serialization mechanism.
+        ArtifactBundleFlatFileIndex.create_flat_file_index(
+            project_id=self.identifier.project_id,
+            release=self.identifier.release,
+            dist=self.identifier.dist,
+            file_contents=json.dumps(flat_file_index),
+        )
 
 
 T = TypeVar("T")
@@ -188,9 +201,11 @@ class FlatFileIndex:
     def _build(self) -> None:
         loaded_index = self.store.load()
 
-        self._bundles = loaded_index.get("bundles", [])  # type:ignore
-        self._files_by_url = loaded_index.get("files_by_url", {})  # type:ignore
-        self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})  # type:ignore
+        # If we don't find an index, we will silently not mutate the state, since it's initialized as empty.
+        if loaded_index is not None:
+            self._bundles = loaded_index.get("bundles", [])  # type:ignore
+            self._files_by_url = loaded_index.get("files_by_url", {})  # type:ignore
+            self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})  # type:ignore
 
     def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
         try:
