@@ -74,10 +74,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    replaysOnSessionSampleRate: 1.0,
+    replaysSessionSampleRate: 1.0,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
-    // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
