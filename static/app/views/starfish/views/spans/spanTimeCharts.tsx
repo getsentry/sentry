@@ -6,7 +6,6 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
