@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 from typing import Type
+from uuid import uuid4
 
 from click.testing import CliRunner
 from django.core.management import call_command
@@ -15,7 +16,15 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.models import Actor, ApiApplication, ApiAuthorization
+from sentry.models import (
+    Actor,
+    ApiApplication,
+    ApiAuthorization,
+    ApiKey,
+    ApiToken,
+    Authenticator,
+    AuthIdentity,
+)
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
@@ -160,7 +169,7 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(ApiAuthorization)
-    def test_apiauth(self):
+    def test_apiAuthorization(self):
         user = self.create_user()
         app = ApiApplication.objects.create(name="test", owner=user)
         ApiAuthorization.objects.create(
@@ -169,9 +178,42 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(ApiApplication)
-    def test_api_app(self):
+    def test_apiApplication(self):
         user = self.create_user()
         ApiApplication.objects.create(
             owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
         )
         return self.import_export_then_validate()
+
+    @targets_models(ApiToken, ApiApplication)
+    def test_apitoken(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(
+            owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
+        )
+        ApiToken.objects.create(
+            application=app, user=user, token=uuid4().hex + uuid4().hex, expires_at=None
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(ApiKey)
+    def test_apikey(self):
+        user = self.create_user()
+        self.create_organization(owner=user)
+        ApiKey.objects.create(key=uuid4().hex, organization_id=1)
+        return self.import_export_then_validate()
+
+    @targets_models(Authenticator)
+    def test_authenticator(self):
+        user = self.create_user()
+        Authenticator.objects.create(id=1, user=user, type=1)
+        return self.import_export_then_validate()
+
+    @targets_models(AuthIdentity)
+    def test_authIdentity(self):
+        user = self.create_user()
+        AuthIdentity.objects.create(user=user, data=JSONData("test"))
+        return self.import_export_then_validate()
+
+    def test_authProvider(self):
+        pass
