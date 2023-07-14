@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -1371,3 +1371,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Turns on and off the running for dynamic sampling collect_orgs.
+register("dynamic_sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
