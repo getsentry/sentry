@@ -69,16 +69,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         else:
             return Response("Unsupported version, we only support versions 1 to 4.", 400)
 
-    def _get_v4_config(self, request):
-        res = self._post_or_schedule_by_key(request, version="4")
-
-        del res["measurements"]
-        del res["metricsConditionalTagging"]
+    def _get_v4_config(self, request: Request):
+        res = self._post_or_schedule_by_key(request, version=4)
 
         metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
         metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
 
-        if request.GET.get("global"):
+        global_config = request.META.get("HTTP_X_GLOBAL_CONFIG", "0")
+        if global_config == "1":
             res["global"] = config.get_global_config()
 
         return Response(res, status=200)
@@ -135,7 +133,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return use_v3
 
-    def _post_or_schedule_by_key(self, request: Request, version: str = "3"):
+    def _post_or_schedule_by_key(self, request: Request, version: int = 3):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         proj_configs = {}
@@ -149,7 +147,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key, version: str = "3") -> Optional[dict]:
+    def _get_cached_or_schedule(self, public_key, version: int = 3) -> Optional[dict]:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.

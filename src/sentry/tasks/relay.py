@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
 )
-def build_project_config(public_key=None, version: str = "3", **kwargs):
+def build_project_config(public_key=None, version: int = 3, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -58,7 +58,7 @@ def build_project_config(public_key=None, version: str = "3", **kwargs):
         )
 
 
-def schedule_build_project_config(public_key, version: str = "3"):
+def schedule_build_project_config(public_key, version: int = 3):
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -176,7 +176,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     return configs
 
 
-def compute_projectkey_config(key, version: str = "3"):
+def compute_projectkey_config(key, version: int = 3):
     """Computes a single config for the given :class:`ProjectKey`.
 
     :returns: A dict with the project config.

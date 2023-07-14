@@ -186,7 +186,7 @@ def get_global_config():
 def get_project_config(
     project: Project,
     full_config: bool = True,
-    version: str = "3",
+    version: int = 3,
     project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
@@ -328,7 +328,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project,
     full_config: bool = True,
-    version: str = "3",
+    version: int = 3,
     project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
@@ -370,7 +370,7 @@ def _get_project_config(
 
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    if version == "3":
+    if version == 3:
         # Limit the number of custom measurements
         add_experimental_config(config, "measurements", get_measurements_config)
 
@@ -403,7 +403,7 @@ def _get_project_config(
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
-        if version == "4":
+        if version == 4:
             get_conditional_rules = get_dynamic_metric_conditional_tagging_rules
         else:
             get_conditional_rules = get_metric_conditional_tagging_rules

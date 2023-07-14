@@ -181,6 +181,7 @@ def get_metric_conditional_tagging_rules(
 ) -> Sequence[MetricConditionalTaggingRule]:
     rules = get_dynamic_metric_conditional_tagging_rules(project)
 
+    # static rules, will be the same on every project.
     rules.extend(_HISTOGRAM_OUTLIER_RULES)
 
     return rules
