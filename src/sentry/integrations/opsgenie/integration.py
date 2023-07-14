@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
@@ -120,7 +120,27 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    pass
+    def get_organization_config(self) -> Sequence[Any]:
+        fields = [
+            {
+                "name": "team_table",
+                "type": "table",
+                "label": "Opsgenie teams with the Sentry integration enabled",
+                "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
+                "addButtonText": "",
+                "columnLabels": {"team": "Team", "integration_key": "Integration Key"},
+                "columnKeys": ["team", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
+            }
+        ]
+
+        return fields
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        return super().update_organization_config(data)
+
+    def get_config_data(self) -> Mapping[str, str]:
+        return super().get_config_data()
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
