@@ -2110,14 +2110,6 @@ function buildRoutes() {
     </Route>
   );
 
-  // const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-  //   <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-  //     <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
-  //     <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
-  //   </Route>
-  // ) : null;
-
-  // const authRoutes = <Route path="/auth/v2/login/" />;
   const authRoutes = (
     <Route path="/auth/v2/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />

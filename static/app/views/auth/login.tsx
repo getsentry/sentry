@@ -121,6 +121,7 @@ class Login extends Component<Props, State> {
             onRetry={this.fetchData}
           />
         )}
+        {/* TODO: remove this below - the org page will NOT just be SSO */}
         {!loading && authConfig !== null && !error && (
           <FormWrapper hasAuthProviders={this.hasAuthProviders}>
             {orgId !== undefined && (
