@@ -1,5 +1,6 @@
 from .bitbucket import BitbucketRequestParser
 from .github import GithubRequestParser
+from .github_enterprise import GithubEnterpriseRequestParser
 from .gitlab import GitlabRequestParser
 from .jira import JiraRequestParser
 from .jira_server import JiraServerRequestParser
@@ -13,6 +14,7 @@ __all__ = (
     "GitlabRequestParser",
     "JiraRequestParser",
     "JiraServerRequestParser",
+    "GithubEnterpriseRequestParser",
     "MsTeamsRequestParser",
     "SlackRequestParser",
     "VstsRequestParser",
