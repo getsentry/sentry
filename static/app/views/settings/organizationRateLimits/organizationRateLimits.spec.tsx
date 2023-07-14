@@ -21,7 +21,7 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with initialData', function () {
-    renderComponent();
+    renderComponent({});
 
     // XXX: Slider input values are associated to their step value
     // Step 16 is 70000
@@ -51,7 +51,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    renderComponent();
+    renderComponent({});
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -78,7 +78,7 @@ describe('Organization Rate Limits', function () {
       statusCode: 200,
     });
 
-    renderComponent();
+    renderComponent({});
 
     expect(mock).not.toHaveBeenCalled();
 
