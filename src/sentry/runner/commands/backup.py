@@ -22,12 +22,13 @@ JSON_PRETTY_PRINTER = JSONEncoder(
     default=better_default_encoder, indent=2, ignore_nan=True, sort_keys=True
 )
 
-ComparatorSlug = NewType("ComparatorSlug", str)
+ComparatorKind = NewType("ComparatorKind", str)
 
 
 # TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
 class InstanceID(NamedTuple):
-    """Every entry in the generated backup JSON file should have a unique model+pk combination, which serves as its identifier."""
+    """Every entry in the generated backup JSON file should have a unique model+pk combination,
+    which serves as its identifier."""
 
     model: str
     pk: int
@@ -39,12 +40,12 @@ class InstanceID(NamedTuple):
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""
 
-    name: ComparatorSlug
+    kind: ComparatorKind
     on: InstanceID
     reason: str = ""
 
     def pretty(self) -> str:
-        return f"Finding(\n\tname: {self.name!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
+        return f"Finding(\n\tkind: {self.kind!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
 
 
 class ComparatorFindings:
@@ -62,7 +63,7 @@ class ComparatorFindings:
 
 class JSONScrubbingComparator(ABC):
     """An abstract class that compares and then scrubs some set of fields that, by a more nuanced
-    definition that mere strict byte-for-byte equality, are expected to maintain some relation on
+    definition than mere strict byte-for-byte equality, are expected to maintain some relation on
     otherwise equivalent JSON instances of the same model.
 
     Each class inheriting from `JSONScrubbingComparator` should override the abstract `compare`
@@ -89,12 +90,23 @@ class JSONScrubbingComparator(ABC):
 
     @abstractmethod
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> ComparatorFinding | None:
-        """An abstract method signature, to be implemented by inhering classes with their own comparison logic."""
+        """An abstract method signature, to be implemented by inheriting classes with their own
+        comparison logic. Implementations of this method MUST take care not to mutate the method's
+        inputs!"""
 
         pass
 
     def scrub(self, on: InstanceID, left: JSONData, right: JSONData) -> None:
-        """Removes all of the fields compared by this comparator from the `fields` dict, so that the remaining fields may be compared for equality."""
+        """Removes all of the fields compared by this comparator from the `fields` dict, so that the
+        remaining fields may be compared for equality.
+
+        Parameters:
+        - on: An `InstanceID` that must be shared by both versions of the JSON model being
+            compared.
+        - left: One of the models being compared (usually the "before") version.
+        - right: The other model it is being compared against (usually the "after" or
+            post-processed version).
+        """
 
         self.check("left", left)
         self.check("right", right)
@@ -104,18 +116,20 @@ class JSONScrubbingComparator(ABC):
             right["scrubbed"] = {}
         for field in self.fields:
             del left["fields"][field]
-            left["scrubbed"][f"{self.slug()}::{field}"] = True
+            left["scrubbed"][f"{self.get_kind()}::{field}"] = True
             del right["fields"][field]
-            right["scrubbed"][f"{self.slug()}::{field}"] = True
+            right["scrubbed"][f"{self.get_kind()}::{field}"] = True
 
-    def slug(self) -> ComparatorSlug:
-        """A unique identifier for this particular derivation of JSONScrubbingComparator, which will be bubbled up in ComparatorFindings when they are generated."""
+    def get_kind(self) -> ComparatorKind:
+        """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
+        be bubbled up in ComparatorFindings when they are generated."""
 
         return self.__class__.__name__
 
 
 class DateUpdatedComparator(JSONScrubbingComparator):
-    """Comparator that ensures that the specified field's value on the right input is an ISO-8601 date that is greater than (ie, occurs after) the specified field's left input."""
+    """Comparator that ensures that the specified field's value on the right input is an ISO-8601
+    date that is greater than (ie, occurs after) the specified field's left input."""
 
     def __init__(self, field: str):
         super().__init__([field])
@@ -126,7 +140,7 @@ class DateUpdatedComparator(JSONScrubbingComparator):
         right_date_updated = right["fields"][self.field]
         if parser.parse(left_date_updated) > parser.parse(right_date_updated):
             return ComparatorFinding(
-                name=self.slug(),
+                kind=self.get_kind(),
                 on=on,
                 reason=f"""the left date_updated value on `{on}` ({left_date_updated}) was not less
                 than or equal to the right ({right_date_updated})""",
@@ -144,7 +158,8 @@ DEFAULT_COMPARATORS: ComparatorMap = {
 def validate(
     expect: JSONData, actual: JSONData, comparators: ComparatorMap = DEFAULT_COMPARATORS
 ) -> ComparatorFindings:
-    """Ensures that originally imported data correctly matches actual outputted data, and produces a list of reasons why not when it doesn't"""
+    """Ensures that originally imported data correctly matches actual outputted data, and produces a
+    list of reasons why not when it doesn't"""
 
     def json_lines(obj: JSONData) -> list[str]:
         """Take a JSONData object and pretty-print it as JSON."""
@@ -183,12 +198,18 @@ def validate(
 
         # Try comparators applicable for this specific model.
         if id.model in comparators:
+            # We take care to run ALL of the `compare()` methods on each comparator before calling
+            # any `scrub()` methods. This ensures tha, in cases where a single model uses multiple
+            # comparators that touch the same fields, one comparator does not accidentally scrub the
+            # inputs for its follower. If `compare()` functions are well-behaved (that is, they
+            # don't mutate their inputs), this should be sufficient to ensure that the order in
+            # which comparators are applied does not change the final output.
             for cmp in comparators[id.model]:
                 res = cmp.compare(id, exp, act)
                 if res:
-                    findings.append(ComparatorFinding(cmp.slug(), id, res))
-                else:
-                    cmp.scrub(id, exp, act)
+                    findings.append(ComparatorFinding(cmp.get_kind(), id, res))
+            for cmp in comparators[id.model]:
+                cmp.scrub(id, exp, act)
 
         # Finally, perform a diff on the remaining JSON.
         diff = list(unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3))

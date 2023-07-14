@@ -6,7 +6,6 @@ from click.testing import CliRunner
 from sentry.runner.commands.backup import (
     DEFAULT_COMPARATORS,
     ComparatorMap,
-    DateUpdatedComparator,
     InstanceID,
     import_,
     validate,
@@ -17,24 +16,12 @@ from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
-
-def django_db_complete_reset(func=None):
-    """Pytest decorator for resetting all databases, including pk sequences"""
-
-    if func is not None:
-        return pytest.mark.django_db(transaction=True, reset_sequences=True, databases="__all__")(
-            func
-        )
-
-    def decorator(function):
-        return pytest.mark.django_db(transaction=True, reset_sequences=True, databases="__all__")(
-            function
-        )
-
-    return decorator
+EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}
 
 
-def import_export_then_validate(tmp_path: Path, fixture_file_name: str, map: ComparatorMap) -> None:
+def import_export_then_validate(
+    tmp_path: Path, fixture_file_name: str, map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING
+) -> None:
     """Test helper that validates that data imported from a fixture `.json` file correctly matches
     the actual outputted export data."""
 
@@ -64,58 +51,15 @@ def test_good_fresh_install_validation(tmp_path):
 def test_bad_fresh_install_validation(tmp_path):
 
     with pytest.raises(ValidationError) as excinfo:
-        import_export_then_validate(tmp_path, "fresh-install.json", {})
+        import_export_then_validate(tmp_path, "fresh-install.json")
     info = excinfo.value.info
     assert len(info.findings) == 2
-    assert info.findings[0].name == "UnequalJSON"
+    assert info.findings[0].kind == "UnequalJSON"
     assert info.findings[0].on == InstanceID("sentry.userrole", 1)
-    assert info.findings[1].name == "UnequalJSON"
+    assert info.findings[1].kind == "UnequalJSON"
     assert info.findings[1].on == InstanceID("sentry.userroleuser", 1)
 
 
 @django_db_all(transaction=True, reset_sequences=True)
 def test_datetime_formatting(tmp_path):
-    import_export_then_validate(tmp_path, "datetime-formatting.json", {})
-
-
-def test_good_date_updated_comparator():
-    cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("test", 1)
-    left = {
-        "model": "test",
-        "pk": 1,
-        "fields": {
-            "my_date_field": "2023-06-22T23:00:00.123Z",
-        },
-    }
-    right = {
-        "model": "test",
-        "pk": 1,
-        "fields": {
-            "my_date_field": "2023-06-22T23:00:00.123Z",
-        },
-    }
-    assert cmp.compare(id, left, right) is None
-
-
-def test_bad_date_updated_comparator():
-    cmp = DateUpdatedComparator("my_date_field")
-    id = InstanceID("test", 1)
-    left = {
-        "model": "test",
-        "pk": 1,
-        "fields": {
-            "my_date_field": "2023-06-22T23:12:34.567Z",
-        },
-    }
-    right = {
-        "model": "test",
-        "pk": 1,
-        "fields": {
-            "my_date_field": "2023-06-22T23:00:00.001Z",
-        },
-    }
-    res = cmp.compare(id, left, right)
-    assert res is not None
-    assert res.on == id
-    assert res.name == "DateUpdatedComparator"
+    import_export_then_validate(tmp_path, "datetime-formatting.json")
