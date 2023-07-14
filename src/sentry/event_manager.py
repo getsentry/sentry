@@ -1249,13 +1249,15 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
 
         if incrs:
-            tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
 
         if records:
-            tsdb.record_multi(records, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.record_multi(
+                records, timestamp=event.datetime, environment_id=environment.id
+            )
 
         if frequencies:
-            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 @metrics.wraps("save_event.nodestore_save_many")
@@ -1927,7 +1929,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
 
     project = job["event"].project
 
-    quotas.refund(
+    quotas.backend.refund(
         project,
         key=job["project_key"],
         timestamp=job["start_time"],
@@ -1964,7 +1966,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         )
 
     if attachment_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
@@ -2088,7 +2090,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
     if refund_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
@@ -2155,7 +2157,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)  # type: ignore
 
     EventAttachment.objects.create(
         event_id=event_id,
@@ -2266,7 +2268,8 @@ def _calculate_event_grouping(
             event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
             hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
+    # Using cast to satisfy mypy
+    hashes.write_to_event(cast(Dict[str, Any], event.data))
     return hashes
 
 
