@@ -519,6 +519,8 @@ replay_url_parser_config = SearchConfig(
 class ReplayQueryConfig(QueryConfig):
     # Numeric filters.
     duration = Number()
+    count_dead_clicks = Number()
+    count_rage_clicks = Number()
     count_errors = Number(query_alias="count_errors")
     count_segments = Number(query_alias="count_segments")
     count_urls = Number(query_alias="count_urls")
@@ -626,6 +628,8 @@ class ReplaySubqueryConfig(QueryConfig):
     count_errors = InvalidField(query_alias="count_errors")
     count_segments = InvalidField(query_alias="count_segments")
     count_urls = InvalidField(query_alias="count_urls")
+    count_dead_clicks = InvalidField()
+    count_rage_clicks = InvalidField()
     activity = InvalidField()
     error_ids = InvalidField(query_alias="errorIds")
     error_id = InvalidField(query_alias="errorIds")
@@ -757,6 +761,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "count_errors": ["count_errors"],
     "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
+    "count_dead_clicks": ["count_dead_clicks"],
+    "count_rage_clicks": ["count_rage_clicks"],
     "is_archived": ["is_archived"],
     "activity": ["activity", "count_errors", "count_urls"],
     "user": ["user_id", "user_email", "user_username", "user_ip"],
@@ -872,6 +878,12 @@ QUERY_ALIAS_COLUMN_MAP = {
         "sum",
         parameters=[Function("length", parameters=[Column("urls")])],
         alias="count_urls",
+    ),
+    "count_dead_clicks": Function(
+        "sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"
+    ),
+    "count_rage_clicks": Function(
+        "sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"
     ),
     "is_archived": Function(
         "ifNull",

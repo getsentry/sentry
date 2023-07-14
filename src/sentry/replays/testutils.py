@@ -77,6 +77,8 @@ def mock_expected_response(
         "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "duration": (finished_at - started_at).seconds,
+        "count_dead_clicks": kwargs.pop("count_dead_clicks", 0),
+        "count_rage_clicks": kwargs.pop("count_rage_clicks", 0),
         "count_errors": kwargs.pop("count_errors", 1),
         "count_segments": kwargs.pop("count_segments", 1),
         "count_urls": len(urls),
@@ -230,6 +232,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
+                                "is_dead": kwargs.pop("is_dead", 0),
+                                "is_rage": kwargs.pop("is_rage", 0),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
