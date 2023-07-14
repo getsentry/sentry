@@ -13,8 +13,11 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
+import {StarfishType} from 'sentry/views/starfish/types';
+import {MobileStarfishView} from 'sentry/views/starfish/views/mobileServiceView';
 
 import {StarfishView} from './starfishView';
 
@@ -27,6 +30,12 @@ type Props = {
   withStaticFilters: boolean;
 };
 
+export type BaseStarfishViewProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
 export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
@@ -35,12 +44,37 @@ export function StarfishLanding(props: Props) {
     </PageFilterBar>
   );
 
+  const project = props.selection.projects[0];
+  const starfishType = STARFISH_TYPE_FOR_PROJECT[project] || StarfishType.BACKEND;
+
+  const getStarfishView = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return MobileStarfishView;
+      case StarfishType.BACKEND:
+      default:
+        return StarfishView;
+    }
+  };
+
+  const getStarfishPageTitle = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return t('Mobile Application');
+      case StarfishType.BACKEND:
+      default:
+        return t('Web Service');
+    }
+  };
+
+  const StarfishComponent = getStarfishView();
+
   return (
     <Layout.Page>
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Web Service')}</Layout.Title>
+            <Layout.Title>{getStarfishPageTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -52,7 +86,7 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              <StarfishView {...props} />
+              <StarfishComponent {...props} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

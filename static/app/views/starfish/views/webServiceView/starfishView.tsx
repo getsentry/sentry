@@ -1,13 +1,10 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
@@ -29,16 +26,11 @@ import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/f
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
 
-type BasePerformanceViewProps = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-};
-
-export function StarfishView(props: BasePerformanceViewProps) {
+export function StarfishView(props: BaseStarfishViewProps) {
   const {organization, eventView} = props;
   const pageFilter = usePageFilters();
   const theme = useTheme();
