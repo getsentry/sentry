@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.utils import timezone
 
@@ -17,7 +16,7 @@ class ReleaseActivity(Model):
 
     release = FlexibleForeignKey("sentry.Release", db_index=True)
     type = BoundedPositiveIntegerField(null=False, choices=CHOICES)
-    data = JSONField(default=dict)
+    data = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
