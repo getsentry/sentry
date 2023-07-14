@@ -15,6 +15,10 @@ type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
 ) => Result;
 
+type OverridableVariadicStub<Params = any, Result = Params> = (
+  ...params: Array<Partial<Params>>
+) => Result;
+
 type OverridableStubList<Params = any, Result = Params> = (
   params?: Array<Partial<Params>>
 ) => Result[];
@@ -42,6 +46,7 @@ type TestStubFixtures = {
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
+  Dashboard: OverridableVariadicStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
@@ -99,6 +104,7 @@ type TestStubFixtures = {
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
   OutcomesWithoutClientDiscarded: SimpleStub;
+  PageFilters: OverridableStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -172,6 +178,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;
@@ -186,8 +193,8 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
-
   VstsPlugin: SimpleStub;
+  Widget: OverridableVariadicStub;
 
   // TODO: These need propertly typed still
   // Widget(queries = {...DEFAULT_QUERIES}, options)

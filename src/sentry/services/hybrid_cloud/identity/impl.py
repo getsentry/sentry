@@ -82,10 +82,19 @@ class DatabaseBackedIdentityService(IdentityService):
             user_id=user_id, auth_provider__organization_id=organization_id
         ).delete()
 
+    def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
+        identity: Optional[Identity] = Identity.objects.filter(id=identity_id).first()
+        if identity is None:
+            return None
+        identity.update(data=data)
+        return serialize_identity(identity)
+
     class _IdentityFilterQuery(
         FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
         def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
+            if "id" in filters:
+                query = query.filter(id=filters["id"])
             if "user_id" in filters:
                 query = query.filter(user_id=filters["user_id"])
             if "identity_ext_id" in filters:
@@ -102,13 +111,7 @@ class DatabaseBackedIdentityService(IdentityService):
             return Identity.objects
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:
-            return self._filter_has_any_key_validator(
-                "user_id",
-                "identity_ext_id",
-                "provider_id",
-                "provider_ext_id",
-                "provider_type",
-            )
+            return self._filter_has_any_key_validator(*IdentityFilterArgs.__annotations__.keys())
 
         def serialize_api(self, serializer: Optional[None]) -> Serializer:
             raise NotImplementedError("API Serialization not supported for IdentityService")

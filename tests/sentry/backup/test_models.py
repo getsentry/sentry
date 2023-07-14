@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import atexit
 import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
 from django.core.management import call_command
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import ApiApplication, ApiAuthorization
+from sentry.models.environment import Environment
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils import TransactionTestCase
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
@@ -22,41 +23,83 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        # Create a temporary directory for JSON exports.
-        self.tmp_dir = tempfile.TemporaryDirectory()
-        atexit.register(self.tmp_dir.cleanup)
-
-        # Reset the Django database.
-        call_command("flush", verbosity=0, interactive=False)
-
-        # Generate temporary filenames for the expected and actual JSON files.
-        self.tmp_expect = Path(self.tmp_dir.name) / f"{self._testMethodName}.expect.json"
-        self.tmp_actual = Path(self.tmp_dir.name) / f"{self._testMethodName}.actual.json"
-
-    def tearDown(self):
-        self.tmp_dir.cleanup()
+        with unguarded_write():
+            # Reset the Django database.
+            call_command("flush", verbosity=0, interactive=False)
 
     def import_export_then_validate(self):
         """Test helper that validates that data imported from a temporary `.json` file correctly
         matches the actual outputted export data."""
 
-        # Export the current state of the database into the "expected" temporary file, then parse it
-        # into a JSON object for comparison.
-        expect = tmp_export_to_file(self.tmp_expect)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_expect = Path(tmpdir).joinpath(f"{self._testMethodName}.expect.json")
+            tmp_actual = Path(tmpdir).joinpath(f"{self._testMethodName}.actual.json")
 
-        # Reset the Django database.
-        call_command("flush", verbosity=0, interactive=False)
+            # Export the current state of the database into the "expected" temporary file, then parse it
+            # into a JSON object for comparison.
+            expect = tmp_export_to_file(tmp_expect)
 
-        # Write the contents of the "expected" JSON file into the now clean database.
-        with in_test_psql_role_override("postgres"):
-            rv = CliRunner().invoke(import_, [str(self.tmp_expect)])
-            assert rv.exit_code == 0, rv.output
+            # Write the contents of the "expected" JSON file into the now clean database.
+            with unguarded_write():
+                # Reset the Django database.
+                call_command("flush", verbosity=0, interactive=False)
 
-        # Validate that the "expected" and "actual" JSON matches.
-        actual = tmp_export_to_file(self.tmp_actual)
-        res = validate(expect, actual)
-        if res.findings:
-            raise ValidationError(res)
+                rv = CliRunner().invoke(import_, [str(tmp_expect)])
+                assert rv.exit_code == 0, rv.output
+
+            # Validate that the "expected" and "actual" JSON matches.
+            actual = tmp_export_to_file(tmp_actual)
+            res = validate(expect, actual)
+            if res.findings:
+                raise ValidationError(res)
+
+    def create_monitor(self):
+        """Re-usable monitor object for test cases."""
+
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        project = self.create_project(organization=org)
+        return Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+    def test_alert_rule(self):
+        self.create_alert_rule()
+        self.import_export_then_validate()
+
+    def test_alert_rule_excluded_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        excluded = self.create_project(organization=org)
+        self.create_alert_rule(include_all_projects=True, excluded_projects=[excluded])
+        self.import_export_then_validate()
+
+    def test_alert_rule_trigger(self):
+        excluded = self.create_project()
+        rule = self.create_alert_rule(include_all_projects=True)
+        trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        self.import_export_then_validate()
+
+    def test_environment(self):
+        self.create_environment()
+        self.import_export_then_validate()
+
+    def test_monitor(self):
+        self.create_monitor()
+        self.import_export_then_validate()
+
+    def test_monitor_environment(self):
+        monitor = self.create_monitor()
+        env = Environment.objects.create(organization_id=monitor.organization_id, name="test_env")
+        MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=env,
+        )
+        self.import_export_then_validate()
 
     def test_organization(self):
         user = self.create_user()

@@ -1,4 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -34,25 +35,24 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/vue
+# Using yarn
+yarn add @sentry/vue
 
-        # Using npm
-        npm install --save @sentry/vue
+# Using npm
+npm install --save @sentry/vue
         `,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
@@ -60,6 +60,7 @@ export const steps = ({
     configurations: [
       {
         description: <h5>V2</h5>,
+        language: 'javascript',
         code: `
         import { createApp } from "vue";
         import { createRouter } from "vue-router";
@@ -83,6 +84,7 @@ export const steps = ({
       },
       {
         description: <h5>V3</h5>,
+        language: 'javascript',
         code: `
         import Vue from "vue";
         import Router from "vue-router";
@@ -113,13 +115,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: 'myUndefinedFunction();',
       },
     ],
@@ -158,17 +160,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithVue({
+export function GettingStartedWithVue({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -206,7 +202,9 @@ export default function GettingStartedWithVue({
         sentryInitContent: sentryInitContent.join('\n'),
       })}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithVue;

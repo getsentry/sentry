@@ -1,5 +1,6 @@
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -132,7 +133,10 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
-  values?: string[];
+  /**
+   * Usually values are strings, but a predefined tag can define its SearchGroups
+   */
+  values?: string[] | SearchGroup[];
 };
 
 export type TagCollection = Record<string, Tag>;
@@ -411,9 +415,16 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
-interface GroupActivitySetEscalating extends GroupActivityBase {
+export interface GroupActivitySetEscalating extends GroupActivityBase {
   data: {
-    forecast: number;
+    expired_snooze?: {
+      count: number | null;
+      until: Date | null;
+      user_count: number | null;
+      user_window: number | null;
+      window: number | null;
+    };
+    forecast?: number;
   };
   type: GroupActivityType.SET_ESCALATING;
 }

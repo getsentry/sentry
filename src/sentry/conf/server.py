@@ -87,8 +87,10 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
-
-ADMIN_ENABLED = DEBUG
+# override the settings dumped in the debug view
+DEFAULT_EXCEPTION_REPORTER_FILTER = (
+    "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
+)
 
 ADMINS = ()
 
@@ -358,7 +360,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -738,6 +739,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
+    "sentry.dynamic_sampling.tasks.collect_orgs",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1082,16 +1084,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule_auto_transition_new": {
-        "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job every 6 hours
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_transition_regressed": {
-        "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_archive_issues": {
@@ -1109,6 +1105,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
+    },
+    "dynamic-sampling-collect-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
     },
 }
 
@@ -1322,8 +1323,6 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute metric alerts feature
-    "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -1423,8 +1422,6 @@ SENTRY_FEATURES = {
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Normalize transactions from legacy SDKs (source:unknown).
-    "organizations:transaction-name-normalize-legacy": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1484,8 +1481,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable better priority sort algorithm.
-    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1641,7 +1636,7 @@ SENTRY_FEATURES = {
     # Enable project creation for all and puts organization into test group
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
-    "organizations:team-roles": False,
+    "organizations:team-roles": True,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
@@ -3255,8 +3250,8 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 # This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
-# How long is the migration phase for grouping updates?
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+# How long the migration phase for grouping lasts
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3613,3 +3608,6 @@ DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 # If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
 # to the buffer service.
 SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
+
+# Feature flag to turn off role-swapping to help bridge getsentry transition.
+USE_ROLE_SWAPPING_IN_TESTS = True

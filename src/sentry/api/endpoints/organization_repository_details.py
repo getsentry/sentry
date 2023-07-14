@@ -20,6 +20,7 @@ class RepositorySerializer(serializers.Serializer):
             # XXX(dcramer): these are aliased, and we prefer 'active' over 'visible'
             ("visible", "visible"),
             ("active", "active"),
+            ("hidden", "hidden"),
         )
     )
     name = serializers.CharField(required=False)
@@ -53,6 +54,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if result.get("status"):
             if result["status"] in ("visible", "active"):
                 update_kwargs["status"] = ObjectStatus.ACTIVE
+            elif result["status"] == "hidden":
+                update_kwargs["status"] = ObjectStatus.HIDDEN
             else:
                 raise NotImplementedError
         if result.get("integrationId"):

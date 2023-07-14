@@ -1,12 +1,12 @@
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.models import Group, GroupMeta
 from sentry.plugins.base import plugins
-from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sentry.web.frontend.base import ProjectView
 
 

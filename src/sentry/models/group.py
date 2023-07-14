@@ -241,17 +241,17 @@ def get_oldest_or_latest_event_for_environments(
 def get_replay_count_for_group(group: Group) -> int:
     events = eventstore.backend.get_events(
         filter=eventstore.Filter(
-            conditions=[["replayId", "!=", None]],
+            conditions=[["replay_id", "IS NOT NULL", None]],
             project_ids=[group.project_id],
             group_ids=[group.id],
         ),
         limit=1,
-        orderby=EventOrdering.MOST_HELPFUL,
+        orderby=EventOrdering.MOST_HELPFUL.value,
         referrer="Group.get_replay_count_for_group",
         dataset=Dataset.Events,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    return events
+    return len(events)
 
 
 def get_helpful_event_for_environments(
@@ -687,7 +687,11 @@ class Group(Model):
             self,
             conditions,
         )
-        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event_for_environments([env.name for env in environments])
+        )
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release
