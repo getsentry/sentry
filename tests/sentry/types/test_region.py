@@ -83,7 +83,7 @@ class RegionMappingTest(TestCase):
             valid_region.validate()
 
     def test_region_to_url(self):
-        region = (Region("na", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT),)
+        region = Region("na", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
         assert region.to_url("/avatar/abcdef/") == "http://na.testserver/avatar/abcdef/"
 
     def test_json_config_injection(self):
