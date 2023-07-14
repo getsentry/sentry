@@ -1,4 +1,4 @@
-export function TeamAlertsTriggered() {
+export function TeamAlertsTriggered(): Record<string, number> {
   return {
     '2021-08-20T00:00:00Z': 3,
     '2021-08-21T00:00:00Z': 2,
