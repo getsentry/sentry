@@ -3,13 +3,21 @@ import logging
 import sentry_sdk
 
 from sentry.models.organization import Organization
-from sentry.plugins.base import bindings
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def get_repo_config(repo, integration_id):
+    return {
+        "external_id": repo["id"],
+        "integration_id": integration_id,
+        "identifier": repo["full_name"],
+    }
 
 
 @instrumented_task(name="sentry.integrations.github.link_all_repos", queue="integrations")
@@ -55,22 +63,11 @@ def link_all_repos(
         metrics.incr(f"{integration_key}.link_all_repos.api_error")
         raise e
 
-    binding_key = "integration-repository.provider"
-    provider_key = (
-        integration.provider
-        if integration.provider.startswith("integrations:")
-        else "integrations:" + integration.provider
-    )
-    provider_cls = bindings.get(binding_key).get(provider_key)
-    integration_repo_provider = provider_cls(id=provider_key)
+    integration_repo_provider = get_integration_repository_provider(integration)
 
     for repo in repositories:
         try:
-            config = {
-                "external_id": repo["id"],
-                "integration_id": integration_id,
-                "identifier": repo["full_name"],
-            }
+            config = get_repo_config(repo, integration_id)
             integration_repo_provider.create_repository(
                 repo_config=config, organization=organization
             )
