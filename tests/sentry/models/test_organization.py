@@ -1,6 +1,7 @@
 import copy
 from unittest import mock
 
+import pytest
 from django.core import mail
 from django.db import models
 
