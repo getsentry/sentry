@@ -425,6 +425,10 @@ class EventManager:
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
 
+        # After calling _pull_out_data we get some keys in the job like the platform
+        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
+            _pull_out_data([job], projects)
+
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
@@ -442,9 +446,13 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            return self._save_error(project, job, projects, raw, cache_key)
+            platform = job["event"].platform or "unknown"
+            # This metric allows differentiating from all calls to the `event_manager.save` metric
+            # and adds support for differentiating based on platforms
+            with metrics.timer("event_manager.save_error_events", tags={"platform": platform}):
+                return self.save_error_events(project, job, projects, raw, cache_key)
 
-    def _save_error(
+    def save_error_events(
         self,
         project: Project,
         job: Job,
@@ -460,9 +468,6 @@ class EventManager:
         jobs = [job]
 
         is_reprocessed = is_reprocessed_event(job["data"])
-
-        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
-            _pull_out_data(jobs, projects)
 
         # This metric can be used to track how many error events there are per platform
         metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
@@ -780,6 +785,8 @@ def _run_background_grouping(project: Project, job: Job) -> None:
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
+    Update every job in the list with required information and store it in the nodestore.
+
     A bunch of (probably) CPU bound stuff.
     """
 
@@ -806,7 +813,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["dist"] = data.get("dist")
         job["environment"] = environment = data.get("environment")
         job["recorded_timestamp"] = data.get("timestamp")
+        # Stores the event in the nodestore
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
+        # Overwrite the data key with the event's updated data
         job["data"] = data = event.data.data
 
         event._project_cache = project = projects[job["project_id"]]
@@ -1341,11 +1350,9 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("event_manager.get_event_instance")
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
-    event_id = data.get("event_id")
-
     return eventstore.backend.create_event(
         project_id=project_id,
-        event_id=event_id,
+        event_id=data.get("event_id"),
         group_id=None,
         data=EventDict(data, skip_renormalization=True),
     )
@@ -2372,7 +2379,6 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
             except KeyError:
                 continue
 
-    _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
@@ -2410,7 +2416,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
             except KeyError:
                 continue
 
-    _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
