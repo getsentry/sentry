@@ -56,7 +56,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_link_all_repos(self, get_jwt):
+    def test_link_all_repos(self, _):
         self._add_responses()
 
         link_all_repos(
@@ -76,7 +76,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert repos[1].name == "getsentry/snuba"
 
     @responses.activate
-    def test_link_all_repos_api_response_keyerror(self, get_jwt):
+    def test_link_all_repos_api_response_keyerror(self, _):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -115,7 +115,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert repos[0].name == "getsentry/snuba"
 
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
-    def test_link_all_repos_missing_integration(self, mock_metrics, get_jwt):
+    def test_link_all_repos_missing_integration(self, mock_metrics, _):
         link_all_repos(
             integration_key=self.key,
             integration_id=0,
@@ -126,7 +126,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
-    def test_link_all_repos_missing_organization(self, mock_metrics, get_jwt):
+    def test_link_all_repos_missing_organization(self, mock_metrics, _):
         link_all_repos(
             integration_key=self.key,
             integration_id=self.integration.id,
@@ -138,7 +138,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     @responses.activate
-    def test_link_all_repos_api_error(self, mock_metrics, get_jwt):
+    def test_link_all_repos_api_error(self, mock_metrics, _):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -160,7 +160,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
-    def test_link_all_repos_api_error_rate_limited(self, mock_metrics, get_jwt):
+    def test_link_all_repos_api_error_rate_limited(self, mock_metrics, _):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
@@ -186,7 +186,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.models.Repository.objects.create")
     @responses.activate
-    def test_link_all_repos_repo_creation_error(self, mock_repo, mock_capture_exception, get_jwt):
+    def test_link_all_repos_repo_creation_error(self, mock_repo, mock_capture_exception, _):
         mock_repo.side_effect = IntegrityError
 
         self._add_responses()
