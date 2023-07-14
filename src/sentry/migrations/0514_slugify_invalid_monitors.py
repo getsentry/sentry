@@ -2,12 +2,14 @@
 from django.db import IntegrityError, migrations
 from django.utils.text import slugify
 
+from sentry.constants import ObjectStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def migrate_monitor_slugs(apps, schema_editor):
     Monitor = apps.get_model("sentry", "Monitor")
+    Rule = apps.get_model("sentry", "Rule")
 
     MAX_SLUG_LENGTH = 50
     monitors_to_clean_up = []
@@ -27,7 +29,28 @@ def migrate_monitor_slugs(apps, schema_editor):
             # If there is a collision, delete the old monitor as the new one is receiving all check-ins
             monitors_to_clean_up.append(monitor.id)
 
-    Monitor.objects.filter(id__in=monitors_to_clean_up).delete()
+    for delete_monitor in Monitor.objects.filter(id__in=monitors_to_clean_up):
+        alert_rule_id = delete_monitor.config.get("alert_rule_id")
+        if alert_rule_id:
+            rule = (
+                Rule.objects.filter(
+                    project_id=delete_monitor.project_id,
+                    id=alert_rule_id,
+                )
+                .exclude(
+                    status__in=[
+                        ObjectStatus.PENDING_DELETION,
+                        ObjectStatus.DELETION_IN_PROGRESS,
+                    ]
+                )
+                .first()
+            )
+            if rule:
+                rule.status = ObjectStatus.PENDING_DELETION
+                rule.save()
+
+        delete_monitor.status = ObjectStatus.PENDING_DELETION
+        delete_monitor.save()
 
 
 class Migration(CheckedMigration):

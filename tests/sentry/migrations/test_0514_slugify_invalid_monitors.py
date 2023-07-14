@@ -1,6 +1,6 @@
-import pytest
 from django.utils.text import slugify
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
@@ -71,9 +71,11 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             :MAX_SLUG_LENGTH
         ].strip("-")
 
-        # assert colliding monitor does not exist
-        with pytest.raises(Monitor.DoesNotExist):
-            Monitor.objects.get(id=self.invalid_monitor_3.id)
+        # assert colliding monitor is in a pending deletion state
+        assert (
+            ObjectStatus.PENDING_DELETION
+            == Monitor.objects.get(id=self.invalid_monitor_3.id).status
+        )
 
         assert valid_monitor_1.slug == self.valid_monitor_1.slug
         assert valid_monitor_2.slug == self.valid_monitor_2.slug
