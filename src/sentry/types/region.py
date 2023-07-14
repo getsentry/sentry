@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Collection, Container, Iterable, List, Set
+from typing import Any, Collection, Container, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -57,6 +57,9 @@ class Region:
 
     category: RegionCategory
     """The region's category."""
+
+    api_token: Optional[str] = None
+    """Unused will be removed in the future"""
 
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
