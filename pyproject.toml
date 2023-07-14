@@ -1157,7 +1157,6 @@ module = [
     "tests.sentry.eventstore.test_models",
     "tests.sentry.eventstream.kafka.test_protocol",
     "tests.sentry.eventstream.test_eventstream",
-    "tests.sentry.eventtypes.test_default",
     "tests.sentry.eventtypes.test_error",
     "tests.sentry.features.test_manager",
     "tests.sentry.grouping.test_enhancer",
