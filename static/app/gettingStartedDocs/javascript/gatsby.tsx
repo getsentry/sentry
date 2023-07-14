@@ -42,11 +42,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/gatsby
+# Using yarn
+yarn add @sentry/gatsby
 
-        # Using npm
-        npm install --save @sentry/gatsby
+# Using npm
+npm install --save @sentry/gatsby
         `,
       },
     ],

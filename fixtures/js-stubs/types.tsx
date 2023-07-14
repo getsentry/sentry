@@ -177,6 +177,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;

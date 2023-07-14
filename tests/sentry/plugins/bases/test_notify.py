@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 from requests.exceptions import HTTPError, SSLError
@@ -48,14 +49,11 @@ class NotifyPlugin(TestCase):
             n = DummyNotificationPlugin()
             n.slug = "slack"
 
-            def hook(*a, **kw):
-                raise err
-
             event = self.store_event(data={}, project_id=self.project.id)
             notification = Notification(event)
 
-            n.notify_users = hook
-            assert n.notify(notification) is False
+            with mock.patch.object(DummyNotificationPlugin, "notify_users", side_effect=err):
+                assert n.notify(notification) is False
 
     def test_test_configuration_and_get_test_results(self):
         errors = (
@@ -70,13 +68,14 @@ class NotifyPlugin(TestCase):
             def hook(*a, **kw):
                 n.raise_error(err)
 
-            n.notify_users = hook
             if isinstance(err, ApiUnauthorized):
                 message = "your access token was invalid"
             else:
                 message = err.text
             assert message
-            assert message in n.test_configuration_and_get_test_results(self.project)
+
+            with mock.patch.object(DummyNotificationPlugin, "notify_users", hook):
+                assert message in n.test_configuration_and_get_test_results(self.project)
 
 
 class DummyNotificationPluginTest(TestCase):
