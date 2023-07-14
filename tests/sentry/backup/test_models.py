@@ -6,8 +6,10 @@ from pathlib import Path
 from click.testing import CliRunner
 from django.core.management import call_command
 
-from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models.environment import Environment
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils import TransactionTestCase
 from tests.sentry.backup import ValidationError, tmp_export_to_file
 
@@ -20,7 +22,7 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
@@ -37,7 +39,7 @@ class ModelBackupTests(TransactionTestCase):
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write():
                 # Reset the Django database.
                 call_command("flush", verbosity=0, interactive=False)
 
@@ -49,6 +51,36 @@ class ModelBackupTests(TransactionTestCase):
             res = validate(expect, actual)
             if res.findings:
                 raise ValidationError(res)
+
+    def create_monitor(self):
+        """Re-usable monitor object for test cases."""
+
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        project = self.create_project(organization=org)
+        return Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+    def test_environment(self):
+        self.create_environment()
+        self.import_export_then_validate()
+
+    def test_monitor(self):
+        self.create_monitor()
+        self.import_export_then_validate()
+
+    def test_monitor_environment(self):
+        monitor = self.create_monitor()
+        env = Environment.objects.create(organization_id=monitor.organization_id, name="test_env")
+        MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=env,
+        )
+        self.import_export_then_validate()
 
     def test_organization(self):
         user = self.create_user()

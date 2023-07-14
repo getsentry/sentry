@@ -104,6 +104,7 @@ type TestStubFixtures = {
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
   OutcomesWithoutClientDiscarded: SimpleStub;
+  PageFilters: OverridableStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -177,6 +178,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;

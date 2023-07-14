@@ -14,6 +14,7 @@ import {
   GenericSchemaErrors,
   JavascriptProcessingErrors,
   NativeProcessingErrors,
+  CocoaProcessingErrors
 } from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +26,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {semverCompare} from 'sentry/utils/versions';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {DataSection} from './styles';
@@ -68,6 +70,27 @@ function isDataMinified(str: string | null) {
   }
 
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+}
+
+function BeShown(error: EventErrorData, event: Event) {
+  if (ERRORS_TO_HIDE.includes(
+        error.type as
+          | JavascriptProcessingErrors
+          | GenericSchemaErrors
+          | NativeProcessingErrors
+      )) {
+    return false;
+  }
+  if (
+    error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
+    event.sdk?.name === 'sentry.cocoa' &&
+    error.data?.name === 'contexts.trace.sampled' &&
+    semverCompare(event.sdk?.version || '', '8.7.4') === -1
+  ) {
+    // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
+    return false;
+  }
+  return true;
 }
 
 const hasThreadOrExceptionMinifiedFrameData = (
@@ -265,14 +288,8 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors].filter(
-    error =>
-      !ERRORS_TO_HIDE.includes(
-        error.type as
-          | JavascriptProcessingErrors
-          | GenericSchemaErrors
-          | NativeProcessingErrors
-      )
+  const errors = [...otherErrors, ...proguardErrors].filter(e =>
+    shouldErrorBeShown(e, event)
   );
 
   if (proguardErrorsLoading) {

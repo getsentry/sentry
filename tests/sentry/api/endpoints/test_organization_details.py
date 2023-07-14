@@ -15,7 +15,6 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -31,7 +30,7 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -891,7 +890,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
@@ -930,7 +929,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_organization_does_not_exist(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)
@@ -981,22 +980,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 

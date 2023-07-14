@@ -42,20 +42,24 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/svelte
+# Using yarn
+yarn add @sentry/svelte
 
-        # Using npm
-        npm install --save @sentry/svelte
+# Using npm
+npm install --save @sentry/svelte
         `,
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
-      {code: <code />}
+    description: (
+      <p>
+        {tct(
+          "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
+          {code: <code />}
+        )}
+      </p>
     ),
     configurations: [
       {

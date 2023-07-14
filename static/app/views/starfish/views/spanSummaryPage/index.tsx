@@ -39,7 +39,6 @@ import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
-import {useChartSortPageBySpansHandler} from 'sentry/views/starfish/utils/useChartSortPageBySpansHandler';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -137,10 +136,6 @@ function SpanSummaryPage({params, location}: Props) {
     label: title,
   });
 
-  const sortBySps = useChartSortPageBySpansHandler('-sps()');
-  const sortByP95 = useChartSortPageBySpansHandler('-p95(span.self_time)');
-  const sortByErrorCount = useChartSortPageBySpansHandler('-http_error_count()');
-
   return (
     <Layout.Page>
       <PageFiltersContainer>
@@ -230,7 +225,6 @@ function SpanSummaryPage({params, location}: Props) {
                         tooltipFormatterOptions={{
                           valueFormatter: value => formatThroughput(value),
                         }}
-                        onDataZoom={sortBySps}
                       />
                     </ChartPanel>
                   </Block>
@@ -248,7 +242,6 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[P95_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
-                        onDataZoom={sortByP95}
                       />
                     </ChartPanel>
                   </Block>
@@ -267,7 +260,6 @@ function SpanSummaryPage({params, location}: Props) {
                           chartColors={[ERRORS_COLOR]}
                           isLineChart
                           definedAxisTicks={4}
-                          onDataZoom={sortByErrorCount}
                         />
                       </ChartPanel>
                     </Block>

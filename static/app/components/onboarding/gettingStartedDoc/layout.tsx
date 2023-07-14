@@ -29,12 +29,22 @@ type NextStep = {
 
 export type LayoutProps = {
   steps: StepProps[];
+  /**
+   * An introduction displayed before the steps
+   */
+  introduction?: React.ReactNode;
   newOrg?: boolean;
   nextSteps?: NextStep[];
   platformKey?: PlatformKey;
 };
 
-export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps) {
+export function Layout({
+  steps,
+  platformKey,
+  nextSteps = [],
+  newOrg,
+  introduction,
+}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -45,6 +55,12 @@ export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps
 
   return (
     <Wrapper>
+      {introduction && (
+        <Fragment>
+          {introduction}
+          <Divider />
+        </Fragment>
+      )}
       {displayProductSelection && newOrg && (
         <ProductSelection
           defaultSelectedProducts={[
@@ -58,7 +74,7 @@ export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps
       )}
       <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (
-          <Step key={step.type} {...step} />
+          <Step key={step.title ?? step.type} {...step} />
         ))}
       </Steps>
       {nextSteps.length > 0 && (
@@ -98,7 +114,12 @@ const Wrapper = styled('div')`
   h4 {
     margin-bottom: 0.5em;
   }
-  p {
-    margin-bottom: 1em;
+  && {
+    p {
+      margin-bottom: 0;
+    }
+    h5 {
+      margin-bottom: 0;
+    }
   }
 `;

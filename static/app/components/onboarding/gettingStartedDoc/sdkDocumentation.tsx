@@ -19,6 +19,15 @@ export const migratedDocs = [
   'javascript-nextjs',
   'javascript',
   'python-django',
+  'python-flask',
+  'react-native',
+  'java-spring-boot',
+  'php',
+  'php-laravel',
+  'go',
+  'rust',
+  'native',
+  'native-qt',
 ];
 
 type SdkDocumentationProps = {
@@ -50,7 +59,9 @@ export function SdkDocumentation({
 
   const platformPath =
     platform?.type === 'framework'
-      ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      ? platform?.id === 'native-qt'
+        ? `native/native-qt`
+        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
   const {

@@ -193,7 +193,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
     """
-    Checks for a file io span on the main thread
+    Checks for a DB span on the main thread
     """
 
     __slots__ = ("spans_involved", "stored_problems")

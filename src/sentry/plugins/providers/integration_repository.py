@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 
@@ -22,6 +23,19 @@ from sentry.signals import repo_linked
 class RepoExistsError(APIException):
     status_code = 400
     detail = {"errors": {"__all__": "A repository with that name already exists"}}
+
+
+def get_integration_repository_provider(integration):
+    from sentry.plugins.base import bindings  # circular import
+
+    binding_key = "integration-repository.provider"
+    provider_key = (
+        integration.provider
+        if integration.provider.startswith("integrations:")
+        else "integrations:" + integration.provider
+    )
+    provider_cls = bindings.get(binding_key).get(provider_key)
+    return provider_cls(id=provider_key)
 
 
 class IntegrationRepositoryProvider:
@@ -45,13 +59,21 @@ class IntegrationRepositoryProvider:
         if integration_id is None:
             raise IntegrationError(f"{self.name} requires an integration id.")
 
-        integration_model = Integration.objects.get(
-            id=integration_id,
-            organizationintegration__organization_id=organization_id,
-            provider=self.repo_provider,
-        )
+        # Both the integration and the organization integration needs to exist for the installation to be valid.
 
-        return integration_model.get_installation(organization_id)
+        rpc_integration = integration_service.get_integration(integration_id=integration_id)
+        if rpc_integration is None:
+            raise Integration.DoesNotExist("Integration matching query does not exist.")
+
+        rpc_org_integration = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
+        if rpc_org_integration is None:
+            raise Integration.DoesNotExist("Integration matching query does not exist.")
+
+        return integration_service.get_installation(
+            integration=rpc_integration, organization_id=organization_id
+        )
 
     def create_repository(
         self,

@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
@@ -7,7 +6,6 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -15,7 +13,6 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {useChartSortPageBySpansHandler} from 'sentry/views/starfish/utils/useChartSortPageBySpansHandler';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -47,15 +44,8 @@ function getSegmentLabel(moduleName: ModuleName) {
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
   const {selection} = usePageFilters();
-  const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    selection,
-    appliedFilters,
-    spanCategory
-  );
+  const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -97,8 +87,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
 
 function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery({
@@ -142,15 +131,13 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       tooltipFormatterOptions={{
         valueFormatter: value => formatThroughput(value),
       }}
-      onDataZoom={useChartSortPageBySpansHandler('-sps()')}
     />
   );
 }
 
 function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = `p95(${SPAN_SELF_TIME})`;
 
@@ -191,7 +178,6 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
-      onDataZoom={useChartSortPageBySpansHandler(`-p95(${SPAN_SELF_TIME})`)}
     />
   );
 }
@@ -229,7 +215,6 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[ERRORS_COLOR]}
-      onDataZoom={useChartSortPageBySpansHandler('-http_error_count()')}
     />
   );
 }
@@ -238,14 +223,13 @@ const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
 const getEventView = (
   moduleName: ModuleName,
-  location: Location,
   pageFilters: PageFilters,
   appliedFilters: AppliedFilters,
   spanCategory?: string
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [''],
@@ -255,7 +239,7 @@ const getEventView = (
       interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
       version: 2,
     },
-    location
+    pageFilters
   );
 };
 
