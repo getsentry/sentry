@@ -15,7 +15,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.models import ApiApplication, ApiAuthorization
+from sentry.models import Actor, ApiApplication, ApiAuthorization
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
@@ -153,18 +153,25 @@ class ModelBackupTests(TransactionTestCase):
         self.create_organization(owner=user)
         return self.import_export_then_validate()
 
+    @targets_models(Actor)
     def test_actor(self):
         self.create_user(email="test@example.com")
         self.create_team(name="pre save team", organization=self.organization)
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(ApiAuthorization)
     def test_apiauth(self):
         user = self.create_user()
         app = ApiApplication.objects.create(name="test", owner=user)
         ApiAuthorization.objects.create(
             application=app, user=self.create_user("example@example.com")
         )
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(ApiApplication)
     def test_api_app(self):
-        pass
+        user = self.create_user()
+        ApiApplication.objects.create(
+            owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
+        )
+        return self.import_export_then_validate()
