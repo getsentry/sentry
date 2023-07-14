@@ -21,6 +21,7 @@ export const migratedDocs = [
   'python-django',
   'react-native',
   'java-spring-boot',
+  'php',
   'php-laravel',
   'go',
   'rust',
