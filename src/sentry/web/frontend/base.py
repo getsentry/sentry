@@ -401,6 +401,7 @@ class BaseView(View, OrganizationMixin):
         default_context = self.default_context
         if context:
             default_context.update(context)
+
         return render_to_response(template, default_context, self.request, status=status)
 
     def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponse:

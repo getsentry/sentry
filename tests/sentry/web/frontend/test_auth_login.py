@@ -472,6 +472,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             HTTP_HOST=f"{self.organization.slug}.testserver",
             follow=True,
         )
+
         assert resp.status_code == 200
         assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
         self.assertTemplateUsed("sentry/organization-login.html")
@@ -506,7 +507,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             SERVER_NAME="albertos-apples.testserver",
             follow=True,
         )
-        # assert self.path == "hello world"
+
         assert resp.status_code == 200
         assert resp.redirect_chain == [
             ("http://albertos-apples.testserver/auth/login/", 302),
