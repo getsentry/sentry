@@ -1,4 +1,6 @@
-export function Subscriptions(params = []) {
+import {Subscription} from 'sentry/views/settings/account/accountSubscriptions';
+
+export function Subscriptions(params = []): Subscription[] {
   return [
     {
       subscribedDate: '2018-01-08T05:14:59.102Z',
