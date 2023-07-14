@@ -22,12 +22,22 @@ def get_replays_recordings_consumer(
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or topic
     configure_metrics(MetricsWrapper(metrics.backend, name="ingest_replays"))
+
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=ProcessReplayRecordingStrategyFactory(),
+        # For information on configuring this consumer refer to this page:
+        #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
+        processor_factory=ProcessReplayRecordingStrategyFactory(
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            output_block_size=1,
+        ),
         commit_policy=ONCE_PER_SECOND,
     )
 

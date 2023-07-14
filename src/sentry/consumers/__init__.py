@@ -105,6 +105,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-replay-recordings": {
         "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=10),
     },
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,
