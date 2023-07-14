@@ -16,6 +16,8 @@ from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+
+# from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -132,3 +134,13 @@ class Integration(DefaultFieldsModel):
                 },
             )
             return False
+
+    def uninstall(self):
+        """
+        Uninstall this integration from all of its organizations.
+        """
+
+        self.update(status=ObjectStatus.DISABLED)
+
+    #    orgs_ids = [org.id for org in integration_service.get_organization_integrations(integration_id=self.id)]
+    #    integration_service.update_organization_integrations(org_integration_ids=orgs_ids, status=ObjectStatus.DISABLED)

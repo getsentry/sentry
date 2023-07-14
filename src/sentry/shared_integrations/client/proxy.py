@@ -69,8 +69,11 @@ class IntegrationProxyClient(ApiClient):
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
+        integration_id: int | None = None,
     ) -> None:
-        super().__init__(verify_ssl=verify_ssl, logging_context=logging_context)
+        super().__init__(
+            verify_ssl=verify_ssl, logging_context=logging_context, integration_id=integration_id
+        )
         self.org_integration_id = org_integration_id
 
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION

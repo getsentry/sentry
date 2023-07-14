@@ -11,6 +11,7 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
@@ -46,9 +47,11 @@ class BaseApiClient(TrackResponseMixin):
         self,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
+        integration_id: int | None = None,
     ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
+        self.integration_id = integration_id
 
     def __enter__(self) -> BaseApiClient:
         return self
@@ -75,6 +78,17 @@ class BaseApiClient(TrackResponseMixin):
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
+
+    def is_response_fatal(resp: Response) -> bool:
+        return False
+
+    def is_response_error(resp: Response) -> bool:
+        if resp.status_code >= 400:
+            return True
+
+    def is_response_success(resp: Response) -> bool:
+        if resp.status_code < 300:
+            return True
 
     def _request(
         self,
@@ -180,9 +194,11 @@ class BaseApiClient(TrackResponseMixin):
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
+                self.record_request_error(resp)
                 raise ApiHostError.from_exception(e) from e
             except Timeout as e:
                 self.track_response_data("timeout", span, e)
+                self.record_request_error(resp)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
@@ -194,9 +210,10 @@ class BaseApiClient(TrackResponseMixin):
                     if self.integration_type:
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
-
+                    self.record_request_error(resp)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
+                self.record_request_error(resp)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -208,16 +225,22 @@ class BaseApiClient(TrackResponseMixin):
                 # Rather than worrying about what the other layers might be, we just stringify to detect this.
                 if "ConnectionResetError" in str(e):
                     self.track_response_data("connection_reset_error", span, e)
+                    self.record_request_error(resp)
                     raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
                 # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
                 if "InvalidChunkLength" in str(e):
                     self.track_response_data("invalid_chunk_length", span, e)
+                    self.record_request_error(resp)
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
+
+            self.record_request_error(resp)
+            self.record_request_success(resp)
+            self.record_request_fatal(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -289,3 +312,28 @@ class BaseApiClient(TrackResponseMixin):
             if num_results < page_size:
                 return output
         return output
+
+    def record_request_error(self, resp: Response):
+        if not self.integration_id:
+            return
+        if not self.is_response_error:
+            return
+        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer.record_error()
+
+    def record_request_success(self, resp: Response):
+        if not self.integration_id:
+            return
+        if not self.is_response_success:
+            return
+        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer.record_success()
+
+    def record_request_fatal(self, resp: Response):
+        if not self.integration_id:
+            return
+        if not self.is_response_fatal:
+            return
+        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer.record_fatal()
+        # call uninstall on the integration

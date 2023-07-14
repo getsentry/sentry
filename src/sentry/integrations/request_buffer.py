@@ -22,6 +22,7 @@ class IntegrationRequestBuffer:
 
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
+        self.is_fatal = False
 
     def _get_redis_key(self):
 
@@ -55,6 +56,9 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
+        if self.is_fatal:
+            return True
+
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in self._get()
@@ -112,12 +116,17 @@ class IntegrationRequestBuffer:
         pipe.execute()
 
     def record_error(self):
-        # call is_integration_broken
-        return self.add("error")
+        self.add("error")
+        # if self.is_integration_broken():
+        # call uninstall
 
     def record_success(self):
         return self.add("success")
 
     def record_fatal(self):
         # skip to uninstall or call is_integration_broken?
-        return self.add("fatal")
+        self.is_fatal = True
+        self.add("fatal")
+        # if self.is_integration_broken():
+        # call uninstal
+        # integration_service.get_integrations(integration_ids=result.ids
