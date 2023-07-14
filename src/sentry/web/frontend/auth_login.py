@@ -641,7 +641,7 @@ class AuthLoginView(BaseView):
         context.update(additional_context.run_callbacks(request))
         return self.respond_login(request, context, **kwargs)
 
-    def respond_login(self, context, **kwargs):
+    def respond_login(self, request: Request, context: dict, **kwargs):
         """Finds and returns the login template -> useful because it's overloaded by subclasses."""
         return self.respond("sentry/login.html", context, **kwargs)
 
