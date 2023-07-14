@@ -21,7 +21,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
-    grouping: {enabled: false},
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},

@@ -10,7 +10,6 @@ const errorConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: true},
-    grouping: {enabled: true},
     mergedIssues: {enabled: true},
     replays: {enabled: true},
     similarIssues: {enabled: true},

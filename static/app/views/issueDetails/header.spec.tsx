@@ -22,7 +22,7 @@ describe('groupDetails', () => {
 
     it('displays the correct tabs with all features enabled', async () => {
       const orgWithFeatures = TestStubs.Organization({
-        features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
+        features: ['similarity-view', 'event-attachments'],
       });
       const projectWithSimilarityView = TestStubs.Project({
         features: ['similarity-view'],
@@ -61,9 +61,6 @@ describe('groupDetails', () => {
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
 
-      await userEvent.click(screen.getByRole('tab', {name: /grouping/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/grouping/');
-
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
     });
@@ -80,7 +77,7 @@ describe('groupDetails', () => {
 
     it('displays the correct tabs with all features enabled', async () => {
       const orgWithFeatures = TestStubs.Organization({
-        features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
+        features: ['similarity-view', 'event-attachments'],
       });
 
       const projectWithSimilarityView = TestStubs.Project({
@@ -111,7 +108,6 @@ describe('groupDetails', () => {
       expect(screen.queryByRole('tab', {name: /user feedback/i})).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /attachments/i})).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /merged issues/i})).not.toBeInTheDocument();
-      expect(screen.queryByRole('tab', {name: /grouping/i})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
