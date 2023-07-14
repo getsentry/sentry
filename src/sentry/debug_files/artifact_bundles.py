@@ -159,7 +159,7 @@ class FlatFileIndex:
         # By default, a flat file index is empty.
         self._bundles: Dict[int, datetime] = {}
         self._files_by_url: Dict[str, List[int]] = {}
-        self._files_by_debug_id: Dict[Tuple[str, int], List[int]] = {}
+        self._files_by_debug_id: Dict[str, List[int]] = {}
 
     @staticmethod
     def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
@@ -215,10 +215,8 @@ class FlatFileIndex:
     def _iterate_over_debug_ids(
         self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive
     ):
-        for debug_id, source_file_type in archive.get_all_debug_ids():
-            self._add_sorted_entry(
-                self._files_by_debug_id, (debug_id, source_file_type.value), artifact_bundle.id
-            )
+        for debug_id, _ in archive.get_all_debug_ids():
+            self._add_sorted_entry(self._files_by_debug_id, debug_id, artifact_bundle.id)
 
     def _iterate_over_urls(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
         for url in archive.get_all_urls():
