@@ -377,7 +377,7 @@ def get_artifact_bundles_containing_url(
         )
         .values_list("id", "date_added")
         .order_by("-date_last_modified", "-id")
-        .distinct("id", "date_added")[:MAX_BUNDLES_QUERY]
+        .distinct("date_last_modified", "id")[:MAX_BUNDLES_QUERY]
     )
 
 
