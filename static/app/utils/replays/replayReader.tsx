@@ -309,22 +309,6 @@ export default class ReplayReader {
   /*********************/
   /** OLD STUFF BELOW **/
   /*********************/
-  getCrumbsWithRRWebNodes = memoize(() =>
-    this.breadcrumbs.filter(
-      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
-    )
-  );
-
-  getUserActionCrumbs = memoize(() => {
-    const USER_ACTIONS = [
-      BreadcrumbType.ERROR,
-      BreadcrumbType.INIT,
-      BreadcrumbType.NAVIGATION,
-      BreadcrumbType.UI,
-      BreadcrumbType.USER,
-    ];
-    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-  });
 
   getConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category === 'console')
