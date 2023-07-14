@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -141,6 +142,13 @@ export default function EndpointOverview() {
             <Fragment>
               <Header>
                 <ChartLabel>{DataTitles.p95}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the value at which 5% of requests are greater than the threshold over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -178,6 +186,13 @@ export default function EndpointOverview() {
               />
               <Header>
                 <ChartLabel>{DataTitles.throughput}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the number of requests made to this endpoint per second over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -213,6 +228,13 @@ export default function EndpointOverview() {
               <SidebarSpacer />
               <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the total number of requests that resulted in 5XX response codes over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -450,5 +472,5 @@ const Header = styled('div')`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: ${space(1)};
 `;

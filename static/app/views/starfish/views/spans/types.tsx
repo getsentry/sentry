@@ -35,7 +35,7 @@ export const getTooltip = (
         <div>
           <DurationCell milliseconds={options[0] as number} />
         </div>
-        <Link to="/starfish/definitions/">How was this calculated?</Link>
+        <Link to="/starfish/definitions/">{t('How was this calculated?')}</Link>
       </Fragment>
     );
   }

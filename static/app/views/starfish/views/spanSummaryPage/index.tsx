@@ -9,7 +9,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -161,13 +161,18 @@ function SpanSummaryPage({params, location}: Props) {
                   <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                   <Block
                     title={t('Throughput')}
-                    description={t('Throughput of this span per second')}
+                    description={tct('Throughput of this [spanType] per second', {
+                      spanType: spanDescriptionCardTitle,
+                    })}
                   >
                     <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                   </Block>
                   <Block
                     title={t('Duration (P95)')}
-                    description={t('Time spent in this span')}
+                    description={tct(
+                      'The value at which 5% of this [spanType] are greater than the threshold',
+                      {spanType: spanDescriptionCardTitle}
+                    )}
                   >
                     <DurationCell
                       milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
@@ -181,12 +186,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <CountCell count={spanMetrics?.[`http_error_count()`]} />
                     </Block>
                   )}
-                  <Block
-                    title={t('Time Spent')}
-                    description={t(
-                      'Time spent in this span as a proportion of total application time'
-                    )}
-                  >
+                  <Block title={t('Time Spent')}>
                     <TimeSpentCell
                       timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
                       totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
@@ -325,6 +325,8 @@ const BlockTitle = styled('h3')`
   margin: 0;
   margin-bottom: ${space(1)};
   white-space: nowrap;
+  display: flex;
+  height: ${space(3)};
 `;
 
 const BlockContent = styled('h4')`
