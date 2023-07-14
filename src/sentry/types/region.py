@@ -9,6 +9,7 @@ from django.conf import settings
 from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
+from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
 from sentry.utils import json
@@ -108,7 +109,7 @@ class GlobalRegionDirectory:
             default_monolith_region = Region(
                 name=settings.SENTRY_MONOLITH_REGION,
                 snowflake_id=0,
-                address="/",
+                address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
             regions = [default_monolith_region, *regions]
