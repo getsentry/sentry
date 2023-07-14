@@ -2151,7 +2151,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)  # type: ignore
 
     EventAttachment.objects.create(
         event_id=event_id,
@@ -2262,7 +2262,8 @@ def _calculate_event_grouping(
             event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
             hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
+    # Using cast to satisfy mypy
+    hashes.write_to_event(cast(Dict[str, Any], event.data))
     return hashes
 
 
