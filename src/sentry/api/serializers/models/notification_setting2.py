@@ -69,7 +69,7 @@ class NotificationSettingsSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Union["Team", "User"],
+        obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
