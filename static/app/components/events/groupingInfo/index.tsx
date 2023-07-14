@@ -11,10 +11,15 @@ import {space} from 'sentry/styles/space';
 import {EventGroupInfo, Group, IssueCategory, Organization} from 'sentry/types';
 import {Event, EventOccurrence} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-import {groupingFeedbackTypes} from 'sentry/views/issueDetails/grouping/grouping';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
+
+export const groupingFeedbackTypes = [
+  t('Too eager grouping'),
+  t('Too specific grouping'),
+  t('Other grouping issue'),
+];
 
 type Props = DeprecatedAsyncComponent['props'] & {
   event: Event;
