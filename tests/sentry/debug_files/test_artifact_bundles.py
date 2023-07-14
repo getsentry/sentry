@@ -364,3 +364,37 @@ class FlatFileIndexTest(TestCase):
                 },
             }
         )
+
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
+    def test_flat_file_index_remove_bundle(self, flat_file_index_store):
+        now = timezone.now()
+
+        flat_file_index_store.load.return_value = {
+            "bundles": [
+                BundleMeta(id=1234, timestamp=now),
+                BundleMeta(id=5678, timestamp=now - timedelta(hours=1)),
+            ],
+            "files_by_debug_id": {
+                "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [1],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [1, 0],
+                "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
+            },
+        }
+        flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
+
+        flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
+        assert flat_file_index is not None
+        flat_file_index.remove(1234)
+        flat_file_index.save()
+
+        flat_file_index_store.save.assert_called_once_with(
+            {
+                "bundles": [
+                    BundleMeta(id=5678, timestamp=now - timedelta(hours=1)),
+                ],
+                "files_by_debug_id": {
+                    "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [0],
+                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
+                },
+            }
+        )

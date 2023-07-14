@@ -216,16 +216,11 @@ class FlatFileIndex:
         if artifact_bundle.date_last_modified is None:
             raise Exception("Can't index a bundle with no date last modified")
 
-        bundle_index: Optional[int] = None
-        for index, bundle in enumerate(self._bundles):
-            if bundle.id == artifact_bundle.id:
-                bundle_index = index
-                break
-
         bundle_meta = BundleMeta(
             id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
         )
 
+        bundle_index = self._index_of_bundle(artifact_bundle.id)
         if bundle_index is None:
             self._bundles.append(bundle_meta)
             return len(self._bundles) - 1
@@ -246,6 +241,53 @@ class FlatFileIndex:
         entries.append(bundle_index)
         entries.sort(key=lambda index: self._bundles[index].timestamp, reverse=True)
         collection[key] = entries
+
+    def remove(self, artifact_bundle_id: int) -> bool:
+        try:
+            self._remove(artifact_bundle_id)
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_removing_bundle")
+            return False
+
+    def _remove(self, artifact_bundle_id: int):
+        bundle_index = self._index_of_bundle(artifact_bundle_id)
+        if bundle_index is not None:
+            self._files_by_url = self._update_bundle_references(self._files_by_url, bundle_index)
+            self._files_by_debug_id = self._update_bundle_references(
+                self._files_by_debug_id, bundle_index
+            )
+            self._bundles.pop(bundle_index)
+        else:
+            raise Exception("The bundle you want do delete doesn't exist in the index.")
+
+    def _update_bundle_references(self, collection: Dict[T, List[int]], removed_bundle_index: int):
+        updated_collection: Dict[T, List[int]] = {}
+
+        for key, indexes in collection.items():
+            updated_indexes = [
+                self._compute_updated_index(index, removed_bundle_index)
+                for index in indexes
+                if index != removed_bundle_index
+            ]
+
+            # Only if we have some indexes we want to keep the key.
+            if len(updated_indexes) > 0:
+                updated_collection[key] = updated_indexes
+
+        return updated_collection
+
+    @staticmethod
+    def _compute_updated_index(index: int, removed_bundle_index: int):
+        return index if index < removed_bundle_index else index - 1
+
+    def _index_of_bundle(self, artifact_bundle_id) -> Optional[int]:
+        for index, bundle in enumerate(self._bundles):
+            if bundle.id == artifact_bundle_id:
+                return index
+
+        return None
 
     def save(self):
         try:
