@@ -624,6 +624,10 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 # that is parsed.
 SENTRY_REGION_CONFIG: Any = tuple()
 
+# Shared secret used to sign cross-region RPC requests.
+RPC_SHARED_SECRET = None
+
+# The protocol and domain name/ip and port of control silo
 CONTROL_SILO_ADDRESS = ""
 
 # Fallback region name for monolith deployments
