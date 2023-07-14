@@ -87,6 +87,7 @@ const RowIndicatorBar = styled('div')`
   height: 100%;
   position: absolute;
   top: 0;
+  transform: translateX(-50%);
   width: 1px;
   z-index: 1;
 `;
