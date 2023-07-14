@@ -99,7 +99,7 @@ def post_save_log_group_owner_changed(instance, sender, created, update_fields, 
 @receiver(
     post_delete, sender=GroupOwner, dispatch_uid="post_delete_log_group_owner_changed", weak=False
 )
-def post_delete_log_group_owner_changed(instance, sender, created, update_fields, *args, **kwargs):
+def post_delete_log_group_owner_changed(instance, sender, *args, **kwargs):
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_owner", "all")
     except Exception:
