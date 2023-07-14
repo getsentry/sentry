@@ -25,7 +25,7 @@ export function DomainSelector({
   moduleName = ModuleName.ALL,
   spanCategory,
 }: Props) {
-  // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
+  // TODO: This only returns the top 100 domains. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
@@ -33,6 +33,7 @@ export function DomainSelector({
   const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     initialData: [],
+    limit: 100,
   });
 
   const options = [
