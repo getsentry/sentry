@@ -46,47 +46,35 @@ class Region:
     address: str
     """The address of the region's silo.
 
-    Represent a region's hostname or subdomain in a production environment
-    (e.g., "https://eu.sentry.io"), and addresses such as "http://localhost:8001" in a dev
-    environment.
+    Represent a region's hostname or IP address on the non-public network. This address
+    is used for RPC routing.
 
-    (This attribute is a placeholder. Please update this docstring when its
-    contract becomes more stable.)
+    (e.g., "https://de.internal.getsentry.net" or https://10.21.99.10), and addresses
+    such as "http://localhost:8001" in a dev environment.
+
+    The customer facing address for a region is derived from a region's name
+    and `system.region-api-url-template`
     """
 
     category: RegionCategory
     """The region's category."""
 
-    # TODO: Possibly change auth schema in final implementation.
     api_token: Optional[str] = None
+    """Unused will be removed in the future"""
 
     def validate(self) -> None:
-        from sentry import options
-        from sentry.api.utils import generate_region_url
         from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.snowflake_id)
 
-        # Validate address with respect to self.name for multi-tenant regions.
-        region_url_template: str | None = options.get("system.region-api-url-template")
-        if (
-            SiloMode.get_current_mode() != SiloMode.MONOLITH
-            and self.category == RegionCategory.MULTI_TENANT
-            and region_url_template is not None
-            and self.name != settings.SENTRY_MONOLITH_REGION
-        ):
-            expected_address = generate_region_url(self.name)
-            if self.address != expected_address:
-                raise RegionConfigurationError(
-                    f"Expected address for {self.name} to be: {expected_address}. Was defined as: {self.address}"
-                )
-
     def to_url(self, path: str) -> str:
-        """Resolve a path into a URL on this region's silo.
+        """Resolve a path into a customer facing URL on this region's silo.
 
         (This method is a placeholder. See the `address` attribute.)
         """
-        return urljoin(self.address, path)
+        from sentry.api.utils import generate_region_url
+
+        return urljoin(generate_region_url(self.name), path)
 
 
 class RegionResolutionError(Exception):
