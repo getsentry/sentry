@@ -283,7 +283,8 @@ function useEventApiQuery({
   });
 
   useEffect(() => {
-    if (latestOrHelpfulEvent.isError) {
+    // 404 can happen if all events are deleted, not related to heplful event query
+    if (latestOrHelpfulEvent.isError && latestOrHelpfulEvent.error?.status !== 404) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
       if (hasMostHelpfulEventFeature) {
