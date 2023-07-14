@@ -25,6 +25,7 @@ export const migratedDocs = [
   'native',
   'go',
   'rust',
+  'minidump',
 ];
 
 type SdkDocumentationProps = {
@@ -56,7 +57,9 @@ export function SdkDocumentation({
 
   const platformPath =
     platform?.type === 'framework'
-      ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      ? platform.language === 'minidump'
+        ? `minidump/minidump`
+        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
   const {
