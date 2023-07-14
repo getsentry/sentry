@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -911,7 +911,7 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register(
-    "sentry-metrics.performance.index-tag-values", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -1316,8 +1316,6 @@ register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABL
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether artifact bundles asynchronous renewal is enabled.
-register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 
@@ -1373,3 +1371,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Turns on and off the running for dynamic sampling collect_orgs.
+register("dynamic_sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

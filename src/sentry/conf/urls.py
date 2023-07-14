@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.conf import settings
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.web.frontend import csrf_failure
@@ -28,10 +27,5 @@ urlpatterns: list[URLResolver | URLPattern] = [
         name="error-403-csrf-failure",
     ),
 ]
-
-if "django.contrib.admin" in settings.INSTALLED_APPS:
-    from sentry import django_admin
-
-    urlpatterns += django_admin.urlpatterns
 
 urlpatterns += web_urlpatterns

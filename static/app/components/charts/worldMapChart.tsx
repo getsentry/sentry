@@ -8,21 +8,19 @@ import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
-
-type MapChartSeriesDataUnit = Omit<SeriesDataUnit, 'name' | 'itemStyle'> & {
+interface MapChartSeriesDataUnit extends Omit<SeriesDataUnit, 'name' | 'itemStyle'> {
   // Docs for map itemStyle differ from Series data unit. See https://echarts.apache.org/en/option.html#series-map.data.itemStyle
   itemStyle?: MapSeriesOption['itemStyle'];
   name?: string;
-};
+}
 
 type MapChartSeries = Omit<Series, 'data'> & {
   data: MapChartSeriesDataUnit[];
 };
 
-export interface WorldMapChartProps extends Omit<ChartProps, 'series'> {
+export interface WorldMapChartProps extends Omit<BaseChartProps, 'series'> {
   series: MapChartSeries[];
   fromDiscover?: boolean;
   fromDiscoverQueryList?: boolean;

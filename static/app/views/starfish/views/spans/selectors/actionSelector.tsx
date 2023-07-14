@@ -1,15 +1,18 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_ACTION} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -39,10 +42,12 @@ export function ActionSelector({
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions.map(datum => ({
-          value: datum['span.action'],
-          label: datum['span.action'],
-        })),
+        ...actions
+          .filter(datum => datum[SPAN_ACTION])
+          .map(datum => ({
+            value: datum[SPAN_ACTION],
+            label: datum[SPAN_ACTION],
+          })),
       ];
 
   return (
@@ -57,7 +62,7 @@ export function ActionSelector({
           ...location,
           query: {
             ...location.query,
-            'span.action': newValue.value,
+            [SPAN_ACTION]: newValue.value,
           },
         });
       }}
@@ -81,28 +86,17 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const queryConditions: string[] = [];
-  if (moduleName) {
-    queryConditions.push('!span.action:""');
-  }
-
-  if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
-  }
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      queryConditions.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      queryConditions.push(`span.category:${spanCategory}`);
-    }
-  }
+  const query = buildEventViewQuery({
+    moduleName,
+    location: {...location, query: omit(location.query, SPAN_ACTION)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: ['span.action', 'count()'],
+      fields: [SPAN_ACTION, 'count()'],
       orderby: '-count',
-      query: queryConditions.join(' '),
+      query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },

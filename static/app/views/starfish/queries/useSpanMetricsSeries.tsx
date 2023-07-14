@@ -8,7 +8,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanMetrics = {
   interval: number;
@@ -19,8 +23,8 @@ export type SpanMetrics = {
 };
 
 export const useSpanMetricsSeries = (
-  span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: SpanSummaryQueryFilters = {},
+  span: Pick<IndexedSpan, 'group'>,
+  queryFilters: SpanSummaryQueryFilters,
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
@@ -30,18 +34,25 @@ export const useSpanMetricsSeries = (
     ? getEventView(span, pageFilters.selection, yAxis, queryFilters)
     : undefined;
 
+  const enabled =
+    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
+
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     referrer,
+    enabled,
   });
 
   const parsedData = keyBy(
     yAxis.map(seriesName => {
       const series: Series = {
         seriesName,
-        data: data.map(datum => ({value: datum[seriesName], name: datum.interval})),
+        data: result?.data.map(datum => ({
+          value: datum[seriesName],
+          name: datum.interval,
+        })),
       };
 
       return series;
@@ -49,21 +60,21 @@ export const useSpanMetricsSeries = (
     'seriesName'
   );
 
-  return {isLoading, data: parsedData};
+  return {...result, data: parsedData};
 };
 
 function getEventView(
   span: {group: string},
   pageFilters: PageFilters,
   yAxis: string[],
-  queryFilters?: SpanSummaryQueryFilters
+  queryFilters: SpanSummaryQueryFilters
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${cleanGroupId}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''
@@ -75,7 +86,7 @@ function getEventView(
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      interval: getInterval(pageFilters.datetime, 'low'),
+      interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
       version: 2,
     },
     pageFilters

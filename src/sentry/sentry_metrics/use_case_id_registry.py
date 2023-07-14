@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Mapping
+from typing import Mapping, Optional
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
@@ -10,6 +10,7 @@ class UseCaseID(Enum):
     SPANS = "spans"
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
+    ESCALATING_ISSUES = "escalating_issues"
 
 
 # UseCaseKey will be renamed to MetricPathKey
@@ -17,6 +18,7 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
+    UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware
@@ -40,5 +42,5 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
-    return METRIC_PATH_MAPPING[use_case]
+def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
+    return METRIC_PATH_MAPPING.get(use_case_id)

@@ -5,7 +5,7 @@ import {Observer} from 'mobx-react';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

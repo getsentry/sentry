@@ -16,11 +16,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
+from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.snuba import functions
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
+from sentry.utils.snuba import bulk_snql_query
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -66,7 +69,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
     function = serializers.CharField(max_length=10)
     trend = TrendTypeField()
     query = serializers.CharField(required=False)
-    threshold = serializers.IntegerField(min_value=0, max_value=1000, required=False)
+    threshold = serializers.IntegerField(min_value=0, max_value=1000, default=16, required=False)
 
 
 @region_silo_endpoint
@@ -90,50 +93,64 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        top_functions = {}
+        top_functions = functions.query(
+            selected_columns=[
+                "project.id",
+                "fingerprint",
+                "package",
+                "function",
+                "count()",
+                "examples()",
+            ],
+            query=data.get("query"),
+            params=params,
+            orderby=["-count()"],
+            limit=TOP_FUNCTIONS_LIMIT,
+            referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            transform_alias_to_input_format=True,
+        )
 
-        def get_event_stats(columns, query, params, _rollup, zerofill_results, comparison_delta):
-            nonlocal top_functions
-
+        def get_event_stats(columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
-            top_functions = functions.query(
-                selected_columns=[
-                    "project.id",
-                    "fingerprint",
-                    "package",
-                    "function",
-                    "count()",
-                    "examples()",
-                ],
-                query=query,
-                params=params,
-                orderby=["-count()"],
-                limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                transform_alias_to_input_format=True,
+            chunks = [
+                top_functions["data"][i : i + FUNCTIONS_PER_QUERY]
+                for i in range(0, len(top_functions["data"]), FUNCTIONS_PER_QUERY)
+            ]
+
+            builders = [
+                ProfileTopFunctionsTimeseriesQueryBuilder(
+                    dataset=Dataset.Functions,
+                    params=params,
+                    interval=rollup,
+                    top_events=chunk,
+                    other=False,
+                    query=query,
+                    selected_columns=["project.id", "fingerprint"],
+                    timeseries_columns=columns,
+                    skip_tag_resolution=True,
+                )
+                for chunk in chunks
+            ]
+            bulk_results = bulk_snql_query(
+                [builder.get_snql_query() for builder in builders],
+                Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )
 
-            set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
+            results = {}
 
-            results = functions.top_events_timeseries(
-                timeseries_columns=columns,
-                selected_columns=["project.id", "fingerprint"],
-                query=query,
-                params=params,
-                orderby=None,
-                rollup=rollup,
-                limit=TOP_FUNCTIONS_LIMIT,
-                top_events=top_functions,
-                organization=organization,
-                zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
-                # this ensures the result key is formatted as `{project.id},{fingerprint}`
-                # in order to be compatible with the trends service
-                result_key_order=["project.id", "fingerprint"],
-            )
+            for chunk, builder, result in zip(chunks, builders, bulk_results):
+                formatted_results = functions.format_top_events_timeseries_results(
+                    result,
+                    builder,
+                    params,
+                    rollup,
+                    top_events={"data": chunk},
+                    result_key_order=["project.id", "fingerprint"],
+                )
+                results.update(formatted_results)
 
             return results
 
@@ -145,11 +162,13 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 "data": {
                     k: {
                         "data": v["data"],
-                        # set data_* to the same as request_* for now
-                        # as we dont pass more historical data for context
                         "data_start": v["start"],
                         "data_end": v["end"],
-                        "request_start": v["start"],
+                        # We want to use the first 20% of the data as historical data
+                        # to help filter out false positives.
+                        # This means if there is a change in the first 20%, it will
+                        # not be detected as a breakpoint.
+                        "request_start": v["data"][len(v["data"]) // 5][0],
                         "request_end": v["end"],
                     }
                     for k, v in stats_data.items()
@@ -172,6 +191,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
         trending_functions = get_trends_data(stats_data)
 
+        all_trending_functions_count = len(trending_functions)
+        set_measurement("profiling.top_functions", all_trending_functions_count)
+
         # Profiling functions have a resolution of ~10ms. To increase the confidence
         # of the results, the caller can specify a min threshold for the trend difference.
         threshold = data.get("threshold")
@@ -181,6 +203,11 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 for data in trending_functions
                 if abs(data["trend_difference"]) >= threshold * 1e6
             ]
+
+        filtered_trending_functions_count = all_trending_functions_count - len(trending_functions)
+        set_measurement(
+            "profiling.top_functions.below_threshold", filtered_trending_functions_count
+        )
 
         # Make sure to sort the results so that it's in order of largest change
         # to smallest change (ASC/DESC depends on the trend type)

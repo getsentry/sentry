@@ -10,14 +10,17 @@ urlpatterns = [
     re_path(
         r"^descriptor/$",
         BitbucketDescriptorEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-descriptor",
     ),
     re_path(
         r"^installed/$",
         BitbucketInstalledEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-installed",
     ),
     re_path(
         r"^uninstalled/$",
         BitbucketUninstalledEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-uninstalled",
     ),
     re_path(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytz
 
@@ -11,8 +12,9 @@ from sentry.types.group import GroupSubStatus
 
 
 class ScheduleAutoOngoingToArchivedIssuesTest(TestCase):
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
     @with_feature("organizations:escalating-issues-v2")
-    def test_simple(self):
+    def test_simple(self, mock_backend):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
@@ -25,7 +27,7 @@ class ScheduleAutoOngoingToArchivedIssuesTest(TestCase):
             status=GroupHistoryStatus.ONGOING,
             date_added=now - timedelta(days=15),
         )
-
+        mock_backend.get_size.return_value = 0
         with self.tasks():
             run_auto_archive()
 

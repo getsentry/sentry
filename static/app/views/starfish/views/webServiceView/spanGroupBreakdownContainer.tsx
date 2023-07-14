@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -17,12 +17,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
-export const OTHER_SPAN_GROUP_MODULE = 'Other';
+const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
@@ -32,11 +33,6 @@ type Props = {
 
 type Group = {
   'span.category': string;
-};
-
-export type Segment = Group & {
-  'p95(span.self_time)': number;
-  'sum(span.self_time)': number;
 };
 
 export type DataRow = {
@@ -138,7 +134,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       });
     }
 
-    if (otherValue > 0) {
+    if (otherValue > 0 && OTHER_SPAN_GROUP_MODULE in topData) {
       transformedData.push({
         cumulativeTime: otherValue,
         group: {
@@ -223,7 +219,9 @@ const getEventView = (
       orderby: '-sum_span_self_time',
       version: 2,
       topEvents: groups.length > 0 ? '4' : undefined,
-      interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
+      interval: getTimeseries
+        ? getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY)
+        : undefined,
     },
     pageFilters
   );

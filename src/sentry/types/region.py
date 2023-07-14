@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Collection, Container, Iterable, Set
+from typing import Any, Collection, Container, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
+import sentry_sdk
 from django.conf import settings
+from pydantic.dataclasses import dataclass
+from pydantic.tools import parse_obj_as
 
+from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
 from sentry.utils import json
@@ -55,7 +58,7 @@ class Region:
     """The region's category."""
 
     # TODO: Possibly change auth schema in final implementation.
-    api_token: str | None = None
+    api_token: Optional[str] = None
 
     def validate(self) -> None:
         from sentry import options
@@ -90,6 +93,10 @@ class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
 
 
+class RegionMappingNotFound(RegionResolutionError):
+    """Indicate that a mapping to a region could not be found."""
+
+
 class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
@@ -102,7 +109,7 @@ class GlobalRegionDirectory:
             default_monolith_region = Region(
                 name=settings.SENTRY_MONOLITH_REGION,
                 snowflake_id=0,
-                address="/",
+                address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
             regions = [default_monolith_region, *regions]
@@ -117,24 +124,32 @@ class GlobalRegionDirectory:
 
 def _parse_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
-        config_values = json.loads(region_config)
+        json_config_values = json.loads(region_config)
+        config_values = parse_obj_as(List[Region], json_config_values)
     else:
         config_values = region_config
 
     if not isinstance(config_values, (list, tuple)):
-        config_values = [config_values]
+        config_values = [config_values]  # type: ignore
 
     for config_value in config_values:
         if isinstance(config_value, Region):
             yield config_value
         else:
-            config_value["category"] = RegionCategory[config_value["category"]]
+            category = config_value["category"]  # type: ignore[unreachable]
+            config_value["category"] = (
+                category if isinstance(category, RegionCategory) else RegionCategory[category]
+            )
             yield Region(**config_value)
 
 
 def load_from_config(region_config: Any) -> GlobalRegionDirectory:
-    region_objs = list(_parse_config(region_config))
-    return GlobalRegionDirectory(region_objs)
+    try:
+        region_objs = list(_parse_config(region_config))
+        return GlobalRegionDirectory(region_objs)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise RegionConfigurationError("Unable to parse region_config.")
 
 
 _global_regions: GlobalRegionDirectory | None = None
@@ -165,6 +180,14 @@ def get_region_by_name(name: str) -> Region:
         return load_global_regions().by_name[name]
     except KeyError:
         raise RegionResolutionError(f"No region with name: {name!r}")
+
+
+def is_region_name(name: str) -> bool:
+    try:
+        get_region_by_name(name)
+        return True
+    except Exception:
+        return False
 
 
 @control_silo_function

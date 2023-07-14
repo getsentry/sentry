@@ -46,6 +46,10 @@ import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
+const LEFT_WIDGET_CURSOR = 'leftCursor';
+const RIGHT_WIDGET_CURSOR = 'rightCursor';
+const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
+
 interface ProfilingContentProps {
   location: Location;
 }
@@ -189,9 +193,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
               )}
               <ActionBar>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
+                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    alignDropdown="left"
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar
@@ -267,19 +274,21 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   ) ? (
                     <Fragment>
                       <ProfilesChartWidget
-                        chartHeight={100}
+                        chartHeight={150}
                         referrer="api.profiling.landing-chart"
                         userQuery={query}
                         selection={selection}
                       />
                       <WidgetsContainer>
                         <LandingWidgetSelector
+                          cursorName={LEFT_WIDGET_CURSOR}
                           widgetHeight="340px"
                           defaultWidget="slowest functions"
                           query={query}
                           storageKey="profiling-landing-widget-0"
                         />
                         <LandingWidgetSelector
+                          cursorName={RIGHT_WIDGET_CURSOR}
                           widgetHeight="340px"
                           defaultWidget="regressed functions"
                           query={query}
