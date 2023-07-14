@@ -15,7 +15,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
-export const groupingFeedbackTypes = [
+const groupingFeedbackTypes = [
   t('Too eager grouping'),
   t('Too specific grouping'),
   t('Other grouping issue'),
