@@ -8,16 +8,9 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('projectContext component', function () {
-  const routes = [
-    {path: '/', childRoutes: []},
-    {name: 'Organizations', path: ':orgId/', childRoutes: []},
-    {name: 'Projects', path: ':projectId/', childRoutes: []},
-  ];
-
-  const location = {query: {}};
-
   const project = TestStubs.Project();
   const org = TestStubs.Organization();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     [project.slug, 'new-slug'].forEach(slug => {
@@ -35,8 +28,6 @@ describe('projectContext component', function () {
   });
 
   it('displays error on 404s', async function () {
-    const router = TestStubs.router();
-
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -46,14 +37,14 @@ describe('projectContext component', function () {
     const projectContext = (
       <ProjectContext
         api={new MockApiClient()}
-        params={{orgId: org.slug, projectId: project.slug}}
+        loadingProjects={false}
         projects={[]}
-        routes={routes}
-        router={router}
-        location={location}
+        organization={org}
         orgId={org.slug}
         projectId={project.slug}
-      />
+      >
+        {null}
+      </ProjectContext>
     );
 
     render(projectContext);
@@ -68,7 +59,6 @@ describe('projectContext component', function () {
   });
 
   it('fetches data again if projectId changes', function () {
-    const router = TestStubs.router();
     let fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -79,14 +69,14 @@ describe('projectContext component', function () {
     const projectContext = (
       <ProjectContext
         api={new MockApiClient()}
-        params={{orgId: org.slug, projectId: project.slug}}
         projects={[]}
-        routes={routes}
-        router={router}
-        location={location}
+        loadingProjects={false}
+        organization={org}
         orgId={org.slug}
         projectId={project.slug}
-      />
+      >
+        {null}
+      </ProjectContext>
     );
 
     const {rerender} = render(projectContext);
@@ -107,21 +97,20 @@ describe('projectContext component', function () {
     rerender(
       <ProjectContext
         api={new MockApiClient()}
-        params={{orgId: org.slug, projectId: project.slug}}
         projects={[]}
-        routes={routes}
-        router={router}
-        location={location}
+        loadingProjects={false}
+        organization={org}
         orgId={org.slug}
         projectId="new-slug"
-      />
+      >
+        {null}
+      </ProjectContext>
     );
 
     expect(fetchMock).toHaveBeenCalled();
   });
 
   it('fetches data again if projects list changes', function () {
-    const router = TestStubs.router();
     const fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -132,14 +121,14 @@ describe('projectContext component', function () {
     const projectContext = (
       <ProjectContext
         api={new MockApiClient()}
-        params={{orgId: org.slug, projectId: project.slug}}
+        loadingProjects={false}
         projects={[]}
-        routes={routes}
-        router={router}
-        location={location}
+        organization={org}
         orgId={org.slug}
         projectId={project.slug}
-      />
+      >
+        {null}
+      </ProjectContext>
     );
 
     const {rerender} = render(projectContext);
@@ -156,15 +145,15 @@ describe('projectContext component', function () {
 
     rerender(
       <ProjectContext
+        organization={org}
+        loadingProjects={false}
         api={new MockApiClient()}
-        params={{orgId: org.slug, projectId: project.slug}}
         projects={[project]}
-        routes={routes}
-        router={router}
-        location={location}
         orgId={org.slug}
         projectId={project.slug}
-      />
+      >
+        {null}
+      </ProjectContext>
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
