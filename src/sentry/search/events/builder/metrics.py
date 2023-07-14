@@ -139,8 +139,6 @@ class MetricsQueryBuilder(QueryBuilder):
             is_alerts_query=self.is_alerts_query,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
-            # We do not need the series here, as later, we only extract the totals and assign it to the
-            # request.query
             include_series=True,
             start=self.params.start,
             end=self.params.end,
