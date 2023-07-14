@@ -1,4 +1,6 @@
-export function Tags(params = []) {
+import {TagWithTopValues} from 'sentry/types';
+
+export function Tags(params = []): TagWithTopValues[] {
   return [
     {
       topValues: [
@@ -60,11 +62,21 @@ export function Tags(params = []) {
       canDelete: true,
     },
     {
-      topValues: [{name: 'prod', value: 'prod', key: 'environment', count: 100}],
+      topValues: [
+        {
+          name: 'prod',
+          value: 'prod',
+          key: 'environment',
+          count: 100,
+          lastSeen: '2018-12-20T23:32:25Z',
+          firstSeen: '2018-05-06T03:48:28.825Z',
+        },
+      ],
       key: 'environment',
       name: 'Environment',
       canDelete: false,
       totalValues: 100,
+      uniqueValues: 1,
     },
     {
       topValues: [
