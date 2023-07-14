@@ -48,7 +48,10 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
-                    settings.SENTRY_MONOLITH_REGION, 0, "/", RegionCategory.MULTI_TENANT
+                    settings.SENTRY_MONOLITH_REGION,
+                    0,
+                    "http://testserver",
+                    RegionCategory.MULTI_TENANT,
                 )
 
     def test_get_region_for_organization(self):
