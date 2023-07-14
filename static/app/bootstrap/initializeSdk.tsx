@@ -77,6 +77,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     replaysSessionSampleRate: 1.0,
     integrations: getSentryIntegrations(routes),
     tracesSampleRate,
+    // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
