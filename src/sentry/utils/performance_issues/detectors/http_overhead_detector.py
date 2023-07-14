@@ -134,7 +134,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         location_spans = [indicator.span for indicator in indicators]
         meets_min_queued = any(
             indicator.queue_depth >= 5 for indicator in indicators
-        ) # Browsers queue past 4-6 connections.
+        )  # Browsers queue past 4-6 connections.
         exceeds_delay_threshold = any(indicator.delay > delay_threshold for indicator in indicators)
 
         if not exceeds_delay_threshold or not meets_min_queued or not location_spans:
