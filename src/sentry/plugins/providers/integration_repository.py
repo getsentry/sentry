@@ -25,6 +25,19 @@ class RepoExistsError(APIException):
     detail = {"errors": {"__all__": "A repository with that name already exists"}}
 
 
+def get_integration_repository_provider(integration):
+    from sentry.plugins.base import bindings  # circular import
+
+    binding_key = "integration-repository.provider"
+    provider_key = (
+        integration.provider
+        if integration.provider.startswith("integrations:")
+        else "integrations:" + integration.provider
+    )
+    provider_cls = bindings.get(binding_key).get(provider_key)
+    return provider_cls(id=provider_key)
+
+
 class IntegrationRepositoryProvider:
     """
     Repository Provider for Integrations in the Sentry Repository.
