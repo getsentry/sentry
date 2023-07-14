@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from typing import Any, MutableMapping
 
-from arroyo import Topic, configure_metrics
+from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
 
-from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.utils import kafka_config, metrics
-from sentry.utils.arroyo import MetricsWrapper
+from sentry.replays.consumers.recording import (
+    ProcessReplayRecordingStrategyFactory,
+    initialize_metrics,
+)
+from sentry.utils import kafka_config
 
 
 def get_replays_recordings_consumer(
@@ -21,10 +23,11 @@ def get_replays_recordings_consumer(
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or topic
-    configure_metrics(MetricsWrapper(metrics.backend, name="ingest_replays"))
 
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
+
+    initialize_metrics()
 
     return StreamProcessor(
         consumer=consumer,
