@@ -1,8 +1,9 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
+from io import BytesIO
+from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, cast
 
-from django.db import models
+from django.db import models, router
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
@@ -16,6 +17,7 @@ from sentry.db.models import (
     region_silo_only_model,
 )
 from sentry.utils import json
+from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
@@ -111,6 +113,69 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+
+@region_silo_only_model
+class ArtifactBundleFlatFileIndex(Model):
+    __include_in_export__ = False
+
+    project_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=250)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    flat_file_index = FlexibleForeignKey("sentry.File")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_artifactbundleflatfileindex"
+
+        index_together = (("project_id", "release_name", "dist_name"),)
+
+    @classmethod
+    def create_flat_file_index(
+        cls, project_id: int, release: str, dist: str, file_contents: str
+    ) -> "ArtifactBundleFlatFileIndex":
+        from sentry.models import File
+
+        with atomic_transaction(
+            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
+        ):
+            file = cls._create_flat_file_index_object(project_id, release, dist, file_contents)
+            index = ArtifactBundleFlatFileIndex.objects.create(
+                project_id=project_id, release_name=release, dist_name=dist, flat_file_index=file
+            )
+
+        return index
+
+    def update_flat_file_index(self, file_contents: str):
+        from sentry.models import File
+
+        with atomic_transaction(
+            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
+        ):
+            current_file = self.flat_file_index
+            updated_file = self._create_flat_file_index_object(
+                cast(int, self.project_id), self.release_name, self.dist_name, file_contents
+            )
+            self.update(flat_file_index=updated_file)
+            current_file.delete()
+
+    def load_flat_file_index(self) -> Dict[str, Any]:
+        return json.load(self.flat_file_index.getfile())
+
+    @classmethod
+    def _create_flat_file_index_object(
+        cls, project_id: int, release: str, dist: str, file_contents: str
+    ):
+        from sentry.models import File
+
+        file = File.objects.create(
+            name=f"{project_id}:{release}:{dist}:artifact_bundle_flat_index",
+            type="artifact_bundle_flat_index",
+        )
+        file.putfile(BytesIO(file_contents.encode()))
+
+        return file
 
 
 @region_silo_only_model
