@@ -2,17 +2,52 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import Type
 
 from click.testing import CliRunner
 from django.core.management import call_command
 
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleExcludedProjects,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+    AlertRuleTriggerExclusion,
+)
 from sentry.models import ApiApplication, ApiAuthorization
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.runner.commands.backup import import_, validate
 from sentry.silo import unguarded_write
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TransactionTestCase
+from sentry.utils.json import JSONData
 from tests.sentry.backup import ValidationError, tmp_export_to_file
+
+
+def targets_models(*expected_models: Type):
+    """A helper decorator that checks that every model that a test "targeted" was actually seen in
+    the output, ensuring that we're actually testing the thing we think we are. Additionally, this
+    decorator is easily legible to static analysis, which allows for static checks to ensure that
+    all `__include_in_export__ = True` models are being tested."""
+
+    def decorator(func):
+        def wrapped(*args, **kwargs):
+            ret = func(*args, **kwargs)
+            if ret is None:
+                return AssertionError(f"The test {func.__name__} did not return its actual JSON")
+            actual_model_names = {entry["model"] for entry in ret}
+            expected_model_names = {"sentry." + model.__name__.lower() for model in expected_models}
+            notfound = sorted(expected_model_names - actual_model_names)
+            if len(notfound) > 0:
+                raise AssertionError(f"Some `@targets_models` entries were not used: {notfound}")
+            return ret
+
+        return wrapped
+
+    return decorator
 
 
 class ModelBackupTests(TransactionTestCase):
@@ -27,16 +62,19 @@ class ModelBackupTests(TransactionTestCase):
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
-    def import_export_then_validate(self):
+    def import_export_then_validate(self) -> JSONData:
         """Test helper that validates that data imported from a temporary `.json` file correctly
-        matches the actual outputted export data."""
+        matches the actual outputted export data.
+
+        Return the actual JSON, so that we may use the `@targets_models` decorator to ensure that
+        we have at least one instance of all the "tested for" models in the actual output."""
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_expect = Path(tmpdir).joinpath(f"{self._testMethodName}.expect.json")
             tmp_actual = Path(tmpdir).joinpath(f"{self._testMethodName}.actual.json")
 
-            # Export the current state of the database into the "expected" temporary file, then parse it
-            # into a JSON object for comparison.
+            # Export the current state of the database into the "expected" temporary file, then
+            # parse it into a JSON object for comparison.
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
@@ -53,6 +91,8 @@ class ModelBackupTests(TransactionTestCase):
             if res.findings:
                 raise ValidationError(res)
 
+        return actual
+
     def create_monitor(self):
         """Re-usable monitor object for test cases."""
 
@@ -66,32 +106,38 @@ class ModelBackupTests(TransactionTestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
+    @targets_models(AlertRule, QuerySubscription, SnubaQuery, SnubaQueryEventType)
     def test_alert_rule(self):
         self.create_alert_rule()
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(AlertRuleActivity, AlertRuleExcludedProjects)
     def test_alert_rule_excluded_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
         excluded = self.create_project(organization=org)
         self.create_alert_rule(include_all_projects=True, excluded_projects=[excluded])
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion)
     def test_alert_rule_trigger(self):
         excluded = self.create_project()
         rule = self.create_alert_rule(include_all_projects=True)
         trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(Environment)
     def test_environment(self):
         self.create_environment()
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(Monitor)
     def test_monitor(self):
         self.create_monitor()
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(MonitorEnvironment)
     def test_monitor_environment(self):
         monitor = self.create_monitor()
         env = Environment.objects.create(organization_id=monitor.organization_id, name="test_env")
@@ -99,12 +145,13 @@ class ModelBackupTests(TransactionTestCase):
             monitor=monitor,
             environment=env,
         )
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
+    @targets_models(Organization)
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)
-        self.import_export_then_validate()
+        return self.import_export_then_validate()
 
     def test_actor(self):
         self.create_user(email="test@example.com")
