@@ -336,15 +336,16 @@ describe('TeamMembers', function () {
   });
 
   it('renders team-level roles without flag', async function () {
-    const me = TestStubs.Member({
+    const owner = TestStubs.Member({
       id: '123',
       email: 'foo@example.com',
+      orgRole: 'owner',
       role: 'owner',
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
-      body: [...members, me],
+      body: [...members, owner],
     });
 
     await render(
@@ -356,9 +357,9 @@ describe('TeamMembers', function () {
       />
     );
 
-    const admins = screen.queryByText('Team Admin');
+    const admins = screen.queryAllByText('Team Admin');
     expect(admins).toHaveLength(3);
-    const contributors = screen.queryByText('Team Contributor');
+    const contributors = screen.queryAllByText('Contributor');
     expect(contributors).toHaveLength(2);
   });
 
@@ -367,6 +368,7 @@ describe('TeamMembers', function () {
       id: '123',
       email: 'foo@example.com',
       orgRole: 'manager',
+      role: 'manager',
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
@@ -384,6 +386,7 @@ describe('TeamMembers', function () {
         team={team}
       />
     );
+
     const admins = screen.queryAllByText('Team Admin');
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
