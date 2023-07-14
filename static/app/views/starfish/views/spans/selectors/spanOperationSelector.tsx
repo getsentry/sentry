@@ -36,7 +36,7 @@ export function SpanOperationSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(datum => ({
+    ...(operations ?? []).map(datum => ({
       value: datum[SPAN_OP],
       label: datum[SPAN_OP],
     })),

@@ -42,7 +42,7 @@ export function ActionSelector({
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions
+        ...(actions ?? [])
           .filter(datum => datum[SPAN_ACTION])
           .map(datum => ({
             value: datum[SPAN_ACTION],

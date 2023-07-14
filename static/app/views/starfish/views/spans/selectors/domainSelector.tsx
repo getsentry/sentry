@@ -37,7 +37,7 @@ export function DomainSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => ({
+    ...(domains ?? []).map(datum => ({
       value: datum['span.domain'],
       label: datum['span.domain'],
     })),

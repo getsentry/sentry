@@ -163,7 +163,8 @@ export function useWrappedDiscoverQuery<T>({
     meta.units['sps()'] = '1/second';
   }
 
-  const data: T = result.isLoading && initialData ? initialData : result.data?.data;
+  const data =
+    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,
