@@ -207,12 +207,16 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Column[] = [
-    {
-      key: SPAN_OP,
-      name: 'Operation',
-      width: 120,
-    },
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.NONE].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
       key: SPAN_DESCRIPTION,
       name: description,
@@ -277,7 +281,7 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
     });
   }
 
-  return order;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
 }
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
