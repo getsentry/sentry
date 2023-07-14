@@ -22,9 +22,12 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
     if (fetching || fetchError || !replay || !project) {
       return;
     }
-    const feErrorIds = replay.getReplay().error_ids || [];
-    const allErrors = replay.getRawErrors();
-    const beErrorCount = allErrors.filter(error => !feErrorIds.includes(error.id)).length;
+    const replayRecord = replay.getReplay();
+    const allErrors = replay.getErrorFrames();
+    const feErrorIds = replayRecord.error_ids || [];
+    const beErrorCount = allErrors.filter(
+      error => !feErrorIds.includes(error.data.eventId)
+    ).length;
 
     trackAnalytics('replay.details-data-loaded', {
       organization,
@@ -35,7 +38,7 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       total_errors: allErrors.length,
       started_at_delta: replay.timestampDeltas.startedAtDelta,
       finished_at_delta: replay.timestampDeltas.finishedAtDelta,
-      replay_id: replay.getReplay().id,
+      replay_id: replayRecord.id,
     });
   }, [organization, project, fetchError, fetching, projectSlug, replay]);
 }
