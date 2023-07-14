@@ -45,6 +45,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.UserReport,
             models.ProjectTransactionThreshold,
             models.ProjectArtifactBundle,
+            models.ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
             QuerySubscription,
