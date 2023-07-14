@@ -1,6 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import models
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -20,7 +21,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -273,14 +274,20 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_new_identity_with_existing_om_idp_provisioned(self, mock_messages):
+    def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
             existing_om = OrganizationMember.objects.create(
                 user_id=user.id,
                 organization=self.organization,
-                flags=OrganizationMember.flags["idp:provisioned"],
             )
+            with unguarded_write():
+                existing_om.update(
+                    flags=models.F("flags")
+                    .bitor(OrganizationMember.flags["idp:provisioned"])
+                    .bitor(OrganizationMember.flags["idp:role-restricted"])
+                )
+                existing_om.save()
 
         auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
@@ -290,6 +297,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             persisted_om = OrganizationMember.objects.get(id=existing_om.id)
             assert getattr(persisted_om.flags, "sso:linked")
             assert getattr(persisted_om.flags, "idp:provisioned")
+            assert getattr(persisted_om.flags, "idp:role-restricted")
             assert not getattr(persisted_om.flags, "sso:invalid")
 
         mock_messages.add_message.assert_called_with(

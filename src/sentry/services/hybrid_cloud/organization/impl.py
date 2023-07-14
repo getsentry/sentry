@@ -301,6 +301,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             flags.sso__invalid,
             flags.member_limit__restricted,
             flags.idp__provisioned,
+            flags.idp__role_restricted,
         )
 
     def add_organization_member(
