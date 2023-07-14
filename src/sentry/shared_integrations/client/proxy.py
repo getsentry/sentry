@@ -52,6 +52,10 @@ def infer_org_integration(
     return org_integration_id
 
 
+def get_proxy_url() -> str:
+    return f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
+
+
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
@@ -81,7 +85,7 @@ class IntegrationProxyClient(ApiClient):
 
         if is_region_silo and subnet_secret and control_address:
             self._should_proxy_to_control = True
-            self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
+            self.proxy_url = get_proxy_url()
 
         if is_test_environment and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")

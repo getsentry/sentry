@@ -7,7 +7,7 @@ from django.http import HttpResponse
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, get_proxy_url
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 
@@ -83,7 +83,6 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
 
 class AwsLambdaProxyClient(IntegrationProxyClient):
     integration_name = "aws_lambda"
-    base_url = ""
     _client: Any | None = None
 
     def __init__(
@@ -94,6 +93,7 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         aws_external_id: str,
     ) -> None:
         super().__init__(org_integration_id=org_integration_id)
+        self.base_url = get_proxy_url()
         self.account_number = account_number
         self.region = region
         self.aws_external_id = aws_external_id
