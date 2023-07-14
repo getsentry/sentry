@@ -103,10 +103,11 @@ const PaddedContainer = styled('div')`
 `;
 
 const FilterOptionsContainer = styled(PaddedContainer)`
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+  max-width: 700px;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`

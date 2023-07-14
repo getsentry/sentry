@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -37,17 +37,17 @@ export function DomainSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => ({
-      value: datum['span.domain'],
-      label: datum['span.domain'],
-    })),
+    ...domains
+      .map(datum => ({
+        value: datum['span.domain'],
+        label: datum['span.domain'],
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
   ];
 
   return (
-    <CompactSelect
-      triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
-      }}
+    <SelectControl
+      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -55,7 +55,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            'span.domain': newValue.value,
+            [SPAN_DOMAIN]: newValue.value,
           },
         });
       }}
