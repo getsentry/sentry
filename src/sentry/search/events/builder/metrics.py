@@ -123,6 +123,7 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = self.limit
 
         return MetricsQuery(
+            # FIXME: count alias is required in order to render chart since the serializer searches for that exact dict key
             select=[MetricField(spec.op, spec.mri, alias="count")],
             where=[
                 Condition(
