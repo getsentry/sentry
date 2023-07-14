@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import boto3
 from django.http import HttpResponse
 
@@ -82,6 +84,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
 class AwsLambdaProxyClient(IntegrationProxyClient):
     integration_name = "aws_lambda"
     base_url = ""
+    _client: Any | None = None
 
     def __init__(
         self,
@@ -94,14 +97,21 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         self.account_number = account_number
         self.region = region
         self.aws_external_id = aws_external_id
-        if SiloMode.get_current_mode() != SiloMode.REGION:
-            self.client = gen_aws_client(
-                account_number=account_number,
-                region=region,
-                aws_external_id=aws_external_id,
-            )
-        else:
-            self.client = None
+
+    @property
+    def client(self):
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return None
+
+        if self._client:
+            return self._client
+
+        self._client = gen_aws_client(
+            account_number=self.account_number,
+            region=self.region,
+            aws_external_id=self.aws_external_id,
+        )
+        return self._client
 
     def should_delegate(self) -> bool:
         return True
