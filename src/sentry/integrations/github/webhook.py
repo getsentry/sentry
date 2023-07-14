@@ -28,6 +28,7 @@ from sentry.models import (
 )
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.plugins.base import bindings
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -100,10 +101,7 @@ class Webhook:
             ).exclude(status=ObjectStatus.HIDDEN)
 
             if not repos.exists():
-                binding_key = "integration-repository.provider"
-                provider_key = "integrations:" + integration.provider
-                provider_cls = bindings.get(binding_key).get(provider_key)
-                provider = provider_cls(id=provider_key)
+                provider = get_integration_repository_provider(integration)
 
                 config = {
                     "integration_id": integration.id,
@@ -115,9 +113,7 @@ class Webhook:
                     if features.has("organizations:auto-repo-linking", org):
                         provider.create_repository(config, org)
 
-                repos = Repository.objects.filter(external_id=config["external_id"]).exclude(
-                    status=ObjectStatus.HIDDEN
-                )
+                repos = repos.all()
 
             for repo in repos:
                 self._handle(integration, event, orgs[repo.organization_id], repo)

@@ -81,7 +81,8 @@ class PushEventWebhookTest(APITestCase):
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
@@ -199,13 +200,13 @@ class PushEventWebhookTest(APITestCase):
 
         project = self.project  # force creation
 
-        repo = Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
+        repo = self.create_repo(
+            project=project,
             provider="integrations:github",
             name="baxterthehacker/public-repo",
-            status=ObjectStatus.HIDDEN,
         )
+        repo.status = ObjectStatus.HIDDEN
+        repo.save()
 
         self._setup_repo_test(project)
 
@@ -312,9 +313,8 @@ class PushEventWebhookTest(APITestCase):
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name="bar")
 
-        Repository.objects.create(
-            organization_id=project2.organization.id,
-            external_id="77",
+        self.create_repo(
+            project=project2,
             provider="integrations:github",
             name="another/repo",
         )
@@ -505,13 +505,14 @@ class PullRequestEventWebhook(APITestCase):
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
 
-        repo = Repository.objects.create(
-            organization_id=project.organization.id,
-            external_id="35129377",
+        repo = self.create_repo(
+            project=project,
             provider="integrations:github",
             name="baxterthehacker/public-repo",
-            status=ObjectStatus.HIDDEN,
         )
+        repo.status = ObjectStatus.HIDDEN
+        repo.save()
+
         self._setup_repo_test(project)
 
         repos = Repository.objects.all()
