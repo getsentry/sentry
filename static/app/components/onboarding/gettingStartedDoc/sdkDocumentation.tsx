@@ -22,6 +22,9 @@ export const migratedDocs = [
   'react-native',
   'java-spring-boot',
   'php-laravel',
+  'native',
+  'go',
+  'rust',
 ];
 
 type SdkDocumentationProps = {

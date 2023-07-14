@@ -26,13 +26,12 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     in_test_assert_no_transaction,
 )
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -107,6 +106,7 @@ class WebhookProviderIdentifier(IntEnum):
     BITBUCKET = 5
     VSTS = 6
     JIRA_SERVER = 7
+    GITHUB_ENTERPRISE = 8
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -468,7 +468,6 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
-
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -481,7 +480,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres", using=inner.using), inner:
+        with unguarded_write(using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield
