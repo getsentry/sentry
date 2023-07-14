@@ -266,11 +266,9 @@ def generate_incident_trigger_email_context(
         query="referrer=alert_email",
     )
 
-    snooze_alert = False
     snooze_alert_url = None
-    if features.has("organizations:mute-metric-alerts", organization):
-        snooze_alert = True
-        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+    snooze_alert = True
+    snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
     return {
         "link": alert_link,

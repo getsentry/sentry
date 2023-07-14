@@ -217,7 +217,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
-    @with_feature("organizations:mute-metric-alerts")
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
