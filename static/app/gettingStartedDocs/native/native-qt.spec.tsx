@@ -4,7 +4,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
 import {GettingStartedWithNativeQT, steps} from './native-qt';
 
-describe('GettingStartedWithNative', function () {
+describe('GettingStartedWithNativeQT', function () {
   it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithNativeQT dsn="test-dsn" />);
 
