@@ -174,7 +174,6 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  PRIORITY = 'priority',
   BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
@@ -191,8 +190,6 @@ export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
-      return t('Priority');
     case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:

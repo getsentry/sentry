@@ -30,7 +30,7 @@ export const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.DATE,
   IssueSortOptions.NEW,
   IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
+  IssueSortOptions.BETTER_PRIORITY,
   IssueSortOptions.USER,
 ];
 
