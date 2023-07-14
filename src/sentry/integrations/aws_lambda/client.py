@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import SiloMode
 from sentry.utils import json
 
 
@@ -93,6 +94,14 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         self.account_number = account_number
         self.region = region
         self.aws_external_id = aws_external_id
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            self.client = gen_aws_client(
+                account_number=account_number,
+                region=region,
+                aws_external_id=aws_external_id,
+            )
+        else:
+            self.client = None
 
     def should_delegate(self) -> bool:
         return True
@@ -101,9 +110,13 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         return super().delegate(proxy_path, headers, data)
 
     def get_function(self, *args, **kwargs):
-        payload = {
-            "args": list(args),
-            "kwargs": kwargs,
-            "function_name": "get_function",
-        }
-        self.get("/", data=payload)
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            payload = {
+                "args": list(args),
+                "kwargs": kwargs,
+                "function_name": "get_function",
+            }
+            response = self.get("/", data=payload)
+            return response
+        else:
+            return self.client.get_function(*args, **kwargs)

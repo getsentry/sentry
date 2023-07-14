@@ -26,7 +26,7 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.utils.sdk import capture_exception
 
-from .client import ConfigurationError, gen_aws_client
+from .client import AwsLambdaProxyClient, ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
     disable_single_lambda,
@@ -84,7 +84,12 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
             aws_external_id = self.metadata["aws_external_id"]
-            self._client = gen_aws_client(account_number, region, aws_external_id)
+            self._client = AwsLambdaProxyClient(
+                org_integration_id=self.org_integration.id,
+                account_number=account_number,
+                region=region,
+                aws_external_id=aws_external_id,
+            )
         return self._client
 
     def get_one_lambda_function(self, name):
