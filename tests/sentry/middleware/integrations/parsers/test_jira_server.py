@@ -8,10 +8,11 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -34,14 +35,14 @@ class JiraServerRequestParserTest(TestCase):
         self.integration = self.create_integration(
             organization=self.organization, external_id="jira_server:1", provider="jira_server"
         )
+        organization_mapping_service
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_endpoint(self):
+    def test_routing_endpoint_no_integration(self):
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route)
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        # Couldn't find an integration
         with mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo, mock.patch(
@@ -52,16 +53,25 @@ class JiraServerRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_control_silo.called
 
-        # Found the integration
-        with mock.patch(  # type: ignore[unreachable]
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_endpoint_with_integration(self):
+        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
+        request = self.factory.post(route)
+        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
+
+        organization_mapping_service.update(
+            organization_id=self.organization.id, update={"region_name": "na"}
+        )
+        with mock.patch(
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-        ) as mock_get_integration:
+        ) as mock_get_integration, override_regions(self.region_config):
             mock_get_integration.return_value = self.integration
             parser.get_response()
-            outboxes = ControlOutbox.objects.filter(
-                shard_identifier=WebhookProviderIdentifier.JIRA_SERVER
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.JIRA_SERVER,
+                region_names=[self.region.name],
             )
-            assert len(outboxes) == 1
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)

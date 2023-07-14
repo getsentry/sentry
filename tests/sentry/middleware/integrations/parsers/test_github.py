@@ -1,4 +1,3 @@
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -8,14 +7,10 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -91,23 +86,8 @@ class GithubRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": self.path,
-                "uri": f"http://testserver{self.path}",
-                "headers": {
-                    "Content-Length": "36",
-                    "Content-Type": "application/json",
-                    "Cookie": "",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-            assert outbox.payload == expected_payload
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.region_name == self.region.name
-            assert outbox.payload == expected_payload
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[self.region.name],
+            )
