@@ -20,11 +20,13 @@ import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './ut
 
 interface StatusCounts {
   total: number;
+  archived?: number;
   deleted?: number;
   ignored?: number;
   new?: number;
   regressed?: number;
   resolved?: number;
+  unarchived?: number;
   unignored?: number;
 }
 
@@ -71,6 +73,8 @@ function TeamIssuesBreakdown({
     ],
     {staleTime: 5000}
   );
+
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
   const allReviewedByDay: Record<string, Record<string, number>> = {};
   // Total statuses & total reviewed keyed by project ID
@@ -151,7 +155,11 @@ function TeamIssuesBreakdown({
               numActions={statuses.length}
               headers={[
                 t('Project'),
-                ...statuses.map(action => <AlignRight key={action}>{action}</AlignRight>),
+                ...statuses
+                  .map(action =>
+                    hasEscalatingIssues ? action.replace('ignore', 'archive') : action
+                  )
+                  .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
                   {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
                 </AlignRight>,
