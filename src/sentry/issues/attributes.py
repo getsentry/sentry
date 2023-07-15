@@ -36,22 +36,22 @@ def _log_group_attributes_changed(
 @receiver(
     post_save, sender=Group, dispatch_uid="post_save_log_group_attributes_changed", weak=False
 )
-def post_save_log_group_attributes_changed(
-    instance, sender, created, update_fields, *args, **kwargs
-):
+def post_save_log_group_attributes_changed(instance, sender, created, *args, **kwargs):
     try:
         if created:
             _log_group_attributes_changed(Operation.CREATED, "group", None)
         else:
-            # we have no guarantees update_fields is used everywhere save() is called
-            # we'll need to assume any of the attributes are updated in that case
-            attributes_updated = {"status", "substatus", "num_comments"}.intersection(
-                update_fields or ()
-            )
-            if attributes_updated:
-                _log_group_attributes_changed(
-                    Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
+            if "updated_fields" in kwargs:
+                update_fields = kwargs["update_fields"]
+                # we have no guarantees update_fields is used everywhere save() is called
+                # we'll need to assume any of the attributes are updated in that case
+                attributes_updated = {"status", "substatus", "num_comments"}.intersection(
+                    update_fields or ()
                 )
+                if attributes_updated:
+                    _log_group_attributes_changed(
+                        Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
+                    )
     except Exception:
         logger.error("failed to log group attributes after group post_save", exc_info=True)
 
@@ -99,7 +99,7 @@ def post_save_log_group_owner_changed(instance, sender, created, update_fields, 
 @receiver(
     post_delete, sender=GroupOwner, dispatch_uid="post_delete_log_group_owner_changed", weak=False
 )
-def post_delete_log_group_owner_changed(instance, sender, created, update_fields, *args, **kwargs):
+def post_delete_log_group_owner_changed(instance, sender, *args, **kwargs):
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_owner", "all")
     except Exception:

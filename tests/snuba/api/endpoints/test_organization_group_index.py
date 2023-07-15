@@ -114,7 +114,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    @with_feature("organizations:issue-list-better-priority-sort")
     def test_sort_by_better_priority(self):
         group = self.store_event(
             data={

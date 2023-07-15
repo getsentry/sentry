@@ -46,7 +46,7 @@ class NotificationSettingsSerializer(Serializer):
             user_ids=list(user_map.keys()),
         )
 
-        result: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
+        result: MutableMapping[Union[Team, User], MutableMapping[str, Set[Any]]] = defaultdict(
             lambda: defaultdict(set)
         )
         for _, team in team_map.items():
@@ -69,7 +69,7 @@ class NotificationSettingsSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Union["Team", "User"],
+        obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
