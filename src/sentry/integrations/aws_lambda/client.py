@@ -116,9 +116,9 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
     def should_delegate(self) -> bool:
         return True
 
-    def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+    def delegate(self, proxy_path: str, headers) -> HttpResponse:
         # TODO: implement
-        return super().delegate(proxy_path, headers, data)
+        return super().delegate(proxy_path, headers)
 
     def get_function(self, *args, **kwargs):
         if SiloMode.get_current_mode() == SiloMode.REGION:

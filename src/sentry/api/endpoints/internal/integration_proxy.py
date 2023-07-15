@@ -147,11 +147,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         if self.client.should_delegate():
             response: HttpResponse = self.client.delegate(
-                proxy_path=self.proxy_path, headers=headers, data=request.body
+                request=request,
+                proxy_path=self.proxy_path,
+                headers=headers,
             )
-            valid_headers = clean_outbound_headers(response.headers)
-            for header, value in valid_headers.items():
-                response[header] = value
         else:
             prepared_request = Request(
                 method=request.method,

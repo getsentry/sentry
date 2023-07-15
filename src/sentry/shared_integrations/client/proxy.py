@@ -141,7 +141,7 @@ class IntegrationProxyClient(ApiClient):
     def should_delegate(self) -> bool:
         return False
 
-    def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
         """
         Rather than letting the internal integration proxy endpoint perform the 3rd-party API request, this method
         perform the processing of that request whenever should_delegate() returns True.

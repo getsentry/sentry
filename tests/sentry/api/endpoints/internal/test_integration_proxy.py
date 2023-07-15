@@ -163,22 +163,16 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @patch.object(Integration, "get_installation")
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test_proxy_with_client_delegate(self, mock_get_installation):
-        # mock_response = Mock(spec=Response)
-        # mock_response.content = str({"some": "data"}).encode("utf-8")
-        # mock_response.status_code = 400
-        # mock_response.reason = "Bad Request"
-        # mock_response.headers = {
-        #     "Content-Type": "application/json",
-        #     "X-Arbitrary": "Value",
-        #     PROXY_SIGNATURE_HEADER: "123",
-        # }
+        global should_delegate_function_called
+        should_delegate_function_called = False
+        global delegate_function_called
+        delegate_function_called = False
 
-        # mock_client.base_url = "https://example.com/api"
-        # mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
-        # mock_client._request = MagicMock(return_value=mock_response)
-
-        global should_delegate_called
-        should_delegate_called = False
+        expected_proxy_payload = {
+            "args": ["hello"],
+            "kwargs": {"function_name": "lambdaE"},
+            "function_name": "get_function",
+        }
 
         class TestProxyClient(IntegrationProxyClient):
             integration_name = "test_proxy_client"
@@ -187,17 +181,19 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
                 super().__init__(org_integration_id=org_integration_id)
 
             def should_delegate(self) -> bool:
-                breakpoint()
-                should_delegate_called = True
+                global should_delegate_function_called
+                should_delegate_function_called = True
                 return True
 
-            def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
-                content = {
-                    "function_name": "get_function",
-                    "return_response": {"hello": "world"},
-                }
+            def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
+                global delegate_function_called
+                delegate_function_called = True
+                assert expected_proxy_payload == request.data
                 return JsonResponse(
-                    data=content,
+                    data={
+                        "function_name": "get_function",
+                        "return_response": {"hello": "world"},
+                    },
                     status=200,
                 )
 
@@ -205,32 +201,24 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             return_value=TestProxyClient(org_integration_id=self.org_integration.id)
         )
 
-        data = {
-            "args": ["hello"],
-            "kwargs": {"function_name": "lambdaE"},
-            "function_name": "get_function",
-        }
         signature = encode_subnet_signature(
             secret=self.secret,
             path="",
             identifier=str(self.org_integration.id),
-            request_body=json.dumps(data).encode("utf-8"),
+            request_body=json.dumps(expected_proxy_payload).encode("utf-8"),
         )
         headers = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
         )
         proxy_response = self.client.post(
-            f"{PROXY_BASE_PATH}/", **headers, data=data, format="json"
+            f"{PROXY_BASE_PATH}/", **headers, data=expected_proxy_payload, format="json"
         )
 
-        assert should_delegate_called
-        # assert mock_should_operate.called
-        # assert mock_client._request.called
-
-        # assert proxy_response.content == mock_response.content
-        # assert proxy_response.status_code == mock_response.status_code
-        # assert proxy_response.reason_phrase == mock_response.reason
-        # assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
-        # assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
-        # assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+        assert should_delegate_function_called
+        assert delegate_function_called
+        actual_response_payload = json.loads(proxy_response.content)
+        assert actual_response_payload == {
+            "function_name": "get_function",
+            "return_response": {"hello": "world"},
+        }
