@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import boto3
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -14,6 +15,9 @@ from sentry.utils import json
 
 class ConfigurationError(Exception):
     pass
+
+
+logger = logging.getLogger(__name__)
 
 
 @control_silo_function
@@ -116,12 +120,36 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
     def should_delegate(self) -> bool:
         return True
 
-    def delegate(self, proxy_path: str, headers) -> HttpResponse:
-        # TODO: implement
-        return super().delegate(proxy_path, headers)
+    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
+        payload = request.data
+        function_name = payload["function_name"]
+        args = payload["args"]
+        kwargs = payload["kwargs"]
+        boto3_func = getattr(self.client, function_name)
+        try:
+            result = boto3_func(*args, **kwargs)
+            return JsonResponse(
+                data={
+                    "function_name": function_name,
+                    "return_response": result,
+                    "exception": None,
+                },
+                status=200,
+            )
+        except Exception as err:
+            logger.info("boto3.client.exception", extra={"error": err})
+            return JsonResponse(
+                data={
+                    "function_name": function_name,
+                    "return_response": {},
+                    "exception": {"class": err.__class__.__name__},
+                },
+                status=400,
+            )
 
     def get_function(self, *args, **kwargs):
         if SiloMode.get_current_mode() == SiloMode.REGION:
+            # From the region silo, we create a request payload to the internal integration proxy endpoint.
             payload = {
                 "args": list(args),
                 "kwargs": kwargs,
@@ -130,6 +158,12 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
             response = self.post("/", data=payload)
             function_name = response["function_name"]
             assert function_name == "get_function"
+
+            exception = response["exception"]
+            if exception:
+                class_name = exception["class"]
+                raise type(class_name, Exception, {})
+
             return_response = response["return_response"]
             return return_response
         else:
