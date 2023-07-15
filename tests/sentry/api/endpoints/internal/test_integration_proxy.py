@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from typing import TypedDict
 from unittest.mock import MagicMock, Mock, patch
 
+from django.http import HttpResponse, JsonResponse
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
@@ -20,6 +23,7 @@ from sentry.silo.util import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 
 class SiloHttpHeaders(TypedDict, total=False):
@@ -155,3 +159,78 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert self.endpoint_cls._validate_request(request)
+
+    @patch.object(Integration, "get_installation")
+    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
+    def test_proxy_with_client_delegate(self, mock_get_installation):
+        # mock_response = Mock(spec=Response)
+        # mock_response.content = str({"some": "data"}).encode("utf-8")
+        # mock_response.status_code = 400
+        # mock_response.reason = "Bad Request"
+        # mock_response.headers = {
+        #     "Content-Type": "application/json",
+        #     "X-Arbitrary": "Value",
+        #     PROXY_SIGNATURE_HEADER: "123",
+        # }
+
+        # mock_client.base_url = "https://example.com/api"
+        # mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        # mock_client._request = MagicMock(return_value=mock_response)
+
+        global should_delegate_called
+        should_delegate_called = False
+
+        class TestProxyClient(IntegrationProxyClient):
+            integration_name = "test_proxy_client"
+
+            def __init__(self, org_integration_id: int | None) -> None:
+                super().__init__(org_integration_id=org_integration_id)
+
+            def should_delegate(self) -> bool:
+                breakpoint()
+                should_delegate_called = True
+                return True
+
+            def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+                content = {
+                    "function_name": "get_function",
+                    "return_response": {"hello": "world"},
+                }
+                return JsonResponse(
+                    data=content,
+                    status=200,
+                )
+
+        mock_get_installation().get_client = MagicMock(
+            return_value=TestProxyClient(org_integration_id=self.org_integration.id)
+        )
+
+        data = {
+            "args": ["hello"],
+            "kwargs": {"function_name": "lambdaE"},
+            "function_name": "get_function",
+        }
+        signature = encode_subnet_signature(
+            secret=self.secret,
+            path="",
+            identifier=str(self.org_integration.id),
+            request_body=json.dumps(data).encode("utf-8"),
+        )
+        headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
+        proxy_response = self.client.post(
+            f"{PROXY_BASE_PATH}/", **headers, data=data, format="json"
+        )
+
+        assert should_delegate_called
+        # assert mock_should_operate.called
+        # assert mock_client._request.called
+
+        # assert proxy_response.content == mock_response.content
+        # assert proxy_response.status_code == mock_response.status_code
+        # assert proxy_response.reason_phrase == mock_response.reason
+        # assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
+        # assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
+        # assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
