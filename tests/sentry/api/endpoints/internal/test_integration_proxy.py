@@ -96,6 +96,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
         mock_client._request = MagicMock(return_value=mock_response)
+        mock_client.should_delegate = MagicMock(return_value=False)
 
         proxy_response = self.client.get(self.path, **self.valid_header_kwargs)
         assert mock_should_operate.called
