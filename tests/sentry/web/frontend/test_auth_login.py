@@ -66,6 +66,27 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
+    def test_login_ratelimited_user(self):
+        self.client.get(self.path)
+        # Make sure user gets ratelimited
+        for i in range(5):
+            self.client.post(
+                self.path,
+                {"username": self.user.username, "password": "wront_password", "op": "login"},
+                follow=True,
+            )
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == []
+        assert (
+            "You have made too many login attempts. Please try again later."
+            in resp.content.decode()
+        )
+
     def test_login_valid_credentials(self):
         # load it once for test cookie
         self.client.get(self.path)
@@ -344,6 +365,13 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         with self.feature("organizations:create"):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
+
+    def test_redirects_authenticated_user_to_custom_next_url(self):
+        self.user.update(is_superuser=False)
+        self.login_as(self.user)
+        resp = self.client.get(self.path + "?next=testserver")
+        assert resp.status_code == 302
+        assert resp.get("Location", "").endswith("testserver")
 
     def test_redirect_superuser(self):
         self.login_as(self.user, superuser=False)
