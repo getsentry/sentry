@@ -117,6 +117,7 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         return True
 
     def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+        # TODO: implement
         return super().delegate(proxy_path, headers, data)
 
     def get_function(self, *args, **kwargs):
@@ -127,6 +128,9 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
                 "function_name": "get_function",
             }
             response = self.get("/", data=payload)
-            return response
+            function_name = response["function_name"]
+            assert function_name == "get_function"
+            return_response = response["return_response"]
+            return return_response
         else:
             return self.client.get_function(*args, **kwargs)

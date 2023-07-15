@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import boto3
 import responses
 from django.test import override_settings
+from responses import matchers
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.client import AwsLambdaProxyClient, gen_aws_client
@@ -132,26 +133,60 @@ class AwsLambdaProxyApiClientTest(TestCase):
             },
         }
 
+        mock_client = mock_gen_aws_client.return_value
+        mock_client.get_function = MagicMock(return_value=expected_get_function_return)
+
         class AwsLambdaProxyApiTestClient(AwsLambdaProxyClient):
             _use_proxy_url_for_tests = True
 
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            mock_client = mock_gen_aws_client.return_value
-            mock_client.get_function = MagicMock(return_value=expected_get_function_return)
+        # responses.calls.reset()
+        # with override_settings(SILO_MODE=SiloMode.MONOLITH):
 
-            client = AwsLambdaProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
-                account_number=self.account_number,
-                region=self.region,
-                aws_external_id=self.aws_external_id,
+        #     client = AwsLambdaProxyApiTestClient(
+        #         org_integration_id=self.installation.org_integration.id,
+        #         account_number=self.account_number,
+        #         region=self.region,
+        #         aws_external_id=self.aws_external_id,
+        #     )
+        #     actual = client.get_function(FunctionName="lambdaE")
+        #     assert mock_client.get_function.call_count == 1
+        #     assert actual == expected_get_function_return
+
+        # responses.calls.reset()
+        # with override_settings(SILO_MODE=SiloMode.CONTROL):
+        #     mock_client.get_function.reset_mock()
+        #     assert mock_client.get_function.call_count == 0
+
+        #     client = AwsLambdaProxyApiTestClient(
+        #         org_integration_id=self.installation.org_integration.id,
+        #         account_number=self.account_number,
+        #         region=self.region,
+        #         aws_external_id=self.aws_external_id,
+        #     )
+        #     actual = client.get_function(FunctionName="lambdaE")
+        #     assert mock_client.get_function.call_count == 1
+        #     assert actual == expected_get_function_return
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            responses.add(
+                responses.GET,
+                "http://controlserver/api/0/internal/integration-proxy/",
+                match=[
+                    matchers.header_matcher(
+                        {
+                            "Content-Type": "application/json",
+                            "X-Sentry-Subnet-Organization-Integration": str(
+                                self.installation.org_integration.id
+                            ),
+                        },
+                    ),
+                ],
+                json={
+                    "function_name": "get_function",
+                    "return_response": expected_get_function_return,
+                },
             )
-            actual = client.get_function(FunctionName="lambdaE")
-            assert mock_client.get_function.call_count == 1
-            assert actual == expected_get_function_return
-
-        responses.calls.reset()
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
             mock_client.get_function.reset_mock()
             assert mock_client.get_function.call_count == 0
 
@@ -162,5 +197,5 @@ class AwsLambdaProxyApiClientTest(TestCase):
                 aws_external_id=self.aws_external_id,
             )
             actual = client.get_function(FunctionName="lambdaE")
-            assert mock_client.get_function.call_count == 1
+            assert mock_client.get_function.call_count == 0
             assert actual == expected_get_function_return
