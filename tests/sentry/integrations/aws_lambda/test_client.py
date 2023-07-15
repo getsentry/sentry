@@ -170,7 +170,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
             responses.add(
-                responses.GET,
+                responses.POST,
                 "http://controlserver/api/0/internal/integration-proxy/",
                 match=[
                     matchers.header_matcher(
@@ -181,10 +181,18 @@ class AwsLambdaProxyApiClientTest(TestCase):
                             ),
                         },
                     ),
+                    matchers.json_params_matcher(
+                        {
+                            "args": [],
+                            "function_name": "get_function",
+                            "kwargs": {"FunctionName": "lambdaE"},
+                        }
+                    ),
                 ],
                 json={
                     "function_name": "get_function",
                     "return_response": expected_get_function_return,
+                    "exception": None,
                 },
             )
             mock_client.get_function.reset_mock()

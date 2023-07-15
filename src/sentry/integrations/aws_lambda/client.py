@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import partial
 from typing import Any
 
 import boto3
@@ -147,8 +148,16 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
                 status=400,
             )
 
-    def get_function(self, *args, **kwargs):
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+    def __getattr__(self, func_name: str):
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+
+            def boto3_func(*args, **kwargs):
+                func = getattr(self.client, func_name)
+                return func(*args, **kwargs)
+
+            return boto3_func
+
+        def boto3_proxy_func(*args, **kwargs):
             # From the region silo, we create a request payload to the internal integration proxy endpoint.
             payload = {
                 "args": list(args),
@@ -166,5 +175,5 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
 
             return_response = response["return_response"]
             return return_response
-        else:
-            return self.client.get_function(*args, **kwargs)
+
+        return boto3_proxy_func
