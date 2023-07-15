@@ -127,7 +127,7 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
                 "kwargs": kwargs,
                 "function_name": "get_function",
             }
-            response = self.get("/", data=payload)
+            response = self.post("/", data=payload)
             function_name = response["function_name"]
             assert function_name == "get_function"
             return_response = response["return_response"]
