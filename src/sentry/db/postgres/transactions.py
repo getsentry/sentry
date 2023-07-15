@@ -5,7 +5,7 @@ import sys
 import threading
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connections, transaction
 
 
 @contextlib.contextmanager
@@ -85,12 +85,9 @@ def in_test_assert_no_transaction(msg: str):
     if "pytest" not in sys.argv[0] or not in_test_transaction_enforcement.enabled:
         return
 
-    from sentry.silo import SiloMode
     from sentry.testutils import hybrid_cloud
-    from sentry.testutils.silo import assume_test_silo_mode
 
-    with assume_test_silo_mode(SiloMode.MONOLITH):
-        for using in settings.DATABASES:  # type: ignore
-            assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
-                using
-            ), msg
+    for conn in connections.all():  # type: ignore
+        assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
+            connection=conn
+        ), msg
