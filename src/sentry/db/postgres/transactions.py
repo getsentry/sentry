@@ -85,9 +85,12 @@ def in_test_assert_no_transaction(msg: str):
     if "pytest" not in sys.argv[0] or not in_test_transaction_enforcement.enabled:
         return
 
+    from sentry.silo import SiloMode
     from sentry.testutils import hybrid_cloud
+    from sentry.testutils.silo import assume_test_silo_mode
 
-    for using in settings.DATABASES:  # type: ignore
-        assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
-            using
-        ), msg
+    with assume_test_silo_mode(SiloMode.MONOLITH):
+        for using in settings.DATABASES:  # type: ignore
+            assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
+                using
+            ), msg
