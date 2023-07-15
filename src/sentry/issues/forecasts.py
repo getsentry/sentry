@@ -6,18 +6,14 @@ import logging
 from datetime import datetime
 from typing import Sequence
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.issues.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.escalating_issues_alg import (
-    generate_issue_forecast,
-    looser_version,
-    standard_version,
-)
+from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
 from sentry.models import Group
 from sentry.tasks.base import instrumented_task
 
@@ -38,15 +34,7 @@ def save_forecast_per_group(
     for group_id, group_count in group_counts.items():
         group = group_dict.get(group_id)
         if group:
-            forecast_threshold_version = (
-                looser_version
-                if features.has(
-                    "organizations:escalating-issues-experiment-group", group.project.organization
-                )
-                else standard_version
-            )
-
-            forecasts = generate_issue_forecast(group_count, time, forecast_threshold_version)
+            forecasts = generate_issue_forecast(group_count, time, standard_version)
             forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
 
             escalating_group_forecast = EscalatingGroupForecast(

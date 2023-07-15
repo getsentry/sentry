@@ -1354,8 +1354,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable escalating forecast threshold a/b experiment
-    "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
