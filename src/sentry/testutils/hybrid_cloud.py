@@ -4,7 +4,19 @@ import contextlib
 import functools
 import threading
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypedDict,
+)
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -149,10 +161,85 @@ class SimulatedTransactionWatermarks(threading.local):
     ) -> bool:
         if connection is None:
             connection = transaction.get_connection(using)
-        return self.get_transaction_depth(connection) > self.state.get(connection.alias, 0)
+        return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
+
+    def connections_above_watermark(self) -> Set[str]:
+        result = set()
+        for connection in connections.all():
+            if self.connection_above_watermark(connection=connection):
+                result.add(connection.alias)
+        return result
 
 
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
+
+
+class EnforceNoCrossTransactionWrapper:
+    alias: str
+
+    def __init__(self, alias: str):
+        self.alias = alias
+
+    def __call__(self, execute: Callable[..., Any], *params: Any) -> Any:
+        open_transactions = simulated_transaction_watermarks.connections_above_watermark()
+        assert (
+            len(open_transactions) < 2
+        ), f"Found mixed open transactions between dbs {open_transactions}"
+        if open_transactions:
+            assert (
+                self.alias in open_transactions
+            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+
+        return execute(*params)
+
+
+@contextlib.contextmanager
+def enforce_no_cross_transaction_interactions():
+    with contextlib.ExitStack() as stack:
+        for conn in connections.all():
+            stack.enter_context(conn.execute_wrapper(EnforceNoCrossTransactionWrapper(conn.alias)))
+        yield
+
+
+class TransactionDetails(TypedDict):
+    transaction: str | None
+    queries: List[str]
+
+
+class TransactionDetailsWrapper:
+    result: List[TransactionDetails]
+    alias: str
+
+    def __init__(self, alias: str, result: List[TransactionDetails]):
+        self.result = result
+        self.alias = alias
+
+    def __call__(self, execute: Callable[..., Any], query: str, *args: Any) -> Any:
+        release = query.startswith("RELEASE")
+        savepoint = query.startswith("SAVEPOINT")
+        depth = simulated_transaction_watermarks.connection_above_watermark(using=self.alias)
+        active_transaction = self.alias if release or savepoint or depth else None
+        if (
+            (savepoint and depth == 0)
+            or not self.result
+            or self.result[-1]["transaction"] != active_transaction
+        ):
+            cur = {"transaction": active_transaction, "queries": []}
+            self.result.append(cur)
+        else:
+            cur = self.result[-1]
+        cur["queries"].append(query)
+        return execute(query, *args)
+
+
+@contextlib.contextmanager
+def collect_transaction_queries() -> contextlib.ContextManager[List[TransactionDetails]]:
+    result: List[TransactionDetails] = []
+
+    with contextlib.ExitStack() as stack:
+        for conn in connections.all():
+            stack.enter_context(conn.execute_wrapper(TransactionDetailsWrapper(conn.alias, result)))
+        yield result
 
 
 @contextlib.contextmanager

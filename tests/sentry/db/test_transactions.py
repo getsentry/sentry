@@ -1,17 +1,85 @@
 import pytest
-from django.db import transaction
+from django.db import IntegrityError, router, transaction
 
+from sentry.conf.server import env
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
+from sentry.models import Organization, User, outbox_context
 from sentry.testutils import TestCase, TransactionTestCase
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.factories import Factories
+from sentry.testutils.hybrid_cloud import collect_transaction_queries
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
 class CaseMixin:
+    def test_collect_transaction_queries(self):
+        with collect_transaction_queries() as queries, outbox_context(flush=False):
+            Organization.objects.filter(name="org1").first()
+            User.objects.filter(username="user1").first()
+
+            with transaction.atomic(using=router.db_for_write(Organization)):
+                try:
+                    with transaction.atomic(using=router.db_for_write(Organization)):
+                        Organization.objects.create(name=None)
+                except (IntegrityError, MaxSnowflakeRetryError):
+                    pass
+
+            with transaction.atomic(using=router.db_for_write(Organization)):
+                Organization.objects.create(name="org3")
+
+            with transaction.atomic(using=router.db_for_write(User)):
+                User.objects.create(username="user2")
+                User.objects.create(username="user3")
+
+        if env("SENTRY_USE_SPLIT_DBS", 0):
+            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
+        else:
+            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "default"]
+
+    def test_bad_transaction_boundaries(self):
+        if not env("SENTRY_USE_SPLIT_DBS", 0):
+            return
+
+        Factories.create_organization()
+        Factories.create_user()
+
+        with pytest.raises(AssertionError):
+            with transaction.atomic(using=router.db_for_write(User)):
+                Factories.create_organization()
+
+    def test_safe_transaction_boundaries(self):
+        Factories.create_organization()
+        Factories.create_user()
+
+        with transaction.atomic(using=router.db_for_write(Organization)):
+            Factories.create_organization()
+
+            with django_test_transaction_water_mark():
+                Factories.create_user()
+
+            with django_test_transaction_water_mark(), transaction.atomic(
+                using=router.db_for_write(User)
+            ):
+                Factories.create_user()
+
+                with django_test_transaction_water_mark():
+                    Factories.create_organization()
+
+                Factories.create_user()
+
+                with django_test_transaction_water_mark():
+                    Factories.create_organization()
+                    Factories.create_user()
+
+            Factories.create_organization()
+            with django_test_transaction_water_mark():
+                Factories.create_user()
+
     def test_in_test_assert_no_transaction(self):
         def do_assertions():
             in_test_assert_no_transaction("Not, in transaction, should not fail")
@@ -50,23 +118,39 @@ class CaseMixin:
             do_assertions()
 
 
-@all_silo_test(stable=True)
+@no_silo_test(stable=True)
 class TestDjangoTestCaseTransactions(CaseMixin, TestCase):
     pass
 
 
-@all_silo_test(stable=True)
+@no_silo_test(stable=True)
 class TestDjangoTransactionTestCaseTransactions(CaseMixin, TransactionTestCase):
-    pass
+    def test_collect_transaction_queries(self):
+        return
 
 
 class TestPytestDjangoDbAll(CaseMixin):
-    @all_silo_test(stable=True)
+    @no_silo_test(stable=True)
     @django_db_all
     def test_in_test_assert_no_transaction(self):
         super().test_in_test_assert_no_transaction()
 
-    @all_silo_test(stable=True)
+    @no_silo_test(stable=True)
     @django_db_all
     def test_transaction_on_commit(self):
         super().test_transaction_on_commit()
+
+    @no_silo_test(stable=True)
+    @django_db_all
+    def test_safe_transaction_boundaries(self):
+        super().test_safe_transaction_boundaries()
+
+    @no_silo_test(stable=True)
+    @django_db_all
+    def test_bad_transaction_boundaries(self):
+        super().test_bad_transaction_boundaries()
+
+    @no_silo_test(stable=True)
+    @django_db_all
+    def test_collect_transaction_queries(self):
+        super().test_collect_transaction_queries()

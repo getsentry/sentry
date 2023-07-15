@@ -244,6 +244,8 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
     fence_depth = 0
     for query in queries:
         sql = query["sql"]
+        if sql is None:
+            continue
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")

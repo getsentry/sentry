@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
@@ -24,7 +24,7 @@ class SnowflakeIdMixin:
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                with outbox_context(transaction.atomic()):
+                with outbox_context(transaction.atomic(using=router.db_for_write(type(self)))):
                     save_callback()
                 return
             except IntegrityError:
