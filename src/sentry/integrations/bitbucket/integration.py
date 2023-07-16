@@ -17,7 +17,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Integration
+from sentry.models import Integration, Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
@@ -59,6 +59,13 @@ FEATURES = [
         Link Sentry issues to existing Bitbucket issues
         """,
         IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
     ),
 ]
 
@@ -136,6 +143,9 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     def reinstall(self):
         self.reinstall_repositories()
 
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
 
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = "bitbucket"
@@ -143,7 +153,13 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}
