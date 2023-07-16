@@ -7,8 +7,10 @@ from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationPro
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
@@ -183,3 +185,130 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             {"identifier": "test/example", "name": "example", "default_branch": "main"},
             {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
         ]
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        path = "README.md"
+        version = "1234567"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+        )
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.example.org/Test-Organization/foo/blob/1234567/README.md"
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_no_org_integration(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).delete()
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self, get_jwt, _):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "12345678"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
+        )
+        installation = integration.get_installation(self.organization.id)
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.example.org/Test-Organization/foo/blob/master/README.md"
