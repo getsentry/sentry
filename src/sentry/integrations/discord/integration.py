@@ -66,11 +66,10 @@ class DiscordIntegration(IntegrationInstallation):
         client = self.get_client()
         try:
             client.leave_guild(str(self.model.external_id))
-        except ApiError as error:
-            if error.code == 404:
-                # We have already been removed from the guild
-                return
-            raise error
+        except ApiError:
+            # Most likely the bot has already been removed from the guild.
+            # In any case, we should just continue.
+            return
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
