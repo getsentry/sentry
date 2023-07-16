@@ -15,6 +15,7 @@ class ExternalProviders(ValueEqualityEnum):
     DISCORD = 140
     OPSGENIE = 150
     GITHUB = 200
+    GITHUB_ENTERPRISE = 201
     GITLAB = 210
 
     # TODO: do migration to delete this from database
@@ -57,6 +58,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
     ExternalProviders.OPSGENIE: ExternalProviderEnum.OPSGENIE.value,
     ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
+    ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
