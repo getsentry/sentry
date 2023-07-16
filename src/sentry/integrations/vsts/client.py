@@ -427,5 +427,6 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             params={
                 "path": path,
                 "api-version": "7.0",
+                "versionDescriptor.version": version,
             },
         )
