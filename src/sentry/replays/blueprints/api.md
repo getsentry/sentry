@@ -320,7 +320,7 @@ With download query argument.
 
   Content-Type application/octet-stream
 
-## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
+## Replay Tag Keys [/projects/\<organization_slug\>/\<project_slug\>/replays/tags/]
 
 ### Fetch Tag Keys [GET]
 
@@ -344,7 +344,7 @@ Retrieve a collection of tag keys associated with the replays dataset.
   ]
   ```
 
-## Replay Tag Values [/projects/<organization_slug>/<project_slug>/replays/tags/<key>/values/]
+## Replay Tag Values [/projects/<organization_slug>/<project_slug>/replays/tags/\<key\>/values/]
 
 ### Fetch Tag Values [GET]
 
@@ -374,7 +374,7 @@ Retrieve a collection of tag values associated with a tag key on the replays dat
   ]
   ```
 
-## Replay Click [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/clicks/]
+## Replay Click [/projects/\<organization_slug\>/\<project_slug\>/replays/\<replay_id\>/clicks/]
 
 Parameters:
 

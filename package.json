@@ -183,6 +183,7 @@
     "babel-jest": "^29.4.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "benchmark": "^2.1.4",
+    "docz": "^2.4.0",
     "eslint": "8.44.0",
     "eslint-config-sentry-app": "1.119.0",
     "html-webpack-plugin": "^5.5.0",
@@ -213,7 +214,8 @@
     "**/@sentry/core": "^7.59.0-beta.0",
     "**/@sentry/types": "^7.59.0-beta.0",
     "**/@sentry/utils": "^7.59.0-beta.0",
-    "**/ua-parser-js": "<=0.7.28"
+    "**/ua-parser-js": "<=0.7.28",
+    "remark-mdx": "1.6.22"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",

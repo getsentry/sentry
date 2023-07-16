@@ -1,6 +1,7 @@
 .env
 .cache/
 .coverage*
+.docz
 .DS_Store
 .venv
 *.egg-info
