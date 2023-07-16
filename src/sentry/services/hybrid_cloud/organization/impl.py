@@ -296,7 +296,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
-        return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
+        return flags_to_bits(
+            flags.sso__linked,
+            flags.sso__invalid,
+            flags.member_limit__restricted,
+            flags.idp__provisioned,
+            flags.idp__role_restricted,
+        )
 
     def add_organization_member(
         self,

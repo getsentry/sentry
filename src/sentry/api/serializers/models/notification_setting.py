@@ -1,3 +1,8 @@
+"""
+Deprecated.  Usage of notification_setting2 will be swapped in after a 3 step commit refactoring is done.  This
+implementation is being used currently but any new features implemented here will be removed once notification_setting2
+can be fully deployed.
+"""
 from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 

@@ -33,6 +33,9 @@ MONITOR_LIMIT = 10_000
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
 
+# Format to use in the issue subtitle for the missed check-in timestamp
+SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
+
 
 @instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
 def check_monitors(current_datetime=None):
@@ -90,7 +93,11 @@ def check_monitors(current_datetime=None):
             )
             monitor_environment.mark_failed(
                 reason=MonitorFailure.MISSED_CHECKIN,
-                occurrence_context={"expected_time": expected_time},
+                occurrence_context={
+                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+                    if expected_time
+                    else expected_time
+                },
             )
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
