@@ -11,7 +11,6 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
-import SourceMapsWizard from 'sentry/components/events/eventReplay/sourcemapsWizard';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -85,7 +84,6 @@ function GroupEventDetailsContent({
   return (
     <Fragment>
       <EventErrors event={event} project={project} isShare={false} />
-      <SourceMapsWizard />
       <EventCause
         project={project}
         eventId={event.id}

@@ -2,7 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import EmptyMessage from 'sentry/components/emptyMessage';
+import Panel from 'sentry/components/panels/panel';
+import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -42,14 +46,42 @@ export default function SourceMapsWizard() {
   }
 
   return (
-    <StyledOnboardingPanel>
-      <div>
-        <Heading>{t('Upload Source Maps')}</Heading>
-        <Content>
-          {t(
-            'Automatically upload your source maps to enable readable stack traces for errors.'
-          )}
-        </Content>
+    <Panel dashedBorder data-test-id="sourcemaps-wizard">
+      <EmptyMessage
+        size="large"
+        icon={<IconBroadcast size="xl" />}
+        title={t("Sentry isn't Sentry without source maps")}
+        description={t(
+          'Source maps are crucial for Sentry to de-minify yoiur stack traces. Send them automatically with the Sentry Wizard:'
+        )}
+        action={
+          <ButtonBar gap={1}>
+            <Button
+              onClick={() =>
+                trackAnalytics('issues.sourcemap_wizard_copy', {
+                  organization: organization.id,
+                })
+              }
+              priority="primary"
+              href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps"
+              external
+            >
+              {t('Learn More')}
+            </Button>
+            <Button
+              onClick={() => {
+                setIsHidden(true);
+                setHideUntilTime(DISMISS_TIME);
+                trackAnalytics('issues.sourcemap_wizard_dismiss', {
+                  organization: organization.id,
+                });
+              }}
+            >
+              {t('Dismiss')}
+            </Button>
+          </ButtonBar>
+        }
+      >
         <StyledCodeSnipped
           dark
           hideCopyButton={false}
@@ -62,50 +94,12 @@ export default function SourceMapsWizard() {
         >
           {wizardCommand}
         </StyledCodeSnipped>
-        <Button
-          size="sm"
-          onClick={() => {
-            setHideUntilTime(DISMISS_TIME);
-            setIsHidden(true);
-            trackAnalytics('issues.sourcemap_wizard_dismiss', {
-              organization: organization.id,
-            });
-          }}
-        >
-          {t('Dismiss')}
-        </Button>
-      </div>
-    </StyledOnboardingPanel>
+      </EmptyMessage>
+    </Panel>
   );
 }
 
-const StyledOnboardingPanel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  max-width: 600px;
-  border: 1px dashed ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(3)};
-  margin-bottom: ${space(3)};
-  margin-left: 30px;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: row;
-  }
-`;
-
-const Heading = styled('h3')`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
-`;
-
-const Content = styled('p')`
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const StyledCodeSnipped = styled(CodeSnippet)`
-  margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
