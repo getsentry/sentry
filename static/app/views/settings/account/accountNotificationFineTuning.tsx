@@ -19,7 +19,9 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'sentry/views/settings/account/notifications/fields';
-import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
+import NotificationSettingsByType, {
+  OrganizationSelectHeader,
+} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   getNotificationTypeFromPathname,
   groupByOrganization,
@@ -71,7 +73,6 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
     <Fragment>
       {data.map(({name, projects: projectFields}) => (
         <div key={name}>
-          <PanelHeader>{name}</PanelHeader>
           {projectFields.map(f => (
             <PanelBodyLineItem key={f.name}>
               <SelectField
@@ -135,12 +136,25 @@ type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
   fineTuneData: Record<string, any> | null;
   notifications: Record<string, any> | null;
+  organizationId: string;
   projects: Project[] | null;
 };
 
 class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      emails: [],
+      fineTuneData: null,
+      notifications: [],
+      projects: [],
+      organizationId: this.props.organizations[0].id,
+    };
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
+    const orgId = this.state?.organizationId || this.props.organizations[0].id;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints = [
       ['notifications', '/users/me/notifications/'],
@@ -148,7 +162,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     ];
 
     if (isGroupedByProject(fineTuneType)) {
-      endpoints.push(['projects', '/projects/']);
+      endpoints.push(['projects', `/projects/?organization_id=${orgId}`]);
     }
 
     endpoints.push(['emails', '/users/me/emails/']);
@@ -178,6 +192,14 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     );
   }
 
+  handleOrgChange = (option: {label: string; value: string}) => {
+    this.setState({organizationId: option.value});
+    const self = this;
+    setTimeout(() => {
+      self.reloadData();
+    }, 0);
+  };
+
   renderBody() {
     const {params} = this.props;
     const {fineTuneType: pathnameType} = params;
@@ -204,7 +226,6 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     if (!notifications || !fineTuneData) {
       return null;
     }
-
     return (
       <div>
         <SettingsPageHeader title={title} />
@@ -227,19 +248,25 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
             </Form>
           )}
         <Panel>
+          <PanelHeader hasButtons={isProject}>
+            {isProject ? (
+              <Fragment>
+                <OrganizationSelectHeader
+                  organizations={this.props.organizations}
+                  organizationId={this.state.organizationId}
+                  handleOrgChange={this.handleOrgChange}
+                />
+                {this.renderSearchInput({
+                  placeholder: t('Search Projects'),
+                  url,
+                  stateKey,
+                })}
+              </Fragment>
+            ) : (
+              <Heading>{t('Organizations')}</Heading>
+            )}
+          </PanelHeader>
           <PanelBody>
-            <PanelHeader hasButtons={isProject}>
-              <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
-              <div>
-                {isProject &&
-                  this.renderSearchInput({
-                    placeholder: t('Search Projects'),
-                    url,
-                    stateKey,
-                  })}
-              </div>
-            </PanelHeader>
-
             <Form
               saveOnBlur
               apiMethod="PUT"
@@ -271,4 +298,4 @@ const Heading = styled('div')`
   flex: 1;
 `;
 
-export default AccountNotificationFineTuning;
+export default withOrganizations(AccountNotificationFineTuning);
