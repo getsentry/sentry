@@ -66,6 +66,16 @@ class ContextIterator(Protocol):
         """
         ...
 
+    def set_current_state(self, state: DynamicSamplingLogState) -> None:
+        """
+        Sets the current iterator state.
+
+        If multiple iterators are used in a logical operation the state can be set
+        at the beginning of the iteration so the state can be passed from one iterator
+        to the next in order to measure the overall operation
+        """
+        ...
+
 
 class TimedIterator(Iterator[Any]):
     """
@@ -74,11 +84,28 @@ class TimedIterator(Iterator[Any]):
     It updates the task context with the current state of the inner iterator at each step
     """
 
-    def __init__(self, context: TaskContext, name: str, inner: ContextIterator):
+    def __init__(
+        self,
+        context: TaskContext,
+        inner: ContextIterator,
+        name: Optional[str] = None,
+        timer: Optional[Timer] = None,
+    ):
         self.context = context
-        self.iterator_execution_time = Timer()
-        self.name = name
         self.inner = inner
+
+        if name is None:
+            name = inner.__class__.__name__
+        self.name = name
+
+        if timer is None:
+            self.iterator_execution_time = Timer()
+        else:
+            self.iterator_execution_time = timer
+
+        # in case the iterator is part of a logical state spanning multiple instantiations
+        # pick up where you last left of
+        inner.set_current_state(context.get_function_state(name))
 
     def __iter__(self):
         return self
@@ -92,6 +119,18 @@ class TimedIterator(Iterator[Any]):
             state.execution_time = self.iterator_execution_time.current()
             self.context.set_function_state(self.name, state)
             return val
+
+    def get_current_state(self) -> DynamicSamplingLogState:
+        """
+        Make the TimedIterator a ContextIterator by forwarding to the inner iterator
+        """
+        return self.inner.get_current_state()
+
+    def set_current_state(self, state: DynamicSamplingLogState) -> None:
+        """
+        Make the TimedIterator a ContextIterator by forwarding to the inner iterator
+        """
+        self.inner.set_current_state(state)
 
 
 class GetActiveOrgs:
@@ -184,6 +223,9 @@ class GetActiveOrgs:
         """
         return self.log_state
 
+    def set_current_state(self, log_state: DynamicSamplingLogState):
+        self.log_state = log_state
+
     def _enough_results_cached(self):
         """
         Return true if we have enough data to return a full batch in the cache (i.e. last_result)
@@ -213,7 +255,7 @@ class GetActiveOrgs:
         for idx, (org_id, num_projects) in enumerate(self.last_result):
             count_projects += num_projects
             self.log_state.num_orgs += 1
-            self.log_state.num_orgs += num_projects
+            self.log_state.num_projects += num_projects
             if idx >= (self.max_orgs - 1) or (
                 self.max_projects is not None and count_projects >= self.max_projects
             ):

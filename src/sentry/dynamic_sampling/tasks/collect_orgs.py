@@ -25,7 +25,7 @@ def collect_orgs() -> None:
     if not enabled:
         return
 
-    context = TaskContext("sentry.dynamic_sampling.tasks.collect_orgs", MAX_SECONDS)
+    context = TaskContext("sentry.dynamic-sampling.tasks.collect_orgs", MAX_SECONDS)
     iterator_name = GetActiveOrgs.__name__
     try:
         for orgs in TimedIterator(
