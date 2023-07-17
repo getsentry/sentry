@@ -30,7 +30,7 @@ interface StatusCounts {
   unignored?: number;
 }
 
-type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
+export type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
 
 type Statuses = keyof Omit<StatusCounts, 'total'>;
 

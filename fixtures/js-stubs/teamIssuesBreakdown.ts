@@ -1,8 +1,9 @@
-export function TeamIssuesBreakdown() {
+import type {IssuesBreakdown} from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
+
+export function TeamIssuesBreakdown(): IssuesBreakdown {
   return {
     2: {
       '2021-11-19T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -12,7 +13,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-20T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -22,7 +22,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-21T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -32,7 +31,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-22T00:00:00+00:00': {
-        reviewed: 11,
         deleted: 11,
         ignored: 11,
         resolved: 11,
@@ -42,7 +40,6 @@ export function TeamIssuesBreakdown() {
         total: 11,
       },
       '2021-11-23T00:00:00+00:00': {
-        reviewed: 7,
         deleted: 7,
         ignored: 7,
         resolved: 7,
@@ -52,7 +49,6 @@ export function TeamIssuesBreakdown() {
         total: 20,
       },
       '2021-11-24T00:00:00+00:00': {
-        reviewed: 4,
         deleted: 4,
         ignored: 4,
         resolved: 4,
@@ -62,7 +58,6 @@ export function TeamIssuesBreakdown() {
         total: 10,
       },
       '2021-11-25T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -72,7 +67,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-26T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -82,7 +76,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-27T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -92,7 +85,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-28T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -102,7 +94,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-11-29T00:00:00+00:00': {
-        reviewed: 8,
         deleted: 8,
         ignored: 8,
         resolved: 8,
@@ -112,7 +103,6 @@ export function TeamIssuesBreakdown() {
         total: 8,
       },
       '2021-11-30T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -122,7 +112,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-01T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -132,7 +121,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-02T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -142,7 +130,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-03T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -152,7 +139,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-04T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -162,7 +148,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-05T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -172,7 +157,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-06T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -182,7 +166,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-07T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -192,7 +175,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-08T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -202,7 +184,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-09T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -212,7 +193,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-10T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -222,7 +202,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-11T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -232,7 +211,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-12T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -242,7 +220,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-13T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -252,7 +229,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-14T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -262,7 +238,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-15T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
@@ -272,7 +247,6 @@ export function TeamIssuesBreakdown() {
         total: 0,
       },
       '2021-12-16T00:00:00+00:00': {
-        reviewed: 0,
         deleted: 0,
         ignored: 0,
         resolved: 0,
