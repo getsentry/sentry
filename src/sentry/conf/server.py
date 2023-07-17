@@ -87,6 +87,10 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+# override the settings dumped in the debug view
+DEFAULT_EXCEPTION_REPORTER_FILTER = (
+    "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
+)
 
 ADMINS = ()
 
@@ -735,6 +739,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
+    "sentry.dynamic_sampling.tasks.collect_orgs",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1101,6 +1106,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "dynamic-sampling-collect-orgs": {
+        "task": "sentry.dynamic_sampling.tasks.collect_orgs",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1313,15 +1323,11 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute metric alerts feature
-    "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Use issue platform for crons issues
-    "organizations:crons-issue-platform": False,
     # Use new listing page for crons
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
@@ -1348,8 +1354,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable escalating forecast threshold a/b experiment
-    "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
@@ -1473,8 +1477,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable better priority sort algorithm.
-    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1619,6 +1621,8 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
+    # Enable updates to the stacktrace ui
+    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1630,7 +1634,7 @@ SENTRY_FEATURES = {
     # Enable project creation for all and puts organization into test group
     "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
-    "organizations:team-roles": False,
+    "organizations:team-roles": True,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team

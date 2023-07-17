@@ -16,6 +16,7 @@ from sentry.types.integrations import ExternalProviders
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): This should probably be a control silo model. We'd need to replace the actor reference with a team_id and user_id
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False

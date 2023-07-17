@@ -5,9 +5,8 @@
 
 from typing import Optional
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
@@ -19,6 +18,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
+from sentry.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -48,7 +48,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     outbox.save()
 
         try:
-            with outbox_context(transaction.atomic()):
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
                 existing = self._find_organization_member(
                     organization_id=organization_id,
                     organizationmember_id=organizationmember_id,
@@ -76,7 +78,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             if existing is None:
                 raise e
 
-            with outbox_context(transaction.atomic()):
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
                 apply_update(existing)
 
         return serialize_org_member_mapping(existing)
@@ -101,5 +105,5 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write():
                 org_member_map.delete()
