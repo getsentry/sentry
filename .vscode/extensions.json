@@ -8,6 +8,7 @@
     "dbaeumer.vscode-eslint",
     "lextudio.restructuredtext",
     "ziyasal.vscode-open-in-github",
-    "timonwong.shellcheck"
+    "timonwong.shellcheck",
+    "tyriar.sort-lines",
   ]
 }
