@@ -1,0 +1,75 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block css %}
+  <style>
+    ol li {
+      padding:10px 0px;
+    }
+    .code-list {
+      padding: 10px;
+      background-color: #f7f8f9;
+      margin-top: 10px;
+      border-radius: 3px;
+    }
+    .code-list li {
+      font-size: 90%;
+    }
+  </style>
+{% endblock %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Opsgenie Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+{% if form %}
+<h3>{% trans "Step 2: Connect Sentry with Opsgenie" %}</h3>
+  <p>{% trans "Add your Opsgenie credentials to Sentry." %}</p>
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="opsgenie" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <a class="btn btn-default" href="{% url "sentry-extension-setup" "opsgenie" %}?goback=1">{% trans "Back to instructions" %}</a>
+        <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
+      </div>
+    </fieldset>
+  </form>
+{% else %}
+<h3>{% trans "Step 1: Get a Management API Key" %}</h3>
+  <p>{% trans "To configure Opsgenie with Sentry, you will need an Opsgenie API key. You will need to be an account owner or admin for this step." %}</p>
+  <ol>
+    <li>{% trans "Navigate to Settings page of your Opsgenie app, then select 'API Key Management' under 'App Settings'." %} </li>
+    <li>{% trans "Select 'Add new API key'." %}</li>
+    <li>{% trans "In the resulting form, enter the following information:" %}
+      <ul class="list-unstyled code-list">
+        {% for val in setup_values %}
+          <li class="p-a-0">{{ val.label }}: {{ val.value }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li>{% trans "Copy the generated key. You'll need this for the next phase of setup." %}</li>
+    <li>{% trans "Click 'Add API key'." %}</li>
+  </ol>
+  <p class="alert alert-block flex">
+    <i class="icon icon-exclamation"></i>
+    {% trans "You must complete the above steps in Opsgenie to connect Opsgenie with Sentry." %}
+  </p>
+  <div class="form-actions clearfix">
+    <div class="pull-right">
+        <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

@@ -19,10 +19,34 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
 
+def test_multiprocessing_strategy():
+    # num_processes is the only argument that matters. Setting it to `>1` enables
+    # multi-processing.
+    factory = ProcessReplayRecordingStrategyFactory(
+        num_processes=2,
+        input_block_size=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        output_block_size=1,
+    )
+
+    # Assert the multi-processing step does not fail to initialize.
+    task = factory.create_with_partitions(lambda offsets, force: None, {})
+
+    # Clean up after ourselves by terminating the processing pool spawned by the above call.
+    task.terminate()
+
+
 class RecordingTestCaseMixin:
     @staticmethod
     def processing_factory():
-        return ProcessReplayRecordingStrategyFactory()
+        return ProcessReplayRecordingStrategyFactory(
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            output_block_size=1,
+        )
 
     def setUp(self):
         self.replay_id = uuid.uuid4().hex

@@ -4,8 +4,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock, newIssuesEndpointMock;
-  const {organization, router, routerContext} = initializeOrg({
+  let endpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
+
+  const {organization, router, project, routerContext} = initializeOrg({
     organization: {
       features: ['discover-basic'],
     },
@@ -31,6 +34,16 @@ describe('ProjectDetail > ProjectIssues', function () {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/?project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=14d`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/?environment=staging&project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=7d`,
+      body: {},
+    });
   });
 
   afterEach(function () {
@@ -43,19 +56,35 @@ describe('ProjectDetail > ProjectIssues', function () {
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <ProjectIssues
+        api={new MockApiClient()}
+        organization={organization}
+        location={router.location}
+        projectId={project.id}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
   it('renders a link to Issues', async function () {
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <ProjectIssues
+        api={new MockApiClient()}
+        organization={organization}
+        projectId={project.id}
+        location={router.location}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
@@ -73,10 +102,18 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a segmented control', async function () {
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <ProjectIssues
+        api={new MockApiClient()}
+        organization={organization}
+        location={router.location}
+        projectId={project.id}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     // "Unhandled" segment is selected
     const unhandledSegment = screen.getByRole('radio', {name: 'Unhandled 0'});
@@ -95,10 +132,18 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', async function () {
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <ProjectIssues
+        api={new MockApiClient()}
+        organization={organization}
+        location={router.location}
+        projectId={project.id}
+      />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     const link = screen.getByLabelText('Open in Discover');
     expect(link).toBeInTheDocument();
@@ -121,7 +166,10 @@ describe('ProjectDetail > ProjectIssues', function () {
     render(
       <ProjectIssues
         organization={organization}
+        api={new MockApiClient()}
+        projectId={project.id}
         location={{
+          ...router.location,
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
