@@ -112,9 +112,6 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
-        if not self.is_performance:
-            return None
-
         spec = self._on_demand_spec
 
         # TimeseriesQueryBuilder specific parameters
