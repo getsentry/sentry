@@ -19,7 +19,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
     TypedDict,
     Union,
     cast,
@@ -1895,7 +1894,7 @@ def _process_existing_aggregate(
     return bool(is_regression)
 
 
-Attachment = Type[CachedAttachment]
+Attachment = CachedAttachment
 
 
 def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
@@ -2139,7 +2138,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)  # type: ignore
+    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,
@@ -2250,8 +2249,7 @@ def _calculate_event_grouping(
             event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
             hashes = event.get_hashes()
 
-    # Using cast to satisfy mypy
-    hashes.write_to_event(cast(Dict[str, Any], event.data))
+    hashes.write_to_event(event.data)
     return hashes
 
 
