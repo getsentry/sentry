@@ -251,7 +251,7 @@ class OrganizationMember(Model):
     __org_roles_from_teams = None
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
@@ -587,7 +587,7 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
             self.approve_invite()
             self.save()
 
