@@ -56,7 +56,7 @@ export function ReplayCell({
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    pathname: `/replays/${replay.id}/`,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
