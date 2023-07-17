@@ -66,6 +66,12 @@ def make_filename(filename: str) -> str:
 def main():
     project_name = "Replay Test Project"
 
+    if not settings.SENTRY_FEATURES["organizations:session-replay"]:
+        click.echo(
+            'Session Replays is currently turned off! \nTo enable, add the following line to your local sentry.conf.py file: \nSENTRY_FEATURES["organizations:session-replay"] = True'
+        )
+        exit()
+
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
         click.echo(f"Mocking org {org.name}")
