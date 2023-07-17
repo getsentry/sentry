@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect} from 'react';
+import {useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -50,64 +50,17 @@ function CustomRepositories({
   isLoading,
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
+
+  useEffect(() => {
+    openDebugFileSourceDialog();
+  }, [location.query, appStoreConnectContext]);
+
   const orgSlug = organization.slug;
   const appStoreConnectSourcesQuantity = repositories.filter(
     repository => repository.type === CustomRepoType.APP_STORE_CONNECT
   ).length;
 
-  const handleCloseModal = useCallback(() => {
-    router.push({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
-    });
-  }, [location, router]);
-
-  const persistData = useCallback(
-    ({updatedItems, updatedItem, index, refresh}) => {
-      let items = updatedItems ?? [];
-
-      if (updatedItem && defined(index)) {
-        items = [...repositories];
-        items.splice(index, 1, updatedItem);
-      }
-
-      const {successMessage, errorMessage} = getRequestMessages(
-        items.length,
-        repositories.length
-      );
-
-      const symbolSources = JSON.stringify(items.map(expandKeys));
-
-      const promise: Promise<any> = api.requestPromise(
-        `/projects/${orgSlug}/${projSlug}/`,
-        {
-          method: 'PUT',
-          data: {symbolSources},
-        }
-      );
-
-      promise.catch(() => {
-        addErrorMessage(errorMessage);
-      });
-
-      promise.then(result => {
-        ProjectsStore.onUpdateSuccess(result);
-        addSuccessMessage(successMessage);
-
-        if (refresh) {
-          window.location.reload();
-        }
-      });
-
-      return promise;
-    },
-    [repositories, api, orgSlug, projSlug]
-  );
-
-  const openDebugFileSourceDialog = useCallback(() => {
+  function openDebugFileSourceDialog() {
     const {customRepository} = location.query;
 
     if (!customRepository) {
@@ -134,19 +87,66 @@ function CustomRepositories({
         persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
       onClose: handleCloseModal,
     });
-  }, [
-    appStoreConnectContext,
-    appStoreConnectSourcesQuantity,
-    handleCloseModal,
-    location.query,
-    organization,
-    persistData,
-    repositories,
-  ]);
+  }
 
-  useEffect(() => {
-    openDebugFileSourceDialog();
-  }, [openDebugFileSourceDialog]);
+  function persistData({
+    updatedItems,
+    updatedItem,
+    index,
+    refresh,
+  }: {
+    index?: number;
+    refresh?: boolean;
+    updatedItem?: CustomRepo;
+    updatedItems?: CustomRepo[];
+  }) {
+    let items = updatedItems ?? [];
+
+    if (updatedItem && defined(index)) {
+      items = [...repositories];
+      items.splice(index, 1, updatedItem);
+    }
+
+    const {successMessage, errorMessage} = getRequestMessages(
+      items.length,
+      repositories.length
+    );
+
+    const symbolSources = JSON.stringify(items.map(expandKeys));
+
+    const promise: Promise<any> = api.requestPromise(
+      `/projects/${orgSlug}/${projSlug}/`,
+      {
+        method: 'PUT',
+        data: {symbolSources},
+      }
+    );
+
+    promise.catch(() => {
+      addErrorMessage(errorMessage);
+    });
+
+    promise.then(result => {
+      ProjectsStore.onUpdateSuccess(result);
+      addSuccessMessage(successMessage);
+
+      if (refresh) {
+        window.location.reload();
+      }
+    });
+
+    return promise;
+  }
+
+  function handleCloseModal() {
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        customRepository: undefined,
+      },
+    });
+  }
 
   function handleAddRepository(repoType: CustomRepoType) {
     openDebugFileSourceModal({
