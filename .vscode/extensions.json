@@ -4,6 +4,7 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "ms-python.python",
+    "ms-python.black-formatter",
     "dbaeumer.vscode-eslint",
     "lextudio.restructuredtext",
     "ziyasal.vscode-open-in-github",
