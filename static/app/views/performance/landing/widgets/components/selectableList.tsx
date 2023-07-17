@@ -2,12 +2,17 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
   items: (() => React.ReactNode)[];
@@ -78,6 +83,40 @@ export function WidgetEmptyStateWarning() {
       <SecondaryMessage>
         {t(
           'Transactions may not be listed due to the filters above or a low sampling rate'
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function WidgetAddInstrumentationWarning() {
+  const pageFilters = usePageFilters();
+  const fullProjects = useProjects();
+
+  const projects = pageFilters.selection.projects;
+
+  const isMultiProject = getIsMultiProject(projects);
+
+  if (isMultiProject) {
+    return <WidgetEmptyStateWarning />;
+  }
+
+  const project = fullProjects.projects.find(p => p.id === '' + projects[0]);
+  const url = getConfigureIntegrationsDocsLink(project);
+
+  if (!url) {
+    return <WidgetEmptyStateWarning />;
+  }
+
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'No transactions with Database or HTTP spans found, you may need to [added].',
+          {
+            added: <ExternalLink href={url}>{t('add integrations')}</ExternalLink>,
+          }
         )}
       </SecondaryMessage>
     </StyledEmptyStateWarning>
