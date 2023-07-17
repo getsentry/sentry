@@ -1,9 +1,12 @@
 from unittest.mock import MagicMock, patch
 
+import responses
 from django.test import override_settings
+from responses import matchers
 
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
+from sentry.silo.base import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -265,32 +268,92 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
         )
 
+    @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
     def test_disable_node(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
-        mock_client.get_function = MagicMock(
-            return_value={
-                "Configuration": {
-                    "FunctionName": "lambdaD",
-                    "Runtime": "nodejs10.x",
-                    "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaD",
-                    "Layers": [
-                        {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
-                        {"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-layer:3"},
-                    ],
-                    "Environment": {
-                        "Variables": {
-                            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-                            "SENTRY_DSN": self.sentry_dsn,
-                            "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                            "OTHER": "hi",
-                        }
-                    },
+        get_function_response = {
+            "Configuration": {
+                "FunctionName": "lambdaD",
+                "Runtime": "nodejs10.x",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaD",
+                "Layers": [
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                    {"Arn": "arn:aws:lambda:us-east-2:1234:layer:my-layer:3"},
+                ],
+                "Environment": {
+                    "Variables": {
+                        "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                        "SENTRY_DSN": self.sentry_dsn,
+                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                        "OTHER": "hi",
+                    }
                 },
-            }
-        )
+            },
+        }
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            responses.add(
+                responses.POST,
+                "http://controlserver/api/0/internal/integration-proxy/",
+                match=[
+                    matchers.header_matcher(
+                        {
+                            "Content-Type": "application/json",
+                            "X-Sentry-Subnet-Organization-Integration": str(
+                                self.org_integration.id
+                            ),
+                        },
+                    ),
+                    matchers.json_params_matcher(
+                        {
+                            "args": [],
+                            "function_name": "get_function",
+                            "kwargs": {
+                                "FunctionName": "lambdaD",
+                            },
+                        }
+                    ),
+                ],
+                json={
+                    "function_name": "get_function",
+                    "return_response": get_function_response,
+                    "exception": None,
+                },
+            )
+            responses.add(
+                responses.POST,
+                "http://controlserver/api/0/internal/integration-proxy/",
+                match=[
+                    matchers.header_matcher(
+                        {
+                            "Content-Type": "application/json",
+                            "X-Sentry-Subnet-Organization-Integration": str(
+                                self.org_integration.id
+                            ),
+                        },
+                    ),
+                    matchers.json_params_matcher(
+                        {
+                            "args": [],
+                            "function_name": "update_function_configuration",
+                            "kwargs": {
+                                "Environment": {"Variables": {"OTHER": "hi"}},
+                                "FunctionName": "lambdaD",
+                                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+                            },
+                        }
+                    ),
+                ],
+                json={
+                    "function_name": "update_function_configuration",
+                    "return_response": get_function_response,
+                    "exception": None,
+                },
+            )
+
+        mock_client.get_function = MagicMock()
         mock_client.update_function_configuration = MagicMock()
         return_value = {
             "name": "lambdaD",
@@ -302,14 +365,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         mock_get_serialized_lambda_function.return_value = return_value
 
         assert self.get_response(action="disable", target="lambdaD").data == return_value
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert mock_client.get_function.call_count == 0
+            assert mock_client.update_function_configuration.call_count == 0
+        else:
+            mock_client.get_function.assert_called_with(FunctionName="lambdaD")
 
-        mock_client.get_function.assert_called_with(FunctionName="lambdaD")
-
-        mock_client.update_function_configuration.assert_called_with(
-            FunctionName="lambdaD",
-            Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-            Environment={"Variables": {"OTHER": "hi"}},
-        )
+            mock_client.update_function_configuration.assert_called_with(
+                FunctionName="lambdaD",
+                Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+                Environment={"Variables": {"OTHER": "hi"}},
+            )
 
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
