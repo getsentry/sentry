@@ -542,7 +542,7 @@ class FlatFileIndexTest(FlatFileTestCase):
 
 
 class FlatFileStoreTest(FlatFileTestCase):
-    def test_flat_file_roundtrip(self):
+    def test_flat_file_store_roundtrip(self):
         release = "1.0"
         dist = "android"
 
