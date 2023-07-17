@@ -1211,8 +1211,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         ga_2.update(team=self.team, user_id=None)
         self.run_test_query(
             f"assigned:[{self.user.username}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
+            [group_3],
+            [self.group1, self.group2],
         )
         self.run_test_query(
             f"assigned:[#{self.team.slug}, {other_user.username}]",
@@ -1222,8 +1222,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         self.run_test_query(
             f"assigned:[me, none, {other_user.username}]",
-            [self.group1, self.group2, group_3],
-            [],
+            [self.group1, group_3],
+            [self.group2],
         )
 
     def test_assigned_or_suggested_in_syntax(self):
