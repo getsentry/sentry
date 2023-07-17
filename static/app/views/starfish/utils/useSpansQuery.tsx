@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   encodeSort,
   EventsMetaType,
@@ -109,10 +109,12 @@ function useWrappedDiscoverTimeseriesQuery<T>({
     referrer,
   });
 
-  const data: T =
-    result.isLoading && initialData
-      ? initialData
-      : processDiscoverTimeseriesResult(result.data, eventView);
+  const isFetchingOrLoading = result.isLoading || result.isFetching;
+  const defaultData = initialData ?? undefined;
+
+  const data: T = isFetchingOrLoading
+    ? defaultData
+    : processDiscoverTimeseriesResult(result.data, eventView);
 
   return {
     ...result,
@@ -173,9 +175,15 @@ export function useWrappedDiscoverQuery<T>({
   };
 }
 
-type Interval = {[key: string]: any; interval: string; group?: string};
+type Interval = {interval: string; group?: string};
 
-function processDiscoverTimeseriesResult(result, eventView: EventView) {
+function processDiscoverTimeseriesResult(
+  result: TableData | undefined,
+  eventView: EventView
+) {
+  if (!result) {
+    return undefined;
+  }
   if (!eventView.yAxis) {
     return [];
   }
