@@ -117,12 +117,14 @@ def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) 
 def index_bundle_in_flat_file(
     artifact_bundle: ArtifactBundle, identifier: FlatFileIdentifier
 ) -> FlatFileIndexingState:
-    with ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=True) as archive:
+    with ArtifactBundleArchive(
+        artifact_bundle.file.getfile(), build_memory_map=True
+    ) as bundle_archive:
         identifiers = [identifier]
 
         # In case we have an identifier that is indexed by release and the bundle has debug ids, we want to perform
         # indexing on also the debug ids bundle.
-        if identifier.is_indexing_by_release() and archive.has_debug_ids():
+        if identifier.is_indexing_by_release() and bundle_archive.has_debug_ids():
             identifiers.append(identifier.to_indexing_by_debug_id())
 
         # Before starting, we have to make sure that no other identifiers are being indexed.
@@ -132,15 +134,25 @@ def index_bundle_in_flat_file(
         # For each identifier we now have to compute the index.
         for identifier in identifiers:
             try:
-                store = FlatFileIndexStore(identifier=identifier)
-                # We build the index from the json stored in memory. If it is not existing, we will
-                index = FlatFileIndex.from_json_if(json_index=store.load())
-                # We merge the index with the incoming bundle.
-                index.merge(
-                    artifact_bundle=artifact_bundle,
-                    archive=archive,
-                    index_urls=identifier.is_indexing_by_release(),
+                store = FlatFileIndexStore(identifier)
+                index = FlatFileIndex()
+
+                existing_json_index = store.load()
+                if existing_json_index is not None:
+                    # We build the index from the json stored in memory.
+                    index.from_json(existing_json_index)
+
+                bundle_meta = BundleMeta(
+                    id=artifact_bundle.id,
+                    # We give priority to the date last modified for total ordering.
+                    timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
                 )
+                # We merge the index based on the identifier type.
+                if identifier.is_indexing_by_release():
+                    index.merge_urls(bundle_meta, bundle_archive)
+                else:
+                    index.merge_debug_ids(bundle_meta, bundle_archive)
+
                 # We convert the index to a json representation.
                 new_json_index = index.to_json()
                 # We store the new index as json.
@@ -196,15 +208,7 @@ class FlatFileIndex:
         self._files_by_url: FilesByUrl = {}
         self._files_by_debug_id: FilesByDebugID = {}
 
-    @staticmethod
-    def from_json_if(json_index: Optional[str]) -> FlatFileIndex:
-        index = FlatFileIndex()
-        if json_index is not None:
-            index._from_json(json_index)
-
-        return index
-
-    def _from_json(self, json_index: str) -> None:
+    def from_json(self, json_index: str) -> None:
         flat_file_index = json.loads(json_index)
         self._deserialize_json_index(flat_file_index)
 
@@ -234,30 +238,41 @@ class FlatFileIndex:
 
         return deserialized_bundles
 
-    def merge(
-        self,
-        artifact_bundle: ArtifactBundle,
-        archive: ArtifactBundleArchive,
-        index_urls: bool = True,
-    ):
-        bundle_index = self._update_bundles(artifact_bundle)
+    def to_json(self) -> str:
+        pre_serialized_index: Dict[str, Any] = {
+            "bundles": self._serialize_bundles(),
+            "files_by_url": self._files_by_url,
+            "files_by_debug_id": self._files_by_debug_id,
+        }
+
+        return json.dumps(pre_serialized_index)
+
+    def _serialize_bundles(self) -> List[Dict[str, Union[int, str]]]:
+        serialized_bundles: List[Dict[str, Union[int, str]]] = []
+
+        for bundle in self._bundles:
+            serialized_bundles.append(
+                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
+            )
+
+        return serialized_bundles
+
+    def merge_urls(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
+        bundle_index = self._update_bundles(bundle_meta)
         if bundle_index is None:
             return
 
-        if index_urls:
-            self._iterate_over_urls(bundle_index, archive)
-        else:
-            self._iterate_over_debug_ids(bundle_index, archive)
+        self._iterate_over_urls(bundle_index, bundle_archive)
 
-    def _update_bundles(self, artifact_bundle: ArtifactBundle) -> Optional[int]:
-        if artifact_bundle.date_last_modified is None:
-            raise Exception("Can't index a bundle with no date last modified.")
+    def merge_debug_ids(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
+        bundle_index = self._update_bundles(bundle_meta)
+        if bundle_index is None:
+            return
 
-        bundle_meta = BundleMeta(
-            id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
-        )
+        self._iterate_over_debug_ids(bundle_index, bundle_archive)
 
-        index_and_bundle_meta = self._index_and_bundle_meta_for_id(artifact_bundle.id)
+    def _update_bundles(self, bundle_meta: BundleMeta) -> Optional[int]:
+        index_and_bundle_meta = self._index_and_bundle_meta_for_id(bundle_meta["id"])
         if index_and_bundle_meta is None:
             self._bundles.append(bundle_meta)
             return len(self._bundles) - 1
@@ -267,20 +282,25 @@ class FlatFileIndex:
         if found_bundle_meta == bundle_meta:
             return None
         else:
+            # TODO: we can for sure optimize the case in which we update the date of a bundle that already exists by
+            #  just sorting the list again or doing a smarter shift in the list.
             self._bundles[found_bundle_index] = bundle_meta
             return found_bundle_index
 
-    def _iterate_over_debug_ids(self, bundle_index: int, archive: ArtifactBundleArchive):
-        for debug_id, _ in archive.get_all_debug_ids():
+    def _iterate_over_debug_ids(self, bundle_index: int, bundle_archive: ArtifactBundleArchive):
+        for debug_id, _ in bundle_archive.get_all_debug_ids():
             self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
-    def _iterate_over_urls(self, bundle_index: int, archive: ArtifactBundleArchive):
-        for url in archive.get_all_urls():
+    def _iterate_over_urls(self, bundle_index: int, bundle_archive: ArtifactBundleArchive):
+        for url in bundle_archive.get_all_urls():
             self._add_sorted_entry(self._files_by_url, url, bundle_index)
 
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
         entries.append(bundle_index)
+        # We need to remove duplicates, and we can do this by naively converting a list to a set and then again to a
+        # list.
+        entries = list(set(entries))
         # Symbolicator will consider the newest element the last element of the list.
         entries.sort(key=lambda index: self._bundles[index]["timestamp"])
         collection[key] = entries
@@ -320,25 +340,6 @@ class FlatFileIndex:
                 return index, bundle
 
         return None
-
-    def to_json(self) -> str:
-        pre_serialized_index: Dict[str, Any] = {
-            "bundles": self._serialize_bundles(),
-            "files_by_url": self._files_by_url,
-            "files_by_debug_id": self._files_by_debug_id,
-        }
-
-        return json.dumps(pre_serialized_index)
-
-    def _serialize_bundles(self) -> List[Dict[str, Union[int, str]]]:
-        serialized_bundles: List[Dict[str, Union[int, str]]] = []
-
-        for bundle in self._bundles:
-            serialized_bundles.append(
-                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
-            )
-
-        return serialized_bundles
 
 
 # ===== Indexing of Artifact Bundles =====

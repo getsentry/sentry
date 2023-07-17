@@ -14,7 +14,6 @@ from sentry.debug_files.artifact_bundles import (
     FlatFileIdentifier,
     FlatFileIndex,
     FlatFileIndexingState,
-    FlatFileIndexStore,
     get_redis_cluster_for_artifact_bundles,
     index_bundle_in_flat_file,
     set_flat_files_being_indexed_if_null,
@@ -293,9 +292,9 @@ class FlatFileIndexingTest(FlatFileTestCase):
             project_id=self.project.id, release_name="", dist_name=""
         )
 
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndex._build")
-    def test_index_bundle_in_flat_file_with_error(self, _build):
-        _build.side_effect = Exception
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndex.to_json")
+    def test_index_bundle_in_flat_file_with_error(self, to_json):
+        to_json.side_effect = Exception
 
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
         identifier = FlatFileIdentifier(project_id=self.project.id)
@@ -334,15 +333,7 @@ class FlatFileIndexingTest(FlatFileTestCase):
 
 @freeze_time("2023-07-13T10:00:00.000Z")
 class FlatFileIndexTest(FlatFileTestCase):
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
-    def test_flat_file_index_with_no_index_stored_and_release(self, flat_file_index_store):
-        flat_file_index_store.load.return_value = {}
-        flat_file_index_store.identifier = FlatFileIdentifier(
-            project_id=self.project.id,
-            release="1.0",
-            dist="android",
-        )
-
+    def test_flat_file_index_with_no_index_stored_and_release(self):
         artifact_bundle = self.mock_artifact_bundle(
             {
                 "path/in/zip/foo": {
@@ -357,29 +348,21 @@ class FlatFileIndexTest(FlatFileTestCase):
                 },
             }
         )
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
-            assert flat_file_index is not None
-            flat_file_index.merge(artifact_bundle, archive)
-            flat_file_index.save()
 
-        flat_file_index_store.save.assert_called_once_with(
-            {
-                "bundles": [
-                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified)
-                ],
-                "files_by_url": {
-                    "~/path/to/app.js": [0],
-                    "~/path/to/other1.js": [0],
-                },
-            }
-        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
+            flat_file_index = FlatFileIndex()
+            bundle_meta = BundleMeta(
+                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+            )
+            flat_file_index.merge_urls(bundle_meta, bundle_archive)
 
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
-    def test_flat_file_index_with_no_index_stored_and_debug_ids(self, flat_file_index_store):
-        flat_file_index_store.load.return_value = {}
-        flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [{"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "files_by_url": {"~/path/to/app.js": [0], "~/path/to/other1.js": [0]},
+            "files_by_debug_id": {},
+        }
 
+    def test_flat_file_index_with_no_index_stored_and_debug_ids(self):
         artifact_bundle = self.mock_artifact_bundle(
             {
                 "path/in/zip/foo": {
@@ -396,36 +379,30 @@ class FlatFileIndexTest(FlatFileTestCase):
                 },
             }
         )
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
-            assert flat_file_index is not None
-            flat_file_index.merge(artifact_bundle, archive)
-            flat_file_index.save()
 
-        flat_file_index_store.save.assert_called_once_with(
-            {
-                "bundles": [
-                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified)
-                ],
-                "files_by_debug_id": {
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
-                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
-                },
-            }
-        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
+            flat_file_index = FlatFileIndex()
+            bundle_meta = BundleMeta(
+                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+            )
+            flat_file_index.merge_debug_ids(bundle_meta, bundle_archive)
 
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
-    def test_flat_file_index_with_index_stored_and_release(self, flat_file_index_store):
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [{"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "files_by_debug_id": {
+                "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
+            },
+            "files_by_url": {},
+        }
+
+    def test_flat_file_index_with_index_stored_and_release(self):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
-
-        flat_file_index_store.load.return_value = {
-            "bundles": [BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date)],
+        existing_json_index = {
+            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
             "files_by_url": {"~/path/to/app.js": [0]},
         }
-        flat_file_index_store.identifier = FlatFileIdentifier(
-            project_id=self.project.id, release="1.0", dist="android"
-        )
 
         artifact_bundle = self.mock_artifact_bundle(
             {
@@ -441,35 +418,31 @@ class FlatFileIndexTest(FlatFileTestCase):
                 },
             }
         )
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
-            assert flat_file_index is not None
-            flat_file_index.merge(artifact_bundle, archive)
-            flat_file_index.save()
 
-        flat_file_index_store.save.assert_called_once_with(
-            {
-                "bundles": [
-                    BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date),
-                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
-                ],
-                "files_by_url": {
-                    "~/path/to/app.js": [0, 1],
-                    "~/path/to/other1.js": [1],
-                },
-            }
-        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
+            flat_file_index = FlatFileIndex()
+            flat_file_index.from_json(json.dumps(existing_json_index))
+            bundle_meta = BundleMeta(
+                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+            )
+            flat_file_index.merge_urls(bundle_meta, bundle_archive)
 
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
-    def test_flat_file_index_with_index_stored_and_debug_ids(self, flat_file_index_store):
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [
+                {"id": existing_bundle_id, "timestamp": "2023-07-13T09:00:00+00:00"},
+                {"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"},
+            ],
+            "files_by_debug_id": {},
+            "files_by_url": {"~/path/to/app.js": [0, 1], "~/path/to/other1.js": [1]},
+        }
+
+    def test_flat_file_index_with_index_stored_and_debug_ids(self):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
-
-        flat_file_index_store.load.return_value = {
-            "bundles": [BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date)],
+        existing_json_index = {
+            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
             "files_by_debug_id": {"f206e0e7-3d0c-41cb-bccc-11b716728e27": [0]},
         }
-        flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
 
         artifact_bundle = self.mock_artifact_bundle(
             {
@@ -487,33 +460,34 @@ class FlatFileIndexTest(FlatFileTestCase):
                 },
             }
         )
-        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
-            assert flat_file_index is not None
-            flat_file_index.merge(artifact_bundle, archive)
-            flat_file_index.save()
 
-        flat_file_index_store.save.assert_called_once_with(
-            {
-                "bundles": [
-                    BundleMeta(id=existing_bundle_id, timestamp=existing_bundle_date),
-                    BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
-                ],
-                "files_by_debug_id": {
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
-                    "016ac8b3-60cb-427f-829c-7f99c92a6a95": [1],
-                },
-            }
-        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
+            flat_file_index = FlatFileIndex()
+            flat_file_index.from_json(json.dumps(existing_json_index))
+            bundle_meta = BundleMeta(
+                id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
+            )
+            flat_file_index.merge_debug_ids(bundle_meta, bundle_archive)
 
-    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
-    def test_flat_file_index_remove_bundle(self, flat_file_index_store):
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [
+                {"id": existing_bundle_id, "timestamp": "2023-07-13T09:00:00+00:00"},
+                {"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"},
+            ],
+            "files_by_debug_id": {
+                "016ac8b3-60cb-427f-829c-7f99c92a6a95": [1],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
+            },
+            "files_by_url": {},
+        }
+
+    def test_flat_file_index_remove_bundle(self):
         now = timezone.now()
 
-        flat_file_index_store.load.return_value = {
+        existing_json_index = {
             "bundles": [
-                BundleMeta(id=1234, timestamp=now),
-                BundleMeta(id=5678, timestamp=now - timedelta(hours=1)),
+                {"id": 1234, "timestamp": now.isoformat()},
+                {"id": 1234, "timestamp": (now - timedelta(hours=1)).isoformat()},
             ],
             "files_by_debug_id": {
                 "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [1],
@@ -521,36 +495,16 @@ class FlatFileIndexTest(FlatFileTestCase):
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
             },
         }
-        flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
 
-        flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
-        assert flat_file_index is not None
+        flat_file_index = FlatFileIndex()
+        flat_file_index.from_json(json.dumps(existing_json_index))
         flat_file_index.remove(1234)
-        flat_file_index.save()
 
-        flat_file_index_store.save.assert_called_once_with(
-            {
-                "bundles": [
-                    BundleMeta(id=5678, timestamp=now - timedelta(hours=1)),
-                ],
-                "files_by_debug_id": {
-                    "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [0],
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
-                },
-            }
-        )
-
-
-class FlatFileStoreTest(FlatFileTestCase):
-    def test_flat_file_store_roundtrip(self):
-        release = "1.0"
-        dist = "android"
-
-        flat_file_index = self.mock_flat_file_index()
-
-        identifier = FlatFileIdentifier(project_id=self.project.id, release=release, dist=dist)
-        store = FlatFileIndexStore(identifier)
-        store.save(flat_file_index)
-
-        result = store.load()
-        assert result == flat_file_index
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [{"id": 1234, "timestamp": "2023-07-13T09:00:00+00:00"}],
+            "files_by_debug_id": {
+                "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [0],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
+            },
+            "files_by_url": {},
+        }
