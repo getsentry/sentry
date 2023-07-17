@@ -4,7 +4,7 @@ from sentry.signals import pending_delete
 from ..base import ModelDeletionTask, ModelRelation
 
 
-def get_repository_child_relations(instance):
+def _get_repository_child_relations(instance):
     from sentry.models import Commit, PullRequest, RepositoryProjectPathConfig
 
     return [
@@ -22,7 +22,7 @@ class RepositoryDeletionTask(ModelDeletionTask):
         return instance.status in {ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS}
 
     def get_child_relations(self, instance):
-        return get_repository_child_relations(instance)
+        return _get_repository_child_relations(instance)
 
     def delete_instance(self, instance):
         # TODO child_relations should also send pending_delete so we

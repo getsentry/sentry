@@ -102,21 +102,21 @@ class Repository(Model, PendingDeletionMixin):
             return
 
         from sentry.deletions import default_manager
-        from sentry.deletions.base import delete_children
-        from sentry.deletions.defaults.repository import get_repository_child_relations
+        from sentry.deletions.base import _delete_children
+        from sentry.deletions.defaults.repository import _get_repository_child_relations
 
         has_more = True
 
         while has_more:
             # get child relations
-            child_relations = get_repository_child_relations(self)
+            child_relations = _get_repository_child_relations(self)
             # extend relations
             child_relations = child_relations + [
                 rel(self) for rel in default_manager.dependencies[Repository]
             ]
             # no need to filter relations; delete them
             if child_relations:
-                has_more = delete_children(manager=default_manager, relations=child_relations)
+                has_more = _delete_children(manager=default_manager, relations=child_relations)
 
 
 def on_delete(instance, actor: RpcUser | None = None, **kwargs):

@@ -8,7 +8,7 @@ from sentry.utils.query import bulk_delete_objects
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
-def delete_children(manager, relations, transaction_id=None, actor_id=None):
+def _delete_children(manager, relations, transaction_id=None, actor_id=None):
     # Ideally this runs through the deletion manager
     for relation in relations:
         task = manager.get(
@@ -147,7 +147,7 @@ class BaseDeletionTask:
             self.delete_instance(instance)
 
     def delete_children(self, relations):
-        return delete_children(self.manager, relations, self.transaction_id, self.actor_id)
+        return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
     def mark_deletion_in_progress(self, instance_list):
         pass
