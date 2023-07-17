@@ -24,6 +24,11 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
     }
     const replayRecord = replay.getReplay();
     const allErrors = replay.getErrorFrames();
+
+    // BUG(replay): This will often report the discrepancy between errors
+    // accociated with the replay, and errors the replay knows about.
+    // ie: When an error is filtered server-side, it would cound as a replay with 1
+    // backend error.
     const feErrorIds = replayRecord.error_ids || [];
     const beErrorCount = allErrors.filter(
       error => !feErrorIds.includes(error.data.eventId)
