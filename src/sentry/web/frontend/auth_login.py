@@ -166,7 +166,7 @@ class AuthLoginView(BaseView):
         """
         context = self.get_default_context(request=request)
 
-        register_form = self.get_register_form(
+        register_form = self.initialize_register_form(
             request=request, initial={"username": request.session.get("invite_email", "")}
         )
         context.update(
@@ -247,7 +247,7 @@ class AuthLoginView(BaseView):
         """
         context = self.get_default_context(request=request, **kwargs)
 
-        register_form = self.get_register_form(
+        register_form = self.initialize_register_form(
             request=request, initial={"username": request.session.get("invite_email", "")}
         )
         if register_form.is_valid():
@@ -266,7 +266,7 @@ class AuthLoginView(BaseView):
             )
             return self.respond_login(request=request, context=context, **kwargs)
 
-    def get_register_form(self, request: Request, initial: dict) -> RegistrationForm:
+    def initialize_register_form(self, request: Request, initial: dict) -> RegistrationForm:
         """
         Extracts the register form from a request, then formats and returns it.
         """
@@ -574,7 +574,7 @@ class AuthLoginView(BaseView):
         # login_form either validated on post or renders form fields for GET
         login_form = self.get_login_form(request)
         if can_register:
-            register_form = self.get_register_form(
+            register_form = self.initialize_register_form(
                 request, initial={"username": request.session.get("invite_email", "")}
             )
         else:
