@@ -99,7 +99,7 @@ class SentryVisitor(ast.NodeVisitor):
             name = self.names_stack[-1].get(name, name)
 
         if name in S006_methods:
-            if len(node.args) == 0 or not any(k.arg == "using" for k in node.keywords):
+            if len(node.args) == 0 and not any(k.arg == "using" for k in node.keywords):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
 
         self.generic_visit(node)
