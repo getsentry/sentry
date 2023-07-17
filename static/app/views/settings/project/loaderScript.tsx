@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 
 import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -51,7 +51,7 @@ export function ProjectLoaderScript({project}: {project: Project}) {
   );
 
   return (
-    <div>
+    <Fragment>
       <SettingsPageHeader title={t('Loader Script')} />
 
       <TextBlock>
@@ -94,7 +94,7 @@ export function ProjectLoaderScript({project}: {project: Project}) {
           />
         );
       })}
-    </div>
+    </Fragment>
   );
 }
 
@@ -112,7 +112,8 @@ function LoaderItem({
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <div>{tct('Client Key: [name]', {name: projectKey.name})}</div>
+        {tct('Client Key: [name]', {name: projectKey.name})}
+
         <LinkButton
           to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
         >
