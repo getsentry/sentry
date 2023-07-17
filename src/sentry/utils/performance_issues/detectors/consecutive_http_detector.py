@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -16,6 +14,7 @@ from sentry.utils.safe import get_path
 from ..base import (
     DetectorType,
     PerformanceDetector,
+    does_overlap_previous_span,
     fingerprint_http_spans,
     get_duration_between_spans,
     get_notification_attachment_body,
@@ -128,12 +127,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_http_spans) == 0:
             return False
-
         last_span = self.consecutive_http_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
+        return does_overlap_previous_span(last_span, span)
 
     def _reset_variables(self) -> None:
         self.consecutive_http_spans = []

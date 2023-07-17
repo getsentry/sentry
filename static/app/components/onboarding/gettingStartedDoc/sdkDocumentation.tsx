@@ -26,8 +26,10 @@ export const migratedDocs = [
   'php-laravel',
   'go',
   'rust',
+  'minidump',
   'native',
   'native-qt',
+  'node',
 ];
 
 type SdkDocumentationProps = {
@@ -59,7 +61,9 @@ export function SdkDocumentation({
 
   const platformPath =
     platform?.type === 'framework'
-      ? platform?.id === 'native-qt'
+      ? platform.language === 'minidump'
+        ? `minidump/minidump`
+        : platform?.id === 'native-qt'
         ? `native/native-qt`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
