@@ -114,7 +114,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_better_priority(self):
+    def test_sort_by_priority(self):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -164,7 +164,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         }
 
         response = self.get_success_response(
-            sort="betterPriority",
+            sort="priority",
             query="is:unresolved",
             limit=25,
             start=iso_format(before_now(days=1)),
