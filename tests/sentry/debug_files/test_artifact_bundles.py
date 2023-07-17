@@ -203,9 +203,13 @@ class FlatFileTestCase(TestCase):
             project_id=self.project.id, release=release, dist=dist, file_contents=file_contents
         )
 
-    def mock_flat_file_index(self):
+    @staticmethod
+    def mock_flat_file_index():
         return {
-            "bundles": [{"1": 1234}, {"2": 5678}],
+            "bundles": [
+                BundleMeta(id=1, timestamp=timezone.now() - timedelta(hours=1)),
+                BundleMeta(id=2, timestamp=timezone.now()),
+            ],
             "files_by_url": {"~/app.js": [0], "~/main.js": [1, 0]},
         }
 
@@ -420,31 +424,15 @@ class FlatFileIndexTest(FlatFileTestCase):
 
 
 class FlatFileStoreTest(FlatFileTestCase):
-    def test_flat_file_store_load(self):
+    def test_flat_file_roundtrip(self):
         release = "1.0"
         dist = "android"
 
         flat_file_index = self.mock_flat_file_index()
-        file_contents = json.dumps(flat_file_index)
-        self.mock_artifact_bundle_flat_file_index(release, dist, file_contents)
 
         identifier = FlatFileIdentifier(project_id=self.project.id, release=release, dist=dist)
         store = FlatFileIndexStore(identifier)
-
-        result = store.load()
-
-        assert result == flat_file_index
-
-    def test_flat_file_store_save(self):
-        release = "1.0"
-        dist = "android"
-
-        identifier = FlatFileIdentifier(project_id=self.project.id, release=release, dist=dist)
-        store = FlatFileIndexStore(identifier)
-        flat_file_index = self.mock_flat_file_index()
-
         store.save(flat_file_index)
 
-        indexes = ArtifactBundleFlatFileIndex.objects.all()
-        assert len(indexes) == 1
-        assert indexes[0].load_flat_file_index() == flat_file_index
+        result = store.load()
+        assert result == flat_file_index

@@ -1,9 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.conf import settings
@@ -110,7 +121,7 @@ def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) 
 def index_bundle_in_flat_file(
     artifact_bundle: ArtifactBundle, identifier: FlatFileIdentifier
 ) -> FlatFileIndexingState:
-    with ArtifactBundleArchive(artifact_bundle.file.get_file(), build_memory_map=True) as archive:
+    with ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=True) as archive:
         identifiers = [identifier]
 
         # In case we have an identifier that is indexed by release and the bundle has debug ids, we want to perform
@@ -138,8 +149,7 @@ def index_bundle_in_flat_file(
     return FlatFileIndexingState.SUCCESS
 
 
-@dataclass(frozen=True)
-class BundleMeta:
+class BundleMeta(TypedDict):
     id: int
     timestamp: datetime
 
@@ -155,23 +165,85 @@ class FlatFileIndexStore:
 
     def load(self) -> Optional[Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]]:
         try:
-            index = ArtifactBundleFlatFileIndex.objects.get(
+            flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
                 project_id=self.identifier.project_id,
                 release_name=self.identifier.release,
                 dist_name=self.identifier.dist,
-            )
-            return index.load_flat_file_index()
+            ).load_flat_file_index()
+            return self._deserialize_json_index(flat_file_index)
         except ArtifactBundleFlatFileIndex.DoesNotExist:
             return None
 
-    def save(self, flat_file_index: Dict[str, Any]):
-        # TODO: possibly implement a better serialization mechanism.
+    @classmethod
+    def _deserialize_json_index(
+        cls, json_index: Dict[str, Any]
+    ) -> Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]:
+        deserialized_index = {}
+
+        if "bundles" in json_index:
+            deserialized_index["bundles"] = cls._deserialize_bundles(json_index["bundles"])
+
+        if "files_by_url" in json_index:
+            deserialized_index["files_by_url"] = json_index["files_by_url"]
+
+        if "files_by_debug_id" in json_index:
+            deserialized_index["files_by_debug_id"] = json_index["files_by_debug_id"]
+
+        return deserialized_index
+
+    @classmethod
+    def _deserialize_bundles(cls, bundles: List[Dict[str, Union[int, str]]]) -> Bundles:
+        deserialized_bundles: Bundles = []
+
+        for bundle in bundles:
+            bundle_id = bundle["id"]
+            bundle_timestamp = bundle["timestamp"]
+
+            deserialized_bundles.append(
+                BundleMeta(
+                    id=int(bundle_id), timestamp=datetime.fromisoformat(str(bundle_timestamp))
+                )
+            )
+
+        return deserialized_bundles
+
+    def save(self, flat_file_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]):
         ArtifactBundleFlatFileIndex.create_flat_file_index(
             project_id=self.identifier.project_id,
             release=self.identifier.release,
             dist=self.identifier.dist,
-            file_contents=json.dumps(flat_file_index),
+            file_contents=self._serialize_json_index(flat_file_index),
         )
+
+    @classmethod
+    def _serialize_json_index(
+        cls, flat_file_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]
+    ) -> str:
+        pre_serialized_index: Dict[str, Any] = {}
+
+        if "bundles" in flat_file_index:
+            pre_serialized_index["bundles"] = cls._serialize_bundles(
+                cast(Bundles, flat_file_index["bundles"])
+            )
+
+        if "files_by_url" in flat_file_index:
+            pre_serialized_index["files_by_url"] = flat_file_index["files_by_url"]
+
+        if "files_by_debug_id" in flat_file_index:
+            pre_serialized_index["files_by_debug_id"] = flat_file_index["files_by_debug_id"]
+
+        return json.dumps(pre_serialized_index)
+
+    @classmethod
+    def _serialize_bundles(cls, bundles: Bundles) -> List[Dict[str, Union[int, str]]]:
+        serialized_bundles: List[Dict[str, Union[int, str]]] = []
+
+        for bundle in bundles:
+            serialized_bundles.append(
+                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
+            )
+
+        return serialized_bundles
 
 
 T = TypeVar("T")
@@ -254,7 +326,7 @@ class FlatFileIndex:
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
         entries.append(bundle_index)
-        entries.sort(key=lambda index: self._bundles[index].timestamp, reverse=True)
+        entries.sort(key=lambda index: self._bundles[index]["timestamp"], reverse=True)
         collection[key] = entries
 
     def remove(self, artifact_bundle_id: int) -> bool:
@@ -299,7 +371,7 @@ class FlatFileIndex:
 
     def _index_of_bundle(self, artifact_bundle_id) -> Optional[int]:
         for index, bundle in enumerate(self._bundles):
-            if bundle.id == artifact_bundle_id:
+            if bundle["id"] == artifact_bundle_id:
                 return index
 
         return None
@@ -463,7 +535,8 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
-        # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
+        # We perform the condition check also before running the query, in order to reduce the amount of queries to
+        # the database.
         if date_added > threshold_date:
             continue
 

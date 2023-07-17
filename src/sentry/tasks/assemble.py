@@ -470,6 +470,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
 
+        # We don't allow an upload without debug ids and release.
+        if not self.archive.has_debug_ids() and not self.release:
+            raise AssembleArtifactsError(
+                "uploading a bundle without debug ids or release is prohibited"
+            )
+
         # We take a snapshot in time in order to have consistent values in the database.
         date_snapshot = timezone.now()
 
