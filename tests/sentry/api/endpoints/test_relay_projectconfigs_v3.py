@@ -138,7 +138,7 @@ def test_return_partial_config_if_in_cache(
     expected = {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
     }
-    assert expected == result
+    assert result == expected
 
 
 @django_db_all

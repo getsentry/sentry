@@ -77,6 +77,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         if request.GET.get("global") == "true":
             res["global"] = config.get_global_config()
+            metrics.incr("relay.project_configs.global.fetched")
 
         return Response(res, status=200)
 
