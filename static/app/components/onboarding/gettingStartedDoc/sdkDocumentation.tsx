@@ -28,6 +28,7 @@ export const migratedDocs = [
   'rust',
   'native',
   'native-qt',
+  'kotlin',
 ];
 
 type SdkDocumentationProps = {
