@@ -287,9 +287,11 @@ class FlatFileIndex:
 
         # If we don't find an index, we will silently not mutate the state, since it's initialized as empty.
         if loaded_index is not None:
-            self._bundles = loaded_index.get("bundles", [])  # type:ignore
-            self._files_by_url = loaded_index.get("files_by_url", {})  # type:ignore
-            self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})  # type:ignore
+            self._bundles = cast(Bundles, loaded_index.get("bundles", []))
+            self._files_by_url = cast(FilesByUrl, loaded_index.get("files_by_url", {}))
+            self._files_by_debug_id = cast(
+                FilesByDebugID, loaded_index.get("files_by_debug_id", {})
+            )
 
     def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
         try:

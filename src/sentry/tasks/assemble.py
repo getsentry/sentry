@@ -456,15 +456,17 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.archive.close()
 
     def post_assemble(self):
-        with metrics.timer("tasks.assemble.artifact_bundle"):
-            self._create_artifact_bundle()
-
-        # We want to run the new indexing together with the old one, just to measure its performance.
         if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
             with metrics.timer("tasks.assemble.artifact_bundle_new"):
                 self._create_artifact_bundle_new()
+        else:
+            with metrics.timer("tasks.assemble.artifact_bundle"):
+                self._create_artifact_bundle()
 
     def _create_artifact_bundle_new(self):
+        if not self.projects_ids:
+            raise AssembleArtifactsError("uploading a bundle requires at least a project")
+
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
         self.release = self.release or self.archive.manifest.get("release")

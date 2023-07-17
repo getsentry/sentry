@@ -2,6 +2,7 @@ import zipfile
 from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
+from typing import Any, Dict
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
@@ -219,7 +220,7 @@ class FlatFileTestCase(TestCase):
 
 class FlatFileIndexingTest(FlatFileTestCase):
     def mock_simple_artifact_bundle(self, with_debug_ids: bool = False):
-        manifest = {
+        manifest: Dict[str, Any] = {
             "path/in/zip/foo": {
                 "url": "~/app.js",
                 "type": "minified_source",
