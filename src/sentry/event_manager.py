@@ -647,7 +647,7 @@ class EventManager:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
 
-        metric_tags = {"from_relay": "_relay_processed" in job["data"]}
+        metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
         metrics.timing(
             "events.latency",
