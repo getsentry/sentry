@@ -352,17 +352,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     "exception": None,
                 },
             )
-
-        mock_client.get_function = MagicMock()
-        mock_client.update_function_configuration = MagicMock()
-        return_value = {
-            "name": "lambdaD",
-            "runtime": "nodejs10.x",
-            "version": -1,
-            "outOfDate": False,
-            "enabled": False,
-        }
-        mock_get_serialized_lambda_function.return_value = return_value
+        else:
+            mock_client.get_function = MagicMock(return_value=get_function_response)
+            mock_client.update_function_configuration = MagicMock()
+            return_value = {
+                "name": "lambdaD",
+                "runtime": "nodejs10.x",
+                "version": -1,
+                "outOfDate": False,
+                "enabled": False,
+            }
+            mock_get_serialized_lambda_function.return_value = return_value
 
         assert self.get_response(action="disable", target="lambdaD").data == return_value
         if SiloMode.get_current_mode() == SiloMode.REGION:
