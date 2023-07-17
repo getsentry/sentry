@@ -19,6 +19,7 @@ export const migratedDocs = [
   'javascript-nextjs',
   'javascript',
   'python-django',
+  'python-flask',
   'react-native',
   'java-spring-boot',
   'php',
@@ -61,6 +62,8 @@ export function SdkDocumentation({
     platform?.type === 'framework'
       ? platform.language === 'minidump'
         ? `minidump/minidump`
+        : platform?.id === 'native-qt'
+        ? `native/native-qt`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
