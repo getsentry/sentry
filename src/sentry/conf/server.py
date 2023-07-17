@@ -1622,7 +1622,7 @@ SENTRY_FEATURES = {
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable updates to the stacktrace ui
-    "organizations:issue-details-stacktrace-improvements": False,
+    "organizations:issue-details-stacktrace-changes": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
