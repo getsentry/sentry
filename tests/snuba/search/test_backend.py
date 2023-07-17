@@ -1075,7 +1075,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert GroupAssignee.objects.get(id=ga.id).user_id is None
 
         results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == {self.group2}
+        assert set(results) == set()
 
         # test when there should be no results
         other_user = self.create_user()
