@@ -108,8 +108,6 @@ npm install --save @sentry/node
   },
 ];
 
-export const nextSteps = [];
-
 export function GettingStartedWithExpress({dsn, ...props}: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
@@ -125,11 +123,7 @@ export function GettingStartedWithExpress({dsn, ...props}: ModuleProps) {
   }
 
   return (
-    <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
-      nextSteps={nextSteps}
-      {...props}
-    />
+    <Layout steps={steps({sentryInitContent: sentryInitContent.join('\n')})} {...props} />
   );
 }
 
