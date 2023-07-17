@@ -55,15 +55,8 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventtypes import (
-    CspEvent,
-    DefaultEvent,
-    ErrorEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    HpkpEvent,
-    TransactionEvent,
-)
+from sentry.eventtypes import EventType
+from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -1427,17 +1420,6 @@ def _get_event_user_impl(
         metrics_tags["cache_hit"] = "true"
 
     return euser
-
-
-EventType = Union[
-    DefaultEvent,
-    ErrorEvent,
-    CspEvent,
-    HpkpEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    TransactionEvent,
-]
 
 
 def get_event_type(data: Mapping[str, Any]) -> EventType:
