@@ -173,6 +173,11 @@ class StacktraceProcessor:
         """
         return False
 
+    def postproces_step(self, processed_frames, raw_frames, errors):
+        """Make any necessary adjustments after the full stacktrace has been processed, but before
+        it's returned."""
+        return (processed_frames, raw_frames, errors)
+
 
 def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
     """Finds all stacktraces in a given data blob and returns it
@@ -559,6 +564,12 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                     processing_task, stacktrace_info, processable_frames
                 )
                 if new_frames is not None:
+                    # Make any necessary list-minute adjustments. Note: This assumes
+                    # all frames use the same processor.
+                    new_frames, new_raw_frames, errors = processable_frames[
+                        0
+                    ].processor.postprocess_step(new_frames, new_raw_frames, errors)
+
                     stacktrace_info.stacktrace["frames"] = new_frames
                     changed = True
                     span.set_data("data_changed", True)
