@@ -33,7 +33,6 @@ import type {
   SpanFrame,
 } from 'sentry/utils/replays/types';
 import type {
-  MemorySpan,
   NetworkSpan,
   RecordingEvent,
   ReplayCrumb,
@@ -306,29 +305,8 @@ export default class ReplayReader {
   /*********************/
   /** OLD STUFF BELOW **/
   /*********************/
-  getCrumbsWithRRWebNodes = memoize(() =>
-    this.breadcrumbs.filter(
-      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
-    )
-  );
-
-  getUserActionCrumbs = memoize(() => {
-    const USER_ACTIONS = [
-      BreadcrumbType.ERROR,
-      BreadcrumbType.INIT,
-      BreadcrumbType.NAVIGATION,
-      BreadcrumbType.UI,
-      BreadcrumbType.USER,
-    ];
-    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-  });
-
   getConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
-  getIssueCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'issue')
   );
 
   getNonConsoleCrumbs = memoize(() =>
@@ -342,13 +320,7 @@ export default class ReplayReader {
   );
 
   getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
-
-  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
 }
-
-const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
-  return span.op === 'memory';
-};
 
 const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
   return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');

@@ -36,6 +36,7 @@ export function ActionSelector({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
+    referrer: 'api.starfish.get-span-actions',
   });
 
   const options = useHTTPActions
