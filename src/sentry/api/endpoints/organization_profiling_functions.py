@@ -112,7 +112,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             transform_alias_to_input_format=True,
         )
 
-        def get_event_stats(columns, query, params, _rollup, zerofill_results, _comparison_delta):
+        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
             chunks = [
@@ -129,7 +129,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     other=False,
                     query=query,
                     selected_columns=["project.id", "fingerprint"],
-                    timeseries_columns=columns,
+                    # It's possible to override the columns via
+                    # the `yAxis` qs. So we explicitly ignore the
+                    # columns, and hard code in the columns we want.
+                    timeseries_columns=[data["function"], "worst()"],
                     skip_tag_resolution=True,
                 )
                 for chunk in chunks
