@@ -89,3 +89,12 @@ from sentry.models import User
     assert errors == [
         "t.py:1:0: S005 Do not import models from sentry.models but the actual module",
     ]
+
+
+def test_S006():
+    S006_py = """
+"""
+    errors = _run(S006_py)
+    assert errors == [
+        "t.py:1:0: S005 Do not import models from sentry.models but the actual module",
+    ]
