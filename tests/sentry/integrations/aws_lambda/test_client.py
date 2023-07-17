@@ -4,10 +4,9 @@ from unittest.mock import MagicMock, patch
 import boto3
 import pytest
 import responses
-from django.test import RequestFactory, override_settings
+from django.test import override_settings
 from responses import matchers
 from rest_framework.decorators import api_view
-from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
