@@ -23,10 +23,10 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectTeam,
     Rule,
     ScheduledDeletion,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase

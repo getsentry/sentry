@@ -326,13 +326,13 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             Environment,
             EnvironmentProject,
             ExternalIssue,
-            ProjectTeam,
             RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
@@ -492,13 +492,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import (
-            EnvironmentProject,
-            ProjectOption,
-            ProjectOwnership,
-            ProjectTeam,
-            Rule,
-        )
+        from sentry.models import EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        from sentry.models.projectteam import ProjectTeam
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 

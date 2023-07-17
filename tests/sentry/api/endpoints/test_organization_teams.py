@@ -2,7 +2,8 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models.projectteam import ProjectTeam
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string

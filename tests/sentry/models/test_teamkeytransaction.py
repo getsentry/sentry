@@ -2,7 +2,7 @@ from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 from sentry.discover.models import TeamKeyTransaction, TeamKeyTransactionModelManager
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.helpers import Feature

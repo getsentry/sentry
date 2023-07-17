@@ -41,7 +41,8 @@ class TeamManager(BaseManager):
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
-        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project, ProjectTeam
+        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+        from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
             return []
@@ -230,10 +231,10 @@ class Team(Model, SnowflakeIdMixin):
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
-            ProjectTeam,
             ReleaseProject,
             ReleaseProjectEnvironment,
         )
+        from sentry.models.projectteam import ProjectTeam
 
         try:
             with transaction.atomic():

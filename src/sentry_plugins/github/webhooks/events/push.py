@@ -5,7 +5,8 @@ from django.db import IntegrityError, transaction
 from django.http import Http404
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Integration, Repository
+from sentry.models import Commit, CommitAuthor, Integration, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user.service import user_service

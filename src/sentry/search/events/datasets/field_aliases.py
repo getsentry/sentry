@@ -7,7 +7,7 @@ from snuba_sdk import AliasedExpression, Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
 from sentry.utils.numbers import format_grouped_length

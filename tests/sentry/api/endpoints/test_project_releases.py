@@ -10,7 +10,6 @@ from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
 from sentry.models import (
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -18,6 +17,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase

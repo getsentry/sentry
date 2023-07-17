@@ -38,11 +38,11 @@ from sentry.models import (
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationMemberTeam,
-    ProjectTeam,
     Team,
     TeamAvatar,
     User,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper

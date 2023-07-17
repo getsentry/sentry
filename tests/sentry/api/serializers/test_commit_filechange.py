@@ -1,7 +1,8 @@
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit, Repository
+from sentry.models import Commit, CommitAuthor, Release, ReleaseCommit, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.testutils import TestCase
 
 

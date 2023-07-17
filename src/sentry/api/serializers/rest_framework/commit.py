@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.list import ListField
-from sentry.models import CommitFileChange
+from sentry.models.commitfilechange import CommitFileChange
 
 
 class CommitPatchSetSerializer(serializers.Serializer):

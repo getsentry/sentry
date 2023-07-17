@@ -18,14 +18,8 @@ from sentry import options
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    Organization,
-    PullRequest,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,

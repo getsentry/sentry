@@ -17,7 +17,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
-from .commitfilechange import *  # NOQA
+from .commitfilechange import CommitFileChange  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
 from .dashboard_widget import *  # NOQA
@@ -82,7 +82,7 @@ from .projectkey import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
-from .projectteam import *  # NOQA
+from .projectteam import ProjectTeam  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA

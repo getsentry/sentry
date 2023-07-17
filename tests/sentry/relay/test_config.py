@@ -18,7 +18,8 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models import ProjectKey, ProjectTeam
+from sentry.models import ProjectKey
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.snuba.dataset import Dataset

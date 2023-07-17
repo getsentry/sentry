@@ -21,7 +21,6 @@ from sentry.models import (
     ApiToken,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -31,6 +30,7 @@ from sentry.models import (
     ReleaseStages,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
