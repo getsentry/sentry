@@ -1,5 +1,6 @@
 import pytest
 import responses
+from rest_framework.serializers import ValidationError
 
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models.integrations.integration import Integration
@@ -7,6 +8,13 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
+
+EXTERNAL_ID = "test-app"
+METADATA = {
+    "api_key": "1234-ABCD",
+    "base_url": "https://api.opsgenie.com/",
+    "domain_name": "test-app.app.opsgenie.com",
+}
 
 
 class OpsgenieIntegrationTest(IntegrationTestCase):
@@ -82,3 +90,40 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationError) as error:
             provider.get_account_info(base_url=bad_url, api_key=self.config["api_key"])
         assert str(error.value) == "Invalid URL provided."
+
+    @responses.activate
+    def test_update_config_valid(self):
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        )
+
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+        opsgenie_client = installation.get_client()
+
+        data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-5678"}]}
+        resp_data = {"data": {"id": "123-id", "name": "cool-team"}}
+        responses.add(
+            responses.GET, url=f"{opsgenie_client.base_url}/teams/cool-team", json=resp_data
+        )
+
+        installation.update_organization_config(data)
+        assert installation.get_config_data() == {
+            "team_table": [{"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}]
+        }
+
+    def test_update_config_invalid(self):
+        integration = Integration.objects.create(
+            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        )
+
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+        opsgenie_client = installation.get_client()
+
+        data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-bad"}]}
+        responses.add(responses.GET, url=f"{opsgenie_client.base_url}/teams/cool-team")
+        with pytest.raises(ValidationError) as error:
+            installation.update_organization_config(data)
+        assert error.value.detail[0].title() == "Invalid Integration Key."
+        assert installation.get_config_data() == {}
