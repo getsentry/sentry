@@ -150,6 +150,12 @@ export function SpanGroupBreakdown({
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
             }
             tooltipFormatterOptions={{
+              nameFormatter: name => {
+                if (name === 'db') {
+                  return 'database';
+                }
+                return name;
+              },
               valueFormatter: value =>
                 dataDisplayType === DataDisplayType.PERCENTAGE
                   ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
@@ -161,6 +167,12 @@ export function SpanGroupBreakdown({
                 selected: Object.keys(event.selected).filter(key => event.selected[key]),
                 toggled: event.name,
               });
+            }}
+            legendFormatter={(name: string) => {
+              if (name === 'db') {
+                return 'database';
+              }
+              return name;
             }}
           />
         </VisuallyCompleteWithData>

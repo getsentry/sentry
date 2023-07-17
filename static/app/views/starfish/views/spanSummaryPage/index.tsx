@@ -371,29 +371,24 @@ export default SpanSummaryPage;
 
 const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boolean) => {
   const module = extractRoute(location);
-  if (module === 'api') {
+  const spanOp = spanMeta[SPAN_OP];
+  if (spanOp?.startsWith('http') || module === 'api') {
     return title ? t('URL Request Summary') : t('URL Request');
   }
-  if (module === 'database') {
-    return title ? t('Query Summary') : t('Query');
+  if (spanOp === 'db.redis') {
+    return title ? t('Cache Query Summary') : t('Cache Query');
   }
-
-  const spanOp = spanMeta[SPAN_OP];
-  let label;
-  if (spanOp?.startsWith('http')) {
-    label = title ? t('URL Request Summary') : t('URL Request');
-  }
-  if (spanOp?.startsWith('db')) {
-    label = title ? t('Query Summary') : t('Query');
-  }
-  if (spanOp?.startsWith('serialize')) {
-    label = title ? t('Serializer Summary') : t('Serializer');
+  if (spanOp?.startsWith('db') || module === 'database') {
+    return title ? t('Database Query Summary') : t('Database Query');
   }
   if (spanOp?.startsWith('task')) {
-    label = title ? t('Task Summary') : t('Task');
+    return title ? t('Application Task Summary') : t('Application Task');
   }
-  if (!label) {
-    label = title ? t('Span Summary') : t('Span Description');
+  if (spanOp?.startsWith('serialize')) {
+    return title ? t('Serializer Summary') : t('Serializer');
   }
-  return label;
+  if (spanOp?.startsWith('middleware')) {
+    return title ? t('Middleware Summary') : t('Middleware');
+  }
+  return title ? t('Request Summary') : t('Request');
 };

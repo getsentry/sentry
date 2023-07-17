@@ -64,7 +64,7 @@ const getTitle = (spanCategory?: string) => {
     return t('Serializers');
   }
   if (spanCategory === 'middleware') {
-    return t('Middleware Tasks');
+    return t('Middleware Components/Calls');
   }
   if (spanCategory === 'app') {
     return t('Application Tasks');
