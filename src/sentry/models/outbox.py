@@ -107,6 +107,7 @@ class WebhookProviderIdentifier(IntEnum):
     VSTS = 6
     JIRA_SERVER = 7
     GITHUB_ENTERPRISE = 8
+    BITBUCKET_SERVER = 9
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -398,7 +399,8 @@ class ControlOutbox(OutboxBase):
 
     __repr__ = sane_repr(*coalesced_columns)
 
-    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+    @classmethod
+    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),

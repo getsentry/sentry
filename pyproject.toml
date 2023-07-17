@@ -643,7 +643,6 @@ module = [
     "sentry.migrations.0381_fix_org_slug_casing",
     "sentry.migrations.0407_recreate_perf_alert_subscriptions",
     "sentry.migrations.0418_add_actor_constraints",
-    "sentry.models",
     "sentry.models.actor",
     "sentry.models.apiapplication",
     "sentry.models.artifactbundle",
