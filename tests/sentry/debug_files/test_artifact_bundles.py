@@ -454,7 +454,7 @@ class FlatFileIndexTest(FlatFileTestCase):
                     BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
                 ],
                 "files_by_url": {
-                    "~/path/to/app.js": [1, 0],
+                    "~/path/to/app.js": [0, 1],
                     "~/path/to/other1.js": [1],
                 },
             }
@@ -500,7 +500,7 @@ class FlatFileIndexTest(FlatFileTestCase):
                     BundleMeta(id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified),
                 ],
                 "files_by_debug_id": {
-                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [1, 0],
+                    "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
                     "016ac8b3-60cb-427f-829c-7f99c92a6a95": [1],
                 },
             }
@@ -517,7 +517,7 @@ class FlatFileIndexTest(FlatFileTestCase):
             ],
             "files_by_debug_id": {
                 "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [1],
-                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [1, 0],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
             },
         }

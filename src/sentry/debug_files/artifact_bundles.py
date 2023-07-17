@@ -143,16 +143,17 @@ def index_bundle_in_flat_file(
 
         # For each identifier we now have to compute the index.
         for identifier in identifiers:
-            index = FlatFileIndex.build(FlatFileIndexStore(identifier))
-            if index is None:
-                return FlatFileIndexingState.ERROR
-
-            # Once the in-memory index is built, we can merge it with the incoming bundle.
-            if not index.merge(artifact_bundle, archive):
-                return FlatFileIndexingState.ERROR
-
-            # At the end we want to save the newly created index.
-            if not index.save():
+            try:
+                store = FlatFileIndexStore(identifier)
+                # We build the index given a store instance.
+                index = FlatFileIndex.build(store)
+                # Once the in-memory index is built, we can merge it with the incoming bundle.
+                index.merge(artifact_bundle, archive)
+                # At the end we want to save the newly created index.
+                index.save()
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 return FlatFileIndexingState.ERROR
 
     return FlatFileIndexingState.SUCCESS
@@ -271,16 +272,11 @@ class FlatFileIndex:
         self._files_by_debug_id: FilesByDebugID = {}
 
     @staticmethod
-    def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
+    def build(store: FlatFileIndexStore) -> FlatFileIndex:
         index = FlatFileIndex(store)
+        index._build()
 
-        try:
-            index._build()
-            return index
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("artifact_bundle_flat_file_indexing.error_when_building")
-            return None
+        return index
 
     def _build(self) -> None:
         loaded_index = self.store.load()
@@ -293,41 +289,36 @@ class FlatFileIndex:
                 FilesByDebugID, loaded_index.get("files_by_debug_id", {})
             )
 
-    def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
-        try:
-            # We want to index by url if the store has an identifier which is being indexed by release.
-            self._merge(artifact_bundle, archive, self.store.identifier.is_indexing_by_release())
-            return True
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("artifact_bundle_flat_file_indexing.error_when_merging")
-            return False
-
-    def _merge(
-        self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive, index_urls: bool
-    ):
+    def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
         bundle_index = self._update_bundles(artifact_bundle)
+        if bundle_index is None:
+            return
 
-        if index_urls:
+        if self.store.identifier.is_indexing_by_release():
             self._iterate_over_urls(bundle_index, archive)
         else:
             self._iterate_over_debug_ids(bundle_index, archive)
 
-    def _update_bundles(self, artifact_bundle: ArtifactBundle) -> int:
+    def _update_bundles(self, artifact_bundle: ArtifactBundle) -> Optional[int]:
         if artifact_bundle.date_last_modified is None:
-            raise Exception("Can't index a bundle with no date last modified")
+            raise Exception("Can't index a bundle with no date last modified.")
 
         bundle_meta = BundleMeta(
             id=artifact_bundle.id, timestamp=artifact_bundle.date_last_modified
         )
 
-        bundle_index = self._index_of_bundle(artifact_bundle.id)
-        if bundle_index is None:
+        index_and_bundle_meta = self._index_and_bundle_meta_for_id(artifact_bundle.id)
+        if index_and_bundle_meta is None:
             self._bundles.append(bundle_meta)
             return len(self._bundles) - 1
+
+        found_bundle_index, found_bundle_meta = index_and_bundle_meta
+        # In case the new bundle is exactly the same, we will not update, since it's unnecessary.
+        if found_bundle_meta == bundle_meta:
+            return None
         else:
-            self._bundles[bundle_index] = bundle_meta
-            return bundle_index
+            self._bundles[found_bundle_index] = bundle_meta
+            return found_bundle_index
 
     def _iterate_over_debug_ids(self, bundle_index: int, archive: ArtifactBundleArchive):
         for debug_id, _ in archive.get_all_debug_ids():
@@ -340,35 +331,29 @@ class FlatFileIndex:
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
         entries.append(bundle_index)
-        entries.sort(key=lambda index: self._bundles[index]["timestamp"], reverse=True)
+        # Symbolicator will consider the newest element the last element of the list.
+        entries.sort(key=lambda index: self._bundles[index]["timestamp"])
         collection[key] = entries
 
-    def remove(self, artifact_bundle_id: int) -> bool:
-        try:
-            self._remove(artifact_bundle_id)
-            return True
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("artifact_bundle_flat_file_indexing.error_when_removing_bundle")
-            return False
-
-    def _remove(self, artifact_bundle_id: int):
-        bundle_index = self._index_of_bundle(artifact_bundle_id)
-        if bundle_index is not None:
-            self._files_by_url = self._update_bundle_references(self._files_by_url, bundle_index)
-            self._files_by_debug_id = self._update_bundle_references(
-                self._files_by_debug_id, bundle_index
-            )
-            self._bundles.pop(bundle_index)
-        else:
+    def remove(self, artifact_bundle_id: int):
+        index_and_bundle_meta = self._index_and_bundle_meta_for_id(artifact_bundle_id)
+        if index_and_bundle_meta is None:
             raise Exception("The bundle you want do delete doesn't exist in the index.")
 
-    def _update_bundle_references(self, collection: Dict[T, List[int]], removed_bundle_index: int):
+        found_bundle_index, _ = index_and_bundle_meta
+        self._files_by_url = self._update_bundle_references(self._files_by_url, found_bundle_index)
+        self._files_by_debug_id = self._update_bundle_references(
+            self._files_by_debug_id, found_bundle_index
+        )
+        self._bundles.pop(found_bundle_index)
+
+    @staticmethod
+    def _update_bundle_references(collection: Dict[T, List[int]], removed_bundle_index: int):
         updated_collection: Dict[T, List[int]] = {}
 
         for key, indexes in collection.items():
             updated_indexes = [
-                self._compute_updated_index(index, removed_bundle_index)
+                index if index < removed_bundle_index else index - 1
                 for index in indexes
                 if index != removed_bundle_index
             ]
@@ -379,27 +364,14 @@ class FlatFileIndex:
 
         return updated_collection
 
-    @staticmethod
-    def _compute_updated_index(index: int, removed_bundle_index: int):
-        return index if index < removed_bundle_index else index - 1
-
-    def _index_of_bundle(self, artifact_bundle_id) -> Optional[int]:
+    def _index_and_bundle_meta_for_id(self, artifact_bundle_id) -> Optional[Tuple[int, BundleMeta]]:
         for index, bundle in enumerate(self._bundles):
             if bundle["id"] == artifact_bundle_id:
-                return index
+                return index, bundle
 
         return None
 
-    def save(self) -> bool:
-        try:
-            self._save()
-            return True
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr("artifact_bundle_flat_file_indexing.error_when_saving")
-            return False
-
-    def _save(self):
+    def save(self):
         result: Dict[str, Any] = {}
 
         if len(self._bundles) > 0:
