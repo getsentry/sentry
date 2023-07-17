@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
@@ -39,6 +41,10 @@ class AbstractServerlessTest(APITestCase):
 
 
 @region_silo_test(stable=True)
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
 class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
     method = "get"
 
@@ -162,6 +168,10 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
 
 
 @region_silo_test(stable=True)
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
 class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest):
     method = "post"
 
@@ -256,7 +266,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         )
 
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
     def test_disable_node(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
