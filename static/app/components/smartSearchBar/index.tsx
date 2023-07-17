@@ -71,6 +71,7 @@ import {
 import {
   addSpace,
   createSearchGroups,
+  escapeTagValue,
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
@@ -106,13 +107,6 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
-};
-
-const escapeValue = (value: string): string => {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${value.replace(/"/g, '\\"')}"`
-    : value;
 };
 
 export type ActionProps = {
@@ -1199,7 +1193,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState({noValueQuery});
 
       return values.map(value => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1215,11 +1209,27 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    (tag.values ?? [])
+  getPredefinedTagValues = (
+    tag: Tag,
+    query: string
+  ): AutocompleteGroup['searchItems'] => {
+    const groupOrValue = tag.values ?? [];
+
+    // Is an array of SearchGroup
+    if (groupOrValue.some(item => typeof item === 'object')) {
+      return (groupOrValue as SearchGroup[]).map(group => {
+        return {
+          ...group,
+          children: group.children?.filter(child => child.value?.includes(query)),
+        };
+      });
+    }
+
+    // Is an array of strings
+    return (groupOrValue as string[])
       .filter(value => value.includes(query))
       .map((value, i) => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1229,6 +1239,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             : false,
         };
       });
+  };
 
   /**
    * Get recent searches
@@ -1771,7 +1782,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
       trackAnalytics('search.key_autocompleted', {
         organization: this.props.organization,
         search_operator: replaceText,

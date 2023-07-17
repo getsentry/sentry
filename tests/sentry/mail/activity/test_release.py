@@ -9,8 +9,9 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import ActivityTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
@@ -56,7 +57,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user3,
+            user_id=self.user3.id,
             organization=self.org,
         )
 
@@ -64,7 +65,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user4,
+            user_id=self.user4.id,
             organization=self.org,
         )
 
@@ -73,7 +74,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user4,
+            user_id=self.user4.id,
         )
 
     def test_simple(self):
@@ -185,14 +186,15 @@ class ReleaseTestCase(ActivityTestCase):
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.DEPLOY,
                 NotificationSettingOptionValues.ALWAYS,
-                user=user6,
+                user_id=user6.id,
             )
-            release, deploy = self.another_release("b")
+
+        release, deploy = self.another_release("b")
 
         email = ReleaseActivityNotification(
             Activity(

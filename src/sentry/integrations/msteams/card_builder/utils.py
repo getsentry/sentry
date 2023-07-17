@@ -110,6 +110,18 @@ class IssueConstants:
 
     STOP_IGNORING = "Stop Ignoring"
 
+    ARCHIVE = "Archive"
+    ARCHIVE_INPUT_TITLE = "Archive until this happens again..."
+    ARCHIVE_INPUT_CHOICES = [
+        ("Archive forever", -1),
+        ("1 time", 1),
+        ("10 times", 10),
+        ("100 times", 100),
+        ("1,000 times", 1000),
+        ("10,000 times", 10000),
+    ]
+    STOP_ARCHIVE = "Unarchive"
+
     ASSIGN = "Assign"
     ASSIGN_INPUT_TITLE = "Assign to..."
     ASSIGN_INPUT_ID = "assignInput"

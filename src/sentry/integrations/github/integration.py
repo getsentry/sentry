@@ -7,7 +7,7 @@ from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -30,6 +30,9 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -111,6 +114,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
         return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
+
+        return False
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
@@ -304,6 +314,14 @@ class GitHubIntegrationProvider(IntegrationProvider):
                     "organization_id": organization.id,
                 }
             )
+
+        link_all_repos.apply_async(
+            kwargs={
+                "integration_key": self.key,
+                "integration_id": integration.id,
+                "organization_id": organization.id,
+            }
+        )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]

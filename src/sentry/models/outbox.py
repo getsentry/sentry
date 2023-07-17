@@ -26,10 +26,12 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.db.postgres.transactions import (
+    django_test_transaction_water_mark,
+    in_test_assert_no_transaction,
+)
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -50,6 +52,7 @@ class OutboxScope(IntEnum):
     INTEGRATION_SCOPE = 5
     APP_SCOPE = 6
     TEAM_SCOPE = 7
+    PROVISION_SCOPE = 8
 
     def __str__(self):
         return self.name
@@ -76,6 +79,9 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
+    ORGAUTHTOKEN_UPDATE = 16
+    PROVISION_ORGANIZATION = 17
+    PROVISION_SUBSCRIPTION = 18
 
     @classmethod
     def as_choices(cls):
@@ -97,6 +103,10 @@ class WebhookProviderIdentifier(IntEnum):
     JIRA = 2
     GITLAB = 3
     MSTEAMS = 4
+    BITBUCKET = 5
+    VSTS = 6
+    JIRA_SERVER = 7
+    GITHUB_ENTERPRISE = 8
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -198,7 +208,7 @@ class OutboxBase(Model):
 
     def save(self, **kwds: Any):
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard())
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
@@ -270,6 +280,9 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
+        in_test_assert_no_transaction(
+            "drain_shard should only be called outside of any active transaction!"
+        )
         # When we are flushing in a local context, we don't care about outboxes created concurrently --
         # at best our logic depends on previously created outboxes.
         latest_shard_row: OutboxBase | None = None
@@ -291,8 +304,8 @@ class OutboxBase(Model):
 
                 shard_row.process()
 
-            if _test_processing_barrier:
-                _test_processing_barrier.wait()
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
 
 
 # Outboxes bound from region silo -> control silo
@@ -385,7 +398,8 @@ class ControlOutbox(OutboxBase):
 
     __repr__ = sane_repr(*coalesced_columns)
 
-    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+    @classmethod
+    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
@@ -455,7 +469,6 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
-
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -468,7 +481,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres"), inner:
+        with unguarded_write(using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield
@@ -482,5 +495,5 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
             _outbox_context.flushing_enabled = original
 
 
-process_region_outbox = Signal(providing_args=["payload", "object_identifier"])
-process_control_outbox = Signal(providing_args=["payload", "region_name", "object_identifier"])
+process_region_outbox = Signal()  # ["payload", "object_identifier"]
+process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]

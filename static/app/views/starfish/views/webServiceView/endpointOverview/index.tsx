@@ -9,6 +9,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -31,10 +32,10 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -88,7 +89,6 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    projects: [1],
     fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
     dataset: DiscoverDatasets.METRICS,
     start: pageFilter.selection.datetime.start ?? undefined,
@@ -112,7 +112,10 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval={getInterval(pageFilter.selection.datetime, 'low')}
+        interval={getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        )}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
@@ -265,7 +268,7 @@ export default function EndpointOverview() {
   useSynchronizeCharts();
 
   return (
-    <StarfishPageFilterContainer>
+    <PageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -365,7 +368,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </StarfishPageFilterContainer>
+    </PageFiltersContainer>
   );
 }
 
@@ -382,7 +385,7 @@ function SpanMetricsTable({
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
       sort={{
-        field: 'time_spent_percentage()',
+        field: 'time_spent_percentage(local)',
         kind: 'desc',
       }}
       endpoint={transaction}

@@ -17,7 +17,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from rest_framework.request import Request
 
@@ -30,7 +30,9 @@ from sentry.auth.idpmigration import (
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
+from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId, Provider
+from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
@@ -997,3 +999,6 @@ def EnablePartnerSSO(provider_key, sentry_org, provider_config):
         event=audit_log.get_event_id("SSO_ENABLE"),
         data=provider_model.get_audit_log_data(),
     )
+
+
+CHANNEL_PROVIDER_MAP = {ChannelName.FLY_IO.value: FlyOAuth2Provider}

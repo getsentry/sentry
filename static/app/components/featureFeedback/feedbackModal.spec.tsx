@@ -19,7 +19,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import {TextField} from 'sentry/components/forms';
+import TextField from 'sentry/components/forms/fields/textField';
 import {RouteContext} from 'sentry/views/routeContext';
 
 function ComponentProviders({children}: {children: React.ReactNode}) {

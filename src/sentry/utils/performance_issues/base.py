@@ -15,6 +15,7 @@ from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceHTTPOverheadGroupType,
     PerformanceLargeHTTPPayloadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -34,13 +35,16 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
+    N_PLUS_ONE_API_CALLS_EXTENDED = "n_plus_one_api_calls_ext"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
+    CONSECUTIVE_HTTP_OP_EXTENDED = "consecutive_http_ext"
     LARGE_HTTP_PAYLOAD = "large_http_payload"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
+    HTTP_OVERHEAD = "http_overhead"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -49,13 +53,16 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
+    DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: PerformanceNPlusOneAPICallsGroupType,
     DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
     DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: PerformanceConsecutiveHTTPQueriesGroupType,
     DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
     DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
+    DetectorType.HTTP_OVERHEAD: PerformanceHTTPOverheadGroupType,
 }
 
 
@@ -73,6 +80,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
     DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
+    DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
 }
 
 
@@ -155,6 +163,12 @@ class PerformanceDetector(ABC):
     @classmethod
     def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         return True
+
+
+def does_overlap_previous_span(previous_span: Span, current_span: Span):
+    previous_span_ends = timedelta(seconds=previous_span.get("timestamp", 0))
+    current_span_begins = timedelta(seconds=current_span.get("start_timestamp", 0))
+    return previous_span_ends > current_span_begins
 
 
 def get_span_duration(span: Span) -> timedelta:

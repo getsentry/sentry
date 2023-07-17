@@ -10,11 +10,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -36,6 +36,11 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {
+  hasNonStandardMetricSearchFilters,
+  isOnDemandMetricAlert,
+  isValidOnDemandMetricAlert,
+} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
@@ -89,7 +94,7 @@ type Props = {
   sessionId?: string;
 } & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
-  } & AsyncComponent['props'];
+  } & DeprecatedAsyncComponent['props'];
 
 type State = {
   aggregate: string;
@@ -113,11 +118,31 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   uuid?: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
-class RuleFormContainer extends AsyncComponent<Props, State> {
+function determineAlertDataset(
+  org: Organization,
+  selectedDataset: Dataset,
+  query: string
+) {
+  if (!org.features.includes('on-demand-metrics-extraction')) {
+    return selectedDataset;
+  }
+
+  if (
+    hasNonStandardMetricSearchFilters(query) &&
+    selectedDataset === Dataset.TRANSACTIONS
+  ) {
+    // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
+    return Dataset.GENERIC_METRICS;
+  }
+
+  return selectedDataset;
+}
+
+class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
 
@@ -190,7 +215,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
@@ -500,6 +525,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState({query, isQueryValid});
   };
 
+  validateOnDemandMetricAlert() {
+    return isValidOnDemandMetricAlert(
+      this.state.dataset,
+      this.state.aggregate,
+      this.state.query
+    );
+  }
+
   handleSubmit = async (
     _data: Partial<MetricRule>,
     _onSubmitSuccess,
@@ -513,6 +546,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // Validate Triggers
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
+    const validOnDemandAlert = this.validateOnDemandMetricAlert();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -531,6 +565,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
+    if (!validOnDemandAlert) {
+      addErrorMessage(
+        t('%s is not supported for on-demand metric alerts', this.state.aggregate)
+      );
+      return;
+    }
+
     const {
       organization,
       rule,
@@ -542,7 +583,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {
       project,
       aggregate,
-      dataset,
       resolveThreshold,
       triggers,
       thresholdType,
@@ -579,6 +619,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
+      const dataset = determineAlertDataset(
+        organization,
+        this.state.dataset,
+        model.getTransformedData().query
+      );
+
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -595,7 +641,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           timeWindow,
           aggregate,
           ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
-          // Remove eventTypes as it is no longer requred for crash free
+          // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
           dataset,
         },
@@ -803,10 +849,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonType,
       isQueryValid,
     };
-
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
+        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>

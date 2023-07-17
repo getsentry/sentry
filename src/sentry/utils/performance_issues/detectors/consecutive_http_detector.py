@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event import is_event_from_browser_javascript_sdk
+from sentry.utils.performance_issues.detectors.utils import (
+    get_max_span_duration,
+    get_total_span_duration,
+)
 from sentry.utils.safe import get_path
 
 from ..base import (
     DetectorType,
     PerformanceDetector,
+    does_overlap_previous_span,
     fingerprint_http_spans,
     get_duration_between_spans,
     get_notification_attachment_body,
@@ -66,7 +69,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             for span in self.consecutive_http_spans
         )
 
-        exceeds_duration_between_spans_threshold = all(
+        subceeds_duration_between_spans_threshold = all(
             get_duration_between_spans(
                 self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
             )
@@ -77,7 +80,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if (
             exceeds_count_threshold
             and exceeds_span_duration_threshold
-            and exceeds_duration_between_spans_threshold
+            and subceeds_duration_between_spans_threshold
         ):
             self._store_performance_problem()
 
@@ -121,22 +124,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self._reset_variables()
 
-    def _sum_span_duration(self, spans: list[Span]) -> float:
-        "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0.0
-        for span in spans:
-            sum += get_span_duration(span).total_seconds() * 1000
-        return sum
-
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_http_spans) == 0:
             return False
-
         last_span = self.consecutive_http_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
+        return does_overlap_previous_span(last_span, span)
 
     def _reset_variables(self) -> None:
         self.consecutive_http_spans = []
@@ -174,3 +166,54 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
+
+
+class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
+    """
+    Detector goals:
+    - Extend Consecutive HTTP Span Detector to mimic detection using thresholds from
+    - Consecutive DB Queries Detector.
+    """
+
+    type = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+    settings_key = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+
+    def _validate_and_store_performance_problem(self):
+        exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
+            "consecutive_count_threshold"
+        )
+
+        exceeds_min_time_saved_duration = False
+        if self.consecutive_http_spans:
+            exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
+                "min_time_saved"
+            )
+
+        subceeds_duration_between_spans_threshold = all(
+            get_duration_between_spans(
+                self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
+            )
+            < self.settings.get("max_duration_between_spans")
+            for idx in range(1, len(self.consecutive_http_spans))
+        )
+
+        if (
+            exceeds_count_threshold
+            and subceeds_duration_between_spans_threshold
+            and exceeds_min_time_saved_duration
+        ):
+            self._store_performance_problem()
+
+    def _calculate_time_saved(self) -> float:
+        total_time = get_total_span_duration(self.consecutive_http_spans)
+        max_span_duration = get_max_span_duration(self.consecutive_http_spans)
+
+        return total_time - max_span_duration
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        # Only collecting metrics.
+        return False

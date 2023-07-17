@@ -262,21 +262,23 @@ function NativeFrame({
               </Package>
             </Tooltip>
           </div>
-          <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
-            <Tooltip
-              title={addressTooltip}
-              disabled={!(foundByStackScanning || inlineFrame)}
-              delay={tooltipDelay}
-            >
-              {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
-            </Tooltip>
-          </AddressCell>
+          <AddressCellWrapper>
+            <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
+              <Tooltip
+                title={addressTooltip}
+                disabled={!(foundByStackScanning || inlineFrame)}
+                delay={tooltipDelay}
+              >
+                {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
+              </Tooltip>
+            </AddressCell>
+          </AddressCellWrapper>
           <FunctionNameCell>
             {functionName ? (
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
             ) : (
               `<${t('unknown')}>`
-            )}
+            )}{' '}
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
@@ -337,6 +339,10 @@ function NativeFrame({
 }
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
+
+const AddressCellWrapper = styled('div')`
+  display: flex;
+`;
 
 const AddressCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

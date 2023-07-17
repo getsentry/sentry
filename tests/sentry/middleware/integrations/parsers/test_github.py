@@ -7,8 +7,10 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -44,12 +46,15 @@ class GithubRequestParserTest(TestCase):
 
         # No regions identified
         with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo, mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[]
         ):
             parser.get_response()
             assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
 
         # Regions found
         with mock.patch.object(
@@ -68,3 +73,21 @@ class GithubRequestParserTest(TestCase):
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration == self.integration
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_webhook_outbox_creation(self):
+        request = self.factory.post(
+            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        assert ControlOutbox.objects.count() == 0
+        with mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            parser.get_response()
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[self.region.name],
+            )

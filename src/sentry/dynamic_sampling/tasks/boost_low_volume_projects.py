@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence, Tuple
 
+from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
     Column,
     Condition,
@@ -31,22 +32,30 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
+    GetActiveOrgs,
+    TimedIterator,
+    TimeoutException,
     are_equal_with_epsilon,
-    get_active_orgs_with_projects_counts,
     get_adjusted_base_rate_from_cache_or_compute,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.logging import log_query_timeout, log_sample_rate_source
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.logging import (
+    log_sample_rate_source,
+    log_task_execution,
+    log_task_timeout,
+)
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -67,12 +76,29 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
-    for orgs in get_active_orgs_with_projects_counts():
-        for (
-            org_id,
-            projects_with_tx_count_and_rates,
-        ) in fetch_projects_with_total_root_transaction_count_and_rates(org_ids=orgs).items():
-            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
+    context = TaskContext("sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_SECONDS)
+    fetch_projects_timer = Timer()
+    iterator_name = GetActiveOrgs.__name__
+
+    try:
+        for orgs in TimedIterator(
+            context, iterator_name, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)
+        ):
+            for (
+                org_id,
+                projects_with_tx_count_and_rates,
+            ) in fetch_projects_with_total_root_transaction_count_and_rates(
+                context, fetch_projects_timer, org_ids=orgs
+            ).items():
+                boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
+    except TimeoutException:
+        set_extra("context-data", context.to_dict())
+        log_task_timeout(context)
+        raise
+    else:
+        set_extra("context-data", context.to_dict())
+        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_projects")
+        log_task_execution(context)
 
 
 @instrumented_task(
@@ -94,6 +120,8 @@ def boost_low_volume_projects_of_org(
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
+    context: TaskContext,
+    timer: Timer,
     org_ids: List[int],
     granularity: Optional[Granularity] = None,
     query_interval: Optional[timedelta] = None,
@@ -102,101 +130,113 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    if query_interval is None:
-        query_interval = timedelta(hours=1)
-        granularity = Granularity(3600)
+    function_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
+    with timer:
+        current_context = context.get_function_state(function_name)
+        current_context.num_iterations += 1
 
-    aggregated_projects = defaultdict(list)
-    start_time = time.time()
-    offset = 0
-    org_ids = list(org_ids)
-    transaction_string_id = indexer.resolve_shared_org("decision")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
-    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        if query_interval is None:
+            query_interval = timedelta(hours=1)
+            granularity = Granularity(3600)
 
-    where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.IN, org_ids),
-    ]
+        aggregated_projects = defaultdict(list)
+        offset = 0
+        org_ids = list(org_ids)
+        transaction_string_id = indexer.resolve_shared_org("decision")
+        transaction_tag = f"tags_raw[{transaction_string_id}]"
+        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
 
-    keep_count = Function(
-        "countIf",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "keep"],
-            )
-        ],
-        alias="keep_count",
-    )
-    drop_count = Function(
-        "countIf",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "drop"],
-            )
-        ],
-        alias="drop_count",
-    )
+        where = [
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("metric_id"), Op.EQ, metric_id),
+            Condition(Column("org_id"), Op.IN, org_ids),
+        ]
 
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], "root_count_value"),
-                    Column("org_id"),
-                    Column("project_id"),
-                    keep_count,
-                    drop_count,
-                ],
-                groupby=[Column("org_id"), Column("project_id")],
-                where=where,
-                granularity=granularity,
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                    OrderBy(Column("project_id"), Direction.ASC),
-                ],
-            )
-            .set_limitby(
-                LimitBy(
-                    columns=[Column("org_id"), Column("project_id")],
-                    count=MAX_TRANSACTIONS_PER_PROJECT,
+        keep_count = Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "keep"]),
+            ],
+            alias="keep_count",
+        )
+        drop_count = Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "drop"]),
+            ],
+            alias="drop_count",
+        )
+
+        while time.monotonic() < context.expiration_time:
+            query = (
+                Query(
+                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                    select=[
+                        Function("sum", [Column("value")], "root_count_value"),
+                        Column("org_id"),
+                        Column("project_id"),
+                        keep_count,
+                        drop_count,
+                    ],
+                    groupby=[Column("org_id"), Column("project_id")],
+                    where=where,
+                    granularity=granularity,
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                        OrderBy(Column("project_id"), Direction.ASC),
+                    ],
                 )
+                .set_limitby(
+                    LimitBy(
+                        columns=[Column("org_id"), Column("project_id")],
+                        count=MAX_TRANSACTIONS_PER_PROJECT,
+                    )
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(offset)
             )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-        )["data"]
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
-
-        if more_results:
-            data = data[:-1]
-
-        for row in data:
-            aggregated_projects[row["org_id"]].append(
-                (row["project_id"], row["root_count_value"], row["keep_count"], row["drop_count"])
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
             )
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            )["data"]
+            count = len(data)
+            more_results = count > CHUNK_SIZE
+            offset += CHUNK_SIZE
 
-        if not more_results:
-            break
-    else:
-        log_query_timeout(
-            query="fetch_projects_with_total_root_transaction_count_and_rates", offset=offset
-        )
+            if more_results:
+                data = data[:-1]
 
-    return aggregated_projects
+            for row in data:
+                aggregated_projects[row["org_id"]].append(
+                    (
+                        row["project_id"],
+                        row["root_count_value"],
+                        row["keep_count"],
+                        row["drop_count"],
+                    )
+                )
+                current_context.num_projects += 1
+
+            current_context.num_db_calls += 1
+            current_context.num_rows_total += count
+            current_context.num_orgs += len(aggregated_projects)
+            current_context.execution_time = timer.current()
+
+            context.set_function_state(function_name, current_context)
+
+            if not more_results:
+                break
+        else:
+            context.set_function_state(function_name, current_context)
+            raise TimeoutException(context)
+
+        return aggregated_projects
 
 
 def adjust_sample_rates_of_projects(

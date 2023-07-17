@@ -14,7 +14,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import {space} from 'sentry/styles/space';
 import {
@@ -44,8 +43,8 @@ import {
   useEnvironmentsFromUrl,
 } from '../utils';
 
-const IssuePriorityFeedback = HookOrDefault({
-  hookName: 'component:issue-priority-feedback',
+const EscalatingIssuesFeedback = HookOrDefault({
+  hookName: 'component:escalating-issues-banner-feedback',
 });
 
 export interface GroupEventDetailsProps
@@ -169,27 +168,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     return null;
   };
 
-  const renderReprocessedBox = () => {
-    if (
-      groupReprocessingStatus !== ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-      groupReprocessingStatus !== ReprocessingStatus.REPROCESSED_AND_HAS_EVENT
-    ) {
-      return null;
-    }
-
-    const {count, id: groupId} = group;
-    const groupCount = Number(count);
-
-    return (
-      <ReprocessedBox
-        reprocessActivity={mostRecentActivity as GroupActivityReprocess}
-        groupCount={groupCount}
-        groupId={groupId}
-        orgSlug={organization.slug}
-      />
-    );
-  };
-
   const renderContent = () => {
     if (loadingEvent) {
       return <LoadingIndicator />;
@@ -238,7 +216,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   return (
                     <StyledLayoutMain>
                       {renderGroupStatusBanner()}
-                      <IssuePriorityFeedback organization={organization} group={group} />
+                      <EscalatingIssuesFeedback
+                        organization={organization}
+                        group={group}
+                      />
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && (
                           <GroupEventHeader
@@ -247,7 +228,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                             project={project}
                           />
                         )}
-                        {renderReprocessedBox()}
                         {renderContent()}
                       </QuickTraceContext.Provider>
                     </StyledLayoutMain>

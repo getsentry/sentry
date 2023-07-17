@@ -2,13 +2,14 @@ import pytest
 from django.http import HttpResponse
 
 from fixtures.sudo_testutils import BaseTestCase
+from sentry.middleware.placeholder import placeholder_get_response
 from sudo.middleware import SudoMiddleware
 from sudo.settings import COOKIE_NAME
 from sudo.utils import grant_sudo_privileges, revoke_sudo_privileges
 
 
 class SudoMiddlewareTestCase(BaseTestCase):
-    middleware = SudoMiddleware()
+    middleware = SudoMiddleware(placeholder_get_response)
 
     def assertSignedCookieEqual(self, v1, v2, reason=None):
         value, _, _ = v1.split(":")

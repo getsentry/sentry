@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Form} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
@@ -18,21 +18,11 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-function validateSortOption({
-  sort,
-  organization,
-}: {
-  organization: Organization;
-  sort?: string;
-}) {
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
+function validateSortOption({sort}: {sort?: string}) {
   const sortOptions = [
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.BETTER_PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
@@ -58,7 +48,7 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({sort, organization}),
+    sort: validateSortOption({sort}),
     visibility: SavedSearchVisibility.OWNER,
   };
 

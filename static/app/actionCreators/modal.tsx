@@ -268,6 +268,16 @@ export async function openAddToDashboardModal(options) {
   });
 }
 
+export async function openImportDashboardFromFileModal(options) {
+  const mod = await import('sentry/components/modals/importDashboardFromFileModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
+}
+
 export async function openReprocessEventModal({
   onClose,
   ...options

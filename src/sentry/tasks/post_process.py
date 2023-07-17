@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -368,6 +369,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -1080,7 +1087,9 @@ def sdk_crash_monitoring(job: PostProcessJob):
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
-                event=event, event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID
+                event=event,
+                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
+                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
             )
 
 

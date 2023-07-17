@@ -20,11 +20,12 @@ from typing import (
 from urllib.request import Request
 
 from sentry import audit_log
-from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
@@ -43,6 +44,7 @@ from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
+    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -188,7 +190,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
 
     @classmethod
     def get_installation(
-        cls, model: M, organization_id: int, **kwargs: Any
+        cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any
     ) -> IntegrationInstallation:
         if cls.integration_cls is None:
             raise NotImplementedError
@@ -296,7 +298,7 @@ class IntegrationInstallation:
 
     logger = logging.getLogger("sentry.integrations")
 
-    def __init__(self, model: M, organization_id: int) -> None:
+    def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
         self._org_integration: RpcOrganizationIntegration | None
@@ -354,11 +356,16 @@ class IntegrationInstallation:
         # Return the api client for a given provider
         raise NotImplementedError
 
-    def get_default_identity(self) -> Identity:
+    def get_default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
-        if not self.org_integration:
+        if self.org_integration is None or self.org_integration.default_auth_id is None:
             raise Identity.DoesNotExist
-        return Identity.objects.get(id=self.org_integration.default_auth_id)
+        identity = identity_service.get_identity(
+            filter={"id": self.org_integration.default_auth_id}
+        )
+        if identity is None:
+            raise Identity.DoesNotExist
+        return identity
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:
         return data.get("message", "unknown error")
@@ -406,6 +413,9 @@ class IntegrationInstallation:
         else:
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        raise NotImplementedError
 
     @property
     def metadata(self) -> IntegrationMetadata:

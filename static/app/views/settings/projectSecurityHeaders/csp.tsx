@@ -4,13 +4,15 @@ import Access from 'sentry/components/acl/access';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
 import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
@@ -23,10 +25,10 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 type State = {
   keyList: null | ProjectKey[];
   project: null | Project;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectCspReports extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class ProjectCspReports extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [

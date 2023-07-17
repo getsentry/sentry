@@ -15,6 +15,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -63,7 +64,7 @@ export function SpanTransactionsTable({
   const organization = useOrganization();
 
   const {
-    data: spanTransactionMetrics,
+    data: spanTransactionMetrics = [],
     meta,
     isLoading,
     pageLinks,
@@ -112,17 +113,22 @@ export function SpanTransactionsTable({
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={spanTransactionsWithMetrics}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: col => renderHeadCell({column: col, sort, location}),
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <VisuallyCompleteWithData
+        id="SpanSummary.SpanTransactionsTable"
+        hasData={spanTransactionMetrics.length > 0}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={spanTransactionsWithMetrics}
+          columnOrder={getColumnOrder(span)}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderBodyCell,
+          }}
+          location={location}
+        />
+      </VisuallyCompleteWithData>
       <Footer>
         {endpoint && (
           <Button
@@ -161,6 +167,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
+          ...location.query,
           endpoint,
           endpointMethod,
           transaction: row.transaction,
@@ -173,7 +180,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
@@ -199,6 +206,20 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: DataTitles.change,
     width: COL_WIDTH_UNDEFINED,
   },
+  ...(span?.['span.op']?.startsWith('http')
+    ? ([
+        {
+          key: `http_error_count()`,
+          name: DataTitles.errorCount,
+          width: COL_WIDTH_UNDEFINED,
+        },
+        {
+          key: `http_error_count_percent_change()`,
+          name: DataTitles.change,
+          width: COL_WIDTH_UNDEFINED,
+        },
+      ] as TableColumnHeader[])
+    : []),
   {
     key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,

@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types';
+import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
-import profileConfig from 'sentry/utils/issueTypeConfig/profileConfig';
 import {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -26,7 +26,6 @@ const BASE_CONFIG: IssueTypeConfig = {
     share: {enabled: false},
   },
   attachments: {enabled: false},
-  grouping: {enabled: false},
   mergedIssues: {enabled: false},
   replays: {enabled: false},
   similarIssues: {enabled: false},
@@ -39,13 +38,11 @@ const BASE_CONFIG: IssueTypeConfig = {
 const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
-  [IssueCategory.PROFILE]: profileConfig,
+  [IssueCategory.PROFILE]: performanceConfig,
+  [IssueCategory.CRON]: cronConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
-  if (eventOccurrenceType >= 2000) {
-    return IssueCategory.PROFILE;
-  }
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
   }

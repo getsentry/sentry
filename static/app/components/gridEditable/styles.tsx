@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
@@ -51,6 +52,7 @@ export const Body = styled(({children, ...props}) => (
     <PanelBody>{children}</PanelBody>
   </Panel>
 ))`
+  overflow-x: auto;
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -239,6 +241,7 @@ const GridStatusFloat = styled('div')`
   align-items: center;
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  overflow: hidden;
 
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
@@ -265,12 +268,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
-
-    if (numOfRows >= 1) {
-      // account for border-bottom height
-      height += numOfRows;
-    }
+    const height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
 
     return height;
   }}px;

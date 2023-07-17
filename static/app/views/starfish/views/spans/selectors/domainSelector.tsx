@@ -1,16 +1,18 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_DOMAIN} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -25,19 +27,17 @@ export function DomainSelector({
 }: Props) {
   // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
   //
-  const {selection} = usePageFilters();
-
   const location = useLocation();
-  const eventView = getEventView(moduleName, selection, spanCategory);
+  const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains} = useSpansQuery<{'span.domain': string}[]>({
     eventView,
     initialData: [],
   });
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => ({
+    ...(domains ?? []).map(datum => ({
       value: datum['span.domain'],
       label: datum['span.domain'],
     })),
@@ -70,37 +70,21 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   '': t('Domain'),
 };
 
-function getEventView(
-  moduleName: string,
-  pageFilters: PageFilters,
-  spanCategory?: string
-) {
-  const queryConditions: string[] = [`!span.domain:""`];
-  if (moduleName) {
-    queryConditions.push(`span.module:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
-  }
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      queryConditions.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      queryConditions.push(`span.category:${spanCategory}`);
-    }
-  }
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: ['span.domain', 'count()'],
-    orderby: '-count',
-    query: queryConditions.join(' '),
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    projects: [1],
-    version: 2,
-  });
+function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
+  const query = buildEventViewQuery({
+    moduleName,
+    location: {...location, query: omit(location.query, SPAN_DOMAIN)},
+    spanCategory,
+  }).join(' ');
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: ['span.domain', 'count()'],
+      orderby: '-count',
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      version: 2,
+    },
+    location
+  );
 }

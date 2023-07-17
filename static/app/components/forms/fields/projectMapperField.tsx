@@ -10,7 +10,7 @@ import FormModel from 'sentry/components/forms/model';
 import {ProjectMapperType} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {
   IconAdd,
   IconArrow,

@@ -19,7 +19,7 @@ import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
@@ -28,7 +28,7 @@ import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -136,9 +136,9 @@ const getFields = ({
   return null;
 };
 
-type Props = AsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
+type Props = DeprecatedAsyncView['props'] & WithRouterProps<{authId: string}, {}> & {};
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   authenticator: Authenticator | null;
   hasSentCode: boolean;
   sendingCode: boolean;
@@ -149,7 +149,7 @@ type PendingInvite = ReturnType<typeof getPendingInvite>;
 /**
  * Renders necessary forms in order to enroll user in 2fa
  */
-class AccountSecurityEnroll extends AsyncView<Props, State> {
+class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
   formModel = new FormModel();
 
   getTitle() {
@@ -168,7 +168,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     return `${this.authenticatorEndpoint}enroll/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const errorHandler = (err: any) => {
       const alreadyEnrolled =
         err &&

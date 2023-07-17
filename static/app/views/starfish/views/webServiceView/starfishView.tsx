@@ -5,7 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
@@ -26,6 +26,7 @@ import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -35,7 +36,6 @@ type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
@@ -55,7 +55,10 @@ export function StarfishView(props: BasePerformanceViewProps) {
         query={query.formatString()}
         includePrevious={false}
         partial
-        interval={getInterval(pageFilter.selection.datetime, 'low')}
+        interval={getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        )}
         includeTransformedData
         limit={1}
         environment={eventView.environment}

@@ -1,4 +1,5 @@
 import os
+from typing import MutableMapping
 
 import pytest
 from django.db import connections
@@ -151,47 +152,38 @@ def setup_simulate_on_commit(request):
 
 
 @pytest.fixture(autouse=True)
-def protect_hybrid_cloud_writes_and_deletes(request):
+def audit_hybrid_cloud_writes_and_deletes(request):
     """
-    Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
-    by preventing any deletes that do not pass through a special 'connection'.
+    Ensure that write operations on hybrid cloud foreign keys are recorded
+    alongside outboxes or use a context manager to indicate that the
+    caller has considered outbox and didn't accidentally forget.
 
-    This logic creates an additional database role which cannot make deletions on special
-    restricted hybrid cloud objects, forcing code that would delete it in tests to explicitly
-    escalate their role -- the hope being that only codepaths that are smart about outbox
-    creation will do so.
+    Generally you can avoid assertion errors from these checks by:
 
-    If you are running into issues with permissions to delete objects, consider whether
-    you are deleting an object with a hybrid cloud foreign key pointing to it, and whether
-    there is an 'expected' way to delete it (usually through the ORM .delete() method, but
-    not the QuerySet.delete() or raw SQL delete).
+    1. Running deletion/write logic within an `outbox_context`.
+    2. Using Model.delete()/save methods that create outbox messages in the
+       same transaction as a delete operation.
 
-    If you are certain you need to delete the objects in a new codepath, check out User.delete
-    logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
-    create Outbox objects in the same transaction that matches what you delete.
+    Scenarios that are generally always unsafe are  using
+    `QuerySet.delete()`, `QuerySet.update()` or raw SQL to perform
+    writes.
 
-    See sentry.testutils.silo for where the postgres_unprivileged role comes from and
-    how its permissions are assigned.
+    The User.delete() method is a good example of how to safely
+    delete records and generate outbox messages.
     """
+    from sentry.testutils.silo import validate_protected_queries
+
+    debug_cursor_state: MutableMapping[str, bool] = {}
     for conn in connections.all():
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SET ROLE 'postgres'")
-        except (RuntimeError, AssertionError) as e:
-            # Tests that do not have access to the database should pass through.
-            # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
-            # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
-            if "Database access not allowed" in str(e) or "Database queries to" in str(e):
-                yield
-                return
-            raise e
+        debug_cursor_state[conn.alias] = conn.force_debug_cursor
 
-        with conn.cursor() as cursor:
-            cursor.execute("SET ROLE 'postgres_unprivileged'")
+        conn.queries_log.clear()
+        conn.force_debug_cursor = True
 
     try:
         yield
     finally:
-        for connection in connections.all():
-            with connection.cursor() as cursor:
-                cursor.execute("SET ROLE 'postgres'")
+        for conn in connections.all():
+            conn.force_debug_cursor = debug_cursor_state[conn.alias]
+
+            validate_protected_queries(conn.queries)

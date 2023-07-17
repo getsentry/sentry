@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List
 
+import sentry_sdk
 from django.db import connection
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
@@ -13,15 +14,19 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -39,23 +44,28 @@ This pull request has been deployed and Sentry has observed the following issues
 
 {issue_list}
 
-Have questions? Reach out to us in the #proj-github-pr-comments channel.
-
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
 ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
 
+RATE_LIMITED_MESSAGE = "API rate limit exceeded"
+
 
 def format_comment(issues: List[PullRequestIssue]):
     def format_subtitle(subtitle):
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
 
+    def format_url(url):
+        return url + "?referrer=" + GITHUB_PR_BOT_REFERRER
+
     issue_list = "\n".join(
         [
             SINGLE_ISSUE_TEMPLATE.format(
-                title=issue.title, subtitle=format_subtitle(issue.subtitle), url=issue.url
+                title=issue.title,
+                subtitle=format_subtitle(issue.subtitle),
+                url=format_url(issue.url),
             )
             for issue in issues
         ]
@@ -108,7 +118,7 @@ def get_top_5_issues_by_count(issue_list: List[int], project: Project) -> List[i
             .set_limit(5)
         ),
     )
-    return raw_snql_query(request, referrer="tasks.github_comment")["data"]
+    return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
 
 
 def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
@@ -142,13 +152,18 @@ def create_or_update_comment(
             group_ids=issue_list,
         )
     else:
-        client.update_comment(
+        resp = client.update_comment(
             repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
         )
 
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = issue_list
         pr_comment.save()
+
+    metrics.incr(
+        "github_pr_comment.rate_limit_remaining",
+        tags={"remaining": int(resp.headers["X-Ratelimit-Remaining"])},
+    )
 
     logger.info(
         "github.pr_comment.create_or_update_comment",
@@ -170,9 +185,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         metrics.incr("github_pr_comment.error", tags={"type": "missing_org"})
         return
 
-    # TODO(cathy): add check for OrganizationOption for comment bot
-    if not features.has("organizations:pr-comment-bot", organization):
-        logger.error("github.pr_comment.feature_flag_missing", extra={"organization_id": org_id})
+    if not (
+        features.has("organizations:pr-comment-bot", organization)
+        and OrganizationOption.objects.get_value(
+            organization=organization,
+            key="sentry:github_pr_bot",
+            default=True,
+        )
+    ):
+        logger.error("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
     pr_comment = None
@@ -234,7 +255,60 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         cache.delete(cache_key)
 
         if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+            metrics.incr("github_pr_comment.issue_locked_error")
+            return
+
+        elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            metrics.incr("github_pr_comment.rate_limited_error")
             return
 
         metrics.incr("github_pr_comment.api_error")
         raise e
+
+
+@instrumented_task(name="sentry.tasks.integrations.github_comment_reactions")
+def github_comment_reactions():
+    logger.info("github.pr_comment.reactions_task")
+
+    comments = PullRequestComment.objects.filter(
+        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
+    ).select_related("pull_request")
+
+    for comment in RangeQuerySetWrapper(comments):
+        pr = comment.pull_request
+        try:
+            repo = Repository.objects.get(id=pr.repository_id)
+        except Repository.DoesNotExist:
+            metrics.incr("github_pr_comment.comment_reactions.missing_repo")
+            continue
+
+        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        if not integration:
+            logger.error(
+                "github.pr_comment.comment_reactions.integration_missing",
+                extra={"organization_id": pr.organization_id},
+            )
+            metrics.incr("github_pr_comment.comment_reactions.missing_integration")
+            return
+
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=pr.organization_id
+        )
+
+        # GitHubAppsClient (GithubClientMixin)
+        # TODO(cathy): create helper function to fetch client for repo
+        client = installation.get_client()
+
+        try:
+            reactions = client.get_comment_reactions(repo=repo.name, comment_id=comment.external_id)
+
+            comment.reactions = reactions
+            comment.save()
+        except ApiError as e:
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
+                break
+
+            metrics.incr("github_pr_comment.comment_reactions.api_error")
+            sentry_sdk.capture_exception(e)
+            continue

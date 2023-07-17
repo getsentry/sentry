@@ -10,6 +10,8 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -231,24 +233,87 @@ function useRefetchGroupForReprocessing({
   }, [hasReprocessingV2Feature, refetchGroup]);
 }
 
-function useEventApiQuery(
-  eventID: string,
-  queryKey: [string, {query: {environment?: string[]}}]
-) {
-  const isLatest = eventID === 'latest';
-  const latestEventQuery = useApiQuery<Event>(queryKey, {
+function useEventApiQuery({
+  groupId,
+  eventId,
+  environments,
+}: {
+  environments: string[];
+  groupId: string;
+  eventId?: string;
+}) {
+  const organization = useOrganization();
+  const location = useLocation<{query?: string}>();
+  const router = useRouter();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
+  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'helpful' : 'latest');
+  const helpfulEventQuery =
+    hasMostHelpfulEventFeature && typeof location.query.query === 'string'
+      ? location.query.query
+      : undefined;
+
+  const queryKey: ApiQueryKey = [
+    `/issues/${groupId}/events/${eventIdUrl}/`,
+    {
+      query: getGroupEventDetailsQueryData({
+        environments,
+        query: helpfulEventQuery,
+      }),
+    },
+  ];
+
+  const tab = getCurrentTab({router});
+  const isOnDetailsTab = tab === Tab.DETAILS;
+
+  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
+  const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
+    // Latest/helpful event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isLatest,
-    retry: (_, error) => error.status !== 404,
+    enabled: isOnDetailsTab && isLatestOrHelpfulEvent,
+    retry: false,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
+    // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: !isLatest,
-    retry: (_, error) => error.status !== 404,
+    enabled: isOnDetailsTab && !isLatestOrHelpfulEvent,
+    retry: false,
   });
 
-  return isLatest ? latestEventQuery : otherEventQuery;
+  useEffect(() => {
+    if (latestOrHelpfulEvent.isError) {
+      // If we get an error from the helpful event endpoint, it probably means
+      // the query failed validation. We should remove the query to try again.
+      if (hasMostHelpfulEventFeature) {
+        browserHistory.replace({
+          ...window.location,
+          query: omit(qs.parse(window.location.search), 'query'),
+        });
+
+        const scope = new Sentry.Scope();
+        scope.setExtras({
+          groupId,
+          query: helpfulEventQuery,
+          ...pick(latestOrHelpfulEvent.error, ['message', 'status', 'responseJSON']),
+        });
+        scope.setFingerprint(['issue-details-helpful-event-request-failed']);
+        Sentry.captureException(
+          new Error('Issue Details: Helpful event request failed'),
+          scope
+        );
+      }
+    }
+  }, [
+    latestOrHelpfulEvent.isError,
+    latestOrHelpfulEvent.error,
+    hasMostHelpfulEventFeature,
+    groupId,
+    helpfulEventQuery,
+  ]);
+
+  return isLatestOrHelpfulEvent ? latestOrHelpfulEvent : otherEventQuery;
 }
 
 type FetchGroupQueryParameters = {
@@ -309,19 +374,17 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
-  const eventId = params.eventId ?? 'latest';
-
-  const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
   const {
     data: eventData,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [
-    eventUrl,
-    {query: getGroupEventDetailsQueryData({environments})},
-  ]);
+  } = useEventApiQuery({
+    groupId,
+    eventId: params.eventId,
+    environments,
+  });
 
   const {
     data: groupData,
@@ -332,6 +395,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useApiQuery<Group>(makeFetchGroupQueryKey({groupId, environments}), {
     staleTime: 30000,
     cacheTime: 30000,
+    retry: false,
   });
 
   const group = groupData ?? null;
@@ -453,7 +517,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     setError(false);
     setErrorType(null);
 
-    // refetchEvent comes from useApiQuery since event and group data are separately fetched
     refetchEvent();
     refetchGroup();
   }, [refetchGroup, refetchEvent]);

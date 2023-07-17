@@ -7,13 +7,13 @@ from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
+import pytest
 import pytz
 from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -44,6 +44,7 @@ from sentry.models.groupowner import (
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
@@ -1375,7 +1376,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)
@@ -1540,6 +1541,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
     @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
+    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1554,6 +1556,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
+
+        args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
+        assert args["event"].project.id == event.project.id
+        assert args["event_project_id"] == 1234
+        assert args["sample_rate"] == 0.1234
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1862,3 +1869,11 @@ class PostProcessGroupGenericTest(
 
         # Make sure we haven't called this again, since we should exit early.
         assert mock_processor.call_count == 1
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared(self):
+        pass
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared_with_commits(self):
+        pass

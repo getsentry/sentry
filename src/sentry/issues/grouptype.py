@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
-    PROFILE = 3
-    MONITOR = 4
+    PROFILE = 3  # deprecated, merging with PERFORMANCE
+    CRON = 4
     REPLAY = 5
 
 
@@ -99,7 +99,6 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class GroupType:
-
     type_id: int
     slug: str
     description: str
@@ -292,11 +291,20 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
 
 
 @dataclass(frozen=True)
+class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1016
+    slug = "performance_http_overhead"
+    description = "HTTP/1.1 Overhead"
+    category = GroupCategory.PERFORMANCE.value
+
+
+# 2000 was ProfileBlockingFunctionMainThreadType
+@dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -304,7 +312,7 @@ class ProfileImageDecodeGroupType(GroupType):
     type_id = 2002
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -312,7 +320,7 @@ class ProfileJSONDecodeType(GroupType):
     type_id = 2003
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -323,12 +331,7 @@ class ProfileCoreDataExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
 
 
-@dataclass(frozen=True)
-class ProfileRegexExperimentalType(GroupType):
-    type_id = 2005
-    slug = "profile_regex_main_thread_experimental"
-    description = "Regex on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
+# 2005 was ProfileRegexExperimentalType
 
 
 @dataclass(frozen=True)
@@ -340,11 +343,20 @@ class ProfileViewIsSlowExperimentalType(GroupType):
 
 
 @dataclass(frozen=True)
+class ProfileRegexType(GroupType):
+    type_id = 2007
+    slug = "profile_regex_main_thread"
+    description = "Regex on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+    release = True
+
+
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRON.value
     released = True
 
 
@@ -353,7 +365,7 @@ class MonitorCheckInTimeout(GroupType):
     type_id = 4002
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRON.value
     released = True
 
 
@@ -362,7 +374,7 @@ class MonitorCheckInMissed(GroupType):
     type_id = 4003
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRON.value
     released = True
 
 

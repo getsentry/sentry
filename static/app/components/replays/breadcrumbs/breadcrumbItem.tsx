@@ -11,23 +11,33 @@ import styled from '@emotion/styled';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {
+  getBreadcrumbType,
+  getColor,
+  getDescription,
+  getTitle,
+} from 'sentry/utils/replays/frame';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
+type MouseCallback = (
+  crumb: Crumb | ReplayFrame,
+  e: React.MouseEvent<HTMLElement>
+) => void;
 
 interface BaseProps {
-  crumb: Crumb;
-  isCurrent: boolean;
-  isHovered: boolean;
+  crumb: Crumb | ReplayFrame;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  className?: string;
   expandPaths?: string[];
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
@@ -53,12 +63,30 @@ interface WithDimensionChangeProps extends BaseProps {
 
 type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
+function getCrumbOrFrameData(crumb: Crumb | ReplayFrame) {
+  if ('offsetMs' in crumb) {
+    return {
+      color: getColor(crumb),
+      description: getDescription(crumb),
+      projectSlug: isErrorFrame(crumb) ? crumb.data.projectSlug : null,
+      title: getTitle(crumb),
+      type: getBreadcrumbType(crumb),
+      timestampMs: crumb.timestampMs,
+    };
+  }
+  const details = getDetails(crumb);
+  return {
+    ...details,
+    timestampMs: crumb.timestamp || '',
+    projectSlug: crumb.type === BreadcrumbType.ERROR ? details.projectSlug : undefined,
+  };
+}
+
 function BreadcrumbItem({
+  className,
   crumb,
   expandPaths,
   index,
-  isCurrent,
-  isHovered,
   onClick,
   onDimensionChange,
   onMouseEnter,
@@ -66,7 +94,8 @@ function BreadcrumbItem({
   startTimestampMs,
   style,
 }: Props) {
-  const {color, description, projectSlug, title, type} = getDetails(crumb);
+  const {color, description, projectSlug, title, type, timestampMs} =
+    getCrumbOrFrameData(crumb);
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -91,18 +120,15 @@ function BreadcrumbItem({
   // Note: use `crumb.type` here as `getDetails()` will return a type based on
   // crumb category for presentation purposes. e.g. if we wanted to use an
   // error icon for a non-Sentry error
-  const shouldShowCrumbProject = crumb.type === BreadcrumbType.ERROR && projectSlug;
 
   return (
     <CrumbItem
-      aria-current={isCurrent}
       as={onClick ? 'button' : 'span'}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={style}
+      className={className}
     >
       <IconWrapper color={color} hasOccurred>
         <BreadcrumbIcon type={type} />
@@ -113,7 +139,7 @@ function BreadcrumbItem({
           {onClick ? (
             <TimestampButton
               startTimestampMs={startTimestampMs}
-              timestampMs={crumb.timestamp || ''}
+              timestampMs={timestampMs}
             />
           ) : null}
         </TitleContainer>
@@ -135,7 +161,7 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
-        {shouldShowCrumbProject && <CrumbProject projectSlug={projectSlug} />}
+        {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
       </CrumbDetails>
     </CrumbItem>
   );
@@ -197,12 +223,7 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
-type CrumbItemProps = {
-  isCurrent: boolean;
-  isHovered: boolean;
-};
-
-const CrumbItem = styled(PanelItem)<CrumbItemProps>`
+const CrumbItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
@@ -215,8 +236,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   text-align: left;
   border: none;
   position: relative;
-  ${p => p.isCurrent && `background-color: ${p.theme.purple100};`}
-  ${p => p.isHovered && `background-color: ${p.theme.surface200};`}
+
   border-radius: ${p => p.theme.borderRadius};
 
   &:hover {

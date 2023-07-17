@@ -52,9 +52,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project, filter_id) -> Response:
         """
         Update various inbound data filters for a project.
-        """
 
-        for flt in inbound_filters.get_all_filter_specs(project):
+        Note that the hydration filter and custom inbound
+        filters must be updated using the [Update a
+        Project](https://docs.sentry.io/api/projects/update-a-project/) endpoint.
+        """
+        for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:
                 current_filter = flt
                 break
