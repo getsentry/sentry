@@ -33,7 +33,7 @@ enum IssuesType {
   ALL = 'all',
 }
 
-const IssuesQuery: Record<IssuesType, string> = {
+const issuesQuery: Record<IssuesType, string> = {
   [IssuesType.NEW]: 'first-release',
   [IssuesType.UNHANDLED]: 'error.handled:0',
   [IssuesType.REGRESSED]: 'regressed_in_release',
@@ -171,7 +171,7 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.all}:${version}`,
+              `${issuesQuery.all}:${version}`,
               'is:unresolved',
             ]).formatString(),
           },
@@ -189,8 +189,8 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.all}:${version}`,
-              IssuesQuery.unhandled,
+              `${issuesQuery.all}:${version}`,
+              issuesQuery.unhandled,
               'is:unresolved',
             ]).formatString(),
           },
@@ -201,7 +201,7 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.regressed}:${version}`,
+              `${issuesQuery.regressed}:${version}`,
             ]).formatString(),
           },
         };
@@ -212,7 +212,7 @@ class ReleaseIssues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
-              `${IssuesQuery.new}:${version}`,
+              `${issuesQuery.new}:${version}`,
               'is:unresolved',
             ]).formatString(),
           },
@@ -234,14 +234,14 @@ class ReleaseIssues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.all}:"${version}" is:unresolved`] || 0,
-            new: issueResponse[`${IssuesQuery.new}:"${version}" is:unresolved`] || 0,
+            all: issueResponse[`${issuesQuery.all}:"${version}" is:unresolved`] || 0,
+            new: issueResponse[`${issuesQuery.new}:"${version}" is:unresolved`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
               issueResponse[
-                `${IssuesQuery.unhandled} ${IssuesQuery.all}:"${version}" is:unresolved`
+                `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`
               ] || 0,
-            regressed: issueResponse[`${IssuesQuery.regressed}:"${version}"`] || 0,
+            regressed: issueResponse[`${issuesQuery.regressed}:"${version}"`] || 0,
           },
         });
       });
@@ -255,10 +255,10 @@ class ReleaseIssues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.new}:"${version}" is:unresolved`,
-      `${IssuesQuery.all}:"${version}" is:unresolved`,
-      `${IssuesQuery.unhandled} ${IssuesQuery.all}:"${version}" is:unresolved`,
-      `${IssuesQuery.regressed}:"${version}"`,
+      `${issuesQuery.new}:"${version}" is:unresolved`,
+      `${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.unhandled} ${issuesQuery.all}:"${version}" is:unresolved`,
+      `${issuesQuery.regressed}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
