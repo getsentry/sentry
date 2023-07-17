@@ -84,30 +84,7 @@ npm install --save @sentry/node
   },
 ];
 
-export const nextSteps = [
-  {
-    id: 'profiling',
-    name: t('Profiling'),
-    description: t(
-      'Learn how to configure our Profiling integration and start profiling your code.'
-    ),
-    link: 'https://docs.sentry.io/platforms/node/profiling/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/node/performance/',
-  },
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/node/sourcemaps/',
-  },
-];
+export const nextSteps = [];
 
 export function GettingStartedWithNode({dsn, ...props}: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`, performanceOtherConfig];
