@@ -7,6 +7,7 @@ from typing import Type
 
 from click.testing import CliRunner
 from django.core.management import call_command
+from django.utils import timezone
 
 from sentry.incidents.models import (
     AlertRule,
@@ -28,8 +29,26 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.models.environment import Environment
+from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectkey import ProjectKey
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
+from sentry.models.userip import UserIP
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.runner.commands.backup import import_, validate
 from sentry.silo import unguarded_write
@@ -176,6 +195,13 @@ class ModelBackupTests(TransactionTestCase):
         self.create_environment()
         return self.import_export_then_validate()
 
+    @targets_models(EnvironmentProject)
+    def test_environment_project(self):
+        env = self.create_environment()
+        project = self.create_project()
+        EnvironmentProject.objects.create(project=project, environment=env, is_hidden=False)
+        return self.import_export_then_validate()
+
     @targets_models(Monitor)
     def test_monitor(self):
         self.create_monitor()
@@ -191,7 +217,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets_models(Organization)
+    @targets_models(Organization, OrganizationMapping)
     def test_organization(self):
         user = self.create_user()
         self.create_organization(owner=user)
@@ -245,4 +271,71 @@ class ModelBackupTests(TransactionTestCase):
             alert_rule_trigger=trigger,
             status=1,
         )
+
+    @targets_models(OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team)
+    def test_organization_membership(self):
+        organization = self.create_organization(name="test_org", owner=self.user)
+        user = self.create_user("other@example.com")
+        member = self.create_member(organization=organization, user=user, role="member")
+        team = self.create_team(name="foo", organization=organization)
+
+        self.create_team_membership(user=user, team=team)
+        OrganizationAccessRequest.objects.create(member=member, team=team)
+        return self.import_export_then_validate()
+
+    @targets_models(Project, ProjectKey, ProjectOption, ProjectTeam)
+    def test_project(self):
+        self.create_project()
+        return self.import_export_then_validate()
+
+    @targets_models(ProjectBookmark)
+    def test_project_bookmark(self):
+        user = self.create_user()
+        project = self.create_project()
+        self.create_project_bookmark(project=project, user=user)
+        return self.import_export_then_validate()
+
+    @targets_models(ProjectKey)
+    def test_project_key(self):
+        project = self.create_project()
+        self.create_project_key(project)
+        return self.import_export_then_validate()
+
+    @targets_models(ProjectOwnership)
+    def test_project_ownership(self):
+        project = self.create_project()
+        ProjectOwnership.objects.create(
+            project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(ProjectRedirect)
+    def test_project_redirect(self):
+        project = self.create_project()
+        ProjectRedirect.record(project, "old_slug")
+        return self.import_export_then_validate()
+
+    @targets_models(User, UserEmail, UserOption, UserPermission)
+    def test_user(self):
+        user = self.create_user()
+        self.add_user_permission(user, "users.admin")
+        UserOption.objects.create(user=user, key="timezone", value="Europe/Vienna")
+        return self.import_export_then_validate()
+
+    @targets_models(UserIP)
+    def test_user_ip(self):
+        user = self.create_user()
+        UserIP.objects.create(
+            user=user,
+            ip_address="127.0.0.2",
+            first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+            last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=timezone.utc),
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(UserRole, UserRoleUser)
+    def test_user_role(self):
+        user = self.create_user()
+        role = UserRole.objects.create(name="test-role")
+        UserRoleUser.objects.create(user=user, role=role)
         return self.import_export_then_validate()
