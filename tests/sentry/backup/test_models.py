@@ -210,7 +210,7 @@ class ModelBackupTests(TransactionTestCase):
         Authenticator.objects.create(id=1, user=user, type=1)
         return self.import_export_then_validate()
 
-    @targets_models(AuthIdentity)
+    @targets_models(AuthIdentity, AuthProvider)
     def test_authIdentity(self):
         user = self.create_user()
         test_data = {
