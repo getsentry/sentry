@@ -16,6 +16,7 @@ from sentry.debug_files.artifact_bundles import (
     FlatFileIndexStore,
     get_redis_cluster_for_artifact_bundles,
     index_bundle_in_flat_file,
+    set_flat_files_being_indexed_if_null,
 )
 from sentry.models import File, FileBlob
 from sentry.models.artifactbundle import (
@@ -255,13 +256,8 @@ class FlatFileIndexingTest(FlatFileTestCase):
         result = index_bundle_in_flat_file(artifact_bundle, identifier)
 
         assert result == FlatFileIndexingState.SUCCESS
-        assert (
-            len(
-                ArtifactBundleFlatFileIndex.objects.filter(
-                    project_id=self.project.id, release_name=release, dist_name=dist
-                )
-            )
-            == 1
+        assert ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name=release, dist_name=dist
         )
 
     def test_index_bundle_in_flat_file_with_debug_ids(self):
@@ -271,13 +267,8 @@ class FlatFileIndexingTest(FlatFileTestCase):
         result = index_bundle_in_flat_file(artifact_bundle, identifier)
 
         assert result == FlatFileIndexingState.SUCCESS
-        assert (
-            len(
-                ArtifactBundleFlatFileIndex.objects.filter(
-                    project_id=self.project.id, release_name="", dist_name=""
-                )
-            )
-            == 1
+        assert ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name="", dist_name=""
         )
 
     def test_index_bundle_in_flat_file_with_release_and_debug_ids(self):
@@ -294,22 +285,50 @@ class FlatFileIndexingTest(FlatFileTestCase):
         result = index_bundle_in_flat_file(artifact_bundle, identifier)
 
         assert result == FlatFileIndexingState.SUCCESS
-        assert (
-            len(
-                ArtifactBundleFlatFileIndex.objects.filter(
-                    project_id=self.project.id, release_name=release, dist_name=dist
-                )
-            )
-            == 1
+        assert ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name=release, dist_name=dist
         )
-        assert (
-            len(
-                ArtifactBundleFlatFileIndex.objects.filter(
-                    project_id=self.project.id, release_name="", dist_name=""
-                )
-            )
-            == 1
+        assert ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name="", dist_name=""
         )
+
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndex._build")
+    def test_index_bundle_in_flat_file_with_error(self, _build):
+        _build.side_effect = Exception
+
+        artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
+        identifier = FlatFileIdentifier(project_id=self.project.id)
+
+        result = index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        assert result == FlatFileIndexingState.ERROR
+        assert not ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=self.project.id, release_name="", dist_name=""
+        ).exists()
+
+    def test_index_bundle_in_flat_file_with_conflict(self):
+        release = "1.0"
+        dist = "android"
+        artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
+
+        identifier = FlatFileIdentifier(
+            project_id=self.project.id,
+            release=release,
+            dist=dist,
+        )
+
+        # We mark both flat files as being indexed.
+        set_flat_files_being_indexed_if_null([identifier, identifier.to_indexing_by_debug_id()])
+
+        result = index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        assert result == FlatFileIndexingState.CONFLICT
+        assert not ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=self.project.id, release_name=release, dist_name=dist
+        ).exists()
+        assert not ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=self.project.id, release_name="", dist_name=""
+        ).exists()
 
 
 @freeze_time("2023-07-13T10:00:00.000Z")

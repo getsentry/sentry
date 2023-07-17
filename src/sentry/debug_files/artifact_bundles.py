@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import (
@@ -77,10 +78,19 @@ class FlatFileIdentifier(NamedTuple):
 
 
 def _generate_flat_file_indexing_cache_key(identifier: FlatFileIdentifier):
-    # TODO: implement a proper cache key since release and dist can have different characters that might create
-    #  problems.
-    # TODO: use a proper {key} to guarantee the same cluster location of the keys.
-    return f"{{1234}}ab::o:{identifier.project_id}:r:{identifier.release}:{identifier.dist}"
+    # The {1} is a key which is used to keep all the keys on the same Redis instance, in order to provide consistency
+    # guarantees for the atomic check of the state.
+    return (
+        "{1}:flat_file_indexing:%s"
+        % hashlib.sha1(
+            b"%s|%s|%s"
+            % (
+                str(identifier.project_id).encode(),
+                str(identifier.release).encode(),
+                str(identifier.dist).encode(),
+            )
+        ).hexdigest()
+    )
 
 
 def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) -> bool:
@@ -110,7 +120,7 @@ def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) 
         result = False
         metrics.incr("artifact_bundle_flat_file_indexing.indexing_conflict")
 
-    # Reset the watched keys
+    # Reset the watched keys.
     pipeline.unwatch()
 
     return result
