@@ -89,7 +89,7 @@ class AuthLoginView(BaseView):
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            return self.redirect_to_org_specific_login()
+            return self.redirect_to_default_org_login()
 
         session_expired = "session_expired" in request.COOKIES
         if session_expired:
@@ -97,16 +97,12 @@ class AuthLoginView(BaseView):
                 request=request, level=messages.WARNING, message=WARN_SESSION_EXPIRED
             )
 
-        default_context = self.get_default_context(request=request)
-
         if self.should_redirect_to_sso_login(request=request):
-            response = self.get_sso_redirect(request=request)
+            response = self.get_org_auth_login_redirect(request=request)
         elif self.can_register(request=request):
-            response = self.get_registration_page(
-                request=request, context=default_context, **kwargs
-            )
+            response = self.get_registration_page(request=request, **kwargs)
         else:
-            response = self.get_login_page(request=request, context=default_context, **kwargs)
+            response = self.get_login_page(request=request, **kwargs)
 
         if session_expired:
             response.delete_cookie("session_expired")
@@ -130,11 +126,11 @@ class AuthLoginView(BaseView):
             return self.redirect(url=next_uri)
         return self.redirect_to_org(request=request)
 
-    def redirect_to_org_specific_login(self) -> HttpResponseRedirect:
+    def redirect_to_default_org_login(self) -> HttpResponseRedirect:
         """
         If Sentry is in single org mode this redirects users to their specific handler.
         """
-        org = Organization.get_default()
+        org = organization_service.get_default_organization()
         next_uri = reverse("sentry-auth-organization", args=[org.slug])
         return HttpResponseRedirect(redirect_to=next_uri)
 
@@ -152,7 +148,7 @@ class AuthLoginView(BaseView):
             and request.path_info not in non_sso_urls
         )
 
-    def get_sso_redirect(self, request: Request) -> HttpResponseRedirect:
+    def get_org_auth_login_redirect(self, request: Request) -> HttpResponseRedirect:
         """
         Returns a redirect response that will take a user to SSO login.
         """
@@ -164,10 +160,12 @@ class AuthLoginView(BaseView):
             url = f"{url}?{request.GET.urlencode()}"
         return HttpResponseRedirect(redirect_to=url)
 
-    def get_registration_page(self, request: Request, context: dict, **kwargs) -> HttpResponse:
+    def get_registration_page(self, request: Request, **kwargs) -> HttpResponse:
         """
         Returns the standard registration page.
         """
+        context = self.get_default_context(request=request)
+
         register_form = self.get_register_form(
             request=request, initial={"username": request.session.get("invite_email", "")}
         )
@@ -180,10 +178,12 @@ class AuthLoginView(BaseView):
         )
         return self.respond_login(request=request, context=context, **kwargs)
 
-    def get_login_page(self, request: Request, context: dict, **kwargs) -> HttpResponse:
+    def get_login_page(self, request: Request, **kwargs) -> HttpResponse:
         """
         Returns the standard login page.
         """
+        context = self.get_default_context(request=request)
+
         op = "sso" if request.GET.get("op") == "sso" else "login"
         login_form = AuthenticationForm(request=request)
         context.update(
@@ -199,17 +199,14 @@ class AuthLoginView(BaseView):
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
 
-        default_context = self.get_default_context(request=request, **kwargs)
         organization = kwargs.pop("organization", None)
 
         if self.can_register(request=request):
             return self.handle_register_form_submit(
-                request=request, context=default_context, organization=organization, **kwargs
+                request=request, organization=organization, **kwargs
             )
         else:
-            return self.handle_login_form_submit(
-                request=request, context=default_context, organization=organization, op=op
-            )
+            return self.handle_login_form_submit(request=request, organization=organization, op=op)
 
     def redirect_post_to_sso(self, request: Request) -> HttpResponseRedirect:
         """
@@ -242,12 +239,13 @@ class AuthLoginView(BaseView):
         return auth_provider
 
     def handle_register_form_submit(
-        self, request: Request, context: dict, organization: Organization, **kwargs
+        self, request: Request, organization: Organization, **kwargs
     ) -> HttpResponse:
         """
         Validates a completed register form, redirecting to the next
         step or returning the form with its errors displayed.
         """
+        context = self.get_default_context(request=request, **kwargs)
 
         register_form = self.get_register_form(
             request=request, initial={"username": request.session.get("invite_email", "")}
@@ -331,7 +329,7 @@ class AuthLoginView(BaseView):
         """
         Adds a user to their default organization as a member.
         """
-        organization = Organization.get_default()
+        organization = organization_service.get_default_organization()
         organization_service.add_organization_member(
             organization_id=organization.id,
             default_org_role=organization.default_role,
@@ -360,12 +358,14 @@ class AuthLoginView(BaseView):
         return add_params_to_url(url=base_url, params=params)
 
     def handle_login_form_submit(
-        self, request: Request, context: dict, organization: Organization, op: str, **kwargs
+        self, request: Request, organization: Organization, op: str, **kwargs
     ) -> HttpResponse:
         """
         Validates a completed login  form, redirecting to the next
         step or returning the form with its errors displayed.
         """
+        context = self.get_default_context(request=request, **kwargs)
+
         login_form = AuthenticationForm(request, request.POST if op == "login" else None)
 
         if self.is_ratelimited_login_attempt(request=request, login_form=login_form, op=op):
