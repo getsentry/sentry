@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class MigrateSlugifyInvalidMonitorTest(TestMigrations):
-    migrate_from = "0513_django_jsonfield"
-    migrate_to = "0514_slugify_invalid_monitors"
+    migrate_from = "0514_migrate_priority_saved_searches"
+    migrate_to = "0515_slugify_invalid_monitors"
 
     def setup_before_migration(self, apps):
         self.invalid_monitor_1 = Monitor.objects.create(
