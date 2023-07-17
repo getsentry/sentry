@@ -135,6 +135,10 @@ class Access(abc.ABC):
     def accessible_project_ids(self) -> FrozenSet[int]:
         pass
 
+    @property
+    def is_org_auth_token(self) -> bool:
+        return False
+
     def has_permission(self, permission: str) -> bool:
         """
         Return bool representing if the user has the given permission.
@@ -443,8 +447,13 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
+    def has_open_membership(self) -> bool:
+        return self.rpc_user_organization_context.organization.flags.allow_joinleave
+
+    @property
     def has_global_access(self) -> bool:
-        if self.rpc_user_organization_context.organization.flags.allow_joinleave:
+        print("hit has_global_access in RpcBackedAccess")
+        if self.has_open_membership:
             return True
 
         if (
@@ -462,6 +471,12 @@ class RpcBackedAccess(Access):
 
         if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
+
+        print("hits final check")
+        print(f"member scopes: {self.rpc_user_organization_context.member.scopes}")
+        print(
+            f"final scopes {frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(self.scopes_upper_bound)}"
+        )
 
         return frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(
             self.scopes_upper_bound
@@ -547,6 +562,8 @@ class RpcBackedAccess(Access):
             return False
 
         team_scopes = frozenset(team_membership.scopes)
+        print(f"team scopes: {team_scopes}")
+        print(f"self.scopes_upper_bound: {self.scopes_upper_bound}")
         if self.scopes_upper_bound:
             team_scopes = team_scopes & self.scopes_upper_bound
 
@@ -633,6 +650,7 @@ class OrganizationMemberAccess(DbAccess):
         permissions: Iterable[str],
         scopes_upper_bound: Iterable[str] | None,
     ) -> None:
+        print("hit OrganizationMemberAccess")
         auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
@@ -680,7 +698,6 @@ class OrganizationGlobalAccess(DbAccess):
         self._organization_id = (
             organization.id if isinstance(organization, Organization) else organization
         )
-
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     def has_team_access(self, team: Team) -> bool:
@@ -721,6 +738,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         auth_state: RpcAuthState,
         scopes: Iterable[str] | None,
     ):
+        print("hit ApiBackedOrganizationGlobalAccess")
         super().__init__(
             rpc_user_organization_context=rpc_user_organization_context,
             auth_state=auth_state,
@@ -784,6 +802,10 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
 
 class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
+
+    @property
+    def is_org_auth_token(self) -> bool:
+        return True
 
     @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
@@ -929,6 +951,7 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
@@ -936,6 +959,7 @@ def from_request_org_and_scopes(
             is_superuser=is_superuser,
             scopes=scopes,
         )
+    print("snow")
 
     if getattr(request.user, "is_sentry_app", False):
         return _from_rpc_sentry_app(rpc_user_org_context)
@@ -957,7 +981,7 @@ def from_request_org_and_scopes(
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
         return from_rpc_auth(request.auth, rpc_user_org_context)
-
+    print("to end")
     return from_user_and_rpc_user_org_context(
         user=request.user,
         rpc_user_org_context=rpc_user_org_context,
@@ -996,7 +1020,7 @@ def from_user_and_rpc_user_org_context(
 
     if not rpc_user_org_context or not rpc_user_org_context.member:
         return organizationless_access(user, is_superuser)
-
+    print("another end")
     return from_rpc_member(
         rpc_user_organization_context=rpc_user_org_context,
         scopes=scopes,
@@ -1140,7 +1164,8 @@ def from_rpc_member(
 ) -> Access:
     if rpc_user_organization_context.user_id is None:
         return DEFAULT
-
+    print("final end")
+    print(f"scopes_upper_bound: {_wrap_scopes(scopes)}")
     return RpcBackedAccess(
         rpc_user_organization_context=rpc_user_organization_context,
         scopes_upper_bound=_wrap_scopes(scopes),

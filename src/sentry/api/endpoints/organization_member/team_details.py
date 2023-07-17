@@ -1,7 +1,9 @@
+import time
 from typing import Any, Mapping, MutableMapping
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.access import Access, OrganizationGlobalAccess
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization,
@@ -64,11 +67,30 @@ class TeamOrgMemberPermission(OrganizationPermission):
     ]
 
     scope_map = {
-        "GET": _allowed_scopes,
-        "POST": _allowed_scopes,
+        "GET": [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "member:read",
+            "member:write",
+            "member:admin",
+        ],
+        "POST": ["org:read", "org:write", "org:admin", "team:write"],
         "PUT": _allowed_scopes,
         "DELETE": _allowed_scopes,
     }
+
+
+def has_elevated_scope(access: Access) -> bool:
+    # skip validation if the token is not an org token
+    if not access.is_org_auth_token:
+        return True
+
+    return (
+        access.has_scope("org:admin")
+        or access.has_scope("org:write")
+        or access.has_scope("team:write")
+    )
 
 
 @extend_schema(tags=["Teams"])
@@ -85,7 +107,20 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are a team admin or have global write access
         * If the open membership organization setting is enabled
         """
-        return request.access.has_global_access or can_admin_team(request.access, team)
+        print(f"can_admin_team: {can_admin_team(request.access, team)}")
+        print(f"request.access.has_global_access: {request.access.has_global_access}")
+        print(type(request.access))
+        access = request.access
+
+        # We have a special case to check for org auth tokens because they always have global
+        # access. When open membership is disabled, we need to check if the token has elevated
+        # permissions in order to ensure org tokens with only "org:read" scope cannot add members
+        if access.is_org_auth_token and not access.has_open_membership:
+            print("hit org token check")
+            print(f"has_elevated_scope: {has_elevated_scope(access)}")
+            return has_elevated_scope(access)
+
+        return access.has_global_access or can_admin_team(access, team)
 
     def _can_delete(
         self,
@@ -173,7 +208,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     ) -> Response:
         # NOTE: Required to use HTML to create the table because this markdown version doesn't
         # support colspan.
-        """
+        r"""
         This request can return various success codes depending on the context of the team:
         - **`201`**: The organization member has been successfully added.
         - **`202`**: The organization member needs permission to join the team and an access request
@@ -185,58 +220,64 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         Note that the permission scopes also vary depending on the organization setting `"Open
         Membership"`. The following table outlines the accepted scopes based on this setting.
-        <table>
+        <table style="width: 100%;">
         <thead>
             <tr>
-            <th></th>
-            <th colspan="2" style="text-align: center; font-weight: bold;">Open Membership</th>
+            <th style="width: 33%;"></th>
+            <th colspan="2" style="text-align: center; font-weight: bold; width: 33%;">Open Membership</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-            <td></td>
-            <td style="text-align: center; font-weight: bold;">On</td>
-            <td style="text-align: center; font-weight: bold;">Off</td>
+            <td style="width: 34%;"></td>
+            <td style="text-align: center; font-weight: bold; width: 33%;">On</td>
+            <td style="text-align: center; font-weight: bold; width: 33%;">Off</td>
             </tr>
             <tr>
-                <td style="text-align: center; font-weight: bold; vertical-align: middle;">Org-Scoped</td>
-                <td style="text-align: left;">
+            <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
+            href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
+            <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
                 </ul>
-                </td>
-                <td style="text-align: left;">
+            </td>
+            <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                 </ul>
-                </td>
-                </tr>
-                <tr>
-                <td style="text-align: center; font-weight: bold; vertical-align: middle;">User-Scoped</td>
-                <td style="text-align: left;">
+            </td>
+            </tr>
+            <tr>
+            <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
+            href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
+            <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
                 </ul>
-                </td>
-                <td style="text-align: left;">
+            </td>
+            <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                <li><strong style="color: #9c5f99;">&bull; org:read +</strong></li>
+                <li><strong style="color: #9c5f99;">&nbsp; &nbsp;team:write**</strong></li>
                 </ul>
-                </td>
+            </td>
             </tr>
         </tbody>
         </table>
-        *limited to the user's teams
+
+
+        *Organization members are restricted to this scope. When sending a request, it will always
+        return a 202 and request an invite to the team.
+
+
+        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user auth
+        token to utilize this endpoint
         """
-        print("\n*************** hit POST *****************\n")
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
@@ -283,7 +324,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
@@ -291,7 +331,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         serializer = OrganizationMemberTeamSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(status=400)
+            raise ValidationError(serializer.errors)
         result = serializer.validated_data
 
         if "teamRole" in result and features.has("organizations:team-roles", organization):
@@ -414,7 +454,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         </table>
         *limited to the user's teams
         """
-        print("\n*************** hit DELETE *****************\n")
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
