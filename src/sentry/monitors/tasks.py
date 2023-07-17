@@ -118,3 +118,10 @@ def check_monitors(current_datetime=None):
                 monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")
+
+    # safety check for check-ins stuck in the backlog
+    backlog_count = MonitorCheckIn.objects.filter(
+        status=CheckInStatus.IN_PROGRESS, timeout_at__isnull=True
+    ).count()
+    if backlog_count:
+        logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")
