@@ -61,12 +61,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> Any:
-        step: ProcessingStrategy[MessageContext]
-
+    ) -> ProcessingStrategy[MessageContext]:
         if self.use_multi_proc:
-            step = RunTaskWithMultiprocessing(
-                function=move_replay_to_permanent_storage,
+            return RunTaskWithMultiprocessing(
+                function=process_message_multiprocessing,
                 next_step=CommitOffsets(commit),
                 num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
@@ -76,17 +74,15 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             )
         else:
             # By default we preserve the previous behavior.
-            step = RunTaskInThreads(
-                processing_function=move_replay_to_permanent_storage,
-                concurrency=4,
-                max_pending_futures=50,
-                next_step=CommitOffsets(commit),
+            return RunTask(
+                function=initialize_message_context,
+                next_step=RunTaskInThreads(
+                    processing_function=move_replay_to_permanent_storage,
+                    concurrency=4,
+                    max_pending_futures=50,
+                    next_step=CommitOffsets(commit),
+                ),
             )
-
-        return RunTask(
-            function=initialize_message_context,
-            next_step=step,
-        )
 
 
 def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext:
@@ -108,3 +104,16 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_dict = context.message
 
     ingest_recording(message_dict, context.transaction, context.current_hub)
+
+
+def process_message_multiprocessing(message: Message[KafkaPayload]) -> Any:
+    """Move the replay payload to permanent storage."""
+    transaction = sentry_sdk.start_transaction(
+        name="replays.consumer.process_recording",
+        op="replays.consumer",
+        sampled=random.random()
+        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+    )
+    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
+    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
+    ingest_recording(message_dict, transaction, current_hub)
