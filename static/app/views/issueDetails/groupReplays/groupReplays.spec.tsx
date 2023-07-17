@@ -293,10 +293,7 @@ describe('GroupReplays', () => {
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
               id: '346789a703f6454384f1de473b8b9fcc',
               started_at: new Date('2022-09-15T06:50:00+00:00'),
-              urls: [
-                'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
-                '/organizations/sentry-emerging-tech/replays/?project=2',
-              ],
+              urls: ['https://dev.getsentry.net:7999/replays/', '/replays/?project=2'],
             },
             {
               ...TestStubs.ReplayList()[0],
