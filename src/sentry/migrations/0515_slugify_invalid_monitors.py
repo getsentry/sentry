@@ -7,6 +7,33 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
+def schedule(cls, instance, days=30):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    model = type(instance)
+    model_name = model.__name__
+    cls.objects.update_or_create(
+        app_label=instance._meta.app_label,
+        model_name=model_name,
+        object_id=instance.pk,
+        defaults={
+            "actor_id": None,
+            "data": {},
+            "date_scheduled": timezone.now() + timedelta(days=days, hours=0),
+        },
+    )
+
+
+def delete_rules(apps, schema_editor):
+    Rule = apps.get_model("sentry", "Rule")
+    RegionScheduledDeletion = apps.get_model("sentry", "RegionScheduledDeletion")
+    for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
+        if rule.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DISABLED):
+            schedule(RegionScheduledDeletion, rule, days=0)
+
+
 def migrate_monitor_slugs(apps, schema_editor):
     Monitor = apps.get_model("sentry", "Monitor")
     Rule = apps.get_model("sentry", "Rule")
