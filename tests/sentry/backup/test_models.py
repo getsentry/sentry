@@ -24,6 +24,7 @@ from sentry.models import (
     ApiToken,
     Authenticator,
     AuthIdentity,
+    AuthProvider,
 )
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -212,8 +213,21 @@ class ModelBackupTests(TransactionTestCase):
     @targets_models(AuthIdentity)
     def test_authIdentity(self):
         user = self.create_user()
-        AuthIdentity.objects.create(user=user, data=JSONData("test"))
+        test_data = {
+            "key1": "value1",
+            "key2": 42,
+            "key3": [1, 2, 3],
+            "key4": {"nested_key": "nested_value"},
+        }
+        AuthIdentity.objects.create(
+            user=user,
+            auth_provider=AuthProvider.objects.create(organization_id=1, provider="sentry"),
+            ident="123456789",
+            data=test_data,
+        )
         return self.import_export_then_validate()
 
+    @targets_models(AuthProvider)
     def test_authProvider(self):
-        pass
+        AuthProvider.objects.create(organization_id=1, provider="sentry")
+        return self.import_export_then_validate()
