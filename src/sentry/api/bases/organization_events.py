@@ -462,6 +462,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
+                    "sps()": "sps(%d)" % rollup,
+                    "spm()": "spm(%d)" % rollup,
                 }
 
                 query_columns = [column_map.get(column, column) for column in columns]
