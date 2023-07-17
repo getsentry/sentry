@@ -9,6 +9,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -116,11 +117,11 @@ export function ViewsList() {
     <Fragment>
       <VisuallyCompleteWithData
         id="MobileServiceView.ViewsList"
-        hasData={data.length > 0}
+        hasData={defined(data) && data.length > 0}
       >
         <GridEditable
           isLoading={isLoading}
-          data={data}
+          data={data ?? []}
           columnOrder={COLUMN_ORDER}
           columnSortBy={eventView.getSorts() as any}
           grid={{
