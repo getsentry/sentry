@@ -12,6 +12,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -80,7 +81,7 @@ function TeamSelect({
 
     return (
       <React.Fragment>
-        {organization.features.includes('team-roles') && effectiveOrgRole && (
+        {effectiveOrgRole && (
           <RoleOverwritePanelAlert
             orgRole={effectiveOrgRole?.id}
             orgRoleList={orgRoleList}
@@ -110,21 +111,27 @@ function TeamSelect({
 
   return (
     <Panel>
-      <PanelHeader hasButtons>
-        {t('Team')}
-        <DropdownAddTeam
-          disabled={disabled}
-          isLoadingTeams={isLoadingTeams}
-          isAddingTeamToMember
-          canCreateTeam={false}
-          onSearch={onSearch}
-          onSelect={onAddTeam}
-          onCreateTeam={onCreateTeam}
-          organization={organization}
-          selectedTeams={selectedTeams.map(tm => tm.slug)}
-          teams={teams}
-        />
-      </PanelHeader>
+      <TeamPanelHeader>
+        <div>{t('Team')}</div>
+        <div />
+        <div>
+          <TeamRoleColumnLabel />
+        </div>
+        <div>
+          <DropdownAddTeam
+            disabled={disabled}
+            isLoadingTeams={isLoadingTeams}
+            isAddingTeamToMember
+            canCreateTeam={false}
+            onSearch={onSearch}
+            onSelect={onAddTeam}
+            onCreateTeam={onCreateTeam}
+            organization={organization}
+            selectedTeams={selectedTeams.map(tm => tm.slug)}
+            teams={teams}
+          />
+        </div>
+      </TeamPanelHeader>
 
       <PanelBody>{loadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
     </Panel>
@@ -156,60 +163,57 @@ function TeamRow({
 
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
-      <TeamPanelItemLeft>
+      <div>
         <Link to={`/settings/${organization.slug}/teams/${team.slug}/`}>
           <TeamBadge team={team} />
         </Link>
-      </TeamPanelItemLeft>
+      </div>
 
-      <TeamOrgRole>{orgRoleFromTeam}</TeamOrgRole>
+      <div>{orgRoleFromTeam}</div>
 
-      {organization.features.includes('team-roles') && (
-        <RoleSelectWrapper>
-          <TeamRoleSelect
-            disabled={disabled}
-            size="xs"
-            organization={organization}
-            team={team}
-            member={member}
-            onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
-          />
-        </RoleSelectWrapper>
-      )}
+      <div>
+        <TeamRoleSelect
+          disabled={disabled}
+          size="xs"
+          organization={organization}
+          team={team}
+          member={member}
+          onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
+        />
+      </div>
 
-      <Button
-        size="xs"
-        icon={<IconSubtract isCircled size="xs" />}
-        title={buttonHelpText}
-        disabled={isRemoveDisabled}
-        onClick={() => onRemoveTeam(team.slug)}
-      >
-        {t('Remove')}
-      </Button>
+      <div>
+        <Button
+          size="xs"
+          icon={<IconSubtract isCircled size="xs" />}
+          title={buttonHelpText}
+          disabled={isRemoveDisabled}
+          onClick={() => onRemoveTeam(team.slug)}
+        >
+          {t('Remove')}
+        </Button>
+      </div>
     </TeamPanelItem>
   );
 }
 
+const GRID_TEMPLATE = `
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px 95px;
+  gap: ${space(1)};
+
+  > div:last-child {
+    margin-left: auto;
+  }
+`;
+
+const TeamPanelHeader = styled(PanelHeader)`
+  ${GRID_TEMPLATE}
+`;
+
 const TeamPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE}
   padding: ${space(2)};
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const TeamPanelItemLeft = styled('div')`
-  flex-grow: 4;
-`;
-
-const TeamOrgRole = styled('div')`
-  min-width: 90px;
-  flex-grow: 1;
-  display: flex;
-  justify-content: center;
-`;
-
-const RoleSelectWrapper = styled('div')`
-  min-width: 200px;
-  margin-right: ${space(2)};
 `;
 
 export default TeamSelect;

@@ -171,8 +171,6 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
-    this.rawErrors = errors;
-
     this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
@@ -193,7 +191,6 @@ export default class ReplayReader {
   private _sortedRRWebEvents: RecordingFrame[];
   private _sortedSpanFrames: SpanFrame[];
 
-  private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
   private breadcrumbs: Crumb[];
@@ -311,8 +308,6 @@ export default class ReplayReader {
   getConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category === 'console')
   );
-
-  getRawErrors = memoize(() => this.rawErrors);
 
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')

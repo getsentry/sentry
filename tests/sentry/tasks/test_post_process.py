@@ -32,7 +32,6 @@ from sentry.models import (
     GroupStatus,
     Integration,
     ProjectOwnership,
-    ProjectTeam,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.models.groupowner import (
@@ -41,6 +40,7 @@ from sentry.models.groupowner import (
     ISSUE_OWNERS_DEBOUNCE_DURATION,
     ISSUE_OWNERS_DEBOUNCE_KEY,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.services.hybrid_cloud.user.service import user_service

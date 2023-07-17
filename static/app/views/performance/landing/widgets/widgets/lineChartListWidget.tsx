@@ -33,6 +33,7 @@ import SelectableList, {
   ListClose,
   RightAlignedCell,
   Subtitle,
+  WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
@@ -59,16 +60,27 @@ const framesList = [
   PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
 ];
 
+const integrationEmptyStateWidgets = [
+  PerformanceWidgetSetting.SLOW_DB_OPS,
+  PerformanceWidgetSetting.SLOW_HTTP_OPS,
+];
+
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
   const pageError = usePageError();
+  const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
+    props.chartSetting
+  );
+  const emptyComponent = canHaveIntegrationEmptyState
+    ? WidgetAddInstrumentationWarning
+    : WidgetEmptyStateWarning;
 
   const field = props.fields[0];
 
-  if (props.fields.length !== 1) {
+  if (props.fields.length !== 1 && !canHaveIntegrationEmptyState) {
     throw new Error(
       `Line chart list widget can only accept a single field (${props.fields})`
     );
@@ -436,7 +448,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />
           : null
       }
-      EmptyComponent={WidgetEmptyStateWarning}
+      EmptyComponent={emptyComponent}
       Queries={Queries}
       Visualizations={Visualizations}
     />
