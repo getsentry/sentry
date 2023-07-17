@@ -90,7 +90,13 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = getSegmentLabel(moduleName);
-  const {isLoading, data} = useSpansQuery({
+  const {isLoading, data} = useSpansQuery<
+    {
+      interval: number;
+      'p95(span.self_time)': number;
+      'sps()': number;
+    }[]
+  >({
     eventView,
     initialData: [],
   });
@@ -101,7 +107,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
     return {
       seriesName: label ?? 'Throughput',
-      data: groupData.map(datum => ({
+      data: (groupData ?? []).map(datum => ({
         value: datum['sps()'],
         name: datum.interval,
       })),
@@ -141,7 +147,13 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   const label = `p95(${SPAN_SELF_TIME})`;
 
-  const {isLoading, data} = useSpansQuery({
+  const {isLoading, data} = useSpansQuery<
+    {
+      interval: number;
+      'p95(span.self_time)': number;
+      'sps()': number;
+    }[]
+  >({
     eventView,
     initialData: [],
   });
@@ -152,7 +164,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
     return {
       seriesName: label,
-      data: groupData.map(datum => ({
+      data: (groupData ?? []).map(datum => ({
         value: datum[`p95(${SPAN_SELF_TIME})`],
         name: datum.interval,
       })),

@@ -49,7 +49,7 @@ export const useSpanMetricsSeries = (
     yAxis.map(seriesName => {
       const series: Series = {
         seriesName,
-        data: result?.data.map(datum => ({
+        data: (result?.data ?? []).map(datum => ({
           value: datum[seriesName],
           name: datum.interval,
         })),
