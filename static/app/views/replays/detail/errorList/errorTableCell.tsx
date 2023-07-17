@@ -126,23 +126,45 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Text>
-            <ClassNames>
-              {({css}) => (
-                <QuickContextHovercard
-                  dataRow={{
-                    id: eventId,
-                    'project.name': projectSlug,
-                  }}
-                  contextType={ContextType.EVENT}
-                  organization={organization}
-                  containerClassName={css`
-                    display: inline;
-                  `}
-                >
-                  {title ?? EMPTY_CELL}
-                </QuickContextHovercard>
-              )}
-            </ClassNames>
+            {eventUrl ? (
+              <Link to={eventUrl}>
+                <ClassNames>
+                  {({css}) => (
+                    <QuickContextHovercard
+                      dataRow={{
+                        id: eventId,
+                        'project.name': projectSlug,
+                      }}
+                      contextType={ContextType.EVENT}
+                      organization={organization}
+                      containerClassName={css`
+                        display: inline;
+                      `}
+                    >
+                      {title ?? EMPTY_CELL}
+                    </QuickContextHovercard>
+                  )}
+                </ClassNames>
+              </Link>
+            ) : (
+              <ClassNames>
+                {({css}) => (
+                  <QuickContextHovercard
+                    dataRow={{
+                      id: eventId,
+                      'project.name': projectSlug,
+                    }}
+                    contextType={ContextType.EVENT}
+                    organization={organization}
+                    containerClassName={css`
+                      display: inline;
+                    `}
+                  >
+                    {title ?? EMPTY_CELL}
+                  </QuickContextHovercard>
+                )}
+              </ClassNames>
+            )}
           </Text>
         </Cell>
       ),
@@ -152,16 +174,31 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             <AvatarWrapper>
               <Avatar project={project} size={16} />
             </AvatarWrapper>
-            <QuickContextHovercard
-              dataRow={{
-                'issue.id': groupId,
-                issue: groupShortId,
-              }}
-              contextType={ContextType.ISSUE}
-              organization={organization}
-            >
-              <span>{groupShortId}</span>
-            </QuickContextHovercard>
+            {eventUrl ? (
+              <Link to={eventUrl}>
+                <QuickContextHovercard
+                  dataRow={{
+                    'issue.id': groupId,
+                    issue: groupShortId,
+                  }}
+                  contextType={ContextType.ISSUE}
+                  organization={organization}
+                >
+                  <span>{groupShortId}</span>
+                </QuickContextHovercard>
+              </Link>
+            ) : (
+              <QuickContextHovercard
+                dataRow={{
+                  'issue.id': groupId,
+                  issue: groupShortId,
+                }}
+                contextType={ContextType.ISSUE}
+                organization={organization}
+              >
+                <span>{groupShortId}</span>
+              </QuickContextHovercard>
+            )}
           </Text>
         </Cell>
       ),

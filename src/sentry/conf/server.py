@@ -87,6 +87,10 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+# override the settings dumped in the debug view
+DEFAULT_EXCEPTION_REPORTER_FILTER = (
+    "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
+)
 
 ADMINS = ()
 
@@ -1319,15 +1323,11 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute metric alerts feature
-    "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Use issue platform for crons issues
-    "organizations:crons-issue-platform": False,
     # Use new listing page for crons
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
@@ -1479,8 +1479,6 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable better priority sort algorithm.
-    "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles

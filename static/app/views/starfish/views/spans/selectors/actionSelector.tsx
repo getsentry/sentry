@@ -32,7 +32,7 @@ export function ActionSelector({
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<[{'span.action': string}]>({
+  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
@@ -42,7 +42,7 @@ export function ActionSelector({
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions
+        ...(actions ?? [])
           .filter(datum => datum[SPAN_ACTION])
           .map(datum => ({
             value: datum[SPAN_ACTION],
