@@ -47,6 +47,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         max_batch_time: int,
         num_processes: int,
         output_block_size: int,
+        force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
     ) -> None:
         # For information on configuring this consumer refer to this page:
         #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
@@ -55,16 +56,22 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.max_batch_time = max_batch_time
         self.num_processes = num_processes
         self.output_block_size = output_block_size
-        self.use_multi_proc = self.num_processes > 1
+        self.use_processes = self.num_processes > 1
+        self.force_synchronous = force_synchronous
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[MessageContext]:
-        if self.use_multi_proc:
+    ) -> ProcessingStrategy[KafkaPayload]:
+        if self.force_synchronous:
+            return RunTask(
+                function=process_message,
+                next_step=CommitOffsets(commit),
+            )
+        elif self.use_processes:
             return RunTaskWithMultiprocessing(
-                function=process_message_multiprocessing,
+                function=process_message,
                 next_step=CommitOffsets(commit),
                 num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
@@ -75,9 +82,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         else:
             # By default we preserve the previous behavior.
             return RunTask(
-                function=initialize_message_context,
+                function=initialize_threaded_context,
                 next_step=RunTaskInThreads(
-                    processing_function=move_replay_to_permanent_storage,
+                    processing_function=process_message_threaded,
                     concurrency=4,
                     max_pending_futures=50,
                     next_step=CommitOffsets(commit),
@@ -85,7 +92,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             )
 
 
-def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext:
+def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:
     """Initialize a Sentry transaction and unpack the message."""
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
@@ -98,7 +105,7 @@ def initialize_message_context(message: Message[KafkaPayload]) -> MessageContext
     return MessageContext(message_dict, transaction, current_hub)
 
 
-def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
+def process_message_threaded(message: Message[MessageContext]) -> Any:
     """Move the replay payload to permanent storage."""
     context: MessageContext = message.payload
     message_dict = context.message
@@ -106,7 +113,7 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     ingest_recording(message_dict, context.transaction, context.current_hub)
 
 
-def process_message_multiprocessing(message: Message[KafkaPayload]) -> Any:
+def process_message(message: Message[KafkaPayload]) -> Any:
     """Move the replay payload to permanent storage."""
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
