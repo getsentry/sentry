@@ -39,7 +39,7 @@ class SlackClient(IntegrationProxyClient):
             )
 
         super().__init__(
-            org_integration_id, verify_ssl, integration_id,logging_context=logging_context
+            org_integration_id, verify_ssl, integration_id, logging_context=logging_context
         )
 
     @control_silo_function
