@@ -1302,11 +1302,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
+    def create_alert_rule_trigger(
+        alert_rule, label=None, alert_threshold=100, excluded_projects=None
+    ):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

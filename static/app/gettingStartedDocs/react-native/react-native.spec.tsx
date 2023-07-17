@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithReactNative, steps} from './react-native';
 
 describe('GettingStartedWithDjango', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithReactNative dsn="test-dsn" />);
 
     // Steps
