@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0511_pickle_to_json_sentry_rawevent"),
+        ("sentry", "0513_django_jsonfield"),
     ]
 
     operations = [
