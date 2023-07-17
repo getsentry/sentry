@@ -136,6 +136,7 @@ _STANDARD_METRIC_FIELDS = [
     "os.name",
     "geo.country_code",
     "event.type",
+    "project",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
