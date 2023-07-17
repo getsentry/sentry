@@ -1,6 +1,7 @@
 from django.utils.text import slugify
 
 from sentry.constants import ObjectStatus
+from sentry.models import ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
@@ -76,6 +77,9 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             ObjectStatus.PENDING_DELETION
             == Monitor.objects.get(id=self.invalid_monitor_3.id).status
         )
+        assert ScheduledDeletion.objects.filter(
+            object_id=self.invalid_monitor_3.id, model_name="Monitor"
+        ).exists()
 
         assert valid_monitor_1.slug == self.valid_monitor_1.slug
         assert valid_monitor_2.slug == self.valid_monitor_2.slug
