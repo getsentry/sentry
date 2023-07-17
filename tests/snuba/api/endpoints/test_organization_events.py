@@ -2522,6 +2522,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 0.5
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["epm()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
 
     def test_nonexistent_fields(self):
         self.store_event(
