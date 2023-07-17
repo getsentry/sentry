@@ -109,6 +109,29 @@ export function cancelDeleteRepository(
   return promise;
 }
 
+/**
+ * Delete a repository by setting its status to hidden.
+ *
+ * @param {Object} client ApiClient
+ * @param {String} orgId Organization Slug
+ * @param {String} repositoryId Repository ID
+ */
+export function hideRepository(client: Client, orgId: string, repositoryId: string) {
+  addLoadingMessage();
+  const promise = client.requestPromise(
+    `/organizations/${orgId}/repos/${repositoryId}/`,
+    {
+      method: 'PUT',
+      data: {status: 'hidden'},
+    }
+  );
+  promise.then(
+    () => clearIndicators(),
+    () => addErrorMessage(t('Unable to delete repository.'))
+  );
+  return promise;
+}
+
 function applyRepositoryAddComplete(promise: Promise<Repository>) {
   promise.then(
     (repo: Repository) => {
