@@ -70,7 +70,9 @@ class BaseApiClient(TrackResponseMixin):
         if path.startswith("/"):
             if not self.base_url:
                 raise ValueError(f"Invalid URL: {path}")
-            return f"{self.base_url}{path}"
+            base_url = self.base_url.rstrip("/")
+            path = path.lstrip("/")
+            return f"{base_url}/{path}"
         return path
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:

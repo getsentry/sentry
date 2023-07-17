@@ -12,10 +12,10 @@ import {ALLOWED_PROJECT_IDS_FOR_ORG_SLUG} from 'sentry/views/starfish/allowedPro
 export function StarfishProjectSelector() {
   const {projects, initiallyLoaded: projectsLoaded, fetchError} = useProjects();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
   const router = useRouter();
 
-  if (!projectsLoaded) {
+  if (!projectsLoaded || !isReady) {
     return (
       <CompactSelect
         disabled
@@ -45,7 +45,14 @@ export function StarfishProjectSelector() {
     ) ?? projectOptions[0];
 
   const handleProjectChange = option =>
-    updateProjects([parseInt(option.value, 10)], router);
+    updateProjects([parseInt(option.value, 10)], router, {save: true});
+
+  if (
+    selection.projects.length > 1 ||
+    !allowedProjectIDs.includes(`${selection.projects[0]}`)
+  ) {
+    handleProjectChange(projectOptions[0]);
+  }
 
   return (
     <CompactSelect

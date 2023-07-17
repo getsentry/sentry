@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import sys
 from typing import Iterable, Optional
@@ -79,7 +81,7 @@ class SiloRouter:
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
-    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str:
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str | None:
         # XXX This method has an override in getsentry for region silo primary splits.
         active_mode = SiloMode.get_current_mode()
 
@@ -93,15 +95,15 @@ class SiloRouter:
             if active_mode == silo_mode:
                 return "default"
 
-            # If we're in tests raise an error, otherwise return 'no decision'
-            # so that django skips migration operations that won't work.
-            if "pytest" in sys.argv[0]:
-                raise SiloConnectionUnavailableError(
-                    f"Cannot resolve table {table} in {silo_mode}. "
-                    f"Application silo mode is {active_mode} and simulated silos are not enabled."
-                )
-            else:
-                return None
+        # If we're in tests raise an error, otherwise return 'no decision'
+        # so that django skips migration operations that won't work.
+        if "pytest" in sys.argv[0]:
+            raise SiloConnectionUnavailableError(
+                f"Cannot resolve table {table} in {silo_modes}. "
+                f"Application silo mode is {active_mode} and simulated silos are not enabled."
+            )
+        else:
+            return None
 
     def _find_model(self, table: str, app_label: str) -> Optional[Model]:
         # Use django's model inventory to find our table and what silo it is on.

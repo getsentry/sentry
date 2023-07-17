@@ -5,10 +5,10 @@ from django.utils import timezone
 from sentry.models import UserReport
 from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class UpdateUserReportTest(TestCase):
     def test_simple(self):
         now = timezone.now()

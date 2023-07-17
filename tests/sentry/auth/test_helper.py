@@ -1,6 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import models
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -20,7 +21,7 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -41,7 +42,7 @@ class AuthIdentityHandlerTest(TestCase):
         self.provider = "dummy"
         self.request = _set_up_request()
 
-        self.auth_provider = AuthProvider.objects.create(
+        self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
@@ -62,7 +63,7 @@ class AuthIdentityHandlerTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             rpc_organization = serialize_rpc_organization(self.organization)
         return AuthIdentityHandler(
-            self.auth_provider,
+            self.auth_provider_inst,
             DummyProvider(self.provider),
             rpc_organization,
             self.request,
@@ -84,7 +85,7 @@ class AuthIdentityHandlerTest(TestCase):
         """Set up a persistent user who already has an auth identity."""
         user = self.set_up_user()
         auth_identity = AuthIdentity.objects.create(
-            user=user, auth_provider=self.auth_provider, ident="test_ident"
+            user=user, auth_provider=self.auth_provider_inst, ident="test_ident"
         )
         return user, auth_identity
 
@@ -273,6 +274,37 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
+        user = self.set_up_user()
+        with assume_test_silo_mode(SiloMode.REGION):
+            existing_om = OrganizationMember.objects.create(
+                user_id=user.id,
+                organization=self.organization,
+            )
+            with unguarded_write():
+                existing_om.update(
+                    flags=models.F("flags")
+                    .bitor(OrganizationMember.flags["idp:provisioned"])
+                    .bitor(OrganizationMember.flags["idp:role-restricted"])
+                )
+                existing_om.save()
+
+        auth_identity = self.handler.handle_attach_identity()
+        assert auth_identity.ident == self.identity["id"]
+        assert auth_identity.data == self.identity["data"]
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            persisted_om = OrganizationMember.objects.get(id=existing_om.id)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert getattr(persisted_om.flags, "idp:provisioned")
+            assert getattr(persisted_om.flags, "idp:role-restricted")
+            assert not getattr(persisted_om.flags, "sso:invalid")
+
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
     def test_existing_identity(self, mock_messages):
         user, existing_identity = self.set_up_user_identity()
 
@@ -291,7 +323,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 
         # The user logs in with credentials from this other identity
         AuthIdentity.objects.create(
-            user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
+            user=other_user, auth_provider=self.auth_provider_inst, ident=self.identity["id"]
         )
         with assume_test_silo_mode(SiloMode.REGION):
             OrganizationMember.objects.create(user_id=other_user.id, organization=self.organization)
@@ -340,7 +372,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
         assert context["organization"] == expected_org
         assert context["identity"] == self.identity
-        assert context["provider"] == self.auth_provider.get_provider().name
+        assert context["provider"] == self.auth_provider_inst.get_provider().name
         assert context["identity_display_name"] == self.identity["name"]
         assert context["identity_identifier"] == self.email
         return context
@@ -378,7 +410,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         (user, org, provider, email, identity_id) = mock_create_key.call_args.args
         assert user.id == existing_user.id
         assert org.id == self.organization.id
-        assert provider.id == self.auth_provider.id
+        assert provider.id == self.auth_provider_inst.id
         assert email == self.email
         assert identity_id == self.identity["id"]
 
@@ -401,7 +433,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 class AuthHelperTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
-        self.auth_provider = AuthProvider.objects.create(
+        self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider=self.provider
         )
 
@@ -413,7 +445,7 @@ class AuthHelperTest(TestCase):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
-            "provider_model_id": self.auth_provider.id,
+            "provider_model_id": self.auth_provider_inst.id,
             "provider_key": None,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)

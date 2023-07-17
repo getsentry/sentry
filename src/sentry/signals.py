@@ -159,6 +159,7 @@ ownership_rule_created = BetterSignal()  # ["project"]
 
 # issues
 issue_assigned = BetterSignal()  # ["project", "group", "user"]
+issue_unassigned = BetterSignal()  # ["project", "group", "user"]
 issue_deleted = BetterSignal()  # ["group", "user", "delete_type"]
 # ["organization_id", "project", "group", "user", "resolution_type"]
 issue_resolved = BetterSignal()
