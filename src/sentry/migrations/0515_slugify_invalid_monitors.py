@@ -26,17 +26,11 @@ def schedule(cls, instance, days=30):
     )
 
 
-def delete_rules(apps, schema_editor):
-    Rule = apps.get_model("sentry", "Rule")
-    RegionScheduledDeletion = apps.get_model("sentry", "RegionScheduledDeletion")
-    for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
-        if rule.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DISABLED):
-            schedule(RegionScheduledDeletion, rule, days=0)
-
-
 def migrate_monitor_slugs(apps, schema_editor):
     Monitor = apps.get_model("sentry", "Monitor")
     Rule = apps.get_model("sentry", "Rule")
+    RegionScheduledDeletion = apps.get_model("sentry", "RegionScheduledDeletion")
+    ScheduledDeletion = apps.get_model("sentry", "ScheduledDeletion")
 
     MAX_SLUG_LENGTH = 50
     monitors_to_clean_up = []
@@ -75,9 +69,11 @@ def migrate_monitor_slugs(apps, schema_editor):
             if rule:
                 rule.status = ObjectStatus.PENDING_DELETION
                 rule.save()
+                schedule(RegionScheduledDeletion, rule, days=0)
 
         delete_monitor.status = ObjectStatus.PENDING_DELETION
         delete_monitor.save()
+        schedule(ScheduledDeletion, delete_monitor, days=0)
 
 
 class Migration(CheckedMigration):
