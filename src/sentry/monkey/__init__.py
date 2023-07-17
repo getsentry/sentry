@@ -37,7 +37,7 @@ def patch_memcached():
         self.validate_key(key)
         return bool(self._cache.delete(key))
 
-    MemcachedCache.delete = fixed_delete
+    MemcachedCache.delete = fixed_delete  # type: ignore[method-assign]
 
 
 patch_celery_imgcat()
