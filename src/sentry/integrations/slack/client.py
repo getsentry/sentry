@@ -27,7 +27,7 @@ class SlackClient(IntegrationProxyClient):
 
     def __init__(
         self,
-        integration_id: int | None = None,
+        integration_id: int,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
@@ -39,7 +39,7 @@ class SlackClient(IntegrationProxyClient):
             )
 
         super().__init__(
-            org_integration_id, verify_ssl, logging_context, integration_id=integration_id
+            org_integration_id, verify_ssl, integration_id,logging_context=logging_context
         )
 
     @control_silo_function

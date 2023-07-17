@@ -66,10 +66,10 @@ class IntegrationProxyClient(ApiClient):
 
     def __init__(
         self,
+        integration_id: int,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
-        integration_id: int | None = None,
     ) -> None:
         super().__init__(
             verify_ssl=verify_ssl, logging_context=logging_context, integration_id=integration_id

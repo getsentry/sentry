@@ -45,9 +45,9 @@ class BaseApiClient(TrackResponseMixin):
 
     def __init__(
         self,
+        integration_id: int,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
-        integration_id: int | None = None,
     ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
