@@ -275,7 +275,7 @@ export class DeprecatedLine extends Component<Props, State> {
       this.props;
     const organization = this.props.organization;
     const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-changes'
+      'issue-details-stacktrace-improvements'
     );
     const anrCulprit =
       isANR &&
@@ -343,7 +343,7 @@ export class DeprecatedLine extends Component<Props, State> {
     const packageStatus = this.packageStatus();
     const organization = this.props.organization;
     const stacktraceChangesEnabled = !!organization?.features.includes(
-      'issue-details-stacktrace-changes'
+      'issue-details-stacktrace-improvements'
     );
 
     return (

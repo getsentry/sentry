@@ -218,7 +218,7 @@ function NativeFrame({
   const status = getStatus();
   const organization = useOrganization();
   const stacktraceChangesEnabled = !!organization?.features.includes(
-    'issue-details-stacktrace-changes'
+    'issue-details-stacktrace-improvements'
   );
 
   return (
