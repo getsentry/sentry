@@ -6,6 +6,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
+from requests.exceptions import MissingSchema
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
@@ -185,6 +186,15 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 },
             )
             raise IntegrationError("The requested Opsgenie account could not be found.")
+        except (ValueError, MissingSchema) as url_error:
+            logger.info(
+                "opsgenie.installation.get-account-info-failure",
+                extra={
+                    "base_url": base_url,
+                    "error_message": str(url_error),
+                },
+            )
+            raise IntegrationError("Invalid URL provided.")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [InstallationGuideView(), InstallationConfigView()]
