@@ -5,6 +5,7 @@ import pytest
 import responses
 from django.db import IntegrityError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Repository
 from sentry.plugins.providers.integration_repository import RepoExistsError
@@ -43,7 +44,7 @@ class IntegrationRepositoryTestCase(TestCase):
     def provider(self):
         return GitHubRepositoryProvider("integrations:github")
 
-    def _create_repo(self):
+    def _create_repo(self, external_id=None):
         return Repository.objects.create(
             name=self.repo_name,
             provider="integrations:github",
@@ -51,6 +52,7 @@ class IntegrationRepositoryTestCase(TestCase):
             integration_id=self.integration.id,
             url="https://github.com/" + self.repo_name,
             config={"name": self.repo_name},
+            external_id=external_id if external_id else "123456",
         )
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -81,3 +83,13 @@ class IntegrationRepositoryTestCase(TestCase):
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    def test_create_repository__activates_existing_repo(self, get_jwt):
+        repo = self._create_repo(external_id=self.config["external_id"])
+        repo.status = ObjectStatus.HIDDEN
+        repo.save()
+
+        self.provider.create_repository(self.config, self.organization)
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.ACTIVE

@@ -82,18 +82,34 @@ class IntegrationRepositoryProvider:
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
 
+        integration_id = result.get("integration_id")
+        external_id = result.get("external_id")
+
         repo_update_params = {
             "external_id": result.get("external_id"),
             "url": result.get("url"),
             "config": result.get("config") or {},
             "provider": self.id,
-            "integration_id": result.get("integration_id"),
+            "integration_id": integration_id,
         }
 
-        # first check if there is a repository without an integration that matches
+        # first check if there is an existing repository with an integration that matches
+        existing_repo = Repository.objects.filter(
+            organization_id=organization.id,
+            name=result["name"],
+            integration_id=integration_id,
+            external_id=external_id,
+        ).first()
+        if existing_repo:
+            existing_repo.status = ObjectStatus.ACTIVE
+            existing_repo.save()
+            return result, existing_repo
+
+        # then check if there is a repository without an integration that matches
         repo = Repository.objects.filter(
             organization_id=organization.id, name=result["name"], integration_id=None
         ).first()
+
         if repo:
             if self.logger:
                 self.logger.info(
