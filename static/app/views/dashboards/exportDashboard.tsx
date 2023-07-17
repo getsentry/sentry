@@ -1,3 +1,5 @@
+import cloneDeep from 'lodash/cloneDeep';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import {DashboardDetails} from './types';
@@ -67,7 +69,7 @@ function normalizeData(
       // if there is a nested object with properties that should be deleted
       if (['widgets'].includes(property)) {
         // get the object properties so that we can loop through them
-        const type = getType(property);
+        const type = getPropertyStructure(property);
         data = normalizeNestedObject(source[property], type);
       } else {
         data = source[property];
@@ -82,16 +84,17 @@ function normalizeData(
 
 function normalizeNestedObject(object, structure) {
   const nestedObjectArray: any[] = [];
-  const nestedObject = structure;
 
   for (const index in object) {
+    const nestedObject = cloneDeep(structure);
+
     for (const property in structure) {
       if (property in object[index]) {
         let data: any[] = [];
 
         if (['queries'].includes(property)) {
           // get the object properties so that we can loop through them
-          const type = getType(property);
+          const type = getPropertyStructure(property);
           data = normalizeNestedObject(object[index][property], type);
         } else {
           data = object[index][property];
@@ -107,7 +110,7 @@ function normalizeNestedObject(object, structure) {
   return nestedObjectArray;
 }
 
-function getType(property) {
+function getPropertyStructure(property) {
   let structure = {};
 
   switch (property) {
@@ -118,6 +121,7 @@ function getType(property) {
         interval: '',
         queries: [],
         displayType: '',
+        widgetType: '',
       };
       break;
     case 'queries':
