@@ -1,7 +1,7 @@
 import asyncore
 import email
 import logging
-from smtpd import SMTPChannel, SMTPServer
+from smtpd import SMTPServer
 
 from email_reply_parser import EmailReplyParser
 
@@ -10,23 +10,6 @@ from sentry.tasks.email import process_inbound_email
 from sentry.utils.email import email_to_group_id
 
 logger = logging.getLogger(__name__)
-
-
-# HACK(mattrobenolt): literally no idea what I'm doing. Mostly made this up.
-# SMTPChannel doesn't support EHLO response, but nginx requires an EHLO.
-# EHLO is available in python 3, so this is backported somewhat
-def smtp_EHLO(self, arg):
-    if not arg:
-        self.push("501 Syntax: EHLO hostname")
-        return
-    if self._SMTPChannel__greeting:
-        self.push("503 Duplicate HELO/EHLO")
-    else:
-        self._SMTPChannel__greeting = arg
-        self.push("250 %s" % self._SMTPChannel__fqdn)
-
-
-SMTPChannel.smtp_EHLO = smtp_EHLO  # type: ignore[method-assign]
 
 STATUS = {200: "200 Ok", 550: "550 Not found", 552: "552 Message too long"}
 
