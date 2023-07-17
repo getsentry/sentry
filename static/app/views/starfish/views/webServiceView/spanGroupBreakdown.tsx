@@ -93,7 +93,10 @@ export function SpanGroupBreakdown({
     } else if (event.seriesName === 'http') {
       spansLink = `/starfish/api/`;
     } else if (event.seriesName === 'Other') {
-      spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
+      spansLinkQueryParams[SPAN_MODULE] = 'Other';
+      spansLinkQueryParams['!span.category'] = data
+        .filter(r => r.seriesName !== 'Other')
+        .map(r => r.seriesName);
     } else {
       spansLinkQueryParams[SPAN_MODULE] = 'Other';
       spansLinkQueryParams['span.category'] = event.seriesName;

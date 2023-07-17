@@ -8,6 +8,7 @@ export enum ModuleName {
   DB = 'db',
   NONE = 'none',
   ALL = '',
+  OTHER = 'Other',
 }
 
 export enum SpanMetricsFields {

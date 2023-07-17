@@ -211,7 +211,7 @@ function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (spanCategory === 'app') {
     return 'Application Task';
   }
-  if (spanCategory === 'Other') {
+  if (moduleName === 'Other') {
     return 'Requests';
   }
   return 'Description';

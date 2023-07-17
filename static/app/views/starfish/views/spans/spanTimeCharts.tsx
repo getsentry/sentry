@@ -65,6 +65,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.NONE]: [],
+    [ModuleName.OTHER]: [],
   };
 
   const charts = [...moduleCharts[ModuleName.ALL]];
