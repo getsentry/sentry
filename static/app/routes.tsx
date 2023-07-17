@@ -1820,10 +1820,6 @@ function buildRoutes() {
           path={TabPaths[Tab.MERGED]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
         />
-        <Route
-          path={TabPaths[Tab.GROUPING]}
-          component={hoc(make(() => import('sentry/views/issueDetails/grouping')))}
-        />
       </Fragment>
     );
   };

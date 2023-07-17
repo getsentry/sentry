@@ -92,7 +92,7 @@ describe('CreateSavedSearchModal', function () {
           data: {
             name: 'new search name',
             query: 'is:resolved',
-            sort: IssueSortOptions.PRIORITY,
+            sort: IssueSortOptions.BETTER_PRIORITY,
             type: 0,
             visibility: SavedSearchVisibility.OWNER,
           },

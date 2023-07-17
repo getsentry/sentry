@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence, Tuple
 
+from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
     Column,
     Condition,
@@ -91,9 +92,12 @@ def boost_low_volume_projects() -> None:
             ).items():
                 boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
     except TimeoutException:
+        set_extra("context-data", context.to_dict())
         log_task_timeout(context)
         raise
     else:
+        set_extra("context-data", context.to_dict())
+        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_projects")
         log_task_execution(context)
 
 

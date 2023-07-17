@@ -109,7 +109,7 @@ export default function SpansTable({
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
-        hasData={data?.length > 0}
+        hasData={(data?.length ?? 0) > 0}
         isLoading={isLoading}
         disabled={shouldTrackVCD}
       >
