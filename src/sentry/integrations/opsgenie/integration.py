@@ -6,7 +6,6 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from requests.exceptions import MissingSchema
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
@@ -143,8 +142,6 @@ class OpsgenieIntegration(IntegrationInstallation):
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         client = self.get_client()
         # get the team ID/test the API key for a newly added row
-        # potential problem: the user could be rate limited if they hand-type every API key...
-        # another problem: the default error message isn't very helpful, but I don't know how to change it
         teams = data["team_table"]
         for team in teams:
             if team["id"] != "":
@@ -155,7 +152,9 @@ class OpsgenieIntegration(IntegrationInstallation):
                 )
                 team["id"] = resp["data"]["id"]
             except ApiError:
-                raise ValidationError("Invalid integration key.")
+                raise ValidationError(
+                    {"api_key": ["Could not save: invalid team name or integration key."]}
+                )
 
         return super().update_organization_config(data)
 
@@ -186,15 +185,6 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 },
             )
             raise IntegrationError("The requested Opsgenie account could not be found.")
-        except (ValueError, MissingSchema) as url_error:
-            logger.info(
-                "opsgenie.installation.get-account-info-failure",
-                extra={
-                    "base_url": base_url,
-                    "error_message": str(url_error),
-                },
-            )
-            raise IntegrationError("Invalid URL provided.")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [InstallationGuideView(), InstallationConfigView()]

@@ -84,13 +84,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             provider.get_account_info(base_url=self.config["base_url"], api_key=bad_key)
         assert str(error.value) == "The requested Opsgenie account could not be found."
 
-    def test_invalid_url(self):
-        provider = self.provider()
-        bad_url = "bad.com"
-        with pytest.raises(IntegrationError) as error:
-            provider.get_account_info(base_url=bad_url, api_key=self.config["api_key"])
-        assert str(error.value) == "Invalid URL provided."
-
     @responses.activate
     def test_update_config_valid(self):
         integration = Integration.objects.create(
