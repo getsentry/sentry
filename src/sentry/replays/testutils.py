@@ -347,6 +347,51 @@ def mock_segment_nagivation(
     )
 
 
+def mock_segment_click(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),
+            "type": "default",
+            "category": "ui.click",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                }
+            },
+        },
+    )
+
+
+def mock_segment_rageclick(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str, clickCount: int
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
+            "type": "default",
+            "category": "ui.multiClick",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                },
+                "clickCount": clickCount,
+            },
+        },
+    )
+
+
 __rrweb_id = 0
 
 
