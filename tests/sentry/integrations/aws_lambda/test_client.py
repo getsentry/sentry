@@ -254,6 +254,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
                 region=self.region,
                 aws_external_id=self.aws_external_id,
             )
+            assert client.should_delegate()
             with pytest.raises(AWSOrganizationsNotInUseException):
                 client.get_function(FunctionName="lambdaE")
                 assert mock_client.get_function.call_count == 1
@@ -345,7 +346,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
                 region=self.region,
                 aws_external_id=self.aws_external_id,
             )
-
+            assert client.should_delegate()
             with pytest.raises(client.client.exceptions.AWSOrganizationsNotInUseException):
                 client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 0
