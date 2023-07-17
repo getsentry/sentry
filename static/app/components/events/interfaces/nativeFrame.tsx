@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -215,6 +216,10 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const organization = useOrganization();
+  const stacktraceChangesEnabled = !!organization?.features.includes(
+    'issue-details-stacktrace-improvements'
+  );
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -222,7 +227,7 @@ function NativeFrame({
         <RowHeader
           expandable={expandable}
           expanded={expanded}
-          isSystemLabel={!frame.inApp}
+          stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
         >
           <SymbolicatorIcon>
             {status === 'error' ? (
@@ -301,7 +306,15 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
-          <TypeCell>{frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}</TypeCell>
+          <TypeCell>
+            {!frame.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <InAppTag>{t('System')}</InAppTag>
+              )
+            ) : (
+              <InAppTag type="info">{t('In App')}</InAppTag>
+            )}
+          </TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -410,7 +423,7 @@ const FileName = styled('span')`
 const RowHeader = styled('span')<{
   expandable: boolean;
   expanded: boolean;
-  isSystemLabel: boolean;
+  stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
@@ -421,8 +434,8 @@ const RowHeader = styled('span')<{
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
-  color: ${p => (p.isSystemLabel ? p.theme.subText : '')};
-  font-style: ${p => (p.isSystemLabel ? 'italic' : '')};
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
   ${p =>
     p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
@@ -445,4 +458,8 @@ const StackTraceFrame = styled('li')`
 
 const SymbolicatorIcon = styled('div')`
   width: ${p => p.theme.iconSizes.sm};
+`;
+
+const InAppTag = styled(Tag)`
+  margin-right: ${space(1)};
 `;
