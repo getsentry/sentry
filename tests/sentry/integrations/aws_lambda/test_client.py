@@ -234,7 +234,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
 
     @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
     @responses.activate
-    def test_integration_boto3_client_exception(self, mock_gen_aws_client):
+    def test_delegates_exception(self, mock_gen_aws_client):
         class AWSOrganizationsNotInUseException(Exception):
             pass
 
@@ -296,3 +296,57 @@ class AwsLambdaProxyApiClientTest(TestCase):
                 "return_response": {},
                 "exception": {"class": "AWSOrganizationsNotInUseException"},
             }
+
+    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @responses.activate
+    def test_wrapped_boto3_client_raises_exception(self, mock_gen_aws_client):
+        class AWSOrganizationsNotInUseException(Exception):
+            pass
+
+        mock_client = mock_gen_aws_client.return_value
+        mock_client.get_function = MagicMock()
+        mock_client.exceptions.AWSOrganizationsNotInUseException = AWSOrganizationsNotInUseException
+
+        class AwsLambdaProxyApiTestClient(AwsLambdaProxyClient):
+            _use_proxy_url_for_tests = True
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+
+            responses.add(
+                responses.POST,
+                "http://controlserver/api/0/internal/integration-proxy/",
+                match=[
+                    matchers.header_matcher(
+                        {
+                            "Content-Type": "application/json",
+                            "X-Sentry-Subnet-Organization-Integration": str(
+                                self.installation.org_integration.id
+                            ),
+                        },
+                    ),
+                    matchers.json_params_matcher(
+                        {
+                            "args": [],
+                            "function_name": "get_function",
+                            "kwargs": {"FunctionName": "lambdaE"},
+                        }
+                    ),
+                ],
+                json={
+                    "function_name": "get_function",
+                    "return_response": {},
+                    "exception": {"class": "AWSOrganizationsNotInUseException"},
+                },
+            )
+
+            client = AwsLambdaProxyApiTestClient(
+                org_integration_id=self.installation.org_integration.id,
+                account_number=self.account_number,
+                region=self.region,
+                aws_external_id=self.aws_external_id,
+            )
+
+            with pytest.raises(client.client.exceptions.AWSOrganizationsNotInUseException):
+                client.get_function(FunctionName="lambdaE")
+            assert mock_client.get_function.call_count == 0

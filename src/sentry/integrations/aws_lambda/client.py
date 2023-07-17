@@ -104,9 +104,6 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
 
     @property
     def client(self):
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            return None
-
         if self._client:
             return self._client
 
@@ -170,7 +167,9 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
             exception = response["exception"]
             if exception:
                 class_name = exception["class"]
-                raise type(class_name, Exception, {})
+                lambda_client = self.client
+                exception_cls = getattr(lambda_client.exceptions, class_name)
+                raise exception_cls()
 
             return_response = response["return_response"]
             return return_response
