@@ -13,7 +13,7 @@ describe('getDateFromMoment', () => {
   // Ensure date remains in UTC
   it('shows the date if interval is >= 24h', () => {
     expect(getDateFromMoment(start)).toBe('Jul 9');
-    expect(getDateFromMoment(start, '7d')).toBe('Jul 9');
+    expect(getDateFromMoment(start, '2d')).toBe('Jul 9');
     expect(getDateFromMoment(moment('2021-10-31'))).toBe('Oct 31');
   });
 
