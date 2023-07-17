@@ -7,10 +7,10 @@
 
 {% block auth_container %}
   {% if banner %}
-    <h2 class="m-t-1 m-l-1">{{ banner }}</h2>
+    <h2 class="m-t-1 m-l-1 m-b-0">{{ banner }}</h2>
   {% endif %}
 
-  <div class="auth-container border-bottom">
+  <div class="auth-container p-t-1 border-bottom">
     <h3>{% trans "Sign in to continue" %}</h3>
     <ul class="nav nav-tabs auth-toggle m-b-0">
       <li{% if op == "login" %} class="active"{% endif %}>
