@@ -165,6 +165,7 @@ class AlertRuleTriggerClearCacheTest(TestCase):
         ) is None
 
 
+@pytest.mark.skip(reason="cache was disabled in #52930")
 class ActiveIncidentClearCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
