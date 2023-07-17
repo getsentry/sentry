@@ -212,7 +212,7 @@ def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
 
 
 def is_on_demand_query(
-        dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
 
@@ -320,7 +320,7 @@ class OndemandMetricSpec:
         # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
         function, arguments, _alias = fields.parse_function(aggregate)
         assert (
-                function in _AGGREGATE_TO_METRIC_TYPE and function in _SEARCH_TO_METRIC_AGGREGATES
+            function in _AGGREGATE_TO_METRIC_TYPE and function in _SEARCH_TO_METRIC_AGGREGATES
         ), f"Unsupported aggregate function {function}"
         self.metric_type = _AGGREGATE_TO_METRIC_TYPE[function]
         self.op = _SEARCH_TO_METRIC_AGGREGATES[function]
