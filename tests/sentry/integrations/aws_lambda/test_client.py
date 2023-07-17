@@ -1,15 +1,25 @@
+from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
 import boto3
+import pytest
 import responses
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 from responses import matchers
+from rest_framework.decorators import api_view
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.client import AwsLambdaProxyClient, gen_aws_client
 from sentry.models import Integration
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import (
+    PROXY_BASE_PATH,
+    PROXY_OI_HEADER,
+    PROXY_SIGNATURE_HEADER,
+    encode_subnet_signature,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -94,6 +104,14 @@ def assert_proxy_request(request, is_proxy=True):
         assert request.headers[PROXY_OI_HEADER] is not None
 
 
+class SiloHttpHeaders(TypedDict, total=False):
+    HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: str
+    HTTP_X_SENTRY_SUBNET_SIGNATURE: str
+
+
+SENTRY_SUBNET_SECRET = "hush-hush-im-invisible"
+
+
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
@@ -141,7 +159,6 @@ class AwsLambdaProxyApiClientTest(TestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-
             client = AwsLambdaProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
                 account_number=self.account_number,
@@ -214,3 +231,68 @@ class AwsLambdaProxyApiClientTest(TestCase):
             assert "http://controlserver/api/0/internal/integration-proxy/" == request.url
             assert client.base_url and (client.base_url.lower() in request.url)
             assert_proxy_request(request, is_proxy=True)
+
+    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @responses.activate
+    def test_integration_boto3_client_exception(self, mock_gen_aws_client):
+        class AWSOrganizationsNotInUseException(Exception):
+            pass
+
+        mock_client = mock_gen_aws_client.return_value
+        mock_client.get_function = MagicMock(side_effect=AWSOrganizationsNotInUseException())
+
+        class AwsLambdaProxyApiTestClient(AwsLambdaProxyClient):
+            _use_proxy_url_for_tests = True
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            mock_client.get_function.reset_mock()
+            assert mock_client.get_function.call_count == 0
+
+            client = AwsLambdaProxyApiTestClient(
+                org_integration_id=self.installation.org_integration.id,
+                account_number=self.account_number,
+                region=self.region,
+                aws_external_id=self.aws_external_id,
+            )
+            with pytest.raises(AWSOrganizationsNotInUseException):
+                client.get_function(FunctionName="lambdaE")
+                assert mock_client.get_function.call_count == 1
+                assert len(responses.calls) == 0
+
+            expected_proxy_payload = {
+                "args": ["hello"],
+                "kwargs": {"function_name": "lambdaE"},
+                "function_name": "get_function",
+            }
+            signature = encode_subnet_signature(
+                secret=SENTRY_SUBNET_SECRET,
+                path="",
+                identifier=str(self.installation.org_integration.id),
+                request_body=json.dumps(expected_proxy_payload).encode("utf-8"),
+            )
+            headers = SiloHttpHeaders(
+                HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+                HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(
+                    self.installation.org_integration.id
+                ),
+            )
+            request = APIRequestFactory().post(
+                f"{PROXY_BASE_PATH}/", **headers, data=expected_proxy_payload, format="json"
+            )
+
+            @api_view(["GET", "POST"])
+            def view(request):
+                return request
+
+            response = view(request)
+            response.render()
+            request = response.renderer_context["request"]
+            proxy_response = client.delegate(request=request, proxy_path="", headers=headers)
+
+            actual_response_payload = json.loads(proxy_response.content)
+            assert actual_response_payload == {
+                "function_name": "get_function",
+                "return_response": {},
+                "exception": {"class": "AWSOrganizationsNotInUseException"},
+            }
