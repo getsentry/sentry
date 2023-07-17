@@ -189,3 +189,18 @@ class ModelBackupTests(TransactionTestCase):
         user = self.create_user()
         self.create_organization(owner=user)
         return self.import_export_then_validate()
+
+    def test_incident(self):
+        pass
+
+    def test_incidentActivity(self):
+        pass
+
+    def test_incidentSnapshot(self):
+        pass
+
+    def test_incidentSubscription(self):
+        pass
+
+    def test_incidentTrigger(self):
+        pass
