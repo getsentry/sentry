@@ -91,6 +91,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     consecutive_db_queries_detection_enabled = serializers.BooleanField(required=False)
     large_render_blocking_asset_detection_enabled = serializers.BooleanField(required=False)
     slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
+    http_overhead_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint

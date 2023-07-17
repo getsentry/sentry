@@ -28,6 +28,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    HTTPOverheadDetector,
     LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
@@ -179,6 +180,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "consecutive_db_min_time_saved_threshold": options.get(
             "performance.issues.consecutive_db.min_time_saved_threshold"
         ),
+        "http_request_delay_threshold": options.get(
+            "performance.issues.http_overhead.http_request_delay_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -305,6 +309,10 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
         },
+        DetectorType.HTTP_OVERHEAD: {
+            "http_request_delay_threshold": settings["http_request_delay_threshold"],
+            "detection_enabled": settings["http_overhead_detection_enabled"],
+        },
     }
 
 
@@ -330,6 +338,7 @@ def _detect_performance_problems(
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
+        HTTPOverheadDetector(detection_settings, data),
     ]
 
     for detector in detectors:

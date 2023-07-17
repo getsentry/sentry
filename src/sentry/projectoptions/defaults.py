@@ -113,6 +113,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "consecutive_db_queries_detection_enabled": True,
     "large_render_blocking_asset_detection_enabled": True,
     "slow_db_queries_detection_enabled": True,
+    "http_overhead_detection_enabled": True,
 }
 
 # A dict containing all the specific detection thresholds and rates.

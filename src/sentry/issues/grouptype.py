@@ -290,9 +290,15 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     category = GroupCategory.PERFORMANCE.value
 
 
+@dataclass(frozen=True)
+class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1016
+    slug = "performance_http_overhead"
+    description = "HTTP/1.1 Overhead"
+    category = GroupCategory.PERFORMANCE.value
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
-
-
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
