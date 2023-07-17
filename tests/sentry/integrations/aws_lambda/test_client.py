@@ -151,6 +151,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
             actual = client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 1
             assert actual == expected_get_function_return
+            assert len(responses.calls) == 0
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
@@ -166,6 +167,7 @@ class AwsLambdaProxyApiClientTest(TestCase):
             actual = client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 1
             assert actual == expected_get_function_return
+            assert len(responses.calls) == 0
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
@@ -207,3 +209,8 @@ class AwsLambdaProxyApiClientTest(TestCase):
             actual = client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 0
             assert actual == expected_get_function_return
+            assert len(responses.calls) == 1
+            request = responses.calls[0].request
+            assert "http://controlserver/api/0/internal/integration-proxy/" == request.url
+            assert client.base_url and (client.base_url.lower() in request.url)
+            assert_proxy_request(request, is_proxy=True)
