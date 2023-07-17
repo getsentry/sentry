@@ -14,7 +14,7 @@ import click
 import requests
 from django.conf import settings
 
-from sentry.models import File, Organization, Project
+from sentry.models import File, Organization, Project, Team
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import (
     mock_replay,
@@ -64,7 +64,7 @@ def make_filename(filename: str) -> str:
 
 
 def main():
-    project_name = "Replay Test"
+    project_name = "Replay Test Project"
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
@@ -74,13 +74,21 @@ def main():
         org, _ = Organization.objects.get_or_create(slug="default")
 
     click.echo(f"  > Mocking project {project_name}")
+
+    team, _ = Team.objects.get_or_create(
+        organization=org, slug="sentry", defaults={"name": "Sentry"}
+    )
+
     project, _ = Project.objects.get_or_create(
         name=project_name,
         defaults={
             "organization": org,
             "flags": Project.flags.has_replays,
         },
+        platform="javascript",
     )
+
+    project.add_team(team)
 
     replay_id = uuid.uuid4().hex
     seq1_timestamp = datetime.now() - timedelta(seconds=22)
