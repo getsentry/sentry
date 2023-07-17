@@ -589,6 +589,11 @@ function buildRoutes() {
         />
       </Route>
       <Route
+        path="loader-script/"
+        name={t('Loader Script')}
+        component={make(() => import('sentry/views/settings/project/loaderScript'))}
+      />
+      <Route
         path="user-feedback/"
         name={t('User Feedback')}
         component={make(
