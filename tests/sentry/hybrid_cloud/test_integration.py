@@ -212,6 +212,15 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         self.verify_result(result=result, expected=[self.org_integration1, self.org_integration3])
 
+        result = integration_service.get_organization_integrations(
+            organization_id=self.organization.id,
+            statuses=[ObjectStatus.ACTIVE, ObjectStatus.PENDING_DELETION],
+        )
+        self.verify_result(
+            result=result,
+            expected=[self.org_integration1, self.org_integration2, self.org_integration3],
+        )
+
         # by Integration attributes
         result = integration_service.get_organization_integrations(
             organization_id=self.organization.id,

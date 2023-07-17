@@ -164,6 +164,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int | None = None,
         organization_ids: Optional[List[int]] = None,
         status: int | None = None,
+        statuses: List[int] | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
         limit: int | None = None,
@@ -178,7 +179,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if organization_ids is not None:
             oi_kwargs["organization_id__in"] = organization_ids
         if status is not None:
-            oi_kwargs["status"] = status
+            statuses = [status]
+        if statuses is not None:
+            oi_kwargs["status__in"] = statuses
         if providers is not None:
             oi_kwargs["integration__provider__in"] = providers
         if has_grace_period is not None:
