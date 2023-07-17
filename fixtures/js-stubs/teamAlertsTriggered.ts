@@ -1,4 +1,4 @@
-import {AlertsTriggered} from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
+import type {AlertsTriggered} from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
 
 export function TeamAlertsTriggered(): AlertsTriggered {
   return {

@@ -1,4 +1,4 @@
-import {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types';
 
 export function Tags(params = []): TagWithTopValues[] {
   return [

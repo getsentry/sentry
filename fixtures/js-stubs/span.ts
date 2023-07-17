@@ -1,4 +1,4 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
 export function Span(params = {}): RawSpanType {
   return {

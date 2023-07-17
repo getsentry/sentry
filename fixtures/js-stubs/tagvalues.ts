@@ -1,4 +1,4 @@
-import {TagValue} from 'sentry/types';
+import type {TagValue} from 'sentry/types';
 
 export function TagValues(params = []): TagValue[] {
   return [

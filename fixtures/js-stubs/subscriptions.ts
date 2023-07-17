@@ -1,4 +1,4 @@
-import {Subscription} from 'sentry/views/settings/account/accountSubscriptions';
+import type {Subscription} from 'sentry/views/settings/account/accountSubscriptions';
 
 export function Subscriptions(params = []): Subscription[] {
   return [

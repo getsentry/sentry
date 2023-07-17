@@ -1,4 +1,4 @@
-import {IssuesBreakdown} from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
+import type {IssuesBreakdown} from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
 export function TeamIssuesBreakdown(): IssuesBreakdown {
   return {
