@@ -142,7 +142,7 @@ class SequenceType(Type[list]):
     """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
-    expected_types = list
+    expected_types = (list,)
     compatible_types = (str, tuple, list)
 
     def _default(self) -> typing.List[typing.Any]:
