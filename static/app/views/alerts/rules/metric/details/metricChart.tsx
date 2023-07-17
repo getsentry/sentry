@@ -55,7 +55,6 @@ import {
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -502,14 +501,6 @@ class MetricChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery: false,
     });
-
-    if (isOnDemandMetricAlert(rule.dataset, rule.query)) {
-      return this.renderEmpty(
-        t(
-          'This alert includes advanced conditions, which is a feature that is currently in early access. Charts are not yet supported at this time.'
-        )
-      );
-    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
