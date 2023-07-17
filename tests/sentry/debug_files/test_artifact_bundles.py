@@ -12,8 +12,10 @@ from sentry.debug_files.artifact_bundles import (
     BundleMeta,
     FlatFileIdentifier,
     FlatFileIndex,
+    FlatFileIndexingState,
     FlatFileIndexStore,
     get_redis_cluster_for_artifact_bundles,
+    index_bundle_in_flat_file,
 )
 from sentry.models import File, FileBlob
 from sentry.models.artifactbundle import (
@@ -212,6 +214,102 @@ class FlatFileTestCase(TestCase):
             ],
             "files_by_url": {"~/app.js": [0], "~/main.js": [1, 0]},
         }
+
+
+class FlatFileIndexingTest(FlatFileTestCase):
+    def mock_simple_artifact_bundle(self, with_debug_ids: bool = False):
+        manifest = {
+            "path/in/zip/foo": {
+                "url": "~/app.js",
+                "type": "minified_source",
+                "content": b"app_js",
+            },
+            "path/in/zip/bar": {
+                "url": "~/main.js",
+                "content": b"main_js",
+                "type": "minified_source",
+            },
+        }
+
+        if with_debug_ids:
+            manifest["path/in/zip/foo"]["headers"] = {
+                "debug-id": "f206e0e7-3d0c-41cb-bccc-11b716728e27"
+            }
+            manifest["path/in/zip/bar"]["headers"] = {
+                "debug-id": "5c23c9a2-ffb8-49f4-8cc9-fbea9abe4493"
+            }
+
+        return self.mock_artifact_bundle(manifest)
+
+    def test_index_bundle_in_flat_file_with_only_release(self):
+        release = "1.0"
+        dist = "android"
+
+        artifact_bundle = self.mock_simple_artifact_bundle()
+        identifier = FlatFileIdentifier(
+            project_id=self.project.id,
+            release=release,
+            dist=dist,
+        )
+
+        result = index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        assert result == FlatFileIndexingState.SUCCESS
+        assert (
+            len(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=self.project.id, release_name=release, dist_name=dist
+                )
+            )
+            == 1
+        )
+
+    def test_index_bundle_in_flat_file_with_debug_ids(self):
+        artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
+        identifier = FlatFileIdentifier(project_id=self.project.id)
+
+        result = index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        assert result == FlatFileIndexingState.SUCCESS
+        assert (
+            len(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=self.project.id, release_name="", dist_name=""
+                )
+            )
+            == 1
+        )
+
+    def test_index_bundle_in_flat_file_with_release_and_debug_ids(self):
+        release = "1.0"
+        dist = "android"
+
+        artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
+        identifier = FlatFileIdentifier(
+            project_id=self.project.id,
+            release=release,
+            dist=dist,
+        )
+
+        result = index_bundle_in_flat_file(artifact_bundle, identifier)
+
+        assert result == FlatFileIndexingState.SUCCESS
+        assert (
+            len(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=self.project.id, release_name=release, dist_name=dist
+                )
+            )
+            == 1
+        )
+        assert (
+            len(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=self.project.id, release_name="", dist_name=""
+                )
+            )
+            == 1
+        )
 
 
 @freeze_time("2023-07-13T10:00:00.000Z")

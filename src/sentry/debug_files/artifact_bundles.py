@@ -37,7 +37,6 @@ from sentry.models.artifactbundle import (
 from sentry.models.project import Project
 from sentry.utils import json, metrics, redis
 from sentry.utils.db import atomic_transaction
-from tests.sentry.sentry_metrics.test_kafka import project_id
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -73,9 +72,8 @@ class FlatFileIdentifier(NamedTuple):
         # An identifier is indexing by release if release is set.
         return bool(self.release)
 
-    @staticmethod
-    def to_indexing_by_debug_id() -> FlatFileIdentifier:
-        return FlatFileIdentifier(project_id=project_id, release=NULL_STRING, dist=NULL_STRING)
+    def to_indexing_by_debug_id(self) -> FlatFileIdentifier:
+        return FlatFileIdentifier(project_id=self.project_id, release=NULL_STRING, dist=NULL_STRING)
 
 
 def _generate_flat_file_indexing_cache_key(identifier: FlatFileIdentifier):
@@ -129,10 +127,11 @@ def index_bundle_in_flat_file(
         if identifier.is_indexing_by_release() and archive.has_debug_ids():
             identifiers.append(identifier.to_indexing_by_debug_id())
 
-        # Before starting, we have to make sure that
+        # Before starting, we have to make sure that no other identifiers are being indexed.
         if not set_flat_files_being_indexed_if_null(identifiers):
             return FlatFileIndexingState.CONFLICT
 
+        # For each identifier we now have to compute the index.
         for identifier in identifiers:
             index = FlatFileIndex.build(FlatFileIndexStore(identifier))
             if index is None:
@@ -170,6 +169,7 @@ class FlatFileIndexStore:
                 release_name=self.identifier.release,
                 dist_name=self.identifier.dist,
             ).load_flat_file_index()
+
             return self._deserialize_json_index(flat_file_index)
         except ArtifactBundleFlatFileIndex.DoesNotExist:
             return None
@@ -178,7 +178,7 @@ class FlatFileIndexStore:
     def _deserialize_json_index(
         cls, json_index: Dict[str, Any]
     ) -> Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]:
-        deserialized_index = {}
+        deserialized_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]] = {}
 
         if "bundles" in json_index:
             deserialized_index["bundles"] = cls._deserialize_bundles(json_index["bundles"])
@@ -208,11 +208,13 @@ class FlatFileIndexStore:
         return deserialized_bundles
 
     def save(self, flat_file_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]):
+        serialized_index = self._serialize_json_index(flat_file_index)
+
         ArtifactBundleFlatFileIndex.create_flat_file_index(
             project_id=self.identifier.project_id,
             release=self.identifier.release,
             dist=self.identifier.dist,
-            file_contents=self._serialize_json_index(flat_file_index),
+            file_contents=serialized_index,
         )
 
     @classmethod
@@ -376,12 +378,14 @@ class FlatFileIndex:
 
         return None
 
-    def save(self):
+    def save(self) -> bool:
         try:
             self._save()
+            return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr("artifact_bundle_flat_file_indexing.error_when_saving")
+            return False
 
     def _save(self):
         result: Dict[str, Any] = {}
