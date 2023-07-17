@@ -81,14 +81,19 @@ class BaseApiClient(TrackResponseMixin):
         """
         return prepared_request
 
-    def is_response_fatal(resp: Response) -> bool:
+    def is_response_fatal(self, resp: Response) -> bool:
         return False
 
-    def is_response_error(resp: Response) -> bool:
+    def is_response_error(self, resp: Response) -> bool:
         if resp.status_code >= 400:
             return True
 
-    def is_response_success(resp: Response) -> bool:
+    def is_response_success(self, resp: Response) -> bool:
+        # print("is_response_success")
+        # print("resp")
+        # print(resp)
+        #  print("code")
+        # print(resp.status_code)
         if resp.status_code < 300:
             return True
 
@@ -239,10 +244,12 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-
-            self.record_request_error(resp)
-            self.record_request_success(resp)
-            self.record_request_fatal(resp)
+            #    print("record_request_error")
+            #    print(self.record_request_error(resp))
+            #    print("record_request_success")
+            #    print(self.record_request_success(resp))
+            #    print("record_request_fatal")
+            #    print(self.record_request_fatal(resp))
 
             if resp.status_code == 204:
                 return {}
@@ -318,24 +325,28 @@ class BaseApiClient(TrackResponseMixin):
     def record_request_error(self, resp: Response):
         if not self.integration_id:
             return
-        if not self.is_response_error:
+        if not self.is_response_error(resp):
             return
         buffer = IntegrationRequestBuffer(self.integration_id)
         buffer.record_error()
+        return True
 
     def record_request_success(self, resp: Response):
         if not self.integration_id:
+            #       print("not self.integration_id")
             return
-        if not self.is_response_success:
+        if not self.is_response_success(resp):
             return
         buffer = IntegrationRequestBuffer(self.integration_id)
         buffer.record_success()
+        return True
 
     def record_request_fatal(self, resp: Response):
         if not self.integration_id:
             return
-        if not self.is_response_fatal:
+        if not self.is_response_fatal(resp):
             return
         buffer = IntegrationRequestBuffer(self.integration_id)
         buffer.record_fatal()
         # call uninstall on the integration
+        return True

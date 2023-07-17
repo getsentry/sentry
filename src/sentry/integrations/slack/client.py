@@ -38,7 +38,9 @@ class SlackClient(IntegrationProxyClient):
                 integration_id=self.integration_id, ctx_logger=logger
             )
 
-        super().__init__(org_integration_id, verify_ssl, logging_context)
+        super().__init__(
+            org_integration_id, verify_ssl, logging_context, integration_id=integration_id
+        )
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -64,6 +66,10 @@ class SlackClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
+    def is_response_error(self, resp: Response) -> bool:
+        #  print("is_response_error")
+        return super().is_response_error() or resp.e == "account_inactive"
+
     def track_response_data(
         self,
         code: Union[str, int],
@@ -74,7 +80,7 @@ class SlackClient(IntegrationProxyClient):
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
         span = span or Span()
-
+        #   print("track_response_data")
         try:
             span.set_http_status(int(code))
         except ValueError:
@@ -82,6 +88,9 @@ class SlackClient(IntegrationProxyClient):
 
         is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
+        #   print(resp)
+        #    print(type(resp))
+        #        print(self.is_response_error(resp))
         if resp:
             content_type = resp.headers["content-type"]
             if content_type == "text/html":
