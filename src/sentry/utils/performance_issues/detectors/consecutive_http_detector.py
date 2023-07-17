@@ -183,6 +183,12 @@ class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
             "consecutive_count_threshold"
         )
 
+        exceeds_span_duration_threshold = all(
+            get_span_duration(span).total_seconds() * 1000
+            >= self.settings.get("span_duration_threshold")
+            for span in self.consecutive_http_spans
+        )
+
         exceeds_min_time_saved_duration = False
         if self.consecutive_http_spans:
             exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
@@ -201,6 +207,7 @@ class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
             exceeds_count_threshold
             and subceeds_duration_between_spans_threshold
             and exceeds_min_time_saved_duration
+            and exceeds_span_duration_threshold
         ):
             self._store_performance_problem()
 

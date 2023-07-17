@@ -101,9 +101,9 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
 
         assert len(problems) == 1
 
-        spans = [  # min time saved by parallelizing is 40ms
-            create_span("http.client", 20, "GET /api/0/organizations/endpoint1", "hash1"),
-            create_span("http.client", 20, "GET /api/0/organizations/endpoint2", "hash2"),
+        spans = [  # min time saved by parallelizing is 1s
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
             create_span("http.client", 1000, "GET /api/0/organizations/endpoint3", "hash3"),
         ]
         spans = [
@@ -130,20 +130,51 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
         problems = self.find_problems(create_event(spans))
         assert problems == []
 
+    def test_does_not_detect_consecutive_http_issue_with_low_duration_spans(self):
+        spans = [
+            create_span(
+                "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # spans with low durations, but min_time_saved exceeds threshold
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint5", "hash5"),
+        ]
+        spans = [
+            modify_span_start(span, 1000 * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        problems = self.find_problems(create_event(spans))
+
+        assert len(problems) == 1
+
+        spans = [
+            create_span(
+                "http.client", 400, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # spans with low durations, but min_time_saved is same as above
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint2", "hash2"),
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint5", "hash5"),
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint5", "hash5"),
+        ]
+        spans = [
+            modify_span_start(span, 1000 * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        problems = self.find_problems(create_event(spans))
+
+        assert problems == []
+
     def test_detects_consecutive_http_issue_with_low_duration_spans(self):
         spans = [
             create_span(
-                "http.client", 300, "GET /api/0/organizations/endpoint1", "hash1"
+                "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
             ),  # spans with low durations, but min_time_saved
             create_span(
-                "http.client", 300, "GET /api/0/organizations/endpoint2", "hash2"
+                "http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"
             ),  # exceeds threshold
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint3", "hash3"),
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint4", "hash4"),
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint5", "hash5"),
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint6", "hash6"),
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint7", "hash7"),
-            create_span("http.client", 300, "GET /api/0/organizations/endpoint8", "hash8"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint5", "hash5"),
         ]
         spans = [
             modify_span_start(span, 1000 * spans.index(span)) for span in spans
