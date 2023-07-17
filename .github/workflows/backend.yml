@@ -74,13 +74,13 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4, 5]
+        instance: [0, 1, 2, 3, 4, 5, 6]
         pg-version: ['14']
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 6
+      MATRIX_INSTANCE_TOTAL: 7
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
