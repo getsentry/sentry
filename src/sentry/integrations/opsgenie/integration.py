@@ -122,7 +122,8 @@ class InstallationGuideView(PipelineView):
 
 class OpsgenieIntegration(IntegrationInstallation):
     def get_client(self) -> Any:
-        return OpsgenieClient(integration=self.model, org_integration_id=self.org_integration.id)
+        org_integration_id = self.org_integration.id if self.org_integration else None
+        return OpsgenieClient(integration=self.model, org_integration_id=org_integration_id)
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
