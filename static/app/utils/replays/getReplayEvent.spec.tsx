@@ -1,8 +1,9 @@
 import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {
-  getNextReplayEvent,
+  getNextReplayFrame,
   getPrevReplayEvent,
 } from 'sentry/utils/replays/getReplayEvent';
+import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
 const START_TIMESTAMP_SEC = 1651693622.951;
 const CURRENT_TIME_MS = 15000;
@@ -73,67 +74,71 @@ function createCrumbs(): Crumb[] {
   ];
 }
 
-describe('getNextReplayEvent', () => {
+describe('getNextReplayFrame', () => {
+  const frames = hydrateBreadcrumbs(TestStubs.ReplayRecord(), [
+    TestStubs.Replay.ClickFrame({timestamp: new Date('2022-05-11T22:41:32.002Z')}),
+    TestStubs.Replay.ClickFrame({timestamp: new Date('2022-05-04T19:47:08.085000Z')}),
+    TestStubs.Replay.ClickFrame({timestamp: new Date('2022-05-04T19:47:11.086000Z')}),
+    TestStubs.Replay.ClickFrame({timestamp: new Date('2022-05-04T19:47:52.915000Z')}),
+    TestStubs.Replay.ClickFrame({timestamp: new Date('2022-05-04T19:47:59.915000Z')}),
+  ]);
+
+  TestStubs.Replay.ClickEvent;
   it('should return the next crumb', () => {
-    const crumbs = createCrumbs();
-    const results = getNextReplayEvent({
-      items: crumbs,
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+    const results = getNextReplayFrame({
+      frames,
+      targetOffsetMs: CURRENT_TIME_MS,
     });
 
-    expect(results?.id).toEqual(20);
+    expect(results).toEqual(frames[1]);
   });
 
   it('should return the next crumb when the the list is not sorted', () => {
-    const [one, two, three, four, five] = createCrumbs();
-    const results = getNextReplayEvent({
-      items: [one, four, five, three, two],
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+    const [one, two, three, four, five] = frames;
+    const results = getNextReplayFrame({
+      frames: [one, four, five, three, two],
+      targetOffsetMs: CURRENT_TIME_MS,
     });
 
-    expect(results?.id).toEqual(20);
+    expect(results).toEqual(frames[1]);
   });
 
   it('should return undefined when there are no crumbs', () => {
-    const crumbs = [];
-    const results = getNextReplayEvent({
-      items: crumbs,
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+    const results = getNextReplayFrame({
+      frames: [],
+      targetOffsetMs: CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
   });
 
   it('should return undefined when the timestamp is later than any crumbs', () => {
-    const crumbs = createCrumbs();
-    const results = getNextReplayEvent({
-      items: crumbs,
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + 99999999999,
+    const results = getNextReplayFrame({
+      frames,
+      targetOffsetMs: 99999999999,
     });
 
     expect(results).toBeUndefined();
   });
 
   it('should return the crumb after when a timestamp exactly matches', () => {
-    const crumbs = createCrumbs();
-    const exactCrumbTime = 8135;
-    const results = getNextReplayEvent({
-      items: crumbs,
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+    const exactTime = 8135;
+    const results = getNextReplayFrame({
+      frames,
+      targetOffsetMs: exactTime,
     });
 
-    expect(results?.id).toEqual(20);
+    expect(results).toEqual(frames[1]);
   });
 
   it('should return the crumb if timestamps exactly match and allowMatch is enabled', () => {
-    const crumbs = createCrumbs();
-    const exactCrumbTime = 8135;
-    const results = getNextReplayEvent({
-      items: crumbs,
-      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+    const exactTime = 8135;
+    const results = getNextReplayFrame({
+      frames,
+      targetOffsetMs: exactTime,
     });
 
-    expect(results?.id).toEqual(20);
+    expect(results).toEqual(frames[1]);
   });
 });
 
