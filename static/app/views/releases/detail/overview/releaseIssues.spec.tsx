@@ -15,7 +15,6 @@ describe('ReleaseIssues', function () {
     orgId: 'org',
     organization: TestStubs.Organization(),
     version: '1.0.0',
-    selection: {projects: [], environments: [], datetime: {}},
     location: TestStubs.location({query: {}}),
     releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
   };
