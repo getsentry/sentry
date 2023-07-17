@@ -134,7 +134,7 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
         spans = [
             create_span(
                 "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
-            ),  # spans with low durations, but min_time_saved exceeds threshold
+            ),  # all thresholds are exceeded.
             create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
             create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
             create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
@@ -149,11 +149,11 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
 
         spans = [
             create_span(
-                "http.client", 400, "GET /api/0/organizations/endpoint1", "hash1"
-            ),  # spans with low durations, but min_time_saved is same as above
-            create_span("http.client", 400, "GET /api/0/organizations/endpoint2", "hash2"),
-            create_span("http.client", 400, "GET /api/0/organizations/endpoint3", "hash3"),
-            create_span("http.client", 400, "GET /api/0/organizations/endpoint4", "hash4"),
+                "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # some spans with low durations, all other thresholds are exceeded.
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
             create_span("http.client", 400, "GET /api/0/organizations/endpoint5", "hash5"),
             create_span("http.client", 400, "GET /api/0/organizations/endpoint5", "hash5"),
         ]

@@ -316,7 +316,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     }
 
 
-#
+# Settings used to test out the effect of lowering default thresholds, on metrics.
 def get_dry_run_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
     settings = get_merged_settings(project_id)
 
@@ -326,6 +326,13 @@ def get_dry_run_detection_settings(project_id: Optional[int] = None) -> Dict[Det
             "duration_threshold": 50,  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
+        DetectorType.SLOW_DB_QUERY: [
+            {
+                "duration_threshold": 500,  # ms
+                "allowed_span_ops": ["db"],
+                "detection_enabled": settings["slow_db_queries_detection_enabled"],
+            },
+        ],
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
             "duration_threshold": 300,  # ms
@@ -333,8 +340,15 @@ def get_dry_run_detection_settings(project_id: Optional[int] = None) -> Dict[Det
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
-            "payload_size_threshold": 500000,  # kb
+            "payload_size_threshold": 300000,  # in bytes
             "detection_enabled": settings["large_http_payload_detection_enabled"],
+        },
+        DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
+            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
+            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
+            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
+            "minimum_size_bytes": 500000,  # in bytes
+            "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
     }
 
@@ -376,6 +390,8 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetector(detection_dry_run_settings, data),
         UncompressedAssetSpanDetector(detection_dry_run_settings, data),
         LargeHTTPPayloadDetector(detection_dry_run_settings, data),
+        SlowDBQueryDetector(detection_dry_run_settings, data),
+        RenderBlockingAssetSpanDetector(detection_dry_run_settings, data),
     ]
 
     for dry_run_detector in dry_run_detectors:
@@ -384,7 +400,6 @@ def _detect_performance_problems(
     report_metrics_for_detectors(
         data, event_id, dry_run_detectors, sdk_span, project.organization, True
     )
-    # ----------------------------------------------------------------------------------------------------
 
     organization = cast(Organization, project.organization)
     if project is None or organization is None:
