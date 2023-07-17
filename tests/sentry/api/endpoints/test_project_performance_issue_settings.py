@@ -7,6 +7,7 @@ from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PRO
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
 PERFORMANCE_ISSUE_FEATURES = {
     "organizations:performance-view": True,
@@ -30,7 +31,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             },
         )
 
-    def test_get_project_options_overrides_detection_defaults(self):
+    @patch("sentry.models.ProjectOption.objects.get_value")
+    def test_get_project_options_overrides_detection_defaults(self, get_value):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.get(self.url, format="json")
 
@@ -47,11 +49,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data["consecutive_db_queries_detection_enabled"]
         assert response.data["large_render_blocking_asset_detection_enabled"]
 
-        patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
-        self.project_option_mock = patch_project_option_get.start()
-        self.project_option_mock.return_value = {}
-
-        self.project_option_mock.return_value = {
+        get_value.return_value = {
             "slow_db_queries_detection_enabled": False,
             "n_plus_one_db_queries_detection_enabled": False,
             "uncompressed_assets_detection_enabled": False,
@@ -69,8 +67,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        self.addCleanup(patch_project_option_get.stop)
-
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
         assert not response.data["slow_db_queries_detection_enabled"]
         assert not response.data["uncompressed_assets_detection_enabled"]
@@ -82,7 +78,8 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["consecutive_db_queries_detection_enabled"]
         assert not response.data["large_render_blocking_asset_detection_enabled"]
 
-    def test_get_project_options_overrides_threshold_defaults(self):
+    @patch("sentry.models.ProjectOption.objects.get_value")
+    def test_get_project_options_overrides_threshold_defaults(self, get_value):
         with override_options(
             {
                 "performance.issues.slow_db_query.duration_threshold": 1000,
@@ -112,11 +109,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["uncompressed_asset_size_threshold"] == 200000
             assert response.data["consecutive_db_min_time_saved_threshold"] == 300
 
-            patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
-            self.project_option_mock = patch_project_option_get.start()
-            self.project_option_mock.return_value = {}
-
-            self.project_option_mock.return_value = {
+            get_value.return_value = {
                 "n_plus_one_db_duration_threshold": 10000,
                 "slow_db_query_duration_threshold": 5000,
                 "render_blocking_fcp_ratio": 0.8,
@@ -132,8 +125,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 response = self.client.get(self.url, format="json")
 
             assert response.status_code == 200, response.content
-
-            self.addCleanup(patch_project_option_get.stop)
 
             # Updated project settings
             assert response.data["slow_db_query_duration_threshold"] == 5000
@@ -201,6 +192,32 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert get_response.status_code == 200, response.content
         assert get_response.data["n_plus_one_db_duration_threshold"] == 3000
 
+    @patch("sentry.models.ProjectOption.objects.get_value")
+    def test_put_does_not_update_disabled_option(self, get_value):
+        self.login_as(user=self.user, superuser=False)
+        get_value.return_value = {
+            "n_plus_one_db_queries_detection_enabled": False,
+        }
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_duration_threshold": 3000,
+                },
+            )
+
+        assert response.status_code == 403, response.content
+        assert response.data == {"detail": "Disabled options can not be modified"}
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            get_response = self.client.get(self.url, format="json")
+
+        assert get_response.status_code == 200, response.content
+        assert (
+            get_response.data["n_plus_one_db_duration_threshold"]
+            == get_merged_settings(self.project)["n_plus_one_db_duration_threshold"]
+        )
+
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.put(
@@ -216,6 +233,18 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 ErrorDetail(string="Must be a valid boolean.", code="invalid")
             ]
         }
+
+    def test_update_project_setting_invalid_option(self):
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_queries_detection_enabled_invalid": 500,
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Invalid settings option"}
 
     @patch("sentry.api.base.create_audit_entry")
     def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
@@ -241,20 +270,25 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "public": self.project.public,
         }
 
-    def test_delete_reset_project_settings(self):
+    def test_delete_resets_enabled_project_settings(self):
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
             {
                 "n_plus_one_db_queries_detection_enabled": False,
-                "n_plus_one_db_duration_threshold": 1000,
+                "slow_db_queries_detection_enabled": True,
+                "slow_db_query_duration_threshold": 5000,
             },
         )
+
         assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
             "n_plus_one_db_queries_detection_enabled"
         ]
+        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "slow_db_queries_detection_enabled"
+        ]
         assert (
-            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_duration_threshold"]
-            == 1000
+            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["slow_db_query_duration_threshold"]
+            == 5000
         )
 
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
@@ -267,6 +301,48 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
             "n_plus_one_db_queries_detection_enabled"
         ]  # admin option should persist
-        assert "n_plus_one_db_duration_threshold" not in self.project.get_option(
+        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "slow_db_queries_detection_enabled"
+        ]
+        assert "slow_db_query_duration_threshold" not in self.project.get_option(
             SETTINGS_PROJECT_OPTION_KEY
+        )  # removes enabled threshold settings
+
+    def test_delete_does_not_resets_enabled_project_settings(self):
+        self.project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY,
+            {
+                "n_plus_one_db_queries_detection_enabled": False,
+                "slow_db_queries_detection_enabled": False,
+                "slow_db_query_duration_threshold": 5000,
+            },
         )
+
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "n_plus_one_db_queries_detection_enabled"
+        ]
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "slow_db_queries_detection_enabled"
+        ]
+        assert (
+            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["slow_db_query_duration_threshold"]
+            == 5000
+        )
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.delete(
+                self.url,
+                data={},
+            )
+
+        assert response.status_code == 204, response.content
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "n_plus_one_db_queries_detection_enabled"
+        ]  # admin option should persist
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "slow_db_queries_detection_enabled"
+        ]
+        assert (
+            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["slow_db_query_duration_threshold"]
+            == 5000
+        )  # setting persists as detection is disabled for corresponding issue

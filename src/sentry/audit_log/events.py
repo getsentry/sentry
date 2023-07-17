@@ -129,7 +129,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         from sentry.api.endpoints.project_performance_issue_settings import (
-            map_internal_only_project_settings_to_group as map,
+            internal_only_project_settings_to_group_map as map,
         )
 
         data = audit_log_entry.data
