@@ -122,7 +122,7 @@ class InstallationGuideView(PipelineView):
 
 class OpsgenieIntegration(IntegrationInstallation):
     def get_client(self) -> Any:
-        return OpsgenieClient(integration=self.model)
+        return OpsgenieClient(integration=self.model, org_integration_id=self.org_integration.id)
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
@@ -144,9 +144,8 @@ class OpsgenieIntegration(IntegrationInstallation):
         client = self.get_client()
         # get the team ID/test the API key for a newly added row
         teams = data["team_table"]
-        for team in teams:
-            if team["id"] != "":
-                continue
+        unsaved_teams = [team for team in teams if team["id"] == ""]
+        for team in unsaved_teams:
             try:
                 resp = client.get_team_id(
                     integration_key=team["integration_key"], team_name=team["team"]

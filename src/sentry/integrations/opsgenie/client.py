@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Union
-
-from requests import Response
-
 from sentry.integrations.client import ApiClient
 from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.shared_integrations.client.base import BaseApiResponseX
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
 OPSGENIE_API_VERSION = "v2"
-
-# for typing purposes
-BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
 
 
 class OpsgenieSetupClient(ApiClient):
@@ -34,14 +28,16 @@ class OpsgenieSetupClient(ApiClient):
         return self.get(path="/account", headers=headers)
 
 
-class OpsgenieClient(ApiClient):
+class OpsgenieClient(IntegrationProxyClient):
     integration_name = "opsgenie"
 
-    def __init__(self, integration: RpcIntegration | Integration) -> None:
+    def __init__(
+        self, integration: RpcIntegration | Integration, org_integration_id: int | None
+    ) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.api_key = self.metadata["api_key"]
-        super().__init__()
+        super().__init__(org_integration_id=org_integration_id)
 
     @property
     def metadata(self):
