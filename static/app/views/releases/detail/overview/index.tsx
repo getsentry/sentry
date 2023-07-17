@@ -544,7 +544,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
 
                           <ReleaseIssues
                             organization={organization}
-                            selection={selection}
                             version={version}
                             location={location}
                             releaseBounds={releaseBounds}
