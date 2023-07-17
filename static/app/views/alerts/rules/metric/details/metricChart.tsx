@@ -29,7 +29,8 @@ import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
@@ -502,7 +503,7 @@ class MetricChart extends PureComponent<Props, State> {
       newAlertOrQuery: false,
     });
 
-    if (isOnDemandMetricAlert(rule.query)) {
+    if (isOnDemandMetricAlert(rule.dataset, rule.query)) {
       return this.renderEmpty(
         t(
           'This alert includes advanced conditions, which is a feature that is currently in early access. Charts are not yet supported at this time.'

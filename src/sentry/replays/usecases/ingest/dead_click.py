@@ -13,7 +13,9 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
     payload = event["data"]["payload"]
 
     # Only timeout reasons on <a> and <button> tags are accepted.
-    if payload["data"]["endReason"] != "timeout":
+    if "node" not in payload["data"]:
+        return False
+    elif payload["data"]["endReason"] != "timeout":
         return False
     elif payload["data"]["node"]["tagName"] not in ("a", "button"):
         return False

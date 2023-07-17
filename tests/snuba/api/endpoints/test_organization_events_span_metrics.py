@@ -23,6 +23,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.six_min_ago = before_now(minutes=6)
+        self.three_days_ago = before_now(days=3)
         self.features = {
             "organizations:starfish-view": True,
         }
@@ -59,7 +60,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_span_metric(
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.min_ago,
+            timestamp=self.three_days_ago,
         )
         response = self.do_request(
             {
@@ -67,6 +68,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
+                "statsPeriod": "7d",
             }
         )
         assert response.status_code == 200, response.content
@@ -192,6 +194,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["eps()"] == 0.01
         assert data[0]["sps()"] == 0.01
+        assert meta["fields"]["eps()"] == "rate"
+        assert meta["fields"]["sps()"] == "rate"
+        assert meta["units"]["eps()"] == "1/second"
+        assert meta["units"]["sps()"] == "1/second"
         assert meta["dataset"] == "spansMetrics"
 
     def test_epm(self):
@@ -216,6 +222,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["epm()"] == 0.6
         assert data[0]["spm()"] == 0.6
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["fields"]["spm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
+        assert meta["units"]["spm()"] == "1/minute"
         assert meta["dataset"] == "spansMetrics"
 
     def test_time_spent_percentage(self):

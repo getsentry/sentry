@@ -17,7 +17,7 @@ import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumb
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -40,6 +40,7 @@ type Props = {
   event: Event;
   organization: Organization;
   projectSlug: string;
+  group?: Group;
   isShare?: boolean;
 };
 
@@ -55,7 +56,14 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  projectSlug,
+  isShare,
+  group,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -328,6 +336,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
             replayId={replayId}
             projectSlug={projectSlug}
             event={event}
+            group={group}
           />
           {actions}
         </Fragment>

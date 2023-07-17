@@ -174,7 +174,6 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  PRIORITY = 'priority',
   BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
@@ -183,27 +182,14 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({
-  query,
-  sort,
-  organization,
-}: {
-  organization: Organization;
-  query: string;
-  sort: string;
-}) {
-  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
-    ? IssueSortOptions.BETTER_PRIORITY
-    : DEFAULT_ISSUE_STREAM_SORT;
-  return query === DEFAULT_QUERY && sort === defaultSort;
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
-      return t('Priority');
     case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:

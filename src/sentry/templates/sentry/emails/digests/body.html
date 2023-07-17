@@ -54,7 +54,18 @@
                   </td>
                   <td class="event-detail">
                       {% include "sentry/emails/_group.html" %}
-                      <div><small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small></div>
+                      <div>
+                        <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
+                        {% if show_replay_links and group.has_replays %}
+                          <span class="replay-link">
+                            <a href="{{ group.get_absolute_url }}replays?referrer=alert_email">
+                              <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="10px" height="10px"
+                                alt="Session Replay">
+                              View Replays
+                            </a>
+                          </span>
+                        {% endif %}
+                      </div>
                   </td>
               </tr>
             {% endif %}

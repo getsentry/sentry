@@ -1,49 +1,21 @@
 from typing import Any, Mapping, Sequence
 
-from packaging.version import InvalidVersion, Version
-
-from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector, SDKCrashDetectorConfig
 
 
 class CocoaSDKCrashDetector(SDKCrashDetector):
-    @property
-    def min_sdk_version(self) -> str:
-        """
-        Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
-        released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
-        the frames contain the full paths required for detecting system frames in is_system_library_frame.
-        Therefore, we require at least sentry-cocoa 8.2.0.
-        """
-        return "8.2.0"
+    def __init__(self):
 
-    def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
-        sdk_name = get_path(event_data, "sdk", "name")
-        if sdk_name and sdk_name != "sentry.cocoa":
-            return False
-
-        sdk_version = get_path(event_data, "sdk", "version")
-        if not sdk_version:
-            return False
-
-        try:
-            minimum_cocoa_sdk_version = Version(self.min_sdk_version)
-            cocoa_sdk_version = Version(sdk_version)
-
-            if cocoa_sdk_version < minimum_cocoa_sdk_version:
-                return False
-        except InvalidVersion:
-            return False
-
-        is_unhandled = (
-            get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
+        config = SDKCrashDetectorConfig(
+            sdk_name="sentry.cocoa",
+            # Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
+            # released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
+            # the frames contain the full paths required for detecting system frames in is_system_library_frame.
+            # Therefore, we require at least sentry-cocoa 8.2.0.
+            min_sdk_version="8.2.0",
         )
-        if not is_unhandled:
-            return False
-
-        return True
+        super().__init__(config)
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         if not frames:

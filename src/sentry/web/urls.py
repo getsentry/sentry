@@ -8,15 +8,16 @@ from django.http import HttpResponse
 from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
+from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.account_identity import AccountIdentityAssociateView
+from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
-from sentry.web.frontend.auth_organization_id_login import AuthOrganizationIdentifierLoginView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
@@ -164,6 +165,11 @@ urlpatterns += [
                     r"^token/$",
                     OAuthTokenView.as_view(),
                 ),
+                re_path(
+                    r"userinfo/$",
+                    OAuthUserInfoEndpoint.as_view(),
+                    name="sentry-api-0-oauth-userinfo",
+                ),
             ]
         ),
     ),
@@ -206,9 +212,9 @@ urlpatterns += [
                     name="sentry-auth-organization",
                 ),
                 re_path(
-                    r"^login/id/(?P<organization_id>[^/]+)/$",
-                    AuthOrganizationIdentifierLoginView.as_view(),
-                    name="sentry-auth-organization-id",
+                    r"^channel/(?P<channel>[^/]+)/(?P<resource_id>[^/]+)/$",
+                    AuthChannelLoginView.as_view(),
+                    name="sentry-auth-channel",
                 ),
                 re_path(
                     r"^link/(?P<organization_slug>[^/]+)/$",
@@ -1071,6 +1077,10 @@ urlpatterns += [
                 re_path(
                     r"^msteams/",
                     include("sentry.integrations.msteams.urls"),
+                ),
+                re_path(
+                    r"^discord/",
+                    include("sentry.integrations.discord.urls"),
                 ),
             ]
         ),

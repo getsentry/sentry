@@ -79,6 +79,15 @@ afterEach(() => {
 });
 
 class Client implements ApiNamespace.Client {
+  activeRequests: Record<string, ApiNamespace.Request> = {};
+  baseUrl = '';
+  // uses the default client json headers. Sadly, we cannot refernce the real client
+  // because it will cause a circular dependency and explode, hence the copy/paste
+  headers = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
+
   static mockResponses: MockResponse[] = [];
 
   /**
@@ -159,9 +168,6 @@ class Client implements ApiNamespace.Client {
       return response.match.every(matcher => matcher(url, options));
     });
   }
-
-  activeRequests: Record<string, ApiNamespace.Request> = {};
-  baseUrl = '';
 
   uniqueId() {
     return '123';

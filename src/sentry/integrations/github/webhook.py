@@ -18,14 +18,8 @@ from sentry import options
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    Organization,
-    PullRequest,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -42,6 +36,11 @@ from .repository import GitHubRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 
+def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
+    external_id: str | None = event.get("installation", {}).get("id")
+    return f"{host}:{external_id}" if host else external_id
+
+
 class Webhook:
     provider = "github"
 
@@ -56,9 +55,7 @@ class Webhook:
         raise NotImplementedError
 
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
-        external_id = event.get("installation", {}).get("id")
-        if host:
-            external_id = f"{host}:{external_id}"
+        external_id = get_github_external_id(event=event, host=host)
 
         integration, installs = integration_service.get_organization_contexts(
             external_id=external_id, provider=self.provider

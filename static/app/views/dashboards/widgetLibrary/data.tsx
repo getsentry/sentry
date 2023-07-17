@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
@@ -8,7 +7,7 @@ export type WidgetTemplate = Widget & {
   description: string;
 };
 
-export const getDefaultWidgets = (organization: Organization) => {
+export const getDefaultWidgets = () => {
   return [
     {
       id: 'duration-distribution',
@@ -167,9 +166,7 @@ export const getDefaultWidgets = (organization: Organization) => {
           fields: ['issue', 'assignee', 'events', 'title'],
           aggregates: [],
           columns: ['issue', 'assignee', 'events', 'title'],
-          orderby: organization.features.includes('issue-list-better-priority-sort')
-            ? 'betterPriority'
-            : 'date',
+          orderby: 'date',
         },
       ],
     },
@@ -212,10 +209,8 @@ export const getDefaultWidgets = (organization: Organization) => {
   ];
 };
 
-export function getTopNConvertedDefaultWidgets(
-  organization: Organization
-): Readonly<Array<WidgetTemplate>> {
-  return getDefaultWidgets(organization).map(widget => {
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return getDefaultWidgets().map(widget => {
     if (widget.displayType === DisplayType.TOP_N) {
       return {
         ...widget,

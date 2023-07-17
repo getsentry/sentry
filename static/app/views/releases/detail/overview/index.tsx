@@ -38,7 +38,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -90,7 +90,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-class ReleaseOverview extends AsyncView<Props> {
+class ReleaseOverview extends DeprecatedAsyncView<Props> {
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(
@@ -544,7 +544,6 @@ class ReleaseOverview extends AsyncView<Props> {
 
                           <ReleaseIssues
                             organization={organization}
-                            selection={selection}
                             version={version}
                             location={location}
                             releaseBounds={releaseBounds}

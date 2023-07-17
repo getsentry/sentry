@@ -7,13 +7,16 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, TagWithTopValues} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -21,13 +24,13 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   tags: Array<TagWithTopValues>;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectTags extends AsyncView<Props, State> {
+class ProjectTags extends DeprecatedAsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -35,7 +38,7 @@ class ProjectTags extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['tags', `/projects/${organization.slug}/${projectId}/tags/`]];

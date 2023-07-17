@@ -10,7 +10,8 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
@@ -244,6 +245,7 @@ class GroupList extends Component<Props, State> {
       queryFilterDescription,
       narrowGroups,
       source,
+      query,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -308,6 +310,7 @@ class GroupList extends Component<Props, State> {
                   queryFilterDescription={queryFilterDescription}
                   narrowGroups={narrowGroups}
                   source={source}
+                  query={query}
                 />
               );
             })}

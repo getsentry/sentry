@@ -73,6 +73,7 @@ class Chartcuterie(ChartRenderer):
         ):
 
             # Using sentry json formatter to handle datetime objects
+            assert self.service_url is not None
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
                 data=json.dumps(payload),

@@ -110,7 +110,7 @@ function DurationChart({
   const sampledSpanDataSeries: Series[] = spans.map(
     ({
       timestamp,
-      'span.self_time': duration,
+      [SPAN_SELF_TIME]: duration,
       'transaction.id': transaction_id,
       span_id,
     }) => ({
@@ -128,7 +128,7 @@ function DurationChart({
   );
 
   const getSample = (timestamp: string, duration: number) => {
-    return spans.find(s => s.timestamp === timestamp && s['span.self_time'] === duration);
+    return spans.find(s => s.timestamp === timestamp && s[SPAN_SELF_TIME] === duration);
   };
 
   const handleChartClick: EChartClickHandler = e => {

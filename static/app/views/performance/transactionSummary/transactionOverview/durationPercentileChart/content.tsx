@@ -3,9 +3,9 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IconWarning} from 'sentry/icons';
 import {OrganizationSummary} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -20,7 +20,7 @@ import {transformData} from './utils';
 
 type ApiResult = Record<string, number>;
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   ViewProps & {
     currentFilter: SpanOperationBreakdownFilter;
     fields: string[];
@@ -29,7 +29,7 @@ type Props = AsyncComponent['props'] &
     queryExtras?: Record<string, string>;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   chartData: {data: ApiResult[]} | null;
 };
 
@@ -41,8 +41,8 @@ type State = AsyncComponent['state'] & {
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-class Content extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class Content extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       organization,
       query,

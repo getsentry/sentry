@@ -19,7 +19,10 @@ import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
@@ -30,7 +33,7 @@ import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -63,7 +66,7 @@ const DisabledMemberTooltip = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-class OrganizationMemberDetail extends AsyncView<Props, State> {
+class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
   get hasTeamRoles() {
     const {organization} = this.props;
     return organization.features.includes('team-roles');
@@ -79,7 +82,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     return [
       ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],
@@ -282,9 +285,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return <NotFound />;
     }
 
-    const {access, features, orgRoleList} = organization;
+    const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
@@ -397,7 +399,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
         <OrganizationRoleSelect
           enforceAllowed={false}
-          enforceRetired={hasTeamRoles}
+          enforceRetired={this.hasTeamRoles}
           disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}
