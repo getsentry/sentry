@@ -127,7 +127,9 @@ def check_monitors(current_datetime=None):
             if not has_newer_result:
                 monitor_environment.mark_failed(
                     reason=MonitorFailure.DURATION,
-                    occurrence_context={"duration": (timeout.seconds // 60) % 60},
+                    occurrence_context={
+                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
+                    },
                 )
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")
