@@ -139,33 +139,33 @@ class AwsLambdaProxyApiClientTest(TestCase):
         class AwsLambdaProxyApiTestClient(AwsLambdaProxyClient):
             _use_proxy_url_for_tests = True
 
-        # responses.calls.reset()
-        # with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
 
-        #     client = AwsLambdaProxyApiTestClient(
-        #         org_integration_id=self.installation.org_integration.id,
-        #         account_number=self.account_number,
-        #         region=self.region,
-        #         aws_external_id=self.aws_external_id,
-        #     )
-        #     actual = client.get_function(FunctionName="lambdaE")
-        #     assert mock_client.get_function.call_count == 1
-        #     assert actual == expected_get_function_return
+            client = AwsLambdaProxyApiTestClient(
+                org_integration_id=self.installation.org_integration.id,
+                account_number=self.account_number,
+                region=self.region,
+                aws_external_id=self.aws_external_id,
+            )
+            actual = client.get_function(FunctionName="lambdaE")
+            assert mock_client.get_function.call_count == 1
+            assert actual == expected_get_function_return
 
-        # responses.calls.reset()
-        # with override_settings(SILO_MODE=SiloMode.CONTROL):
-        #     mock_client.get_function.reset_mock()
-        #     assert mock_client.get_function.call_count == 0
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            mock_client.get_function.reset_mock()
+            assert mock_client.get_function.call_count == 0
 
-        #     client = AwsLambdaProxyApiTestClient(
-        #         org_integration_id=self.installation.org_integration.id,
-        #         account_number=self.account_number,
-        #         region=self.region,
-        #         aws_external_id=self.aws_external_id,
-        #     )
-        #     actual = client.get_function(FunctionName="lambdaE")
-        #     assert mock_client.get_function.call_count == 1
-        #     assert actual == expected_get_function_return
+            client = AwsLambdaProxyApiTestClient(
+                org_integration_id=self.installation.org_integration.id,
+                account_number=self.account_number,
+                region=self.region,
+                aws_external_id=self.aws_external_id,
+            )
+            actual = client.get_function(FunctionName="lambdaE")
+            assert mock_client.get_function.call_count == 1
+            assert actual == expected_get_function_return
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
