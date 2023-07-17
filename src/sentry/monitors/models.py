@@ -79,6 +79,10 @@ class MonitorEnvironmentLimitsExceeded(Exception):
     pass
 
 
+class MonitorEnvironmentValidationFailed(Exception):
+    pass
+
+
 def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, last_checkin)
@@ -446,6 +450,9 @@ class MonitorEnvironmentManager(BaseManager):
     ) -> MonitorEnvironment:
         if not environment_name:
             environment_name = "production"
+
+        if not Environment.is_valid_name(environment_name):
+            raise MonitorEnvironmentValidationFailed("Environment name too long")
 
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)

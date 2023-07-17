@@ -468,6 +468,21 @@ class MonitorConsumerTest(TestCase):
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
 
+    def test_monitor_environment_validation(self):
+        invalid_name = "x" * 65
+
+        self.send_message(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            environment=f"my-environment-{invalid_name}",
+        )
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+
+        monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
+        assert len(monitor_environments) == 0
+
     def test_organization_killswitch(self):
         monitor = self._create_monitor(slug="my-monitor")
 

@@ -28,6 +28,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
@@ -185,7 +186,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 monitor_environment = MonitorEnvironment.objects.ensure_environment(
                     project, monitor, result.get("environment")
                 )
-            except MonitorEnvironmentLimitsExceeded as e:
+            except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
                 return self.respond({type(e).__name__: str(e)}, status=403)
 
             # Infer the original start time of the check-in from the duration.
