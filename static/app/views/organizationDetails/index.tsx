@@ -7,7 +7,7 @@ import OrganizationContextContainer from 'sentry/views/organizationContextContai
 
 import Body from './body';
 
-type Props = RouteComponentProps<{orgId: string}, {}> &
+type Props = RouteComponentProps<{orgId?: string}, {}> &
   Partial<React.ComponentProps<typeof OrganizationContextContainer>>;
 
 function OrganizationDetails({children, ...props}: Props) {

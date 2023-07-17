@@ -1,4 +1,5 @@
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -15,12 +16,14 @@ jest.mock(
 );
 
 describe('OrganizationDetails', function () {
+  const {routerProps} = initializeOrg();
+
   let getTeamsMock;
   let getProjectsMock;
 
   beforeEach(function () {
     OrganizationStore.reset();
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
     PageFiltersStore.reset();
 
     MockApiClient.clearMockResponses();
@@ -52,9 +55,8 @@ describe('OrganizationDetails', function () {
 
     render(
       <OrganizationDetails
+        {...routerProps}
         params={{orgId: 'org-slug'}}
-        location={{}}
-        routes={[]}
         includeSidebar={false}
       >
         <div />
@@ -79,7 +81,7 @@ describe('OrganizationDetails', function () {
       });
 
       render(
-        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <OrganizationDetails {...routerProps} params={{orgId: 'org-slug'}}>
           <div />
         </OrganizationDetails>
       );
@@ -107,7 +109,7 @@ describe('OrganizationDetails', function () {
       });
 
       render(
-        <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+        <OrganizationDetails {...routerProps} params={{orgId: 'org-slug'}}>
           <div />
         </OrganizationDetails>
       );
@@ -136,7 +138,7 @@ describe('OrganizationDetails', function () {
     });
 
     render(
-      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+      <OrganizationDetails {...routerProps} params={{orgId: 'org-slug'}}>
         <div />
       </OrganizationDetails>
     );
@@ -158,7 +160,7 @@ describe('OrganizationDetails', function () {
     MockApiClient.addMockResponse({url: '/organizations/other-org/projects/', body: []});
 
     const {rerender} = render(
-      <OrganizationDetails params={{orgId: undefined}} location={{}} routes={[]}>
+      <OrganizationDetails {...routerProps}>
         <div />
       </OrganizationDetails>
     );
@@ -169,7 +171,7 @@ describe('OrganizationDetails', function () {
     );
 
     rerender(
-      <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]}>
+      <OrganizationDetails {...routerProps} params={{orgId: 'org-slug'}}>
         <div />
       </OrganizationDetails>
     );
@@ -177,7 +179,7 @@ describe('OrganizationDetails', function () {
     expect(PageFiltersStore.getState().pinnedFilters).toEqual(new Set(['projects']));
 
     rerender(
-      <OrganizationDetails params={{orgId: 'other-org'}} location={{}} routes={[]}>
+      <OrganizationDetails {...routerProps} params={{orgId: 'other-org'}}>
         <div />
       </OrganizationDetails>
     );
