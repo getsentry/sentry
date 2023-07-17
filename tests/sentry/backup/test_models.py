@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Type
 
@@ -14,6 +15,12 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+    Incident,
+    IncidentActivity,
+    IncidentSnapshot,
+    IncidentSubscription,
+    IncidentTrigger,
+    TimeSeriesSnapshot,
 )
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
@@ -190,17 +197,50 @@ class ModelBackupTests(TransactionTestCase):
         self.create_organization(owner=user)
         return self.import_export_then_validate()
 
+    @targets_models(Incident, Organization, AlertRule)
     def test_incident(self):
-        pass
+        self.create_incident()
+        return self.import_export_then_validate()
 
+    @targets_models(Incident, IncidentActivity)
     def test_incidentActivity(self):
-        pass
+        IncidentActivity.objects.create(
+            incident=self.create_incident(),
+            type=1,
+            comment="hello",
+        )
+        return self.import_export_then_validate()
 
+    @targets_models(IncidentSnapshot, Incident, TimeSeriesSnapshot)
     def test_incidentSnapshot(self):
-        pass
+        IncidentSnapshot.objects.create(
+            incident=self.create_incident(),
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=datetime.utcnow() - timedelta(hours=24),
+                end=datetime.utcnow(),
+                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
+                period=1,
+            ),
+            unique_users=1,
+            total_events=1,
+        )
+        return self.import_export_then_validate()
 
+    @targets_models(IncidentSubscription, Incident)
     def test_incidentSubscription(self):
-        pass
+        user_id = self.create_user().id
+        IncidentSubscription.objects.create(incident=self.create_incident(), user_id=user_id)
+        return self.import_export_then_validate()
 
+    @targets_models(
+        IncidentTrigger, AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion
+    )
     def test_incidentTrigger(self):
-        pass
+        excluded = self.create_project()
+        rule = self.create_alert_rule(include_all_projects=True)
+        trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        IncidentTrigger.objects.create(
+            incident=self.create_incident(), alert_rule_trigger=trigger, status=1
+        )
+        return self.import_export_then_validate()
