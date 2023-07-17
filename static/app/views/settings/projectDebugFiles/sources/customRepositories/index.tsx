@@ -55,46 +55,15 @@ function CustomRepositories({
     repository => repository.type === CustomRepoType.APP_STORE_CONNECT
   ).length;
 
-  const openDebugFileSourceDialog = useCallback(() => {
-    const {customRepository} = location.query;
-
-    if (!customRepository) {
-      return;
-    }
-
-    const itemIndex = repositories.findIndex(
-      repository => repository.id === customRepository
-    );
-
-    const item = repositories[itemIndex];
-
-    if (!item) {
-      return;
-    }
-
-    openDebugFileSourceModal({
-      organization,
-      sourceConfig: item,
-      sourceType: item.type,
-      appStoreConnectSourcesQuantity,
-      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
-      onSave: updatedItem =>
-        persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
-      onClose: handleCloseModal,
+  const handleCloseModal = useCallback(() => {
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        customRepository: undefined,
+      },
     });
-  }, [
-    appStoreConnectContext,
-    appStoreConnectSourcesQuantity,
-    handleCloseModal,
-    location.query,
-    organization,
-    persistData,
-    repositories,
-  ]);
-
-  useEffect(() => {
-    openDebugFileSourceDialog();
-  }, [openDebugFileSourceDialog]);
+  }, [location, router]);
 
   const persistData = useCallback(
     ({updatedItems, updatedItem, index, refresh}) => {
@@ -138,15 +107,46 @@ function CustomRepositories({
     [repositories, api, orgSlug, projSlug]
   );
 
-  const handleCloseModal = useCallback(() => {
-    router.push({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
+  const openDebugFileSourceDialog = useCallback(() => {
+    const {customRepository} = location.query;
+
+    if (!customRepository) {
+      return;
+    }
+
+    const itemIndex = repositories.findIndex(
+      repository => repository.id === customRepository
+    );
+
+    const item = repositories[itemIndex];
+
+    if (!item) {
+      return;
+    }
+
+    openDebugFileSourceModal({
+      organization,
+      sourceConfig: item,
+      sourceType: item.type,
+      appStoreConnectSourcesQuantity,
+      appStoreConnectStatusData: appStoreConnectContext?.[item.id],
+      onSave: updatedItem =>
+        persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
+      onClose: handleCloseModal,
     });
-  }, [location, router]);
+  }, [
+    appStoreConnectContext,
+    appStoreConnectSourcesQuantity,
+    handleCloseModal,
+    location.query,
+    organization,
+    persistData,
+    repositories,
+  ]);
+
+  useEffect(() => {
+    openDebugFileSourceDialog();
+  }, [openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {
     openDebugFileSourceModal({
