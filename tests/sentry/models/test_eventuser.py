@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from hashlib import md5
 
 from sentry.models import EventUser
@@ -8,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 class EventUserTestCase(TestCase):
     def test_build_hash(self):
-        cases = [
+        cases: list[tuple[dict[str, str], str | None]] = [
             (
                 {
                     "ident": "ident",
@@ -30,7 +32,7 @@ class EventUserTestCase(TestCase):
             assert EventUser(**kw).build_hash() == value
 
     def test_tag_value(self):
-        cases = [
+        cases: list[tuple[dict[str, str], str | None]] = [
             (
                 {
                     "ident": "ident",

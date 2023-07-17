@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
@@ -123,7 +127,7 @@ class DashboardWidget(Model):
     date_added = models.DateTimeField(default=timezone.now)
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
-    detail = JSONField(null=True)
+    detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
