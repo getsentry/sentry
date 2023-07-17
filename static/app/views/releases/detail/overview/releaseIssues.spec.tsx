@@ -15,8 +15,7 @@ describe('ReleaseIssues', function () {
     orgId: 'org',
     organization: TestStubs.Organization(),
     version: '1.0.0',
-    selection: {projects: [], environments: [], datetime: {}},
-    location: {href: '', query: {}},
+    location: TestStubs.location({query: {}}),
     releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
   };
 
@@ -65,18 +64,28 @@ describe('ReleaseIssues', function () {
   });
 
   it('shows an empty state', async function () {
-    render(<ReleaseIssues {...props} />);
+    const {rerender} = render(<ReleaseIssues {...props} />);
 
     expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
+    // Simulate query change
+    rerender(
+      <ReleaseIssues
+        {...props}
+        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+      />
+    );
     expect(
       await screen.findByText('No resolved issues in this release.')
     ).toBeInTheDocument();
   });
 
   it('shows an empty sttate with stats period', async function () {
-    render(<ReleaseIssues {...props} location={{query: {pageStatsPeriod: '24h'}}} />);
+    const query = {pageStatsPeriod: '24h'};
+    const {rerender} = render(
+      <ReleaseIssues {...props} location={TestStubs.location({query})} />
+    );
 
     expect(
       await screen.findByText(
@@ -85,6 +94,13 @@ describe('ReleaseIssues', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
+    // Simulate query change
+    rerender(
+      <ReleaseIssues
+        {...props}
+        location={TestStubs.location({query: {...query, issuesType: 'unhandled'}})}
+      />
+    );
     expect(
       await screen.findByText(
         textWithMarkupMatcher('No unhandled issues for the last 24 hours.')
@@ -92,54 +108,61 @@ describe('ReleaseIssues', function () {
     ).toBeInTheDocument();
   });
 
-  it('filters the issues', async function () {
-    render(<ReleaseIssues {...props} />);
-
-    expect(screen.getAllByRole('radio')).toHaveLength(5);
-    await screen.findByRole('radio', {name: 'New Issues 0'});
-
-    await userEvent.click(screen.getByRole('radio', {name: 'New Issues 0'}));
-    expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
-    expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
-    expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
-
-    await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
-    expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders link to Issues', async function () {
+  it('can switch issue filters', async function () {
     const {routerContext} = initializeOrg();
 
-    render(<ReleaseIssues {...props} />, {context: routerContext});
+    const {rerender} = render(<ReleaseIssues {...props} />, {context: routerContext});
 
+    // New
+    expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=firstRelease%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
+    expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    await screen.findByRole('radio', {name: 'Resolved 0'});
-
+    // Resolved
     await userEvent.click(screen.getByRole('radio', {name: 'Resolved 0'}));
+    // Simulate query change
+    rerender(
+      <ReleaseIssues
+        {...props}
+        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+      />
+    );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
+    expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
 
+    // Unhandled
     await userEvent.click(screen.getByRole('radio', {name: 'Unhandled 0'}));
+    rerender(
+      <ReleaseIssues
+        {...props}
+        location={TestStubs.location({query: {issuesType: 'unhandled'}})}
+      />
+    );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
+    expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
 
+    // All
     await userEvent.click(screen.getByRole('radio', {name: 'All Issues 0'}));
+    rerender(
+      <ReleaseIssues
+        {...props}
+        location={TestStubs.location({query: {issuesType: 'all'}})}
+      />
+    );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
+    expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
   it('includes release context when linking to issue', async function () {

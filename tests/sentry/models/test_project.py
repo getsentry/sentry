@@ -11,7 +11,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    ProjectTeam,
     RegionScheduledDeletion,
     Release,
     ReleaseProject,
@@ -21,6 +20,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.actor import get_actor_for_user
+from sentry.models.projectteam import ProjectTeam
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor

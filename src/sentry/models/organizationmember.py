@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
@@ -260,7 +260,7 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
