@@ -130,6 +130,40 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
         problems = self.find_problems(create_event(spans))
         assert problems == []
 
+    def test_detects_consecutive_http_issue_with_trailing_low_duration_span(self):
+        spans = [
+            create_span(
+                "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # all thresholds are exceeded.
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint5", "hash5"),
+        ]
+        spans = [
+            modify_span_start(span, 1000 * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        problems = self.find_problems(create_event(spans))
+
+        assert len(problems) == 1
+
+        spans = [
+            create_span(
+                "http.client", 500, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # some spans with low durations, all other thresholds are exceeded.
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint2", "hash2"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 500, "GET /api/0/organizations/endpoint5", "hash5"),
+            create_span("http.client", 400, "GET /api/0/organizations/endpoint6", "hash6"),
+        ]
+        spans = [
+            modify_span_start(span, 1000 * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        problems = self.find_problems(create_event(spans))
+
+        assert len(problems) == 1
+
     def test_does_not_detect_consecutive_http_issue_with_low_duration_spans(self):
         spans = [
             create_span(
