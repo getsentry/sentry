@@ -28,9 +28,7 @@ function TeamRoleSelect({
   size,
 }: Props) {
   const {orgRoleList, teamRoleList, features} = organization;
-  if (!features.includes('team-roles')) {
-    return null;
-  }
+  const hasTeamRoles = features.includes('team-roles');
 
   // Determine the org-role, including if the current team has an org role
   // and adding the user to the current team changes their minimum team-role
@@ -72,7 +70,7 @@ function TeamRoleSelect({
 
   return (
     <RoleSelectControl
-      disabled={disabled}
+      disabled={disabled || !hasTeamRoles}
       disableUnallowed={false}
       roles={teamRoleList}
       value={teamRole.id}

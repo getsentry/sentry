@@ -169,10 +169,6 @@ class AllTeamsRow extends Component<Props, State> {
 
   getTeamRoleName = () => {
     const {organization, team} = this.props;
-    if (!organization.features.includes('team-roles') || !team.teamRole) {
-      return null;
-    }
-
     const {teamRoleList} = organization;
     const roleName = teamRoleList.find(r => r.id === team.teamRole)?.name;
 
@@ -207,7 +203,6 @@ class AllTeamsRow extends Component<Props, State> {
 
     const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
     const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
-    // TODO(team-roles): team admins can also manage membership
     const isDisabled = isIdpProvisioned || isPermissionGroup;
 
     return (

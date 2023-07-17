@@ -335,16 +335,17 @@ describe('TeamMembers', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('does not renders team-level roles', async function () {
-    const me = TestStubs.Member({
+  it('renders team-level roles without flag', async function () {
+    const owner = TestStubs.Member({
       id: '123',
       email: 'foo@example.com',
+      orgRole: 'owner',
       role: 'owner',
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
-      body: [...members, me],
+      body: [...members, owner],
     });
 
     await render(
@@ -356,10 +357,10 @@ describe('TeamMembers', function () {
       />
     );
 
-    const admins = screen.queryByText('Team Admin');
-    expect(admins).not.toBeInTheDocument();
-    const contributors = screen.queryByText('Team Contributor');
-    expect(contributors).not.toBeInTheDocument();
+    const admins = screen.queryAllByText('Team Admin');
+    expect(admins).toHaveLength(3);
+    const contributors = screen.queryAllByText('Contributor');
+    expect(contributors).toHaveLength(2);
   });
 
   it('renders team-level roles with flag', async function () {
@@ -367,6 +368,7 @@ describe('TeamMembers', function () {
       id: '123',
       email: 'foo@example.com',
       orgRole: 'manager',
+      role: 'manager',
     });
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
@@ -384,6 +386,7 @@ describe('TeamMembers', function () {
         team={team}
       />
     );
+
     const admins = screen.queryAllByText('Team Admin');
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
