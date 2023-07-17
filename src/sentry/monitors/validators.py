@@ -226,7 +226,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
 
 class TraceContextValidator(serializers.Serializer):
-    trace_id = serializers.CharField(max_length=32)
+    trace_id = serializers.UUIDField(format="hex")
 
 
 class ContextsValidator(serializers.Serializer):
