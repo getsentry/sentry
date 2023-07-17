@@ -123,6 +123,11 @@ export default function getConfiguration({
           description: t("View and manage the project's client keys (DSN)"),
         },
         {
+          path: `${pathPrefix}/loader-script/`,
+          title: t('Loader Script'),
+          description: t("View and manage the project's Loader Script"),
+        },
+        {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },
