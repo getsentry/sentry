@@ -19,7 +19,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
     TypedDict,
     Union,
     cast,
@@ -55,15 +54,8 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventtypes import (
-    CspEvent,
-    DefaultEvent,
-    ErrorEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    HpkpEvent,
-    TransactionEvent,
-)
+from sentry.eventtypes import EventType
+from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -446,17 +438,18 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            platform = job["event"].platform or "unknown"
+            metric_tags = {"platform": job["event"].platform or "unknown"}
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
-            with metrics.timer("event_manager.save_error_events", tags={"platform": platform}):
-                return self.save_error_events(project, job, projects, raw, cache_key)
+            with metrics.timer("event_manager.save_error_events", tags=metric_tags):
+                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
     def save_error_events(
         self,
         project: Project,
         job: Job,
         projects: ProjectsMapping,
+        metric_tags: Dict[str, str],
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
@@ -493,8 +486,12 @@ class EventManager:
         if do_background_grouping_before:
             _run_background_grouping(project, job)
 
-        secondary_hashes = calculate_secondary_hash_if_needed(project, job)
+        secondary_hashes = None
         migrate_off_hierarchical = False
+
+        if _check_to_run_secondary_grouping(project):
+            with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -515,7 +512,7 @@ class EventManager:
         with sentry_sdk.start_span(
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
-        ), metrics.timer("event_manager.calculate_event_grouping"):
+        ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -655,7 +652,7 @@ class EventManager:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
 
-        metric_tags = {"from_relay": "_relay_processed" in job["data"]}
+        metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
         metrics.timing(
             "events.latency",
@@ -681,7 +678,17 @@ class EventManager:
         return job["event"]
 
 
-def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | CalculatedHashes:
+def _check_to_run_secondary_grouping(project: Project) -> bool:
+    result = False
+    # These two values are basically always set
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
+        result = True
+    return result
+
+
+def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -689,20 +696,16 @@ def calculate_secondary_hash_if_needed(project: Project, job: Any) -> None | Cal
     """
     secondary_hashes = None
     try:
-        # These two values are basically always set
-        secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-        secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-        if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-            with sentry_sdk.start_span(
-                op="event_manager",
-                description="event_manager.save.secondary_calculate_event_grouping",
-            ), metrics.timer("event_manager.secondary_grouping"):
-                secondary_event = copy.deepcopy(job["event"])
-                loader = SecondaryGroupingConfigLoader()
-                secondary_grouping_config = loader.get_config_dict(project)
-                secondary_hashes = _calculate_event_grouping(
-                    project, secondary_event, secondary_grouping_config
-                )
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.secondary_calculate_event_grouping",
+        ):
+            secondary_event = copy.deepcopy(job["event"])
+            loader = SecondaryGroupingConfigLoader()
+            secondary_grouping_config = loader.get_config_dict(project)
+            secondary_hashes = _calculate_event_grouping(
+                project, secondary_event, secondary_grouping_config
+            )
     except Exception:
         sentry_sdk.capture_exception()
 
@@ -1249,13 +1252,15 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
 
         if incrs:
-            tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
 
         if records:
-            tsdb.record_multi(records, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.record_multi(
+                records, timestamp=event.datetime, environment_id=environment.id
+            )
 
         if frequencies:
-            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 @metrics.wraps("save_event.nodestore_save_many")
@@ -1425,17 +1430,6 @@ def _get_event_user_impl(
         metrics_tags["cache_hit"] = "true"
 
     return euser
-
-
-EventType = Union[
-    DefaultEvent,
-    ErrorEvent,
-    CspEvent,
-    HpkpEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    TransactionEvent,
-]
 
 
 def get_event_type(data: Mapping[str, Any]) -> EventType:
@@ -1911,7 +1905,7 @@ def _process_existing_aggregate(
     return bool(is_regression)
 
 
-Attachment = Type[CachedAttachment]
+Attachment = CachedAttachment
 
 
 def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
@@ -1927,7 +1921,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
 
     project = job["event"].project
 
-    quotas.refund(
+    quotas.backend.refund(
         project,
         key=job["project_key"],
         timestamp=job["start_time"],
@@ -1964,7 +1958,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         )
 
     if attachment_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
@@ -2088,7 +2082,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
     if refund_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
