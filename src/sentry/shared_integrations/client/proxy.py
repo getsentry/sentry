@@ -53,7 +53,10 @@ def infer_org_integration(
 
 
 def get_proxy_url() -> str:
-    return f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
+    control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", "")
+    control_address = control_address.rstrip("/")
+    proxy_base_path = PROXY_BASE_PATH.lstrip("/")
+    return f"{control_address}/{proxy_base_path}"
 
 
 class IntegrationProxyClient(ApiClient):

@@ -96,11 +96,11 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
         region: str,
         aws_external_id: str,
     ) -> None:
-        super().__init__(org_integration_id=org_integration_id)
         self.base_url = get_proxy_url()
         self.account_number = account_number
         self.region = region
         self.aws_external_id = aws_external_id
+        super().__init__(org_integration_id=org_integration_id)
 
     @property
     def client(self):
@@ -158,11 +158,12 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
             payload = {
                 "args": list(args),
                 "kwargs": kwargs,
-                "function_name": "get_function",
+                "function_name": func_name,
             }
+
             response = self.post("/", data=payload)
             function_name = response["function_name"]
-            assert function_name == "get_function"
+            assert function_name == func_name
 
             exception = response["exception"]
             if exception:
