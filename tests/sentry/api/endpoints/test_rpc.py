@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Dict
+
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -62,7 +64,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data = {}
+        data: Dict[str, Any] = {}
         response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
@@ -73,7 +75,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data = {"args": {}}
+        data: Dict[str, Any] = {"args": {}}
         response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
