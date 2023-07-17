@@ -32,6 +32,7 @@ export function SpanOperationSelector({
   const {data: operations} = useSpansQuery<{'span.op': string}[]>({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.get-span-operations',
   });
 
   const options = [

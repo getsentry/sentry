@@ -36,7 +36,7 @@ export const useSpanList = (
   spanCategory?: string,
   sorts?: Sort[],
   limit?: number,
-  referrer = 'use-span-list',
+  referrer = 'api.starfish.use-span-list',
   cursor?: string
 ) => {
   const location = useLocation();
