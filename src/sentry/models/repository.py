@@ -14,8 +14,12 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models.commit import Commit
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.pullrequest import PullRequest
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
+from sentry.utils import metrics
 
 
 @region_silo_only_model
@@ -92,6 +96,50 @@ class Repository(Model, PendingDeletionMixin):
     ) -> bool:
         del self.config["pending_deletion_name"]
         return super().reset_pending_deletion_field_names(["config"])
+
+    def cascade_delete_on_hide(self) -> None:
+        # Manually cause a deletion cascade after setting a repo's status
+        # to ObjectStatus.HIDDEN.
+        # References RepositoryDeletionTask and BaseDeletionTask logic.
+
+        if self.status != ObjectStatus.HIDDEN:
+            return
+
+        from sentry.deletions import default_manager
+        from sentry.deletions.base import ModelRelation
+
+        def _delete_children(relations: list[ModelRelation]) -> bool:
+            for relation in relations:
+                task = default_manager.get(
+                    transaction_id=None,
+                    actor_id=None,
+                    task=relation.task,
+                    **relation.params,
+                )
+
+                has_more = True
+                while has_more:
+                    has_more = task.chunk()
+                    if has_more:
+                        metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
+            return False
+
+        has_more = True
+
+        while has_more:
+            # get child relations
+            child_relations = [
+                ModelRelation(Commit, {"repository_id": self.id}),
+                ModelRelation(PullRequest, {"repository_id": self.id}),
+                ModelRelation(RepositoryProjectPathConfig, {"repository_id": self.id}),
+            ]
+            # extend relations
+            child_relations = child_relations + [
+                rel(self) for rel in default_manager.dependencies[Repository]
+            ]
+            # no need to filter relations; delete them
+            if child_relations:
+                has_more = _delete_children(child_relations)
 
 
 def on_delete(instance, actor: RpcUser | None = None, **kwargs):

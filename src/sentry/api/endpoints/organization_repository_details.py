@@ -89,6 +89,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 ):
                     repo.reset_pending_deletion_field_names()
                     repo.delete_pending_deletion_option()
+                elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
+                    repo.cascade_delete_on_hide()
 
         return Response(serialize(repo, request.user))
 
