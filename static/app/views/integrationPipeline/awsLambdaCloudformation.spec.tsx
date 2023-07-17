@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import * as qs from 'query-string';
 
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
@@ -17,6 +17,7 @@ describe('AwsLambdaCloudformation', () => {
   it('submit arn', async () => {
     render(
       <AwsLambdaCloudformation
+        organization={TestStubs.Organization()}
         baseCloudformationUrl="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review"
         templateUrl="https://example.com/file.json"
         stackName="Sentry-Monitoring-Stack"
@@ -30,17 +31,14 @@ describe('AwsLambdaCloudformation', () => {
     // Open configuration fields
     await userEvent.click(screen.getByRole('button', {name: "I've created the stack"}));
 
-    // XXX(epurkhiser): This form is pretty wonky with how it works, and
-    // probably needs cleaned up again in the future. I couldn't get
-    // await userEvent.type to work here because of something relating to the
-    // validation I think.
-
     // Fill out fields
-    const accountNumber = screen.getByRole('textbox', {name: 'AWS Account Number'});
-    fireEvent.change(accountNumber, {target: {value: '599817902985'}});
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'AWS Account Number'}),
+      '599817902985'
+    );
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'AWS Region'}), [
-      ['us-west-1'],
+      'us-west-1',
     ]);
 
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
