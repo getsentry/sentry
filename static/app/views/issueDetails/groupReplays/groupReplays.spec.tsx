@@ -339,13 +339,13 @@ describe('GroupReplays', () => {
       // Expect the first row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/project-slug:${REPLAY_ID_1}/?${expectedQuery}`
+        `/replays/project-slug:${REPLAY_ID_1}/?${expectedQuery}`
       );
 
       // Expect the second row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
         'href',
-        `/organizations/org-slug/replays/project-slug:${REPLAY_ID_2}/?${expectedQuery}`
+        `/replays/project-slug:${REPLAY_ID_2}/?${expectedQuery}`
       );
 
       // Expect the first row to have the correct duration

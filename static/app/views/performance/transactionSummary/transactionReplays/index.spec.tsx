@@ -204,7 +204,10 @@ describe('TransactionReplays', () => {
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
             id: '346789a703f6454384f1de473b8b9fcc',
             started_at: new Date('2022-09-15T06:50:00+00:00'),
-            urls: ['https://dev.getsentry.net:7999/replays/', '/replays/?project=2'],
+            urls: [
+              'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
+              '/organizations/sentry-emerging-tech/replays/?project=2',
+            ],
           },
           {
             ...TestStubs.ReplayList()[0],
@@ -244,13 +247,13 @@ describe('TransactionReplays', () => {
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
+      `/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
     );
 
     // Expect the second row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
       'href',
-      `/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
+      `/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
     );
 
     // Expect the first row to have the correct duration
