@@ -50,6 +50,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+    is_timeseries_query = False
     organization_column: str = "organization_id"
 
     def __init__(
@@ -116,15 +117,16 @@ class MetricsQueryBuilder(QueryBuilder):
 
         spec = self._on_demand_spec
 
-        # TODO(ogi): TimeseriesQueryBuilder somehow has a limit of 10000 which is too high for get_series
-        if not self.limit or self.limit.limit >= 10000:
+        # TimeseriesQueryBuilder specific parameters
+        if self.is_timeseries_query:
             limit = None
+            alias = "count"
         else:
             limit = self.limit
+            alias = spec.mri
 
         return MetricsQuery(
-            # FIXME: count alias is required in order to render chart since the serializer searches for that exact dict key
-            select=[MetricField(spec.op, spec.mri, alias="count")],
+            select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=[
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
@@ -135,7 +137,6 @@ class MetricsQueryBuilder(QueryBuilder):
             limit=limit,
             offset=self.offset,
             granularity=self.resolve_granularity(),
-            # interval=60,
             is_alerts_query=self.is_alerts_query,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
@@ -1042,6 +1043,7 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
+    is_timeseries_query = True
 
     def __init__(
         self,
