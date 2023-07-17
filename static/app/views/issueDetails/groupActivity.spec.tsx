@@ -8,13 +8,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import PullRequestLink from 'sentry/components/pullRequestLink';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {GroupActivityType} from 'sentry/types';
+import {Group, GroupActivityType, Organization} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
@@ -25,7 +24,7 @@ describe('GroupActivity', function () {
     project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', {id: '123'});
+    ConfigStore.set('user', TestStubs.User({id: '123'}));
     GroupStore.init();
   });
 
@@ -34,7 +33,13 @@ describe('GroupActivity', function () {
     jest.clearAllMocks();
   });
 
-  function createWrapper({activity, organization: additionalOrg} = {}) {
+  function createWrapper({
+    activity,
+    organization: additionalOrg,
+  }: {
+    activity?: Group['activity'];
+    organization?: Organization;
+  } = {}) {
     const group = TestStubs.Group({
       id: '1337',
       activity: activity ?? [
@@ -42,15 +47,15 @@ describe('GroupActivity', function () {
       ],
       project,
     });
-    const {organization, routerContext} = initializeOrg({
+    const {organization, routerContext, routerProps} = initializeOrg({
       organization: additionalOrg,
-      group,
     });
     GroupStore.add([group]);
     TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity
+        {...routerProps}
         api={new MockApiClient()}
         params={{orgId: 'org-slug'}}
         group={group}
@@ -68,7 +73,16 @@ describe('GroupActivity', function () {
   it('renders a marked reviewed activity', function () {
     const user = TestStubs.User({name: 'Samwise'});
     createWrapper({
-      activity: [{type: 'mark_reviewed', id: 'reviewed-1', data: {}, user}],
+      activity: [
+        {
+          type: GroupActivityType.MARK_REVIEWED,
+          id: 'reviewed-1',
+          dateCreated: '',
+          project: TestStubs.Project(),
+          data: {},
+          user,
+        },
+      ],
     });
     expect(screen.getByText('marked this issue as reviewed')).toBeInTheDocument();
     expect(screen.getByText(user.name)).toBeInTheDocument();
@@ -77,23 +91,19 @@ describe('GroupActivity', function () {
   it('renders a pr activity', function () {
     const user = TestStubs.User({name: 'Test User'});
     const repository = TestStubs.Repository();
-    const pullRequest = TestStubs.PullRequest({message: 'Fixes ISSUE-1'});
     createWrapper({
       activity: [
         {
-          type: 'set_resolved_in_pull_request',
+          dateCreated: '',
+          project: TestStubs.Project(),
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-1',
           data: {
             pullRequest: {
-              author: 'Test User',
-              version: (
-                <PullRequestLink
-                  inline
-                  pullRequest={pullRequest}
-                  repository={pullRequest.repository}
-                />
-              ),
-              repository: {repository},
+              externalUrl: '',
+              id: '',
+              title: '',
+              repository,
             },
           },
           user,
@@ -106,7 +116,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = TestStubs.User({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -114,11 +124,13 @@ describe('GroupActivity', function () {
             assignee: user.id,
             assigneeEmail: user.email,
             assigneeType: 'user',
+            user,
           },
+          user,
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          type: 'assigned',
-          user,
+          project: TestStubs.Project(),
+          type: GroupActivityType.ASSIGNED,
         },
       ],
     });
@@ -137,10 +149,12 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
+            user: TestStubs.User(),
           },
+          project: TestStubs.Project(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          type: 'assigned',
+          type: GroupActivityType.ASSIGNED,
           user: null,
         },
       ],
@@ -160,10 +174,12 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
+            user: TestStubs.User(),
           },
+          project: TestStubs.Project(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          type: 'assigned',
+          type: GroupActivityType.ASSIGNED,
           user,
         },
       ],
@@ -177,13 +193,16 @@ describe('GroupActivity', function () {
     createWrapper({
       activity: [
         {
-          type: 'set_resolved_in_commit',
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
+          project: TestStubs.Project(),
+          dateCreated: '',
           data: {
-            author: 'hello',
             commit: {
+              dateCreated: '',
+              message: '',
               id: 'komal-commit',
-              repository: {},
+              repository: TestStubs.Repository(),
               releases: [],
             },
           },
@@ -200,19 +219,22 @@ describe('GroupActivity', function () {
     createWrapper({
       activity: [
         {
-          type: 'set_resolved_in_commit',
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
+          project: TestStubs.Project(),
+          dateCreated: '',
           data: {
-            author: 'hello',
             commit: {
               id: 'komal-commit',
-              repository: {},
+              dateCreated: '',
+              message: '',
+              repository: TestStubs.Repository(),
               releases: [
-                {
+                TestStubs.Release({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
-                },
+                }),
               ],
             },
           },
@@ -229,33 +251,37 @@ describe('GroupActivity', function () {
     createWrapper({
       activity: [
         {
-          type: 'set_resolved_in_commit',
+          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
+          project: TestStubs.Project(),
+          dateCreated: '',
           data: {
             commit: {
               id: 'komal-commit',
-              repository: {},
+              dateCreated: '',
+              message: '',
+              repository: TestStubs.Repository(),
               releases: [
-                {
+                TestStubs.Release({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
-                },
-                {
+                }),
+                TestStubs.Release({
                   dateCreated: '2022-06-01',
                   dateReleased: '2022-06-02',
                   version: 'newest',
-                },
-                {
+                }),
+                TestStubs.Release({
                   dateCreated: '2021-08-03',
                   dateReleased: '2021-08-03',
                   version: 'oldest-release',
-                },
-                {
+                }),
+                TestStubs.Release({
                   dateCreated: '2022-04-21',
                   dateReleased: '2022-04-21',
                   version: 'randomTwo',
-                },
+                }),
               ],
             },
           },
@@ -279,11 +305,12 @@ describe('GroupActivity', function () {
         {
           id: '123',
           user: null,
-          type: 'assigned',
+          type: GroupActivityType.ASSIGNED,
+          project: TestStubs.Project(),
           data: {
             assignee: team.id,
-            assigneeEmail: null,
             assigneeType: 'team',
+            user: TestStubs.User(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -307,7 +334,7 @@ describe('GroupActivity', function () {
         url: '/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', {id: '123', isSuperuser: true});
+      ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -349,6 +376,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
+          project: TestStubs.Project(),
           data: {
             ignoreUntilEscalating: true,
           },
@@ -368,6 +396,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
+          project: TestStubs.Project(),
           data: {
             ignoreUntilEscalating: true,
           },
@@ -375,7 +404,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: {features: ['escalating-issues']},
+      organization: TestStubs.Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
@@ -388,6 +417,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
+          project: TestStubs.Project(),
           data: {
             forecast: 200,
           },
@@ -397,6 +427,7 @@ describe('GroupActivity', function () {
         {
           id: '124',
           type: GroupActivityType.SET_ESCALATING,
+          project: TestStubs.Project(),
           data: {
             forecast: 400,
           },
@@ -404,7 +435,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: {features: ['escalating-issues']},
+      organization: TestStubs.Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -420,6 +451,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
+          project: TestStubs.Project(),
           data: {
             forecast: 1,
           },
@@ -427,7 +459,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: {features: ['escalating-issues']},
+      organization: TestStubs.Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -440,6 +472,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
+          project: TestStubs.Project(),
           data: {
             ignoreCount: 400,
             ignoreWindow: 1,
@@ -460,10 +493,14 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
+          project: TestStubs.Project(),
           data: {
             expired_snooze: {
               count: 400,
               window: 1,
+              until: null,
+              user_count: null,
+              user_window: null,
             },
           },
           dateCreated,
@@ -481,10 +518,14 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
+          project: TestStubs.Project(),
           data: {
             expired_snooze: {
               user_count: 1,
               user_window: 1,
+              until: null,
+              count: null,
+              window: null,
             },
           },
           dateCreated,
@@ -503,9 +544,14 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
+          project: TestStubs.Project(),
           data: {
             expired_snooze: {
               until: date,
+              user_count: null,
+              user_window: null,
+              count: null,
+              window: null,
             },
           },
           dateCreated,
@@ -523,19 +569,13 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          data: {
-            ignoreCount: null,
-            ignoreDuration: null,
-            ignoreUntil: null,
-            ignoreUserCount: null,
-            ignoreUserWindow: null,
-            ignoreWindow: null,
-          },
+          project: TestStubs.Project(),
+          data: {},
           user: TestStubs.User(),
           dateCreated,
         },
       ],
-      organization: {features: ['escalating-issues']},
+      organization: TestStubs.Organization({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
