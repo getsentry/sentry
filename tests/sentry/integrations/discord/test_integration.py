@@ -126,3 +126,18 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+
+    @responses.activate
+    def test_setup(self):
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.application_commands.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+
+        assert responses.assert_call_count(count=1, url=url)
