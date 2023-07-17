@@ -94,12 +94,10 @@ class Repository(Model, PendingDeletionMixin):
         return super().reset_pending_deletion_field_names(["config"])
 
     def cascade_delete_on_hide(self) -> None:
-        # Manually cause a deletion cascade after setting a repo's status
+        # Manually cause a deletion cascade.
+        # This should be called after setting a repo's status
         # to ObjectStatus.HIDDEN.
         # References RepositoryDeletionTask and BaseDeletionTask logic.
-
-        if self.status != ObjectStatus.HIDDEN:
-            return
 
         from sentry.deletions import default_manager
         from sentry.deletions.base import _delete_children
