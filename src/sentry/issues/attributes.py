@@ -41,7 +41,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
         if created:
             _log_group_attributes_changed(Operation.CREATED, "group", None)
         else:
-            if "updated_fields" in kwargs:
+            if "update_fields" in kwargs:
                 update_fields = kwargs["update_fields"]
                 # we have no guarantees update_fields is used everywhere save() is called
                 # we'll need to assume any of the attributes are updated in that case
