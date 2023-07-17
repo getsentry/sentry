@@ -1,12 +1,4 @@
-__all__ = [
-    "CspEvent",
-    "DefaultEvent",
-    "ErrorEvent",
-    "ExpectCTEvent",
-    "ExpectStapleEvent",
-    "HpkpEvent",
-    "TransactionEvent",
-]
+from typing import Union
 
 from .base import DefaultEvent
 from .error import ErrorEvent
@@ -27,3 +19,13 @@ default_manager.register(GenericEvent)
 
 get = default_manager.get
 register = default_manager.register
+
+EventType = Union[
+    DefaultEvent,
+    ErrorEvent,
+    CspEvent,
+    HpkpEvent,
+    ExpectCTEvent,
+    ExpectStapleEvent,
+    TransactionEvent,
+]
