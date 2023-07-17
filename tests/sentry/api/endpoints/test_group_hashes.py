@@ -1,4 +1,5 @@
 import copy
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
@@ -94,7 +95,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_unmerge(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
+        group = self.create_group(platform="javascript")
 
         hashes = [
             GroupHash.objects.create(project=group.project, group=group, hash=hash)
@@ -108,5 +109,12 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
             ]
         )
 
-        response = self.client.delete(url, format="json")
-        assert response.status_code == 202, response.content
+        with patch("sentry.api.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
+            response = self.client.delete(url, format="json")
+
+            assert response.status_code == 202, response.content
+            mock_metrics_incr.assert_any_call(
+                "grouping.unmerge_issues",
+                sample_rate=1.0,
+                tags={"platform": "javascript"},
+            )
