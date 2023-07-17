@@ -27,7 +27,10 @@ def patch_celery_imgcat():
 
 def patch_memcached():
     # Fixes a bug in Django 3.2
-    from django.core.cache.backends.memcached import MemcachedCache
+    try:
+        from django.core.cache.backends.memcached import MemcachedCache
+    except ImportError:
+        return
 
     def fixed_delete(self, key, version=None):
         key = self.make_key(key, version=version)
