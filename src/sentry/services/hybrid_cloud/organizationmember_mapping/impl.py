@@ -5,7 +5,7 @@
 
 from typing import Optional
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -48,7 +48,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                     outbox.save()
 
         try:
-            with outbox_context(transaction.atomic()):
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
                 existing = self._find_organization_member(
                     organization_id=organization_id,
                     organizationmember_id=organizationmember_id,
@@ -76,7 +78,9 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             if existing is None:
                 raise e
 
-            with outbox_context(transaction.atomic()):
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
                 apply_update(existing)
 
         return serialize_org_member_mapping(existing)
