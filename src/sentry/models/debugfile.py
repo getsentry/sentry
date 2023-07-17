@@ -27,6 +27,8 @@ from typing import (
 )
 
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
@@ -95,11 +97,13 @@ class ProjectDebugFileManager(BaseManager):
         """
         features = frozenset(features) if features is not None else frozenset()
 
-        difs = (
-            ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
-            .select_related("file")
-            .order_by("-id")
-        )
+        query = Q(project_id=project.id, debug_id__in=debug_ids)
+        difs = list(ProjectDebugFile.objects.filter(query).select_related("file").order_by("-id"))
+
+        # because otherwise this would be a circular import:
+        from sentry.debug_files.debug_files import maybe_renew_debug_files
+
+        maybe_renew_debug_files(query, difs)
 
         difs_by_id: Dict[str, List[ProjectDebugFile]] = {}
         for dif in difs:
@@ -139,6 +143,8 @@ class ProjectDebugFile(Model):
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
+    date_accessed = models.DateTimeField(default=timezone.now)
+
     objects = ProjectDebugFileManager()
 
     difcache: ClassVar[DIFCache]
@@ -355,6 +361,24 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
         return str(uuid.UUID(ident))
     except Exception:
         return None
+
+
+@region_silo_only_model
+class ProguardArtifactRelease(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField()
+    project_id = BoundedBigIntegerField()
+    release_name = models.CharField(max_length=250)
+    proguard_uuid = models.UUIDField(db_index=True)
+    project_debug_file = FlexibleForeignKey("sentry.ProjectDebugFile")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_proguardartifactrelease"
+
+        unique_together = (("project_id", "release_name", "proguard_uuid"),)
 
 
 class DifMeta:

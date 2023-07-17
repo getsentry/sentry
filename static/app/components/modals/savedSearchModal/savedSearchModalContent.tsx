@@ -19,15 +19,11 @@ const SELECT_FIELD_VISIBILITY_OPTIONS = [
 
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
 
   const sortOptions = [
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.BETTER_PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

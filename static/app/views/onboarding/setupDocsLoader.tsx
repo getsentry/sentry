@@ -10,7 +10,10 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -45,6 +48,10 @@ export function SetupDocsLoader({
   const [hasLoadingError, setHasLoadingError] = useState(false);
   const [projectKeyUpdateError, setProjectKeyUpdateError] = useState(false);
 
+  const productsQuery =
+    (location.query.product as ProductSolution | ProductSolution[] | undefined) ?? [];
+  const products = decodeList(productsQuery) as ProductSolution[];
+
   const fetchData = useCallback(async () => {
     const keysApiUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
@@ -68,10 +75,6 @@ export function SetupDocsLoader({
   // Note that on initial visit, this will also update the project key with the default products (=all products)
   // This DOES NOT take into account any initial products that may already be set on the project key - they will always be overwritten!
   const handleUpdateSelectedProducts = useCallback(async () => {
-    const productsQuery =
-      (location.query.product as PRODUCT | PRODUCT[] | undefined) ?? [];
-    const products = decodeList(productsQuery);
-
     const keyId = projectKey?.id;
 
     if (!keyId) {
@@ -87,10 +90,10 @@ export function SetupDocsLoader({
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
-        case PRODUCT.PERFORMANCE_MONITORING:
+        case ProductSolution.PERFORMANCE_MONITORING:
           newDynamicSdkLoaderOptions.hasPerformance = true;
           break;
-        case PRODUCT.SESSION_REPLAY:
+        case ProductSolution.SESSION_REPLAY:
           newDynamicSdkLoaderOptions.hasReplay = true;
           break;
       }
@@ -112,7 +115,7 @@ export function SetupDocsLoader({
       handleXhrErrorResponse(message, error);
       setProjectKeyUpdateError(true);
     }
-  }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
+  }, [api, organization.slug, project.slug, projectKey?.id, products]);
 
   const track = useCallback(() => {
     if (!project?.id) {
@@ -149,8 +152,8 @@ export function SetupDocsLoader({
       ) : (
         <ProductSelection
           defaultSelectedProducts={[
-            PRODUCT.PERFORMANCE_MONITORING,
-            PRODUCT.SESSION_REPLAY,
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
           ]}
           lazyLoader
           skipLazyLoader={close}
@@ -171,6 +174,7 @@ export function SetupDocsLoader({
             platform={platform}
             organization={organization}
             project={project}
+            products={products}
           />
         )
       ) : (
@@ -188,9 +192,11 @@ function ProjectKeyInfo({
   platform,
   organization,
   project,
+  products,
 }: {
   organization: Organization;
   platform: PlatformKey | null;
+  products: ProductSolution[];
   project: Project;
   projectKey: ProjectKey;
 }) {
@@ -298,6 +304,28 @@ Sentry.onLoad(function() {
             {': '}
             {t('Learn how to configure your SDK using our Loader Script')}
           </li>
+          {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
+            <li>
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/">
+                {t('Performance Monitoring')}
+              </ExternalLink>
+              {': '}
+              {t(
+                'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
+              )}
+            </li>
+          )}
+          {!products.includes(ProductSolution.SESSION_REPLAY) && (
+            <li>
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/">
+                {t('Session Replay')}
+              </ExternalLink>
+              {': '}
+              {t(
+                'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
+              )}
+            </li>
+          )}
         </ul>
       </DocumentationWrapper>
     </DocsWrapper>

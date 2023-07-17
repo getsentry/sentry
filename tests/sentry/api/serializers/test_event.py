@@ -274,6 +274,7 @@ class SimpleEventSerializerTest(TestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         result = serialize(event, None, SimpleEventSerializer())
 
         assert result["eventID"] == event.event_id
@@ -400,168 +401,163 @@ class IssueEventSerializerTest(TestCase):
 @region_silo_test
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
-        with self.feature("organizations:sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {"category": "generic", "message": "should not format this"},
-                        {
-                            "category": "query",
-                            "message": "select * from table where something = $1",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {"category": "generic", "message": "should not format this"},
+                    {
+                        "category": "query",
+                        "message": "select * from table where something = $1",
+                    },
+                ]
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            breadcrumb_entry = result["entries"][0]
-            breadcrumbs = breadcrumb_entry["data"]["values"]
+        breadcrumb_entry = result["entries"][0]
+        breadcrumbs = breadcrumb_entry["data"]["values"]
 
-            assert breadcrumb_entry["type"] == "breadcrumbs"
-            # First breadcrumb should not have a message_formatted property
-            assert breadcrumbs[0]["message"] == "should not format this"
-            assert "messageRaw" not in breadcrumbs[0]
-            assert "messageFormat" not in breadcrumbs[0]
-            # Second breadcrumb should have whitespace added
-            assert breadcrumbs[1]["message"] == "select *\nfrom table\nwhere something = $1"
-            assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
-            assert breadcrumbs[1]["messageFormat"] == "sql"
+        assert breadcrumb_entry["type"] == "breadcrumbs"
+        # First breadcrumb should not have a message_formatted property
+        assert breadcrumbs[0]["message"] == "should not format this"
+        assert "messageRaw" not in breadcrumbs[0]
+        assert "messageFormat" not in breadcrumbs[0]
+        # Second breadcrumb should have whitespace added
+        assert breadcrumbs[1]["message"] == "select *\nfrom table\nwhere something = $1"
+        assert breadcrumbs[1]["messageRaw"] == "select * from table where something = $1"
+        assert breadcrumbs[1]["messageFormat"] == "sql"
 
     def test_event_breadcrumb_formatting_remove_quotes(self):
-        with self.feature("organizations:sql-format"):
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {
-                            "category": "query",
-                            "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
-                        },
-                        {
-                            "category": "query",
-                            "message": """This is not "SQL" content.""",
-                        },
-                    ]
-                },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {
+                        "category": "query",
+                        "message": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                    },
+                    {
+                        "category": "query",
+                        "message": """This is not "SQL" content.""",
+                    },
+                ]
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
-            assert (
-                result["entries"][0]["data"]["values"][0]["message"]
-                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
-            )
+        # For breadcrumb 1: should remove quotes from all terms except the one that contains a space ("column name")
+        assert (
+            result["entries"][0]["data"]["values"][0]["message"]
+            == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+        )
 
-            # For breadcrumb 2: Not SQL so shouldn't be changed
-            assert (
-                result["entries"][0]["data"]["values"][1]["message"]
-                == """This is not "SQL" content."""
-            )
+        # For breadcrumb 2: Not SQL so shouldn't be changed
+        assert (
+            result["entries"][0]["data"]["values"][1]["message"] == """This is not "SQL" content."""
+        )
 
     def test_event_db_span_formatting(self):
-        with self.feature("organizations:sql-format"):
-            event_data = get_event("n-plus-one-in-django-new-view")
-            event_data["contexts"] = {
-                "trace": {
-                    "trace_id": "530c14e044aa464db6ddb43660e6474f",
-                    "span_id": "139fcdb7c5534eb4",
-                }
+        event_data = get_event("n-plus-one-in-django-new-view")
+        event_data["contexts"] = {
+            "trace": {
+                "trace_id": "530c14e044aa464db6ddb43660e6474f",
+                "span_id": "139fcdb7c5534eb4",
             }
-            event = self.store_event(
-                data={
-                    "type": "transaction",
-                    "transaction": "/organizations/:orgId/performance/:eventSlug/",
-                    "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "contexts": {
-                        "trace": {
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                            "span_id": "8f5a2b8768cafb4e",
-                            "type": "trace",
-                        }
-                    },
-                    "spans": [
-                        {
-                            "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
-                            "op": "db",
-                            "parent_span_id": "abe79ad9292b90a9",
-                            "span_id": "9c045ea336297177",
-                            "start_timestamp": timestamp_format(
-                                before_now(minutes=1, milliseconds=200)
-                            ),
-                            "timestamp": timestamp_format(before_now(minutes=1)),
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                        },
-                        {
-                            "description": "http span",
-                            "op": "http",
-                            "parent_span_id": "a99fd04e79e17631",
-                            "span_id": "abe79ad9292b90a9",
-                            "start_timestamp": timestamp_format(
-                                before_now(minutes=1, milliseconds=200)
-                            ),
-                            "timestamp": timestamp_format(before_now(minutes=1)),
-                            "trace_id": "ff62a8b040f340bda5d830223def1d81",
-                        },
-                    ],
+        }
+        event = self.store_event(
+            data={
+                "type": "transaction",
+                "transaction": "/organizations/:orgId/performance/:eventSlug/",
+                "start_timestamp": iso_format(before_now(minutes=1, milliseconds=500)),
+                "timestamp": iso_format(before_now(minutes=1)),
+                "contexts": {
+                    "trace": {
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                        "span_id": "8f5a2b8768cafb4e",
+                        "type": "trace",
+                    }
                 },
-                project_id=self.project.id,
-            )
-            result = serialize(event, None, SqlFormatEventSerializer())
+                "spans": [
+                    {
+                        "description": """select "table"."column_name", "table"."column name" from "table" where "something" = $1""",
+                        "op": "db",
+                        "parent_span_id": "abe79ad9292b90a9",
+                        "span_id": "9c045ea336297177",
+                        "start_timestamp": timestamp_format(
+                            before_now(minutes=1, milliseconds=200)
+                        ),
+                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                    },
+                    {
+                        "description": "http span",
+                        "op": "http",
+                        "parent_span_id": "a99fd04e79e17631",
+                        "span_id": "abe79ad9292b90a9",
+                        "start_timestamp": timestamp_format(
+                            before_now(minutes=1, milliseconds=200)
+                        ),
+                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                    },
+                ],
+            },
+            project_id=self.project.id,
+        )
+        result = serialize(event, None, SqlFormatEventSerializer())
 
-            # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
-            assert (
-                result["entries"][0]["data"][0]["description"]
-                == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
-            )
+        # For span 1: Should remove quotes from all terms except the one that contains a space ("column name")
+        assert (
+            result["entries"][0]["data"][0]["description"]
+            == """select table.column_name, table."column name"\nfrom table\nwhere something = $1"""
+        )
 
-            # For span 2: Not a db span so no change
-            assert result["entries"][0]["data"][1]["description"] == """http span"""
+        # For span 2: Not a db span so no change
+        assert result["entries"][0]["data"][1]["description"] == """http span"""
 
     def test_db_formatting_perf_optimizations(self):
-        with self.feature("organizations:sql-format"):
-            SQL_QUERY_OK = """select * from table where something in (%s, %s, %s)"""
-            SQL_QUERY_TOO_LARGE = "a" * 1501
+        SQL_QUERY_OK = """select * from table where something in (%s, %s, %s)"""
+        SQL_QUERY_TOO_LARGE = "a" * 1501
 
-            event = self.store_event(
-                data={
-                    "breadcrumbs": [
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_OK,
-                        },
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_OK,
-                        },
-                        {
-                            "category": "query",
-                            "message": SQL_QUERY_TOO_LARGE,
-                        },
-                    ]
-                    + [{"category": "query", "message": str(i)} for i in range(0, 30)]
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                "breadcrumbs": [
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_OK,
+                    },
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_OK,
+                    },
+                    {
+                        "category": "query",
+                        "message": SQL_QUERY_TOO_LARGE,
+                    },
+                ]
+                + [{"category": "query", "message": str(i)} for i in range(0, 30)]
+            },
+            project_id=self.project.id,
+        )
 
-            with mock.patch("sqlparse.format", return_value="") as mock_format:
-                serialize(event, None, SqlFormatEventSerializer())
+        with mock.patch("sqlparse.format", return_value="") as mock_format:
+            serialize(event, None, SqlFormatEventSerializer())
 
-                assert (
-                    len(
-                        list(
-                            filter(
-                                lambda args: SQL_QUERY_OK in args[0],
-                                mock_format.call_args_list,
-                            )
+            assert (
+                len(
+                    list(
+                        filter(
+                            lambda args: SQL_QUERY_OK in args[0],
+                            mock_format.call_args_list,
                         )
                     )
-                    == 1
-                ), "SQL_QUERY_OK should have been formatted a single time"
+                )
+                == 1
+            ), "SQL_QUERY_OK should have been formatted a single time"
 
-                assert not any(
-                    SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
-                ), "SQL_QUERY_TOO_LARGE should not have been formatted"
+            assert not any(
+                SQL_QUERY_TOO_LARGE in args[0] for args in mock_format.call_args_list
+            ), "SQL_QUERY_TOO_LARGE should not have been formatted"
 
-                assert mock_format.call_count == 20, "Format should have been called 20 times"
+            assert mock_format.call_count == 20, "Format should have been called 20 times"

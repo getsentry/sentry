@@ -32,7 +32,7 @@ export function useSpansQuery<T = any[]>({
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
@@ -62,7 +62,7 @@ export function useSpansQuery<T = any[]>({
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>({
+function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,
@@ -77,6 +77,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -99,7 +100,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       cursor,
     }),
     options: {
-      enabled,
+      enabled: enabled && pageFiltersReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -131,12 +132,13 @@ export function useWrappedDiscoverQuery<T>({
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -145,7 +147,7 @@ export function useWrappedDiscoverQuery<T>({
     cursor,
     limit,
     options: {
-      enabled,
+      enabled: enabled && pageFiltersReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -161,7 +163,8 @@ export function useWrappedDiscoverQuery<T>({
     meta.units['sps()'] = '1/second';
   }
 
-  const data: T = result.isLoading && initialData ? initialData : result.data?.data;
+  const data =
+    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,

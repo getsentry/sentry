@@ -7,12 +7,14 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/accountNotificationSettings';
 import {t} from 'sentry/locale';
 import {Organization, Project, UserEmail} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
@@ -124,20 +126,20 @@ const AccountNotificationsByOrganizationContainer = withOrganizations(
   AccountNotificationsByOrganization
 );
 
-type Props = AsyncView['props'] &
+type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{fineTuneType: string}, {}> & {
     organizations: Organization[];
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
   fineTuneData: Record<string, any> | null;
   notifications: Record<string, any> | null;
   projects: Project[] | null;
 };
 
-class AccountNotificationFineTuning extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints = [
@@ -154,7 +156,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
       endpoints.push(['emails', '/users/me/emails/']);
     }
 
-    return endpoints as ReturnType<AsyncView['getEndpoints']>;
+    return endpoints as ReturnType<DeprecatedAsyncView['getEndpoints']>;
   }
 
   // Return a sorted list of user's verified emails

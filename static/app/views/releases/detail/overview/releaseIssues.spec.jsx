@@ -141,4 +141,25 @@ describe('ReleaseIssues', function () {
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
   });
+
+  it('includes release context when linking to issue', async function () {
+    newIssuesEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
+      body: [TestStubs.Group({id: '123'})],
+    });
+
+    const {routerContext} = initializeOrg();
+
+    render(<ReleaseIssues {...props} />, {context: routerContext});
+
+    await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
+
+    const link = await screen.findByRole('link', {name: /RequestError/});
+
+    // Should pass the query param `query` with value `release:1.0.0`
+    expect(link).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/?_allp=1&query=release%3A1.0.0&referrer=release-issue-stream'
+    );
+  });
 });

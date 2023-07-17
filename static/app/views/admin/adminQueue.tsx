@@ -4,14 +4,16 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import InternalStatChart from 'sentry/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import AsyncView from 'sentry/views/asyncView';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 
 type TimeWindow = (typeof TIME_WINDOWS)[number];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   activeTask: string;
   resolution: string;
   since: number;
@@ -20,7 +22,7 @@ type State = AsyncView['state'] & {
   timeWindow: TimeWindow;
 };
 
-export default class AdminQueue extends AsyncView<{}, State> {
+export default class AdminQueue extends DeprecatedAsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -31,7 +33,7 @@ export default class AdminQueue extends AsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['taskList', '/internal/queue/tasks/']];
   }
 

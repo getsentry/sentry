@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -1203,6 +1203,20 @@ register(
 register(
     "performance.issues.m_n_plus_one_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register(
+    "performance.issues.http_overhead.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.http_overhead.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
@@ -1284,6 +1298,11 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
+register(
+    "performance.issues.http_overhead.http_request_delay_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1316,8 +1335,6 @@ register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABL
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether artifact bundles asynchronous renewal is enabled.
-register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 
@@ -1373,3 +1390,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Turns on and off the running for dynamic sampling collect_orgs.
+register("dynamic_sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

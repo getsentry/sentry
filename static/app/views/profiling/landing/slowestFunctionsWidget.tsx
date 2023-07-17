@@ -38,15 +38,17 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'slowFnCursor';
+const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 interface SlowestFunctionsWidgetProps {
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function SlowestFunctionsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
   widgetHeight,
@@ -56,16 +58,19 @@ export function SlowestFunctionsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const slowFnCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
@@ -132,7 +137,7 @@ export function SlowestFunctionsWidget({
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
-          <Accordion>
+          <StyledAccordion>
             {(functionsQuery.data?.data ?? []).map((f, i) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
@@ -149,7 +154,7 @@ export function SlowestFunctionsWidget({
                 />
               );
             })}
-          </Accordion>
+          </StyledAccordion>
         )}
       </ContentContainer>
     </WidgetContainer>
@@ -185,8 +190,9 @@ function SlowestFunctionEntry({
     const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    conditions.setFilterValues('package', [String(func.package)]);
-    conditions.setFilterValues('function', [String(func.function)]);
+    // it is more efficient to filter on the fingerprint
+    // than it is to filter on the package + function
+    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
 
     return conditions.formatString();
   }, [func, query]);
@@ -300,6 +306,7 @@ function SlowestFunctionEntry({
 
 const functionsFields = [
   'project.id',
+  'fingerprint',
   'package',
   'function',
   'count()',
@@ -323,6 +330,11 @@ type FunctionTransactionField = (typeof functionTransactionsFields)[number];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordion = styled(Accordion)`
+  display: flex;
+  flex-direction: column;
 `;
 
 const StyledAccordionItem = styled(AccordionItem)`

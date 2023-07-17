@@ -589,6 +589,11 @@ function buildRoutes() {
         />
       </Route>
       <Route
+        path="loader-script/"
+        name={t('Loader Script')}
+        component={make(() => import('sentry/views/settings/project/loaderScript'))}
+      />
+      <Route
         path="user-feedback/"
         name={t('User Feedback')}
         component={make(
@@ -861,7 +866,7 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
-      <Route path="developer-settings/" name={t('Developer Settings')}>
+      <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/settings/organizationDeveloperSettings')
@@ -1819,10 +1824,6 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.MERGED]}
           component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
-        />
-        <Route
-          path={TabPaths[Tab.GROUPING]}
-          component={hoc(make(() => import('sentry/views/issueDetails/grouping')))}
         />
       </Fragment>
     );

@@ -6,6 +6,7 @@ import type {
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
+import {MOCK_RESP_VERBOSE} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
 
@@ -15,18 +16,20 @@ type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
 ) => Result;
 
+type OverridableVariadicStub<Params = any, Result = Params> = (
+  ...params: Array<Partial<Params>>
+) => Result;
+
 type OverridableStubList<Params = any, Result = Params> = (
   params?: Array<Partial<Params>>
 ) => Result[];
 
 type TestStubFixtures = {
   AccessRequest: OverridableStub;
-  AccountAppearance: OverridableStub;
   AccountEmails: OverridableStubList;
   ActivityFeed: OverridableStub;
   AllAuthenticators: SimpleStub;
   ApiApplication: OverridableStub;
-  ApiKey: OverridableStub;
   ApiToken: OverridableStub;
   AsanaCreate: SimpleStub;
   AsanaPlugin: SimpleStub;
@@ -44,9 +47,11 @@ type TestStubFixtures = {
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
+  Dashboard: OverridableVariadicStub;
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
+  DeprecatedApiKey: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
@@ -65,6 +70,7 @@ type TestStubFixtures = {
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
+  Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;
@@ -82,6 +88,7 @@ type TestStubFixtures = {
   InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
+  MOCK_RESP_VERBOSE: typeof MOCK_RESP_VERBOSE;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
@@ -99,6 +106,7 @@ type TestStubFixtures = {
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
   OutcomesWithoutClientDiscarded: SimpleStub;
+  PageFilters: OverridableStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -172,6 +180,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;
@@ -186,8 +195,8 @@ type TestStubFixtures = {
   VercelProvider: SimpleStub;
   VstsCreate: SimpleStub;
   VstsIntegrationProvider: OverridableStub;
-
   VstsPlugin: SimpleStub;
+  Widget: OverridableVariadicStub;
 
   // TODO: These need propertly typed still
   // Widget(queries = {...DEFAULT_QUERIES}, options)
@@ -195,8 +204,6 @@ type TestStubFixtures = {
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)
   // RoleList(params = [], fullAccess = false)
-
-  // const MOCK_RESP_VERBOSE
   // const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID
   // const MOCK_RESP_INCONSISTENT_PLACEHOLDERS
   // const MOCK_RESP_INCONSISTENT_INTERVALS

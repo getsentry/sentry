@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Any, Callable, Optional, Type
 
-from django import get_version
 from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.transaction import Atomic
@@ -26,9 +25,11 @@ def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
         return None
 
 
-def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:
+def siloed_atomic(
+    using: Optional[str] = None, savepoint: bool = True, durable: bool = False
+) -> Atomic:
     using = determine_using_by_silo_mode(using)
-    return _default_atomic_impl(using=using, savepoint=savepoint)
+    return _default_atomic_impl(using=using, savepoint=savepoint, durable=durable)
 
 
 def siloed_get_connection(using: Optional[str] = None) -> BaseDatabaseWrapper:
@@ -41,7 +42,7 @@ def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> N
     return _default_on_commit(func, using)
 
 
-def determine_using_by_silo_mode(using):
+def determine_using_by_silo_mode(using: Optional[str]) -> str:
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
@@ -51,6 +52,7 @@ def determine_using_by_silo_mode(using):
 
     if not using:
         using = region_db if current_silo_mode == SiloMode.REGION else control_db
+        assert using
 
     both_silos_route_to_same_db = control_db == region_db
 
@@ -69,13 +71,7 @@ def determine_using_by_silo_mode(using):
 
 
 def patch_silo_aware_atomic():
-    global _default_atomic_impl, _default_on_commit, _default_get_connection
-
-    current_django_version = get_version()
-    assert current_django_version.startswith("2.2."), (
-        "Newer versions of Django have an additional 'durable' parameter in atomic,"
-        + " verify the signature before updating the version check."
-    )
+    global _default_on_commit, _default_get_connection, _default_atomic_impl
 
     _default_atomic_impl = transaction.atomic
     _default_on_commit = transaction.on_commit

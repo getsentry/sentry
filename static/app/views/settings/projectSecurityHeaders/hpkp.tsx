@@ -1,13 +1,15 @@
 import {RouteComponentProps} from 'react-router';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
 import {t, tct} from 'sentry/locale';
 import {Organization, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
@@ -19,10 +21,10 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 type State = {
   keyList: null | ProjectKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectHpkpReports extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ProjectHpkpReports extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];

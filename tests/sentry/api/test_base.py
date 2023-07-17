@@ -16,6 +16,8 @@ from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.utils import json
 from sentry.utils.cursors import Cursor
 
 
@@ -306,6 +308,37 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="true"; cursor="1492107369532:0:0"'
         )
 
+    def test_preserves_ssl_proto(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/", secure_scheme=True)
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options({"system.url-prefix": "https://testserver"}):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
+    def test_handles_customer_domains(self):
+        request = self.make_request(
+            method="GET", path="/api/0/organizations/", secure_scheme=True, subdomain="bebe"
+        )
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options(
+            {
+                "system.url-prefix": "https://testserver",
+                "system.organization-url-template": "https://{hostname}",
+            }
+        ):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://bebe.testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
     def test_unicode_path(self):
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
@@ -402,14 +435,31 @@ class EndpointJSONBodyTest(APITestCase):
 
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self):
+        clear_global_regions()
+
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return resolve_region(request)
 
-        assert request_with_subdomain("us") == "us"
-        assert request_with_subdomain("eu") == "eu"
-        assert request_with_subdomain("sentry") is None
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "eu",
+                "snowflake_id": 1,
+                "address": "http://eu.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+        ]
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
+            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("eu") == "eu"
+            assert request_with_subdomain("sentry") is None
 
 
 class EndpointSiloLimitTest(APITestCase):

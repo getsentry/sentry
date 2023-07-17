@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Uni
 import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
+    And,
     Column,
     Condition,
     CurriedFunction,
@@ -26,6 +27,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.utils import remove_hours, remove_minutes
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
@@ -36,10 +38,9 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
@@ -72,6 +73,11 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
+
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
+        )
+
         if granularity is not None:
             self._granularity = granularity
         super().__init__(
@@ -88,21 +94,21 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-        self._on_demand_spec = self._resolve_on_demand_spec(
-            kwargs.get("selected_columns", []), kwargs.get("query", "")
-        )
-
     def _resolve_on_demand_spec(
-        self, selected_cols: List[Optional[str]], query: str
+        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
         field = selected_cols[0] if selected_cols else None
-        if not self.is_performance or not self.is_alerts_query or not field:
+        if not self.is_alerts_query or not field:
             return None
-        try:
-            return OndemandMetricSpec.parse(field, query)
 
+        if not is_on_demand_query(dataset, field, query):
+            return None
+
+        try:
+            return OndemandMetricSpec(field, query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            return None
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
         if not self.is_performance or not self.is_alerts_query:
@@ -190,7 +196,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if self.use_metrics_layer:
+        # on-demand metrics require metrics layer behavior
+        if self.use_metrics_layer or self._on_demand_spec:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -302,6 +309,69 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             granularity = 60
         return Granularity(granularity)
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """This only is applicable to table queries, we can use multiple granularities across the time period, which
+        should improve performance"""
+        if self.end is None or self.start is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
+
+        # Only split granularity when granularity is 1h or 1m
+        # This is cause if its 1d we're already as efficient as possible, but we could add 1d in the future if there are
+        # accuracy issues
+        if self.granularity.granularity == 86400:
+            return [], self.granularity
+        granularity = self.granularity.granularity
+        self.granularity = None
+
+        if granularity == constants.METRICS_GRANULARITY_MAPPING["1m"]:
+            rounding_function = remove_minutes
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1m"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+        elif granularity == constants.METRICS_GRANULARITY_MAPPING["1h"]:
+            rounding_function = remove_hours
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1d"]
+        else:
+            return [], Granularity(granularity)
+
+        if rounding_function(self.start, False) > rounding_function(self.end):
+            return [], Granularity(granularity)
+        timestamp = self.column("timestamp")
+        granularity = Column("granularity")
+        return [
+            Or(
+                [
+                    # Grab the buckets that the core_granularity won't be able to capture at the original granularity
+                    And(
+                        [
+                            Or(
+                                [
+                                    # We won't grab outside the queries timewindow because there's still a toplevel
+                                    # filter
+                                    Condition(timestamp, Op.GTE, rounding_function(self.end)),
+                                    Condition(
+                                        timestamp, Op.LT, rounding_function(self.start, False)
+                                    ),
+                                ]
+                            ),
+                            Condition(granularity, Op.EQ, base_granularity),
+                        ]
+                    ),
+                    # Grab the buckets that can use the core_granularity
+                    And(
+                        [
+                            Condition(timestamp, Op.GTE, rounding_function(self.start, False)),
+                            # This op is LT not LTE, here's an example why; a query is from 11:45 to 15:45
+                            # if an event happened at 15:02, its caught by the above condition in the 1min bucket at
+                            # 15:02, but its also caught at the 1hr bucket at 15:00
+                            Condition(timestamp, Op.LT, rounding_function(self.end)),
+                            Condition(granularity, Op.EQ, core_granularity),
+                        ]
+                    ),
+                ]
+            )
+        ], None
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -493,7 +563,7 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba SDK.
         """
 
-        if not self.use_metrics_layer:
+        if not self.use_metrics_layer and not self._on_demand_spec:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -684,7 +754,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -703,9 +773,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
@@ -746,6 +816,10 @@ class MetricsQueryBuilder(QueryBuilder):
             "data": None,
             "meta": [],
         }
+
+        granularity_condition, new_granularity = self.resolve_split_granularity()
+        self.granularity = new_granularity
+        self.where += granularity_condition
         # We need to run the same logic on all 3 queries, since the `primary` query could come back with no results. The
         # goal is to get n=limit results from one query, then use those n results to create a condition for the
         # remaining queries. This is so that we can respect function orderbys from the first query, but also so we don't
@@ -880,7 +954,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         and returns one or more equivalent snql query(ies).
         """
 
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -898,9 +972,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
                 metrics_query=metrics_query,
-                use_case_id=UseCaseKey.PERFORMANCE
-                if self.is_performance
-                else UseCaseKey.RELEASE_HEALTH,
+                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
@@ -917,6 +989,10 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             return snuba_request
 
         return super().get_snql_query()
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for anything but table queries"""
+        return [], self.granularity
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):
@@ -954,6 +1030,10 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
                     )
 
         return result
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for anything but table queries"""
+        return [], self.granularity
 
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
@@ -997,6 +1077,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # If additional groupby is provided it will be used first before time
         if groupby is not None:
             self.groupby.insert(0, groupby)
+
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for timeseries"""
+        return [], self.granularity
 
     def resolve_time_column(self, interval: int) -> Function:
         """Need to round the timestamp to the interval requested
@@ -1112,9 +1196,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

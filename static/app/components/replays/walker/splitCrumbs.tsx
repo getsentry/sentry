@@ -7,8 +7,9 @@ import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
+type MaybeOnClickHandler = null | ((crumb: Crumb | ReplayFrame) => void);
 
 function getUrl(crumb: undefined | Crumb) {
   if (crumb?.type === BreadcrumbType.NAVIGATION) {
