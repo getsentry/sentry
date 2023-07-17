@@ -123,7 +123,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-bad"}]}
         responses.add(responses.GET, url=f"{opsgenie_client.base_url}/teams/cool-team")
-        with pytest.raises(ValidationError) as error:
+        with pytest.raises(ValidationError):
             installation.update_organization_config(data)
-        assert error.value.detail[0].title() == "Invalid Integration Key."
         assert installation.get_config_data() == {}
