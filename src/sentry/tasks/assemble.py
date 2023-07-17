@@ -16,10 +16,7 @@ from django.utils import timezone
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
-from sentry.debug_files.artifact_bundles import (
-    FlatFileIdentifier,
-    index_artifact_bundles_for_release,
-)
+from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
@@ -487,17 +484,16 @@ class ArtifactBundlePostAssembler(PostAssembler):
         artifact_bundle, created = self._bind_or_create_artifact_bundle(
             bundle_id=bundle_id, date_added=date_snapshot
         )
-        identifier = FlatFileIdentifier(
-            # For now, we just take the first project since Sentry CLI uploads one project at a time.
-            project_id=self.projects_ids[0],
-            release=self.release or NULL_STRING,
-            dist=self.dist or NULL_STRING,
-        )
 
         # We want to asynchronously compute the index, in order to speed up the process and have the possibility to
         # reschedule the task in case of contention.
         index_artifact_bundle.apply_async(
-            kwargs={"artifact_bundle": artifact_bundle, "identifier": identifier}
+            kwargs={
+                "artifact_bundle_id": artifact_bundle.id,
+                "project_id": self.projects_ids[0],
+                "release": self.release or NULL_STRING,
+                "dist": self.dist or NULL_STRING,
+            }
         )
 
     def _create_artifact_bundle(self) -> None:
