@@ -346,4 +346,4 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_fatal()
         print("fatal recorded")
         # call uninstall on the integration
-        #get the integration and uninstall
+        # get the integration and uninstall
