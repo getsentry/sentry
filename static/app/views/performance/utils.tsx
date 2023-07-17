@@ -325,11 +325,11 @@ export function getPerformanceDuration(milliseconds: number) {
   return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
 }
 
-export function getIsMultiProject(projects: readonly number[] | number[]) {
-  if (!projects.length) {
+export function areMultipleProjectsSelected(eventView: EventView) {
+  if (!eventView.project.length) {
     return true; // My projects
   }
-  if (projects.length === 1 && projects[0] === ALL_ACCESS_PROJECTS) {
+  if (eventView.project.length === 1 && eventView.project[0] === ALL_ACCESS_PROJECTS) {
     return true; // All projects
   }
   return false;

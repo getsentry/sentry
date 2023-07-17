@@ -10,15 +10,12 @@ import {GenericPerformanceWidgetDataType} from './types';
 export interface ChartDefinition {
   dataType: GenericPerformanceWidgetDataType;
   fields: string[];
-  // Additional fields to get requested but are not directly used in visualization.
+
   title: string;
+  titleTooltip: string; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
-  titleTooltip: string;
-  // The first field in the list will be treated as the primary field in most widgets (except for special casing).
   allowsOpenInDiscover?: boolean;
-
-  chartColor?: string;
-  secondaryFields?: string[]; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
+  chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
   vitalStops?: {
     meh: number;
@@ -263,7 +260,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
     title: t('Slow HTTP Ops'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
-    fields: [`p75(spans.http)`, 'p75(spans.db)'],
+    fields: [`p75(spans.http)`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
@@ -284,7 +281,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_DB_OPS]: {
     title: t('Slow DB Ops'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
-    fields: [`p75(spans.db)`, 'p75(spans.http)'],
+    fields: [`p75(spans.db)`],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },

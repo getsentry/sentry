@@ -14,9 +14,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 import {
+  areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
   DiscoverQueryPageSource,
-  getIsMultiProject,
   getSelectedProjectPlatformsArray,
 } from '../utils';
 
@@ -107,7 +107,7 @@ export function MetricsDataSwitcherAlert(
         {t('update your SDK version')}
       </Link>
     );
-    if (getIsMultiProject(props.eventView.project)) {
+    if (areMultipleProjectsSelected(props.eventView)) {
       if ((props.compatibleProjects ?? []).length === 0) {
         return (
           <Alert

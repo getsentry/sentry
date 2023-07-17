@@ -251,13 +251,13 @@ describe('Performance > Landing > Index', function () {
       })
     );
 
-    expect(eventsMock).toHaveBeenCalledTimes(2);
+    expect(eventsMock).toHaveBeenCalledTimes(3);
 
     const titles = await screen.findAllByTestId('performance-widget-title');
     expect(titles).toHaveLength(5);
 
     expect(titles.at(0)).toHaveTextContent('Most Regressed');
-    expect(titles.at(1)).toHaveTextContent('Most Improved');
+    expect(titles.at(1)).toHaveTextContent('Most Related Issues');
     expect(titles.at(2)).toHaveTextContent('User Misery');
     expect(titles.at(3)).toHaveTextContent('Transactions Per Minute');
     expect(titles.at(4)).toHaveTextContent('Failure Rate');
@@ -362,7 +362,7 @@ describe('Performance > Landing > Index', function () {
 
       wrapper = render(<WrappedComponent data={data} />, data.routerContext);
       const titles = await screen.findAllByTestId('performance-widget-title');
-      expect(titles.at(0)).toHaveTextContent('Most Regressed');
+      expect(titles.at(0)).toHaveTextContent('Span Operations');
     });
   });
 });
