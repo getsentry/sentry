@@ -67,14 +67,14 @@ function DurationChart({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics'
+    'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'api.starfish.span-summary-panel-samples-table-p95'
   );
 
   const p95 = spanMetrics?.[`p95(${SPAN_SELF_TIME})`] || 0;
@@ -110,7 +110,7 @@ function DurationChart({
   const sampledSpanDataSeries: Series[] = spans.map(
     ({
       timestamp,
-      'span.self_time': duration,
+      [SPAN_SELF_TIME]: duration,
       'transaction.id': transaction_id,
       span_id,
     }) => ({
@@ -128,7 +128,7 @@ function DurationChart({
   );
 
   const getSample = (timestamp: string, duration: number) => {
-    return spans.find(s => s.timestamp === timestamp && s['span.self_time'] === duration);
+    return spans.find(s => s.timestamp === timestamp && s[SPAN_SELF_TIME] === duration);
   };
 
   const handleChartClick: EChartClickHandler = e => {

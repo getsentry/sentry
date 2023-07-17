@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
+import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
@@ -40,16 +42,55 @@ import {
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+type OrganizationSelectHeaderProps = {
+  handleOrgChange: Function;
+  organizationId: string;
+  organizations: Organization[];
+};
+
+export function OrganizationSelectHeader({
+  handleOrgChange,
+  organizationId,
+  organizations,
+}: OrganizationSelectHeaderProps) {
+  const getOrganizationOptions = () => {
+    return organizations.map(org => {
+      return {
+        label: org.name,
+        value: org.id,
+      };
+    });
+  };
+
+  return (
+    <Fragment>
+      {t('Settings for Organization')}
+      <SelectControl
+        options={getOrganizationOptions()}
+        onChange={handleOrgChange}
+        // getOptionValue={option => option.value}
+        value={organizationId}
+        styles={{
+          container: (provided: {[x: string]: string | number | boolean}) => ({
+            ...provided,
+            minWidth: `300px`,
+          }),
+        }}
+      />
+    </Fragment>
+  );
+}
+
 type Props = {
   notificationType: string;
   organizations: Organization[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   identities: Identity[];
   notificationSettings: NotificationSettingsObject;
   organizationIntegrations: OrganizationIntegration[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
   quota: [
@@ -71,23 +112,24 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-class NotificationSettingsByType extends AsyncComponent<Props, State> {
+class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       notificationSettings: {},
       identities: [],
       organizationIntegrations: [],
+      organizationId: this.props.organizations[0].id,
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
     return [
       [
         'notificationSettings',
         `/users/me/notification-settings/`,
-        {query: getQueryParams(notificationType)},
+        {query: getQueryParams(notificationType), v2: 'serializer'},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [
@@ -318,6 +360,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     });
   };
 
+  handleOrgChange = (option: {label: string; value: string}) => {
+    this.setState({organizationId: option.value});
+  };
+
   renderBody() {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
@@ -350,22 +396,28 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
             fields={this.getFields()}
           />
         </Form>
-        {!isEverythingDisabled(notificationType, notificationSettings) &&
-          (isGroupedByProject(notificationType) ? (
-            <NotificationSettingsByProjects
-              notificationType={notificationType}
-              notificationSettings={notificationSettings}
-              onChange={this.getStateToPutForParent}
-              onSubmitSuccess={() => this.trackTuningUpdated('project')}
-            />
-          ) : (
-            <NotificationSettingsByOrganization
-              notificationType={notificationType}
-              notificationSettings={notificationSettings}
-              onChange={this.getStateToPutForParent}
-              onSubmitSuccess={() => this.trackTuningUpdated('organization')}
-            />
-          ))}
+        {!isEverythingDisabled(notificationType, notificationSettings) && (
+          <Panel>
+            {isGroupedByProject(notificationType) ? (
+              <NotificationSettingsByProjects
+                notificationType={notificationType}
+                notificationSettings={notificationSettings}
+                onChange={this.getStateToPutForParent}
+                onSubmitSuccess={() => this.trackTuningUpdated('project')}
+                organizations={this.props.organizations}
+                organizationId={this.state.organizationId}
+                handleOrgChange={this.handleOrgChange}
+              />
+            ) : (
+              <NotificationSettingsByOrganization
+                notificationType={notificationType}
+                notificationSettings={notificationSettings}
+                onChange={this.getStateToPutForParent}
+                onSubmitSuccess={() => this.trackTuningUpdated('organization')}
+              />
+            )}
+          </Panel>
+        )}
       </Fragment>
     );
   }

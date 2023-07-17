@@ -55,7 +55,6 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:transaction-name-normalize-legacy",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",

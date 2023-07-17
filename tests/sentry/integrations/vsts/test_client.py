@@ -14,7 +14,7 @@ from sentry.integrations.vsts.integration import VstsIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -64,6 +64,41 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         ]
         assert identity.data["access_token"] == "new-access-token"
         assert identity.data["refresh_token"] == "new-refresh-token"
+        assert identity.data["expires"] > int(time())
+
+    @responses.activate
+    def test_does_not_refresh_valid_tokens(self):
+        self.assert_installation()
+        responses.reset()
+        integration = Integration.objects.get(provider="vsts")
+
+        # Make the Identity have a non-expired token
+        idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
+        identity = Identity.objects.get(idp_id=idp.id)
+        expires = int(time()) + int(123456789)
+        identity.data["expires"] = expires
+        access_token = identity.data["access_token"]
+        refresh_token = identity.data["refresh_token"]
+        identity.save()
+
+        # New values VSTS will return on refresh
+        self.access_token = "new-access-token"
+        self.refresh_token = "new-refresh-token"
+        self._stub_vsts()
+
+        # Make a request
+
+        integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        ).get_client(base_url=self.vsts_base_url).get_projects()
+        assert len(responses.calls) == 1
+        assert (
+            responses.calls[0].request.url
+            == "https://myvstsaccount.visualstudio.com/_apis/projects?stateFilter=WellFormed&%24skip=0&%24top=100"
+        )
+        assert identity.data["access_token"] == access_token != self.access_token
+        assert identity.data["refresh_token"] == refresh_token != self.refresh_token
+        assert identity.data["expires"] == expires
 
     def test_project_pagination(self):
         def request_callback(request):
@@ -106,7 +141,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",

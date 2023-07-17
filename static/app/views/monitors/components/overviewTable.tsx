@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,8 +1,9 @@
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getOption, getOptionField} from './options';
 
@@ -66,16 +67,16 @@ type FieldDef = {
   value: string | undefined;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Record<string, FieldDef>;
 };
 
-export default class AdminSettings extends AsyncView<{}, State> {
+export default class AdminSettings extends DeprecatedAsyncView<{}, State> {
   get endpoint() {
     return '/internal/options/';
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', this.endpoint]];
   }
 

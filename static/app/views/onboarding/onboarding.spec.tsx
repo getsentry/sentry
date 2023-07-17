@@ -100,6 +100,12 @@ describe('Onboarding', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
+    });
+
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
@@ -144,10 +150,10 @@ describe('Onboarding', function () {
   });
 
   it('renders SDK data removal modal when going back', async function () {
-    const vueProject: Project = TestStubs.Project({
-      platform: 'javascript-vue',
+    const reactProject: Project = TestStubs.Project({
+      platform: 'javascript-react',
       id: '2',
-      slug: 'javascript-vue-slug',
+      slug: 'javascript-react-slug',
       firstTransactionEvent: false,
       firstEvent: false,
       hasReplays: false,
@@ -168,17 +174,18 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${vueProject.slug}/docs/javascript-vue-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${vueProject.slug}/`,
-      body: [vueProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${vueProject.slug}/issues/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
       body: [],
     });
 
@@ -186,7 +193,7 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...vueProject,
+          ...reactProject,
           firstError: false,
           firstTransaction: false,
           hasReplays: false,
@@ -200,14 +207,14 @@ describe('Onboarding', function () {
       <OnboardingContextProvider
         value={{
           selectedSDK: {
-            key: vueProject.slug as PlatformKey,
+            key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
           },
           projects: {
-            [vueProject.id]: {
-              slug: vueProject.slug,
+            [reactProject.id]: {
+              slug: reactProject.slug,
               status: OnboardingProjectStatus.WAITING,
               firstIssueId: undefined,
             },
@@ -223,7 +230,7 @@ describe('Onboarding', function () {
     );
 
     // Await for the docs to be loaded
-    await screen.findByText('Configure Vue SDK');
+    await screen.findByText('Configure React SDK');
 
     renderGlobalModal();
 
@@ -240,10 +247,10 @@ describe('Onboarding', function () {
   });
 
   it('does not render SDK data removal modal when going back', async function () {
-    const vueProject: Project = TestStubs.Project({
-      platform: 'javascript-vue',
+    const reactProject: Project = TestStubs.Project({
+      platform: 'javascript-react',
       id: '2',
-      slug: 'javascript-vue-slug',
+      slug: 'javascript-react-slug',
     });
 
     const routeParams = {
@@ -260,17 +267,18 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${vueProject.slug}/docs/javascript-vue-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${vueProject.slug}/`,
-      body: [vueProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${vueProject.slug}/issues/`,
+      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
       body: [],
     });
 
@@ -278,7 +286,7 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...vueProject,
+          ...reactProject,
           firstError: false,
           firstTransaction: false,
           hasReplays: false,
@@ -292,14 +300,14 @@ describe('Onboarding', function () {
       <OnboardingContextProvider
         value={{
           selectedSDK: {
-            key: vueProject.slug as PlatformKey,
+            key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
           },
           projects: {
-            [vueProject.id]: {
-              slug: vueProject.slug,
+            [reactProject.id]: {
+              slug: reactProject.slug,
               status: OnboardingProjectStatus.WAITING,
               firstIssueId: undefined,
             },
@@ -315,7 +323,7 @@ describe('Onboarding', function () {
     );
 
     // Await for the docs to be loaded
-    await screen.findByText('Configure Vue SDK');
+    await screen.findByText('Configure React SDK');
 
     renderGlobalModal();
 

@@ -49,11 +49,12 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature, with_feature
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -113,7 +114,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    @with_feature("organizations:issue-list-better-priority-sort")
     def test_sort_by_better_priority(self):
         group = self.store_event(
             data={
@@ -771,7 +771,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),

@@ -10,8 +10,9 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -100,7 +101,7 @@ class GetParticipantsTest(TestCase):
         self.update_user_settings_always()
         self.user = user_service.get_user(self.user.id)  # Redo the serialization for diffs
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_user_settings_always(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -109,7 +110,7 @@ class GetParticipantsTest(TestCase):
             user_id=self.user.id,
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_user_setting_subscribe_only(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -118,7 +119,7 @@ class GetParticipantsTest(TestCase):
             user_id=self.user.id,
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_user_setting_never(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -127,7 +128,7 @@ class GetParticipantsTest(TestCase):
             user_id=self.user.id,
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_project_setting_always(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -137,7 +138,7 @@ class GetParticipantsTest(TestCase):
             project=self.group.project,
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_project_setting_subscribe_only(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -147,7 +148,7 @@ class GetParticipantsTest(TestCase):
             project=self.group.project,
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def update_project_setting_never(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -223,7 +224,7 @@ class GetParticipantsTest(TestCase):
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -237,7 +238,7 @@ class GetParticipantsTest(TestCase):
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -259,7 +260,7 @@ class GetParticipantsTest(TestCase):
         self.update_user_setting_never()
         self._assert_subscribers_are(slack={self.user: GroupSubscriptionReason.comment})
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -275,7 +276,7 @@ class GetParticipantsTest(TestCase):
         self.update_project_setting_never()
         self._assert_subscribers_are(slack={self.user: GroupSubscriptionReason.comment})
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -295,7 +296,7 @@ class GetParticipantsTest(TestCase):
 
         self._assert_subscribers_are(email={self.user: GroupSubscriptionReason.implicit})
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
@@ -305,7 +306,7 @@ class GetParticipantsTest(TestCase):
             )
         self._assert_subscribers_are()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -318,7 +319,7 @@ class GetParticipantsTest(TestCase):
         self.update_project_setting_never()
         self._assert_subscribers_are()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -340,7 +341,7 @@ class GetParticipantsTest(TestCase):
         )
 
         subscription.delete()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -362,7 +363,7 @@ class GetParticipantsTest(TestCase):
         )
 
         subscription.delete()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -386,7 +387,7 @@ class GetParticipantsTest(TestCase):
         )
 
         subscription.delete()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.remove_for_user(
                 self.user, NotificationSettingTypes.WORKFLOW
             )
@@ -428,7 +429,7 @@ class GetParticipantsTest(TestCase):
         # explicit participation, included by default
         self._assert_subscribers_are(group)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
@@ -445,7 +446,7 @@ class GetParticipantsTest(TestCase):
         # implicit participation, participating only
         self._assert_subscribers_are(group)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
