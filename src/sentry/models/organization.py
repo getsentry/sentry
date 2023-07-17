@@ -5,7 +5,7 @@ from enum import IntEnum
 from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -255,7 +255,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
                 lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            with outbox_context(transaction.atomic()):
+            with outbox_context(transaction.atomic(using=router.db_for_write(Organization))):
                 self.save_with_update_outbox(*args, **kwargs)
 
     # Override for the default update method to ensure that most atomic updates
