@@ -98,7 +98,7 @@ class Webhook:
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
                 external_id=str(event["repository"]["id"]),
-            ).exclude(status=ObjectStatus.HIDDEN)
+            )
 
             if not repos.exists():
                 provider = get_integration_repository_provider(integration)
@@ -115,7 +115,7 @@ class Webhook:
 
                 repos = repos.all()
 
-            for repo in repos:
+            for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
