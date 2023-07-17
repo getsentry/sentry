@@ -1479,6 +1479,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         return True
 
+    def postprocess_step(self, processed_frames, raw_frames, errors):
+        # Adjust `in_app` values in places where adjacent frames need to be considered
+        if len(processed_frames) > 1:
+            for index, frame in enumerate(processed_frames):
+                # Because of a quirk in how Chrome reports anonymous callbacks, we can get the `in_app`
+                # value for the callback frame wrong. See https://github.com/getsentry/sentry/issues/53007.
+                if frame.get("function") == "Array.forEach":
+                    frame_to_check = index + 1 if index == 0 else index - 1
+                    frame["in_app"] = processed_frames[frame_to_check]["in_app"]
+
+        return (processed_frames, raw_frames, errors)
+
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
         return platform in ("javascript", "node")
