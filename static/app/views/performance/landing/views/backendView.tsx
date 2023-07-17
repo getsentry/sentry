@@ -36,9 +36,6 @@ function getAllowedChartsSmall(
 
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
@@ -54,10 +51,6 @@ export function BackendView(props: BasePerformanceViewProps) {
     doubleChartRowCharts.push(
       ...[PerformanceWidgetSetting.MOST_REGRESSED, PerformanceWidgetSetting.MOST_IMPROVED]
     );
-  }
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
   }
   return (
     <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>

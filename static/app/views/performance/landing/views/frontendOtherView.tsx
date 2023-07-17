@@ -1,5 +1,4 @@
 import {
-  canUseMetricsData,
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -33,19 +32,11 @@ function getAllowedChartsSmall(
 
 export function FrontendOtherView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
-  }
 
   return (
     <PerformanceDisplayProvider
