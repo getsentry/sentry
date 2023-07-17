@@ -1,9 +1,9 @@
-export function TagValues(params = []) {
+import type {TagValue} from 'sentry/types';
+
+export function TagValues(params = []): TagValue[] {
   return [
     {
       username: 'david',
-      hash: '172522ec1028ab781d9dfd17eaca4427',
-      dateCreated: '2018-10-03T03:39:51.223Z',
       lastSeen: '2018-12-20T23:32:25Z',
       query: 'user.username:david',
       id: '10799',
@@ -13,10 +13,10 @@ export function TagValues(params = []) {
       avatarUrl:
         'https://secure.gravatar.com/avatar/d66694bbc7619203377bd9c9b7b9f14a?s=32&d=mm',
       value: 'username:david',
-      tagValue: 'username:david',
-      identifier: null,
+      identifier: undefined,
       ipAddress: '128.126.232.84',
       email: 'david@example.com',
+      ip_address: '0.0.0.0',
     },
     ...params,
   ];
