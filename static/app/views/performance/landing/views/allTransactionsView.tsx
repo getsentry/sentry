@@ -10,11 +10,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 import {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
-  const showSpanOperationsWidget =
-    props.organization.features.includes('performance-new-widget-designs') &&
-    canUseMetricsData(props.organization);
-
-  const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
+  const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
 
   if (
     props.organization.features.includes('performance-new-trends') &&
@@ -24,10 +20,6 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
-  }
-
-  if (showSpanOperationsWidget) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
   }
 
   return (
