@@ -3,19 +3,7 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple, TypedDict, TypeVar, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -144,13 +132,19 @@ def index_bundle_in_flat_file(
         # For each identifier we now have to compute the index.
         for identifier in identifiers:
             try:
-                store = FlatFileIndexStore(identifier)
-                # We build the index given a store instance.
-                index = FlatFileIndex.build(store)
-                # Once the in-memory index is built, we can merge it with the incoming bundle.
-                index.merge(artifact_bundle, archive)
-                # At the end we want to save the newly created index.
-                index.save()
+                store = FlatFileIndexStore(identifier=identifier)
+                # We build the index from the json stored in memory. If it is not existing, we will
+                index = FlatFileIndex.from_json_if(json_index=store.load())
+                # We merge the index with the incoming bundle.
+                index.merge(
+                    artifact_bundle=artifact_bundle,
+                    archive=archive,
+                    index_urls=identifier.is_indexing_by_release(),
+                )
+                # We convert the index to a json representation.
+                new_json_index = index.to_json()
+                # We store the new index as json.
+                store.save(json_index=new_json_index)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
@@ -173,34 +167,56 @@ class FlatFileIndexStore:
     def __init__(self, identifier: FlatFileIdentifier):
         self.identifier = identifier
 
-    def load(self) -> Optional[Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]]:
+    def load(self) -> Optional[str]:
         try:
-            flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
+            return ArtifactBundleFlatFileIndex.objects.get(
                 project_id=self.identifier.project_id,
                 release_name=self.identifier.release,
                 dist_name=self.identifier.dist,
             ).load_flat_file_index()
-
-            return self._deserialize_json_index(flat_file_index)
         except ArtifactBundleFlatFileIndex.DoesNotExist:
             return None
 
-    @classmethod
-    def _deserialize_json_index(
-        cls, json_index: Dict[str, Any]
-    ) -> Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]:
-        deserialized_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]] = {}
+    def save(self, json_index: str):
+        ArtifactBundleFlatFileIndex.create_flat_file_index(
+            project_id=self.identifier.project_id,
+            release=self.identifier.release,
+            dist=self.identifier.dist,
+            file_contents=json_index,
+        )
 
-        if "bundles" in json_index:
-            deserialized_index["bundles"] = cls._deserialize_bundles(json_index["bundles"])
 
-        if "files_by_url" in json_index:
-            deserialized_index["files_by_url"] = json_index["files_by_url"]
+T = TypeVar("T")
 
-        if "files_by_debug_id" in json_index:
-            deserialized_index["files_by_debug_id"] = json_index["files_by_debug_id"]
 
-        return deserialized_index
+class FlatFileIndex:
+    def __init__(self):
+        # By default, a flat file index is empty.
+        self._bundles: Bundles = []
+        self._files_by_url: FilesByUrl = {}
+        self._files_by_debug_id: FilesByDebugID = {}
+
+    @staticmethod
+    def from_json_if(json_index: Optional[str]) -> FlatFileIndex:
+        index = FlatFileIndex()
+        if json_index is not None:
+            index._from_json(json_index)
+
+        return index
+
+    def _from_json(self, json_index: str) -> None:
+        flat_file_index = json.loads(json_index)
+        self._deserialize_json_index(flat_file_index)
+
+    def _deserialize_json_index(self, flat_file_index: Dict[str, Any]) -> None:
+        if "bundles" in flat_file_index:
+            self._bundles = self._deserialize_bundles(flat_file_index["bundles"])
+
+        if "files_by_url" in flat_file_index:
+            self._files_by_url = flat_file_index["files_by_url"]
+
+        if "files_by_debug_id" in flat_file_index:
+            self._files_by_debug_id = flat_file_index["files_by_debug_id"]
 
     @classmethod
     def _deserialize_bundles(cls, bundles: List[Dict[str, Union[int, str]]]) -> Bundles:
@@ -218,83 +234,17 @@ class FlatFileIndexStore:
 
         return deserialized_bundles
 
-    def save(self, flat_file_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]):
-        serialized_index = self._serialize_json_index(flat_file_index)
-
-        ArtifactBundleFlatFileIndex.create_flat_file_index(
-            project_id=self.identifier.project_id,
-            release=self.identifier.release,
-            dist=self.identifier.dist,
-            file_contents=serialized_index,
-        )
-
-    @classmethod
-    def _serialize_json_index(
-        cls, flat_file_index: Dict[str, Union[Bundles, FilesByUrl, FilesByDebugID]]
-    ) -> str:
-        pre_serialized_index: Dict[str, Any] = {}
-
-        if "bundles" in flat_file_index:
-            pre_serialized_index["bundles"] = cls._serialize_bundles(
-                cast(Bundles, flat_file_index["bundles"])
-            )
-
-        if "files_by_url" in flat_file_index:
-            pre_serialized_index["files_by_url"] = flat_file_index["files_by_url"]
-
-        if "files_by_debug_id" in flat_file_index:
-            pre_serialized_index["files_by_debug_id"] = flat_file_index["files_by_debug_id"]
-
-        return json.dumps(pre_serialized_index)
-
-    @classmethod
-    def _serialize_bundles(cls, bundles: Bundles) -> List[Dict[str, Union[int, str]]]:
-        serialized_bundles: List[Dict[str, Union[int, str]]] = []
-
-        for bundle in bundles:
-            serialized_bundles.append(
-                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
-            )
-
-        return serialized_bundles
-
-
-T = TypeVar("T")
-
-
-class FlatFileIndex:
-    def __init__(self, store: FlatFileIndexStore):
-        self.store = store
-
-        # By default, a flat file index is empty.
-        self._bundles: Bundles = []
-        self._files_by_url: FilesByUrl = {}
-        self._files_by_debug_id: FilesByDebugID = {}
-
-    @staticmethod
-    def build(store: FlatFileIndexStore) -> FlatFileIndex:
-        index = FlatFileIndex(store)
-        index._build()
-
-        return index
-
-    def _build(self) -> None:
-        loaded_index = self.store.load()
-
-        # If we don't find an index, we will silently not mutate the state, since it's initialized as empty.
-        if loaded_index is not None:
-            self._bundles = cast(Bundles, loaded_index.get("bundles", []))
-            self._files_by_url = cast(FilesByUrl, loaded_index.get("files_by_url", {}))
-            self._files_by_debug_id = cast(
-                FilesByDebugID, loaded_index.get("files_by_debug_id", {})
-            )
-
-    def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
+    def merge(
+        self,
+        artifact_bundle: ArtifactBundle,
+        archive: ArtifactBundleArchive,
+        index_urls: bool = True,
+    ):
         bundle_index = self._update_bundles(artifact_bundle)
         if bundle_index is None:
             return
 
-        if self.store.identifier.is_indexing_by_release():
+        if index_urls:
             self._iterate_over_urls(bundle_index, archive)
         else:
             self._iterate_over_debug_ids(bundle_index, archive)
@@ -371,20 +321,24 @@ class FlatFileIndex:
 
         return None
 
-    def save(self):
-        result: Dict[str, Any] = {}
+    def to_json(self) -> str:
+        pre_serialized_index: Dict[str, Any] = {
+            "bundles": self._serialize_bundles(),
+            "files_by_url": self._files_by_url,
+            "files_by_debug_id": self._files_by_debug_id,
+        }
 
-        if len(self._bundles) > 0:
-            result["bundles"] = self._bundles
+        return json.dumps(pre_serialized_index)
 
-        if len(self._files_by_url) > 0:
-            result["files_by_url"] = self._files_by_url
+    def _serialize_bundles(self) -> List[Dict[str, Union[int, str]]]:
+        serialized_bundles: List[Dict[str, Union[int, str]]] = []
 
-        if len(self._files_by_debug_id) > 0:
-            result["files_by_debug_id"] = self._files_by_debug_id
+        for bundle in self._bundles:
+            serialized_bundles.append(
+                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
+            )
 
-        if len(result) > 0:
-            self.store.save(result)
+        return serialized_bundles
 
 
 # ===== Indexing of Artifact Bundles =====

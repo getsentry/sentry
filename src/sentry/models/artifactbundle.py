@@ -1,7 +1,7 @@
 import zipfile
 from enum import Enum
 from io import BytesIO
-from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, cast
+from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple, cast
 
 from django.db import models, router
 from django.db.models.signals import post_delete
@@ -160,8 +160,8 @@ class ArtifactBundleFlatFileIndex(Model):
             self.update(flat_file_index=updated_file)
             current_file.delete()
 
-    def load_flat_file_index(self) -> Dict[str, Any]:
-        return json.load(self.flat_file_index.getfile())
+    def load_flat_file_index(self) -> str:
+        return self.flat_file_index.getfile().read()
 
     @classmethod
     def _create_flat_file_index_object(
