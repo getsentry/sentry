@@ -206,6 +206,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
             date_updated=check_in_24hr_ago,
+            timeout_at=check_in_24hr_ago + timedelta(minutes=30),
         )
         # We started another checkin right now
         checkin2 = MonitorCheckIn.objects.create(
@@ -215,6 +216,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=next_checkin_ts,
             date_updated=next_checkin_ts,
+            timeout_at=next_checkin_ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -268,6 +270,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
             date_updated=check_in_24hr_ago,
+            timeout_at=check_in_24hr_ago + timedelta(minutes=30),
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -276,6 +279,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.OK,
             date_added=next_checkin_ts,
             date_updated=next_checkin_ts,
+            timeout_at=next_checkin_ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
@@ -321,6 +325,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=next_checkin_ts,
             date_updated=next_checkin_ts,
+            timeout_at=next_checkin_ts + timedelta(minutes=60),
         )
 
         assert checkin.date_added == checkin.date_updated == next_checkin_ts
@@ -424,6 +429,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
             date_updated=check_in_24hr_ago,
+            timeout_at=check_in_24hr_ago + timedelta(minutes=30),
         )
 
         # This monitor will be fine
@@ -448,6 +454,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
             date_updated=check_in_24hr_ago,
+            timeout_at=check_in_24hr_ago + timedelta(minutes=30),
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -456,6 +463,7 @@ class CheckMonitorsTest(TestCase):
             status=CheckInStatus.IN_PROGRESS,
             date_added=next_checkin_ts,
             date_updated=next_checkin_ts,
+            timeout_at=next_checkin_ts + timedelta(minutes=30),
         )
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
