@@ -3483,6 +3483,8 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
+
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.
 if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):

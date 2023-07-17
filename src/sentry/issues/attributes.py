@@ -1,13 +1,20 @@
 import logging
+from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from arroyo import Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from django.conf import settings
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
-from sentry.models import Group, GroupOwner
+from sentry.models import Group, GroupAssignee, GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
-from sentry.utils import metrics
+from sentry.utils import json, metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +38,94 @@ def _log_group_attributes_changed(
             "column": column_inducing_snapshot,
         },
     )
+
+
+def _retrieve_snapshot_values(group: Group, group_deleted: bool = False) -> GroupAttributesSnapshot:
+    group_values = list(
+        Group.objects.filter(id=group.id).values(
+            "status", "substatus", "first_seen", "num_comments"
+        )
+    )
+    assert len(group_values) == 1
+
+    group_assignee_values = list(
+        GroupAssignee.objects.filter(group_id=group.id)
+        .order_by("-date_added")
+        .values("user_id", "team_id")
+    )
+
+    group_owner_values = list(
+        GroupOwner.objects.filter(group_id=group.id).values(
+            "type", "user_id", "team_id", "date_added"
+        )
+    )
+    latest_group_owner_by_type: Dict[int, Dict[str, Any]] = {}
+    for vals in group_owner_values:
+        if vals["type"] in latest_group_owner_by_type:
+            if vals["date_added"] >= latest_group_owner_by_type[vals["type"]]["date_added"]:
+                latest_group_owner_by_type[vals["type"]] = vals
+        else:
+            latest_group_owner_by_type[vals["type"]] = vals
+
+    return {
+        "group_deleted": group_deleted,
+        "project_id": group.project.id,
+        "group_id": group.id,
+        "status": group_values[0]["status"],
+        "substatus": group_values[0]["substatus"],
+        "first_seen": group_values[0]["first_seen"],
+        "num_comments": group_values[0]["num_comments"],
+        "assignee_user_id": group_assignee_values[0]["user_id"]
+        if len(group_assignee_values) > 0
+        else None,
+        "assignee_team_id": group_assignee_values[0]["team_id"]
+        if len(group_assignee_values) > 0
+        else None,
+        "owner_suspect_commit_user_id": latest_group_owner_by_type[
+            GroupOwnerType.SUSPECT_COMMIT.value
+        ]["user_id"]
+        if GroupOwnerType.SUSPECT_COMMIT.value in latest_group_owner_by_type
+        else None,
+        "owner_ownership_rule_user_id": latest_group_owner_by_type[
+            GroupOwnerType.OWNERSHIP_RULE.value
+        ]["user_id"]
+        if GroupOwnerType.OWNERSHIP_RULE.value in latest_group_owner_by_type
+        else None,
+        "owner_ownership_rule_team_id": latest_group_owner_by_type[
+            GroupOwnerType.OWNERSHIP_RULE.value
+        ]["team_id"]
+        if GroupOwnerType.OWNERSHIP_RULE.value in latest_group_owner_by_type
+        else None,
+        "owner_codeowners_user_id": latest_group_owner_by_type[GroupOwnerType.CODEOWNERS.value][
+            "user_id"
+        ]
+        if GroupOwnerType.CODEOWNERS.value in latest_group_owner_by_type
+        else None,
+        "owner_codeowners_team_id": latest_group_owner_by_type[GroupOwnerType.CODEOWNERS.value][
+            "team_id"
+        ]
+        if GroupOwnerType.CODEOWNERS.value in latest_group_owner_by_type
+        else None,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+def _get_attribute_snapshot_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(settings.KAFKA_GROUP_ATTRIBUTES)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_attribute_snapshot_producer = SingletonProducer(
+    _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
+)
+
+
+def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
+    payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
+    _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 @receiver(
