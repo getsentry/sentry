@@ -84,17 +84,11 @@ npm install --save @sentry/node
   },
 ];
 
-export const nextSteps = [];
-
 export function GettingStartedWithNode({dsn, ...props}: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`, performanceOtherConfig];
 
   return (
-    <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
-      nextSteps={nextSteps}
-      {...props}
-    />
+    <Layout steps={steps({sentryInitContent: sentryInitContent.join('\n')})} {...props} />
   );
 }
 
