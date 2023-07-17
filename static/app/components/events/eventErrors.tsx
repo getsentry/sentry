@@ -11,10 +11,10 @@ import getThreadException from 'sentry/components/events/interfaces/threads/thre
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import {
+  CocoaProcessingErrors,
   GenericSchemaErrors,
   JavascriptProcessingErrors,
   NativeProcessingErrors,
-  CocoaProcessingErrors
 } from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -72,13 +72,15 @@ function isDataMinified(str: string | null) {
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
 }
 
-function BeShown(error: EventErrorData, event: Event) {
-  if (ERRORS_TO_HIDE.includes(
-        error.type as
-          | JavascriptProcessingErrors
-          | GenericSchemaErrors
-          | NativeProcessingErrors
-      )) {
+function shouldErrorBeShown(error: EventErrorData, event: Event) {
+  if (
+    ERRORS_TO_HIDE.includes(
+      error.type as
+        | JavascriptProcessingErrors
+        | GenericSchemaErrors
+        | NativeProcessingErrors
+    )
+  ) {
     return false;
   }
   if (

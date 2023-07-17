@@ -51,6 +51,7 @@ export enum NativeProcessingErrors {
 export enum ProguardProcessingErrors {
   PROGUARD_MISSING_MAPPING = 'proguard_missing_mapping',
   PROGUARD_MISSING_LINENO = 'proguard_missing_lineno',
+}
 
 export enum CocoaProcessingErrors {
   COCOA_INVALID_DATA = 'invalid_data',
