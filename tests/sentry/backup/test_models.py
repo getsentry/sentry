@@ -241,6 +241,8 @@ class ModelBackupTests(TransactionTestCase):
         trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         IncidentTrigger.objects.create(
-            incident=self.create_incident(), alert_rule_trigger=trigger, status=1
+            incident=self.create_incident(),
+            alert_rule_trigger=trigger,
+            status=1,
         )
         return self.import_export_then_validate()

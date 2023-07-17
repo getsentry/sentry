@@ -154,6 +154,7 @@ DEFAULT_COMPARATORS: ComparatorMap = {
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
     "sentry.userrole": [DateUpdatedComparator("date_updated")],
     "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
 }
 
 
