@@ -357,25 +357,67 @@ class FlatFileIndexTest(FlatFileTestCase):
 
         existing_json_index = {
             "bundles": [
-                {"id": 1234, "timestamp": now.isoformat()},
-                {"id": 1234, "timestamp": (now - timedelta(hours=1)).isoformat()},
+                {"id": 1234, "timestamp": (now - timedelta(hours=2)).isoformat()},
+                {"id": 5678, "timestamp": (now - timedelta(hours=1)).isoformat()},
+                {"id": 9101112, "timestamp": now.isoformat()},
             ],
             "files_by_debug_id": {
-                "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [1],
-                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
+                "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [0, 1],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1, 2],
+                "de02ba67-6820-423f-a1b2-00c7e7d3bc9c": [1, 2],
+                "c1e9ab1f-3745-44c8-be4b-aca3705c7c17": [2],
             },
         }
 
         flat_file_index = FlatFileIndex()
         flat_file_index.from_json(json.dumps(existing_json_index))
-        flat_file_index.remove(1234)
+        flat_file_index.remove(5678)
 
         assert json.loads(flat_file_index.to_json()) == {
-            "bundles": [{"id": 1234, "timestamp": "2023-07-13T09:00:00+00:00"}],
+            "bundles": [
+                {"id": 1234, "timestamp": "2023-07-13T08:00:00+00:00"},
+                {"id": 9101112, "timestamp": "2023-07-13T10:00:00+00:00"},
+            ],
             "files_by_debug_id": {
+                "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
                 "2a9e7ab2-50ba-43b5-a8fd-13f6ac1f5976": [0],
-                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
+                "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0, 1],
+                "de02ba67-6820-423f-a1b2-00c7e7d3bc9c": [1],
+                "c1e9ab1f-3745-44c8-be4b-aca3705c7c17": [1],
             },
             "files_by_url": {},
+        }
+
+    def test_flat_file_index_with_index_stored_and_duplicated_bundle(self):
+        existing_bundle_id = 0
+        existing_bundle_date = timezone.now() - timedelta(hours=1)
+        existing_json_index = {
+            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
+            "files_by_url": {"~/path/to/app.js": [0]},
+        }
+
+        artifact_bundle = self.mock_artifact_bundle(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
+                    "type": "minified_source",
+                    "content": b"app_idx1",
+                },
+            }
+        )
+
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as bundle_archive:
+            flat_file_index = FlatFileIndex()
+            flat_file_index.from_json(json.dumps(existing_json_index))
+            # We use the id of the existing bundle.
+            bundle_meta = BundleMeta(
+                id=existing_bundle_id, timestamp=artifact_bundle.date_last_modified
+            )
+            flat_file_index.merge_urls(bundle_meta, bundle_archive)
+
+        assert json.loads(flat_file_index.to_json()) == {
+            "bundles": [{"id": existing_bundle_id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "files_by_url": {"~/path/to/app.js": [0]},
+            "files_by_debug_id": {},
         }
