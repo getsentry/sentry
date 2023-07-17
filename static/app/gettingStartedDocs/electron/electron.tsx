@@ -57,7 +57,6 @@ npm install --save @sentry/electron
       },
     ],
   },
-  // TODO: This step isn't in the original onboarding wizard. Can we just reuse the wizard step? (Still waiting on answers from team)
   getUploadSourceMapsStep(
     'https://docs.sentry.io/platforms/javascript/guides/electron/sourcemaps/'
   ),
