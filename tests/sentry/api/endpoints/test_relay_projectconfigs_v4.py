@@ -49,7 +49,10 @@ def relay(relay_id, public_key):
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
     def inner(full_config, global_config=False, public_keys=None):
-        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=4"
+        global_config = "true" if global_config else "false"
+        path = (
+            reverse("sentry-api-0-relay-projectconfigs") + "?version=4" + "&global=" + global_config
+        )
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
@@ -67,7 +70,6 @@ def call_endpoint(client, relay, private_key, default_projectkey):
             content_type="application/json",
             HTTP_X_SENTRY_RELAY_ID=relay.relay_id,
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-            HTTP_X_GLOBAL_CONFIG="1" if global_config else "0",
         )
 
         return json.loads(resp.content), resp.status_code
@@ -113,6 +115,15 @@ def project_config_get_mock(monkeypatch):
 def test_return_global_config(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
+
+    # first check it doesn't return global if flag is false
+    result, status_code = call_endpoint(full_config=True, global_config=False)
+    assert status_code < 400
+    assert result == {
+        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
+        "pending": [],
+    }
+
     result, status_code = call_endpoint(full_config=True, global_config=True)
     assert status_code < 400
     # i'll put this in separate file ofc, this is temporary
@@ -970,6 +981,7 @@ def test_return_partial_config_if_in_cache(
     assert status_code < 400
     expected = {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
+        "pending": [],
     }
     assert result == expected
 
