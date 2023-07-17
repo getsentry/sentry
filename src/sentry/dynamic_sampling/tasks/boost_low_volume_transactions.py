@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Iterator, List, Optional, Sequence, Tuple, TypedDict
+from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
@@ -281,7 +281,7 @@ class FetchProjectTransactionTotals:
         self.org_ids = list(orgs)
         self.offset = 0
         self.has_more_results = True
-        self.cache = []
+        self.cache: List[Dict[str, Union[int, float]]] = []
         self.last_org_id: Optional[int] = None
 
     def __iter__(self):
@@ -290,6 +290,7 @@ class FetchProjectTransactionTotals:
     def __next__(self):
 
         self._ensure_log_state()
+        assert self.log_state is not None
 
         if not self._cache_empty():
             return self._get_from_cache()
@@ -355,6 +356,8 @@ class FetchProjectTransactionTotals:
 
         self._ensure_log_state()
 
+        assert self.log_state is not None
+
         row = self.cache.pop(0)
         proj_id = row["project_id"]
         org_id = row["org_id"]
@@ -364,7 +367,7 @@ class FetchProjectTransactionTotals:
         self.log_state.num_projects += 1
 
         if self.last_org_id != org_id:
-            self.last_org_id = org_id
+            self.last_org_id = cast(int, org_id)
             self.log_state.num_orgs += 1
 
         return {

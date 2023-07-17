@@ -7,7 +7,6 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     FetchProjectTransactionTotals,
     FetchProjectTransactionVolumes,
-    GetActiveOrgs,
     ProjectIdentity,
     ProjectTransactions,
     ProjectTransactionsTotals,
@@ -17,6 +16,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     next_totals,
     transactions_zip,
 )
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import fetch_org_volumes, get_active_orgs
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase

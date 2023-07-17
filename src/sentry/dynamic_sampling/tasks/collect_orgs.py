@@ -19,7 +19,6 @@ from sentry.tasks.base import instrumented_task
 )
 @dynamic_sampling_task
 def collect_orgs() -> None:
-
     enabled = options.get("dynamic_sampling.tasks.collect_orgs") or False
 
     if not enabled:
@@ -29,7 +28,7 @@ def collect_orgs() -> None:
     iterator_name = GetActiveOrgs.__name__
     try:
         for orgs in TimedIterator(
-            context, iterator_name, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)
+            context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY), iterator_name
         ):
             pass
     except TimeoutException:
