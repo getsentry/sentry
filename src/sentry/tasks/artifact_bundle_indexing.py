@@ -1,4 +1,4 @@
-from sentry.debug_files.artifact_bundles import (
+from sentry.debug_files.artifact_bundle_indexing import (
     FlatFileIdentifier,
     FlatFileIndexingState,
     index_bundle_in_flat_file,
