@@ -1074,7 +1074,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1334,7 +1334,7 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
