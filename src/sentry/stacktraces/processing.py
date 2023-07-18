@@ -230,7 +230,7 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: List[Dict[str, str]]):
+def _normalize_in_app(stacktrace: List[Dict[str, str]]) -> None:
     """
     Ensures consistent values of in_app across a stacktrace.
     """
@@ -241,11 +241,14 @@ def _normalize_in_app(stacktrace: List[Dict[str, str]]):
             set_in_app(frame, False)
 
 
-def normalize_stacktraces_for_grouping(data: Mapping[str, Any], grouping_config=None):
+def normalize_stacktraces_for_grouping(
+    data: Mapping[str, Any], grouping_config: Any = None
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
+
     stacktraces = []
     stacktrace_exceptions = []
 
