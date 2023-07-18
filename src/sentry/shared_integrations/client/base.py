@@ -331,12 +331,12 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_error()
         print("error recorded")
         if buffer.is_integration_broken():
-            integration = integration_service.get_integrations(
-                integration_ids=[self.integration_id]
-            )[0]
-            print(integration)
-            integration.status = ObjectStatus.DISABLED
-            print(integration)
+            rpc_integration = integration_service.get_integration(
+                integration_id=self.integration_id
+            )
+            integration_service.update_integration(
+                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+            )
 
     def record_request_success(self, resp: Response):
         if not self.integration_id:
@@ -346,21 +346,6 @@ class BaseApiClient(TrackResponseMixin):
         buffer = IntegrationRequestBuffer(self.integration_id)
         buffer.record_success()
         print("success recorded")
-
-        #    integration = integration_service.get_integrations(
-        #        integration_ids=[self.integration_id]
-        #    )[0]
-        #    print(integration)
-        #    integration.status = ObjectStatus.DISABLED
-        #    print(integration)
-        rpc_integration = integration_service.get_integrations(
-            integration_ids=[self.integration_id]
-        )[0]
-        print(rpc_integration)
-        integration = Integration.objects.get(id=rpc_integration.id)
-        print(integration)
-        integration.update(status=ObjectStatus.DISABLED)
-        print(integration)
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
         if not self.integration_id:
