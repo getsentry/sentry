@@ -5,6 +5,7 @@ from typing import Any
 
 import boto3
 from django.http import HttpResponse, JsonResponse
+from rest_framework import serializers
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -18,6 +19,16 @@ class ConfigurationError(Exception):
 
 
 logger = logging.getLogger(__name__)
+
+
+class ExceptionSerializer(serializers.Serializer):
+    vars()["class"] = serializers.CharField(required=True)
+
+
+class ProxyResponseSerializer(serializers.Serializer):
+    function_name = serializers.CharField(required=True)
+    return_response = serializers.DictField(required=True)
+    exception = ExceptionSerializer(required=True, allow_null=True)
 
 
 @control_silo_function
@@ -162,10 +173,15 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
             }
 
             response = self.post("/", data=payload)
-            function_name = response["function_name"]
+            proxy_response = ProxyResponseSerializer(data=response)
+            if not proxy_response.is_valid():
+                raise Exception(f"Invalid response from calling: {func_name}")
+            validated_data = proxy_response.validated_data
+
+            function_name = validated_data["function_name"]
             assert function_name == func_name
 
-            exception = response["exception"]
+            exception = validated_data["exception"]
             if exception:
                 class_name = exception["class"]
                 lambda_client = self.client
