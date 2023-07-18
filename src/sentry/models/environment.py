@@ -1,7 +1,7 @@
 import re
 from urllib.parse import unquote
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
@@ -106,7 +106,7 @@ class Environment(Model):
 
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(EnvironmentProject)):
                     EnvironmentProject.objects.create(
                         project=project, environment=self, is_hidden=is_hidden
                     )

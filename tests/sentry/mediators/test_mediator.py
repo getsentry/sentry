@@ -3,6 +3,7 @@ import types
 from unittest.mock import PropertyMock, patch
 
 import pytest
+from django.db import router
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
@@ -21,6 +22,7 @@ class MockMediator(Mediator):
     user = Param(dict)
     name = Param(str, default=lambda self: self.user["name"])
     age = Param(int, required=False)
+    using = router.db_for_write(User)
 
     def call(self):
         with self.log():

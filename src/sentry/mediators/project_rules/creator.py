@@ -1,3 +1,4 @@
+from django.db import router
 from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
@@ -16,6 +17,7 @@ class Creator(Mediator):
     conditions = Param(list)
     frequency = Param(int)
     request = Param(Request, required=False)
+    using = router.db_for_write(Project)
 
     def call(self):
         self.rule = self._create_rule()

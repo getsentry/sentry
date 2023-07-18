@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
@@ -52,7 +52,7 @@ class ApiToken(Model, HasApiScopes):
 
     @classmethod
     def from_grant(cls, grant):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(cls)):
             return cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )

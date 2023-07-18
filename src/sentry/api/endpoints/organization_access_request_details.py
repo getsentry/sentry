@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -118,7 +118,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         if is_approved:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     omt = OrganizationMemberTeam.objects.create(
                         organizationmember=access_request.member, team=access_request.team
                     )

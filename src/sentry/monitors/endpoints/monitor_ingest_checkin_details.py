@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -115,7 +115,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.monitor_environment = monitor_environment
             checkin.save()
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:

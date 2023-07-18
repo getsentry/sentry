@@ -17,7 +17,7 @@ class RollbackLocally(Exception):
 @contextmanager
 def catchable_atomic():
     try:
-        with transaction.atomic():
+        with transaction.atomic("default"):
             yield
     except RollbackLocally:
         pass

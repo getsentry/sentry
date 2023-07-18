@@ -9,7 +9,7 @@ from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
@@ -341,7 +341,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         self.organization = organization
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 self.update(organization=organization)
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization, max_length=50)
@@ -451,7 +451,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
             return False
@@ -499,7 +499,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         project = Project.objects.get(id=project_id)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 for model in model_list:
                     # remove all previous project settings
                     model.objects.filter(project_id=self.id).delete()
@@ -546,7 +546,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
 

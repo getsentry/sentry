@@ -89,6 +89,7 @@ from typing import Any, Dict, List, Literal, Sequence, Tuple, Union
 import redis
 import sentry_sdk
 from django.conf import settings
+from django.db import router
 
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -593,7 +594,7 @@ def start_group_reprocessing(
 ):
     from django.db import transaction
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(models.Group)):
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
         original_substatus = group.substatus

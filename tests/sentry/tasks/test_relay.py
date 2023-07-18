@@ -3,7 +3,7 @@ from unittest import mock
 from unittest.mock import call, patch
 
 import pytest
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
@@ -338,7 +338,7 @@ def test_db_transaction(
     # anything.
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
 
-    with task_runner(), transaction.atomic():
+    with task_runner(), transaction.atomic(router.db_for_write(ProjectOption)):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -352,7 +352,7 @@ def test_db_transaction(
     }
 
     try:
-        with task_runner(), transaction.atomic():
+        with task_runner(), transaction.atomic(router.db_for_write(ProjectOption)):
             default_project.update_option(
                 "sentry:relay_pii_config", '{"applications": {"$string": ["@password:mask"]}}'
             )
@@ -492,7 +492,7 @@ class TestInvalidationTask:
         schedule_inner,
         default_project,
     ):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectOption)):
             schedule_invalidate_project_config(
                 trigger="inside-transaction", project_id=default_project, countdown=2
             )

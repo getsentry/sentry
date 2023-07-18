@@ -152,7 +152,7 @@ def merge_groups(
 
             previous_group_id = group.id
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupRedirect)):
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
             delete_logger.info(

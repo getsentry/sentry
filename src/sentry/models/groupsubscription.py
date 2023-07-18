@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -39,7 +39,7 @@ class GroupSubscriptionManager(BaseManager):
         unsubscribed.
         """
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupSubscription)):
                 self.create(
                     user_id=user.id,
                     group=group,
@@ -104,7 +104,7 @@ class GroupSubscriptionManager(BaseManager):
             ]
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
             except IntegrityError as e:

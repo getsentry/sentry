@@ -3,7 +3,7 @@ import random
 import string
 from email.headerregistry import Address
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
@@ -113,7 +113,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         default_team_slug = suffixed_team_slug
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 team = Team.objects.create(
                     name=default_team_slug,
                     slug=default_team_slug,

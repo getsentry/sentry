@@ -263,7 +263,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     #  properly to the control silo.
     @override
     def update(self, *args, **kwargs):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             results = super().update(*args, **kwargs)
             Organization.outbox_for_update(self.id).save()
             return results
@@ -281,7 +281,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization)), flush=False):
             Organization.outbox_for_update(self.id).save()
             return super().delete(**kwargs)
 

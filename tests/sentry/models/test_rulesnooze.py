@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import pytest
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.models import Rule
 from sentry.models.rulesnooze import RuleSnooze
@@ -85,24 +85,24 @@ class RuleSnoozeTest(APITestCase):
     def test_errors(self):
         # ensure no dupes
         self.snooze_rule(owner_id=self.user.id, alert_rule=self.metric_alert_rule)
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
             self.snooze_rule(alert_rule=self.metric_alert_rule)
 
         self.snooze_rule(owner_id=self.user.id, rule=self.issue_alert_rule)
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
             self.snooze_rule(rule=self.issue_alert_rule)
 
         # ensure valid data
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
             self.snooze_rule(
                 owner_id=self.user.id, rule=self.issue_alert_rule, alert_rule=self.metric_alert_rule
             )
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
             self.snooze_rule(
                 user_id=self.user.id,
                 owner_id=self.user.id,
             )
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(RuleSnooze)):
             self.snooze_rule(owner_id=self.user.id, until=datetime.now() + timedelta(days=1))

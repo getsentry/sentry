@@ -17,15 +17,15 @@ class CaseMixin:
             in_test_assert_no_transaction("Not, in transaction, should not fail")
 
             with pytest.raises(AssertionError):
-                with transaction.atomic():
+                with transaction.atomic("default"):
                     in_test_assert_no_transaction("In transaction, should assert")
 
-            with transaction.atomic():
+            with transaction.atomic("default"):
                 with in_test_hide_transaction_boundary():
                     in_test_assert_no_transaction("Guarded, should not assert")
 
         do_assertions()
-        with transaction.atomic(), django_test_transaction_water_mark():
+        with transaction.atomic("default"), django_test_transaction_water_mark():
             do_assertions()
 
     def test_transaction_on_commit(self):
@@ -33,10 +33,10 @@ class CaseMixin:
             calls = []
             transaction.on_commit(lambda: calls.append("a"))
 
-            with transaction.atomic():
-                with transaction.atomic():
+            with transaction.atomic("default"):
+                with transaction.atomic("default"):
                     with pytest.raises(AssertionError):
-                        with transaction.atomic():
+                        with transaction.atomic("default"):
                             transaction.on_commit(lambda: calls.append("no go"))
                             raise AssertionError("Oh no!")
                     transaction.on_commit(lambda: calls.append("b"))
@@ -46,7 +46,7 @@ class CaseMixin:
             assert calls == ["a", "b", "c"]
 
         do_assertions()
-        with transaction.atomic(), django_test_transaction_water_mark():
+        with transaction.atomic("default"), django_test_transaction_water_mark():
             do_assertions()
 
 

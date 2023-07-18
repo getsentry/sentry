@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Iterable, Tuple, Type
 
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.exceptions import DeleteAborted
@@ -57,7 +57,7 @@ def run_scheduled_deletions():
             in_progress=False, date_scheduled__lte=timezone.now()
         )
         for item in queryset:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(deletion_orm)):
                 affected = deletion_orm.objects.filter(
                     id=item.id,
                     in_progress=False,

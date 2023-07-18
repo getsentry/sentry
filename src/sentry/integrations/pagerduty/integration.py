@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.db import transaction
+from django.db import router, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -97,7 +97,7 @@ class PagerDutyIntegration(IntegrationInstallation):
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PagerDutyService)):
                 existing_service_items = PagerDutyService.objects.filter(
                     organization_integration_id=self.org_integration.id
                 )
@@ -168,7 +168,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
             logger.exception("The PagerDuty post_install step failed.")
             return
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(PagerDutyService)):
             for service in services:
                 PagerDutyService.objects.create_or_update(
                     organization_integration_id=org_integration.id,

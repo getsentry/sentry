@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -626,7 +626,7 @@ class AuthIdentityHandler:
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(AuthIdentity)):
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
                     user=user,

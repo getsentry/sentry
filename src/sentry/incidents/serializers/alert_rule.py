@@ -3,7 +3,7 @@ import operator
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from snuba_sdk import Column, Condition, Function, Limit, Op
@@ -406,7 +406,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
             )
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
             alert_rule = create_alert_rule(
                 user=self.context.get("user", None),
@@ -421,7 +421,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule = update_alert_rule(
                 instance,
                 user=self.context.get("user", None),

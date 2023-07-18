@@ -1,6 +1,6 @@
 import re
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Case, IntegerField, When
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -154,7 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Dashboard)):
                 dashboard = serializer.save()
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:

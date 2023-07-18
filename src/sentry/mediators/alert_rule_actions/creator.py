@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests.alert_rule_action_requester import (
     AlertRuleActionRequester,
@@ -11,6 +13,7 @@ from sentry.utils.cache import memoize
 
 
 class AlertRuleActionCreator(Mediator):
+    using = router.db_for_write(SentryAppComponent)
     install = Param(SentryAppInstallation)
     fields = Param(object, default=[])  # array of dicts
 
