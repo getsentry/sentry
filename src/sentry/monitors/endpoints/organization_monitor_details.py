@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -168,7 +168,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         Delete a monitor or monitor environments.
         """
         environment_names = request.query_params.getlist("environment")
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             if environment_names:
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(

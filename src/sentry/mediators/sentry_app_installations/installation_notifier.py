@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer, serialize
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
@@ -11,6 +13,7 @@ class InstallationNotifier(Mediator):
     install = Param(SentryAppInstallation)
     user = Param(User)
     action = Param(str)
+    using = router.db_for_write(SentryAppInstallation)
 
     def call(self):
         self._verify_action()
