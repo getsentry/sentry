@@ -29,6 +29,7 @@ export const migratedDocs = [
   'minidump',
   'native',
   'native-qt',
+  'kotlin',
   'node',
 ];
 
