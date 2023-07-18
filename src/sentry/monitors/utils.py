@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set, Union
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
@@ -24,7 +24,8 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 
