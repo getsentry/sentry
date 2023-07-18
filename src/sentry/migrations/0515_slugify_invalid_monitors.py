@@ -33,7 +33,6 @@ def migrate_monitor_slugs(apps, schema_editor):
     ScheduledDeletion = apps.get_model("sentry", "ScheduledDeletion")
 
     MAX_SLUG_LENGTH = 50
-    monitors_to_clean_up = []
 
     for monitor in RangeQuerySetWrapperWithProgressBar(Monitor.objects.all()):
         monitor_slug = monitor.slug
@@ -48,8 +47,6 @@ def migrate_monitor_slugs(apps, schema_editor):
             monitor.save()
         except IntegrityError:
             # If there is a collision, delete the old monitor as the new one is receiving all check-ins
-            monitors_to_clean_up.append(monitor.id)
-
             alert_rule_id = monitor.config.get("alert_rule_id")
             if alert_rule_id:
                 rule = (
@@ -70,7 +67,7 @@ def migrate_monitor_slugs(apps, schema_editor):
                     rule.save()
                     schedule(RegionScheduledDeletion, rule, days=0)
 
-            # revert slug so as not to attempt re-saving clean slug
+            # Revert slug so as not to attempt re-saving clean slug
             monitor.slug = monitor_slug
             monitor.status = ObjectStatus.PENDING_DELETION
             monitor.save()
