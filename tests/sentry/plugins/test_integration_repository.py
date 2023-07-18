@@ -15,6 +15,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
+@patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class IntegrationRepositoryTestCase(TestCase):
     @responses.activate
     def setUp(self):
@@ -55,7 +56,6 @@ class IntegrationRepositoryTestCase(TestCase):
             external_id=external_id if external_id else "123456",
         )
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def test_create_repository(self, get_jwt):
         self.provider.create_repository(self.config, self.organization)
 
@@ -65,7 +65,6 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].name == self.repo_name
         assert repos[0].provider == "integrations:github"
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def test_create_repository__repo_exists(self, get_jwt):
         self._create_repo()
 
@@ -74,8 +73,7 @@ class IntegrationRepositoryTestCase(TestCase):
 
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_create_repository__delete_webhook(self, get_jwt, mock_on_delete, mock_repo):
+    def test_create_repository__delete_webhook(self, mock_on_delete, mock_repo, get_jwt):
         self._create_repo()
 
         mock_repo.side_effect = IntegrityError
@@ -84,8 +82,7 @@ class IntegrationRepositoryTestCase(TestCase):
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
 
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_create_repository__activates_existing_repo(self, get_jwt):
+    def test_create_repository__activates_existing_hidden_repo(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.HIDDEN
         repo.save()
@@ -93,3 +90,13 @@ class IntegrationRepositoryTestCase(TestCase):
         self.provider.create_repository(self.config, self.organization)
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
+
+    def test_create_repository__only_activates_hidden_repo(self, get_jwt):
+        repo = self._create_repo(external_id=self.config["external_id"])
+        repo.status = ObjectStatus.PENDING_DELETION
+        repo.save()
+
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.PENDING_DELETION
