@@ -23,7 +23,6 @@ export type SpanTransactionMetrics = {
   'time_spent_percentage(local)': number;
   transaction: string;
   'transaction.method': string;
-  transactionMethod: string;
 };
 
 export const useSpanTransactionMetrics = (
