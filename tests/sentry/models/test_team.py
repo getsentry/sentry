@@ -1,4 +1,6 @@
+import pytest
 from django.test import override_settings
+from rest_framework.serializers import ValidationError
 
 from sentry.models import (
     OrganizationMember,
@@ -71,6 +73,17 @@ class TeamTest(TestCase):
         team = self.create_team(organization=org)
         assert team.id < 1_000_000_000
         assert Team.objects.filter(id=team.id).exists()
+
+    def test_cannot_demote_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            team = self.create_team(org, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.org_role = "manager"
+            team.save()
 
 
 class TransferTest(TestCase):
@@ -201,3 +214,13 @@ class TeamDeletionTest(TestCase):
             type=NotificationSettingTypes.ISSUE_ALERTS,
             team_id=team_id,
         ).exists()
+
+    def test_cannot_delete_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            team = self.create_team(org, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.delete()
