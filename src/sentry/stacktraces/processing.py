@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Set
+from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
 
 import sentry_sdk
 from django.utils import timezone
@@ -271,22 +271,7 @@ def normalize_stacktraces_for_grouping(data: Mapping[str, Any], grouping_config=
     with sentry_sdk.start_span(op=op, description="iterate_frames"):
         for frames in stacktraces:
             for frame in frames:
-                # Restore the original in_app value before the first grouping
-                # enhancers have been run. This allows to re-apply grouping
-                # enhancers on the original frame data.
-                orig_in_app = get_path(frame, "data", "orig_in_app")
-                if orig_in_app is not None:
-                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
-
-                if frame.get("raw_function") is not None:
-                    continue
-                raw_func = frame.get("function")
-                if not raw_func:
-                    continue
-                function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-                if function_name != raw_func:
-                    frame["raw_function"] = raw_func
-                    frame["function"] = function_name
+                _update_frame(frame, platform)
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
@@ -300,6 +285,26 @@ def normalize_stacktraces_for_grouping(data: Mapping[str, Any], grouping_config=
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
         for stacktrace in stacktraces:
             _normalize_in_app(stacktrace)
+
+
+def _update_frame(frame: Dict[str, Any], platform: Optional[str]) -> None:
+    """Restore the original in_app value before the first grouping
+    enhancers have been run. This allows to re-apply grouping
+    enhancers on the original frame data.
+    """
+    orig_in_app = get_path(frame, "data", "orig_in_app")
+    if orig_in_app is not None:
+        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+
+    if frame.get("raw_function") is not None:
+        return
+    raw_func = frame.get("function")
+    if not raw_func:
+        return
+    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
+    if function_name != raw_func:
+        frame["raw_function"] = raw_func
+        frame["function"] = function_name
 
 
 def should_process_for_stacktraces(data):
