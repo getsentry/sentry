@@ -85,10 +85,11 @@ class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
     def delay(self, *args, **kwargs):
-        kwargs["__start_time"] = datetime.now().timestamp() * 1000
+        kwargs["__start_time"] = datetime.now().timestamp()
         return super().delay(*args, **kwargs)
 
     def apply_async(self, *args, **kwargs):
+        kwargs["__start_time"] = datetime.now().timestamp()
         # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
         # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
         if (
