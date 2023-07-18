@@ -79,6 +79,8 @@ class BaseApiClient(TrackResponseMixin):
         return path
 
     def _get_redis_key(self):
+        if not self.integration_id:
+            return
         return f"sentry-integration-error:{self.integration_id}"
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -259,9 +261,7 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-            self.record_request_error(resp)
-            self.record_request_success(resp)
-            self.record_request_fatal(resp)
+            self.record_response(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -334,9 +334,21 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
+    def record_response(self,response: Response | None = None, error: Exception | None = None):
+        if not self.integration_id:
+            return
+        if self.is_response_error(response, error):
+            self.record_request_error(response, error)
+        elif self.is_response_success(response):
+            self.record_request_success(response)
+        elif self.is_response_fatal(response, error):
+            self.record_request_fatal(response, error)
+
     def record_request_error(self, resp: Response | None = None, error: Exception | None = None):
         if not self.integration_id:
             return
+        if error is None:
+            error = resp.get("error", None)
         if not self.is_response_error(resp, error):
             return
         buffer = IntegrationRequestBuffer(self._get_redis_key())

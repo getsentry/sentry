@@ -45,7 +45,7 @@ class IntegrationRequestBuffer:
         """
         return [
             self._convert_obj_to_dict(obj)
-            for obj in self._get_all_from_buffer(self.integrationkey())
+            for obj in self._get_all_from_buffer(self.integrationkey)
         ]
 
     def is_integration_broken(self):
@@ -80,7 +80,8 @@ class IntegrationRequestBuffer:
             raise Exception("Requires a valid key param.")
 
         other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
-        buffer_key = self.integrationkey()
+        buffer_key = self.integrationkey
+        print(buffer_key)
         now = datetime.now().strftime("%Y-%m-%d")
 
         pipe = self.client.pipeline()
