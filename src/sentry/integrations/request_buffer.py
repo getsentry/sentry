@@ -17,16 +17,13 @@ class IntegrationRequestBuffer:
     This should store the aggregate counts of each type for last 30 days for each integration
     """
 
-    def __init__(self, integration_id):
-        self.integration_id = integration_id
+    def __init__(self, key):
+        self.integrationkey = key
 
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
         self.is_fatal = False
 
-    def _get_redis_key(self):
-
-        return f"sentry-integration-error:{self.integration_id}"
 
     def _convert_obj_to_dict(self, redis_object):
         """
@@ -48,7 +45,7 @@ class IntegrationRequestBuffer:
         """
         return [
             self._convert_obj_to_dict(obj)
-            for obj in self._get_all_from_buffer(self._get_redis_key())
+            for obj in self._get_all_from_buffer(self.integrationkey())
         ]
 
     def is_integration_broken(self):
