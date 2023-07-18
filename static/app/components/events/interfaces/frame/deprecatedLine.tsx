@@ -518,9 +518,12 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')`
+const DefaultLine = styled('div')<{stacktraceChangesEnabled: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto ${space(2)}; /* sm icon size */
+  grid-template-columns: ${p =>
+    p.stacktraceChangesEnabled
+      ? `1fr auto auto`
+      : `1fr auto ${space(2)}`}; /* sm icon size */
   align-items: center;
 `;
 
