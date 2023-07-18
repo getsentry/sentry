@@ -18,7 +18,7 @@ METADATA = {
 }
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OpsgenieIntegrationTest(IntegrationTestCase):
     provider = OpsgenieIntegrationProvider
     config = {"base_url": "https://api.opsgenie.com/", "api_key": "123"}
