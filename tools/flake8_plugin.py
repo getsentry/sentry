@@ -20,12 +20,11 @@ S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
 S005_msg = "S005 Do not import models from sentry.models but the actual module"
 
-S006_methods = frozenset(
-    (
-        "django.db.transaction.atomic",
-        "django.db.transaction.get_connection",
-    )
-)
+S006_methods = {
+    "django.db.transaction.atomic": 1,
+    "django.db.transaction.get_connection": 1,
+    "django.db.transaction.on_commit": 2,
+}
 S006_msg = "S006 Specify the using= argument when invoking django.db.transaction methods"
 
 
@@ -87,7 +86,9 @@ class SentryVisitor(ast.NodeVisitor):
         name = infer_full_name(node.func, self.imported_names_stack[-1])
 
         if name in S006_methods:
-            if len(node.args) == 0 and not any(k.arg == "using" for k in node.keywords):
+            if len(node.args) < S006_methods[name] and not any(
+                k.arg == "using" for k in node.keywords
+            ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
 
         self.generic_visit(node)
