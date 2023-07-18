@@ -110,8 +110,8 @@ function SpanSummaryPage({params, location}: Props) {
     data: spanMetricsSeriesData?.['sps()'].data,
   };
 
-  const title = getDescriptionLabel(location, span, true);
-  const spanDescriptionCardTitle = getDescriptionLabel(location, span);
+  const title = getDescriptionLabel(span, true);
+  const spanDescriptionCardTitle = getDescriptionLabel(span);
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -369,16 +369,15 @@ const DescriptionTitle = styled('h4')`
 
 export default SpanSummaryPage;
 
-const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boolean) => {
-  const module = extractRoute(location);
+const getDescriptionLabel = (spanMeta: SpanMeta, title?: boolean) => {
   const spanOp = spanMeta[SPAN_OP];
-  if (spanOp?.startsWith('http') || module === 'api') {
+  if (spanOp?.startsWith('http')) {
     return title ? t('URL Request Summary') : t('URL Request');
   }
   if (spanOp === 'db.redis') {
     return title ? t('Cache Query Summary') : t('Cache Query');
   }
-  if (spanOp?.startsWith('db') || module === 'database') {
+  if (spanOp?.startsWith('db')) {
     return title ? t('Database Query Summary') : t('Database Query');
   }
   if (spanOp?.startsWith('task')) {
