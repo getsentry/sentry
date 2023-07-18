@@ -386,4 +386,11 @@ class BaseApiClient(TrackResponseMixin):
         integration_service.update_integration(
             integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
         )
-        self.logger.info(f"integration.uninstalled", extra={"integration_id": integration_id,"provider": rpc_integration.provider,"organization_id":rpc_org_integration.organization_id})
+        self.logger.info(
+            f"integration.uninstalled",
+            extra={
+                "integration_id": integration_id,
+                "provider": rpc_integration.provider,
+                "organization_id": rpc_org_integration.organization_id,
+            },
+        )
