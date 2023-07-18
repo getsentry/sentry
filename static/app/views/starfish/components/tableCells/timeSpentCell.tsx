@@ -16,7 +16,7 @@ export function TimeSpentCell({
   return (
     <TextAlignRight>
       {percentage >= 0 ? (
-        <Tooltip isHoverable title={toolTip}>
+        <Tooltip isHoverable title={toolTip} showUnderline>
           {formatPercentage(percentage)}
         </Tooltip>
       ) : (
