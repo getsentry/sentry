@@ -1697,7 +1697,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_project_filter(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
-            dataset=Dataset.PerformanceMetrics,
+            dataset=Dataset.Metrics,
             interval=900,
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],
@@ -1951,6 +1951,45 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p50(transaction.duration)"],
             query="transaction:foo_transaction",
             allow_metric_aggregates=False,
+        )
+
+    def test_on_demand_metrics(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=900,
+            query="transaction.duration:>0",
+            selected_columns=["count()"],
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
         )
 
 
