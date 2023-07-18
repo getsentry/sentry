@@ -3,6 +3,11 @@ import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 
+export enum StarfishType {
+  BACKEND = 'backend',
+  MOBILE = 'mobile',
+}
+
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
