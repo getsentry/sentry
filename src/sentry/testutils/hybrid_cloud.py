@@ -183,6 +183,16 @@ class EnforceNoCrossTransactionWrapper:
 
     def __call__(self, execute: Callable[..., Any], *params: Any) -> Any:
         open_transactions = simulated_transaction_watermarks.connections_above_watermark()
+        # If you are hitting this, it means you have two open transactions working in differing databases at the same
+        # time.  This is problematic in general for a variety of reasons -- it will never be possible to atomically
+        # transact in both databases (one may succeed and the other fail), but more likely, it means a bug in attempting
+        # to transact with resources that may not even co-exist in production (split silo db is a good example).
+        # Ideally, restructure transactions that span different databases into separate discrete blocks.
+        # It is fine to nest transactions so long as they are operating on the same database.
+        # Alternatively, it may be possible you are hitting this due to limitations in the test environment, such as
+        # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
+        # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
+        # for assistance.
         assert (
             len(open_transactions) < 2
         ), f"Found mixed open transactions between dbs {open_transactions}"
