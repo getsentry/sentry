@@ -2,6 +2,8 @@ import {cloneElement, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -13,6 +15,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 type Props = {
   organization: Organization;
@@ -126,6 +129,11 @@ class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title="Members" action={action} />
+        <Feature organization={organization} features={['gh-invite']}>
+          <Access access={['org:write']}>
+            <InviteBanner />
+          </Access>
+        </Feature>
         {children &&
           cloneElement(children, {
             requestList,

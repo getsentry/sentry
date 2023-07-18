@@ -172,6 +172,12 @@ export interface TeamMember extends Member {
   teamSlug?: string;
 }
 
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  userId: string;
+}
+
 /**
  * Minimal organization shape used on shared issue views.
  */
