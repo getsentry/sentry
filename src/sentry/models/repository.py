@@ -93,29 +93,6 @@ class Repository(Model, PendingDeletionMixin):
         del self.config["pending_deletion_name"]
         return super().reset_pending_deletion_field_names(["config"])
 
-    def cascade_delete_on_hide(self) -> None:
-        # Manually cause a deletion cascade.
-        # This should be called after setting a repo's status
-        # to ObjectStatus.HIDDEN.
-        # References RepositoryDeletionTask and BaseDeletionTask logic.
-
-        from sentry.deletions import default_manager
-        from sentry.deletions.base import _delete_children
-        from sentry.deletions.defaults.repository import _get_repository_child_relations
-
-        has_more = True
-
-        while has_more:
-            # get child relations
-            child_relations = _get_repository_child_relations(self)
-            # extend relations
-            child_relations = child_relations + [
-                rel(self) for rel in default_manager.dependencies[Repository]
-            ]
-            # no need to filter relations; delete them
-            if child_relations:
-                has_more = _delete_children(manager=default_manager, relations=child_relations)
-
 
 def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     """
