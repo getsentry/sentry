@@ -6,9 +6,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.api.serializers.models.notification_setting2 import (
-    NotificationSettingsSerializer as NotificationSettingsSerializerV2,
-)
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, Team
 
@@ -30,15 +27,12 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         """
 
         type_option = validate_type_option(request.GET.get("type"))
-        v2_serializer = request.GET.get("v2") == "serializer"
 
         return Response(
             serialize(
                 team,
                 request.user,
-                NotificationSettingsSerializerV2()
-                if v2_serializer
-                else NotificationSettingsSerializer(),
+                NotificationSettingsSerializer(),
                 type=type_option,
             ),
         )

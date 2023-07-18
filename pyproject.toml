@@ -359,7 +359,6 @@ module = [
     "sentry.api.serializers.models.integration",
     "sentry.api.serializers.models.integration_feature",
     "sentry.api.serializers.models.notification_action",
-    "sentry.api.serializers.models.notification_setting",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.organization_member.base",
     "sentry.api.serializers.models.plugin",
