@@ -47,6 +47,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         max_batch_time: int,
         num_processes: int,
         output_block_size: int,
+        num_threads: int = 4,  # Defaults to 4 for self-hosted.
         force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
     ) -> None:
         # For information on configuring this consumer refer to this page:
@@ -55,6 +56,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.num_processes = num_processes
+        self.num_threads = num_threads
         self.output_block_size = output_block_size
         self.use_processes = self.num_processes > 1
         self.force_synchronous = force_synchronous
@@ -85,7 +87,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 function=initialize_threaded_context,
                 next_step=RunTaskInThreads(
                     processing_function=process_message_threaded,
-                    concurrency=4,
+                    concurrency=self.num_threads,
                     max_pending_futures=50,
                     next_step=CommitOffsets(commit),
                 ),
