@@ -11,6 +11,7 @@ import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
@@ -120,6 +121,7 @@ function GroupEventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
