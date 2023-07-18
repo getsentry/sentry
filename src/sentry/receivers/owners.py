@@ -1,4 +1,5 @@
 from django.db.models.signals import pre_delete, pre_save
+from rest_framework.serializers import ValidationError
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -7,9 +8,8 @@ from sentry.roles import organization_roles
 
 
 def _assert_org_has_owner_not_from_team(organization, top_role):
-    assert organization.member_set.filter(
-        role=top_role
-    ).exists(), "An organization must have at least one owner"
+    if not organization.member_set.filter(role=top_role).exists():
+        raise ValidationError(detail="An organization must have at least one owner")
 
 
 def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
@@ -23,10 +23,11 @@ def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
         return
 
     # member is the last owner and the update will remove the last owner
-    assert not (
+    if (
         member.is_only_owner()
         and organization_roles.get_top_dog().id not in instance.get_all_org_roles()
-    ), "An organization must have at least one owner"
+    ):
+        raise ValidationError(detail="An organization must have at least one owner")
 
 
 def prevent_demoting_last_owner_team(instance: Team, **kwargs):
