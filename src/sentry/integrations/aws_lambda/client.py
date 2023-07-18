@@ -8,7 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework import serializers
 
 from sentry import options
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.services.hybrid_cloud.util import control_silo_function, region_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, get_proxy_url
 from sentry.silo.base import SiloMode
 from sentry.utils import json
@@ -31,7 +31,6 @@ class ProxyResponseSerializer(serializers.Serializer):
     exception = ExceptionSerializer(required=True, allow_null=True)
 
 
-@control_silo_function
 def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
     """
     account_number - account number in AWS
@@ -158,12 +157,14 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
     def __getattr__(self, func_name: str):
         if SiloMode.get_current_mode() != SiloMode.REGION:
 
+            @control_silo_function
             def boto3_func(*args, **kwargs):
                 func = getattr(self.client, func_name)
                 return func(*args, **kwargs)
 
             return boto3_func
 
+        @region_silo_function
         def boto3_proxy_func(*args, **kwargs):
             # From the region silo, we create a request payload to the internal integration proxy endpoint.
             payload = {
