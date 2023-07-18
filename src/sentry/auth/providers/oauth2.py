@@ -50,7 +50,7 @@ class OAuth2Login(AuthView):
         if "code" in request.GET:
             return helper.next_step()
 
-        state = secrets.token_urlsafe()
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"

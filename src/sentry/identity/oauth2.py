@@ -239,7 +239,7 @@ class OAuth2LoginView(PipelineView):
             if param in request.GET:
                 return pipeline.next_step()
 
-        state = secrets.token_urlsafe()
+        state = secrets.token_hex()
 
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
