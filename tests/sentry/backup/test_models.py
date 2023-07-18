@@ -314,8 +314,8 @@ class ModelBackupTests(TransactionTestCase):
         self.create_team(name="pre save team", organization=self.organization)
         return self.import_export_then_validate()
 
-    @targets_models(ApiAuthorization)
-    def test_api_authorization(self):
+    @targets_models(ApiAuthorization, ApiApplication)
+    def test_api_authorization_application(self):
         user = self.create_user()
         app = ApiApplication.objects.create(name="test", owner=user)
         ApiAuthorization.objects.create(
@@ -323,15 +323,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets_models(ApiApplication)
-    def test_apiApplication(self):
-        user = self.create_user()
-        ApiApplication.objects.create(
-            owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
-        )
-        return self.import_export_then_validate()
-
-    @targets_models(ApiToken, ApiApplication)
+    @targets_models(ApiToken)
     def test_apitoken(self):
         user = self.create_user()
         app = ApiApplication.objects.create(
@@ -354,7 +346,7 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(AuthIdentity, AuthProvider)
-    def test_auth_identity(self):
+    def test_auth_identity_provider(self):
         user = self.create_user()
         test_data = {
             "key1": "value1",
@@ -369,10 +361,6 @@ class ModelBackupTests(TransactionTestCase):
             data=test_data,
         )
         return self.import_export_then_validate()
-
-    @targets_models(AuthProvider)
-    def test_authProvider(self):
-        AuthProvider.objects.create(organization_id=1, provider="sentry")
 
     @targets_models(OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team)
     def test_organization_membership(self):
