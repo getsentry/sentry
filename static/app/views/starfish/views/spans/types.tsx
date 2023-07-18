@@ -12,7 +12,9 @@ export type DataKey =
   | 'p95'
   | 'throughput'
   | 'duration'
-  | 'errorCount';
+  | 'errorCount'
+  | 'slowFrames'
+  | 'ttid';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -23,6 +25,8 @@ export const DataTitles: Record<DataKey, string> = {
   duration: t('Duration'),
   errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
+  slowFrames: t('Slow Frames %'),
+  ttid: t('Time To Initial Display'),
 };
 
 export const getTooltip = (
@@ -35,7 +39,7 @@ export const getTooltip = (
         <div>
           <DurationCell milliseconds={options[0] as number} />
         </div>
-        <Link to="/starfish/definitions/">How was this calculated?</Link>
+        <Link to="/starfish/definitions/">{t('How was this calculated?')}</Link>
       </Fragment>
     );
   }

@@ -5,7 +5,7 @@ import sys
 import threading
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connections, transaction
 
 
 @contextlib.contextmanager
@@ -87,7 +87,7 @@ def in_test_assert_no_transaction(msg: str):
 
     from sentry.testutils import hybrid_cloud
 
-    for using in settings.DATABASES:  # type: ignore
-        assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
-            using
+    for conn in connections.all():
+        assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            connection=conn
         ), msg

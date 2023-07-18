@@ -22,13 +22,13 @@ export type SpanTransactionMetrics = {
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
-  transactionMethod: string;
+  'transaction.method': string;
 };
 
 export const useSpanTransactionMetrics = (
   span: Pick<IndexedSpan, 'group'>,
   options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'span-transaction-metrics'
+  _referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
