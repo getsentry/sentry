@@ -130,7 +130,8 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.monitors.tasks.check_monitors": 1.0,
+    "sentry.monitors.tasks.check_missing": 1.0,
+    "sentry.monitors.tasks.check_timeout": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
 }
 

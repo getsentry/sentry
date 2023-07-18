@@ -20,6 +20,9 @@ logger = logging.getLogger("sentry")
 # default maximum runtime for a monitor, in minutes
 TIMEOUT = 30
 
+# hard maximum runtime for a monitor, in minutes
+MAX_TIMEOUT = 720
+
 # This is the MAXIMUM number of MONITOR this job will check.
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
@@ -36,8 +39,8 @@ CHECKINS_LIMIT = 10_000
 SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 
-@instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
-def check_monitors(current_datetime=None):
+@instrumented_task(name="sentry.monitors.tasks.check_missing", time_limit=15, soft_time_limit=10)
+def check_missing(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
 
@@ -82,7 +85,7 @@ def check_monitors(current_datetime=None):
                 expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
-            checkin = MonitorCheckIn.objects.create(
+            MonitorCheckIn.objects.create(
                 project_id=monitor_environment.monitor.project_id,
                 monitor=monitor_environment.monitor,
                 monitor_environment=monitor_environment,
@@ -101,6 +104,9 @@ def check_monitors(current_datetime=None):
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
+
+@instrumented_task(name="sentry.monitors.tasks.check_timeout", time_limit=15, soft_time_limit=10)
+def check_timeout(current_datetime=None):
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
     ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
