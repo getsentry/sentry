@@ -5,18 +5,18 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+    FetchProjectTransactionTotals,
+    FetchProjectTransactionVolumes,
     ProjectIdentity,
     ProjectTransactions,
     ProjectTransactionsTotals,
-    fetch_project_transaction_totals,
-    fetch_transactions_with_total_volumes,
-    get_orgs_with_project_counts,
     is_project_identity_before,
     is_same_project,
     merge_transactions,
     next_totals,
     transactions_zip,
 )
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import fetch_org_volumes, get_active_orgs
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
@@ -79,14 +79,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         return 1 + 100 + 1000 + 2000 + 3000 + idx * 5, 5
 
     def test_get_orgs_with_transactions_respects_max_orgs(self):
-        actual = list(get_orgs_with_project_counts(2, 20))
+        actual = list(GetActiveOrgs(2, 20))
 
         orgs = self.org_ids
         # we should return groups of 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
     def test_get_orgs_with_transactions_respects_max_projs(self):
-        actual = list(get_orgs_with_project_counts(10, 5))
+        actual = list(GetActiveOrgs(10, 5))
 
         orgs = [org["org_id"] for org in self.orgs_info]
         # since each org has 3 projects and we have a limit of 5 proj
@@ -103,7 +103,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
 
         expected_names = {"tm3", "tl5", "tl4"}
-        for idx, p_tran in enumerate(fetch_transactions_with_total_volumes(orgs, True, 3)):
+        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, True, 3)):
             if p_tran is not None:
                 assert len(p_tran["transaction_counts"]) == 3
                 for name, count in p_tran["transaction_counts"]:
@@ -120,7 +120,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
 
         expected_names = {"ts1", "ts2"}
-        for idx, p_tran in enumerate(fetch_transactions_with_total_volumes(orgs, False, 2)):
+        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, False, 2)):
             assert len(p_tran["transaction_counts"]) == 2
             if p_tran is not None:
                 for name, count in p_tran["transaction_counts"]:
@@ -136,7 +136,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
 
-        for idx, totals in enumerate(fetch_project_transaction_totals(orgs)):
+        for idx, totals in enumerate(FetchProjectTransactionTotals(orgs)):
             total_counts, num_classes = self.get_total_counts_for_project(idx)
             assert totals["total_num_transactions"] == total_counts
             assert totals["total_num_classes"] == num_classes

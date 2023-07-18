@@ -7,7 +7,7 @@ from typing import Any, Dict, Mapping, MutableMapping, Sequence
 from urllib.parse import urlparse
 
 import rest_framework
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -86,7 +86,7 @@ def handle_discard(
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
@@ -375,7 +375,7 @@ def update_groups(
             except IndexError:
                 release = None
         for group in group_list:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Group)):
                 resolution = None
                 created = None
                 if release:
@@ -566,7 +566,7 @@ def update_groups(
             "organizations:escalating-issues", group_list[0].organization
         )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
             #                we should centralize the logic for validating and defaulting substatus values
             #                and refactor pre_save and the above new_substatus assignment to account for this
