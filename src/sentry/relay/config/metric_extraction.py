@@ -73,16 +73,17 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def get_metric_specs(alert_rules: Sequence[AlertRule]) -> Sequence[MetricSpec]:
+def get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same query.
-    metrics: Dict[str, MetricSpec] = dict()
+    metrics: Dict[str, MetricSpec] = {}
 
     for alert in alert_rules:
-        query_hash, metric = convert_query_to_metric(alert.snuba_query)
-        if query_hash and metric:
-            metrics[query_hash] = metric
+        result = convert_query_to_metric(alert.snuba_query)
+        if result:
+            query_hash, spec = result
+            metrics[query_hash] = spec
 
-    return list(metrics.values())
+    return [spec for spec in metrics.values()]
 
 
 def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[Tuple[str, MetricSpec]]:

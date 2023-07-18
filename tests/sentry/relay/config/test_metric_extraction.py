@@ -24,8 +24,8 @@ def test_empty_query():
 def test_simple_query_count():
     alert = create_alert("transaction.duration:>=1000")
 
-    _, metric = convert_query_to_metric(alert.snuba_query)
-    assert metric == {
+    metric = convert_query_to_metric(alert.snuba_query)
+    assert metric[1] == {
         "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
         "field": None,
