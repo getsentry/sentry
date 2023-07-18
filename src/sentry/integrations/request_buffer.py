@@ -74,13 +74,13 @@ class IntegrationRequestBuffer:
             return False
         return True
 
-    def add(self, key: str):
+    def add(self, count: str):
         VALID_KEYS = ["success", "error", "fatal"]
-        if key not in VALID_KEYS:
+        if count not in VALID_KEYS:
             raise Exception("Requires a valid key param.")
 
-        other_key1, other_key2 = list(set(VALID_KEYS).difference([key]))[0:2]
-        buffer_key = self._get_redis_key()
+        other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
+        buffer_key = self.integrationkey()
         now = datetime.now().strftime("%Y-%m-%d")
 
         pipe = self.client.pipeline()
@@ -90,23 +90,23 @@ class IntegrationRequestBuffer:
         if len(recent_item_array):
             recent_item = json.loads(recent_item_array[0])
             if recent_item.get("date") == now:
-                recent_item[f"{key}_count"] += 1
+                recent_item[f"{count}_count"] += 1
                 pipe.lset(buffer_key, 0, json.dumps(recent_item))
             else:
                 data = {
                     "date": now,
-                    f"{key}_count": 1,
-                    f"{other_key1}_count": 0,
-                    f"{other_key2}_count": 0,
+                    f"{count}_count": 1,
+                    f"{other_count1}_count": 0,
+                    f"{other_count2}_count": 0,
                 }
                 pipe.lpush(buffer_key, json.dumps(data))
 
         else:
             data = {
                 "date": now,
-                f"{key}_count": 1,
-                f"{other_key1}_count": 0,
-                f"{other_key2}_count": 0,
+                f"{count}_count": 1,
+                f"{other_count1}_count": 0,
+                f"{other_count2}_count": 0,
             }
             pipe.lpush(buffer_key, json.dumps(data))
 
