@@ -274,7 +274,7 @@ class Content extends Component<Props, State> {
           />
         );
         numHiddenFrames = 0;
-      } else {
+      } else if (!repeatedFrame) {
         numHiddenFrames += 1;
       }
 
