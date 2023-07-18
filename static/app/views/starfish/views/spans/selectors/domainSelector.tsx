@@ -43,18 +43,18 @@ export function DomainSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...(domains ?? []).map(datum => {
-      if (datum[SPAN_DOMAIN] === '') {
+    {
+      value: EMPTY_OPTION_VALUE,
+      label: <EmptyOption />,
+    },
+    ...(domains ?? [])
+      .filter(datum => Boolean(datum[SPAN_DOMAIN]))
+      .map(datum => {
         return {
-          value: EMPTY_OPTION_VALUE,
-          label: <EmptyOption />,
+          value: datum[SPAN_DOMAIN],
+          label: datum[SPAN_DOMAIN],
         };
-      }
-      return {
-        value: datum['span.domain'],
-        label: datum['span.domain'],
-      };
-    }),
+      }),
   ].sort((a, b) => a.value.localeCompare(b.value));
 
   return (

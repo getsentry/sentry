@@ -41,18 +41,20 @@ export function SpanOperationSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...(operations ?? []).map(datum => {
-      if (datum[SPAN_OP] === '') {
+    ...(operations ?? [])
+      .filter(datum => Boolean(datum))
+      .map(datum => {
+        if (datum[SPAN_OP] === '') {
+          return {
+            value: EMPTY_OPTION_VALUE,
+            label: <EmptyOption />,
+          };
+        }
         return {
-          value: EMPTY_OPTION_VALUE,
-          label: <EmptyOption />,
+          value: datum[SPAN_OP],
+          label: datum[SPAN_OP],
         };
-      }
-      return {
-        value: datum[SPAN_OP],
-        label: datum[SPAN_OP],
-      };
-    }),
+      }),
   ];
 
   return (

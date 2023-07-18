@@ -47,18 +47,18 @@ export function ActionSelector({
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...(actions ?? []).map(datum => {
-          if (datum[SPAN_ACTION] === '') {
+        {
+          value: EMPTY_OPTION_VALUE,
+          label: <EmptyOption />,
+        },
+        ...(actions ?? [])
+          .filter(datum => Boolean(datum[SPAN_ACTION]))
+          .map(datum => {
             return {
-              value: EMPTY_OPTION_VALUE,
-              label: <EmptyOption />,
+              value: datum[SPAN_ACTION],
+              label: datum[SPAN_ACTION],
             };
-          }
-          return {
-            value: datum[SPAN_ACTION],
-            label: datum[SPAN_ACTION],
-          };
-        }),
+          }),
       ];
 
   return (
