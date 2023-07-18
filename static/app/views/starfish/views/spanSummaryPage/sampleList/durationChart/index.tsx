@@ -67,14 +67,14 @@ function DurationChart({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics'
+    'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'api.starfish.span-summary-panel-samples-table-p95'
   );
 
   const p95 = spanMetrics?.[`p95(${SPAN_SELF_TIME})`] || 0;

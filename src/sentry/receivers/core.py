@@ -4,7 +4,7 @@ from functools import wraps
 from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.db import connections, transaction
+from django.db import connections, router, transaction
 from django.db.models.signals import post_save
 from django.db.utils import OperationalError, ProgrammingError
 from packaging.version import parse as parse_version
@@ -23,11 +23,11 @@ SELECT setval('sentry_project_id_seq', (
 DEFAULT_SENTRY_PROJECT_ID = 1
 
 
-def handle_db_failure(func):
+def handle_db_failure(func, using=None):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            with transaction.atomic():
+            with transaction.atomic(using or router.db_for_write(Organization)):
                 return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
             logging.exception("Failed processing signal %s", func.__name__)
@@ -71,7 +71,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         organization=org, slug="sentry", defaults={"name": "Sentry"}
     )
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Project)):
         project = Project.objects.create(
             id=id, public=False, name=name, slug=slug, organization=team.organization, **kwargs
         )

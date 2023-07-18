@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Mapping, Optional, Sequence
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q, QuerySet
 
 from sentry.api.serializers.base import Serializer
@@ -70,7 +70,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
         external_provider: ExternalProviders,
         user_id: int,
     ) -> None:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationSetting)):
             for notification_type, setting_option in notification_type_to_value_map.items():
                 self.update_settings(
                     external_provider=external_provider,

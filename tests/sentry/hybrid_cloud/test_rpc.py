@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 import responses
+from django.db import router
 from django.test import override_settings
 
 from sentry.models import OrganizationMapping
@@ -42,7 +43,7 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization.id,
                 defaults={

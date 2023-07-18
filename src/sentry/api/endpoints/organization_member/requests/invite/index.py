@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -74,7 +74,9 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
+        ):
             om = OrganizationMember.objects.create(
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
