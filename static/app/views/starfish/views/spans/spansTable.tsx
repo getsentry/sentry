@@ -211,7 +211,7 @@ function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (spanCategory === 'app') {
     return 'Application Task';
   }
-  if (moduleName === 'Other') {
+  if (moduleName === 'other') {
     return 'Requests';
   }
   return 'Description';
@@ -229,7 +229,7 @@ function getColumns(
   const order = [
     // We don't show the operation selector in specific modules, so there's no
     // point having that column
-    [ModuleName.ALL, ModuleName.NONE].includes(moduleName)
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
       ? {
           key: SPAN_OP,
           name: 'Operation',

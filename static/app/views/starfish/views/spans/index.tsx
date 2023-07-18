@@ -69,7 +69,7 @@ const getTitle = (moduleName: ModuleName, spanCategory?: string) => {
   if (spanCategory === 'app') {
     return t('Application Tasks');
   }
-  if (moduleName === 'Other') {
+  if (moduleName === 'other') {
     return t('Other Requests');
   }
   return t('Spans');

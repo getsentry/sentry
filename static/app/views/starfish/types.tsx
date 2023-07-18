@@ -11,9 +11,8 @@ export enum StarfishType {
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
-  NONE = 'none',
   ALL = '',
-  OTHER = 'Other',
+  OTHER = 'other',
 }
 
 export enum SpanMetricsFields {

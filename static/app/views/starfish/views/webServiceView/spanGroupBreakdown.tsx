@@ -91,12 +91,12 @@ export function SpanGroupBreakdown({
     if (event.seriesName === 'db') {
       spansLink = `/starfish/database/`;
     } else if (event.seriesName === 'Other') {
-      spansLinkQueryParams[SPAN_MODULE] = 'Other';
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
       spansLinkQueryParams['!span.category'] = data
         .filter(r => r.seriesName !== 'Other')
         .map(r => r.seriesName);
     } else {
-      spansLinkQueryParams[SPAN_MODULE] = 'Other';
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
       spansLinkQueryParams['span.category'] = event.seriesName;
     }
 
