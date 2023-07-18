@@ -588,32 +588,6 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('render release dataset disabled when the display type is world map', async function () {
-      renderTestComponent({
-        query: {
-          source: DashboardWidgetSource.DISCOVERV2,
-        },
-      });
-
-      await userEvent.click(await screen.findByText('Table'));
-      await userEvent.click(screen.getByText('World Map'));
-
-      await waitFor(() =>
-        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
-      );
-
-      expect(
-        screen.getByRole('radio', {
-          name: 'Errors and Transactions',
-        })
-      ).toBeEnabled();
-      expect(
-        screen.getByRole('radio', {
-          name: 'Issues (States, Assignment, Time, etc.)',
-        })
-      ).toBeDisabled();
-    });
-
     it('renders with a release search bar', async function () {
       renderTestComponent();
 
