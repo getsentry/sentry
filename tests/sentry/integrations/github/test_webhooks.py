@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.utils import timezone
@@ -11,7 +12,7 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, CommitAuthor, GroupLink, Integration, PullRequest, Repository
+from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest, Repository
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -20,24 +21,21 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 @region_silo_test(stable=True)
 class WebhookTest(APITestCase):
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
     def test_get(self):
-
-        url = "/extensions/github/webhook/"
-
-        response = self.client.get(url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 405
 
     def test_unregistered_event(self):
         project = self.project  # noqa force creation
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
@@ -48,15 +46,8 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     def test_invalid_signature_event(self):
-
-        url = "/extensions/github/webhook/"
-
-        secret = "2d7565c3537847b789d6995dca8d9f84"
-
-        options.set("github-app.webhook-secret", secret)
-
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -71,13 +62,12 @@ class WebhookTest(APITestCase):
 class PushEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
     def _setup_repo_test(self, project):
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
-
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
@@ -89,7 +79,7 @@ class PushEventWebhookTest(APITestCase):
             integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -102,11 +92,6 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
         Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
@@ -114,25 +99,7 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker/public-repo",
         )
 
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization, self.user)
-
-        response = self.client.post(
-            path=url,
-            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert response.status_code == 204
+        self._setup_repo_test(project)
 
         commit_list = list(
             Commit.objects.filter(
@@ -171,7 +138,8 @@ class PushEventWebhookTest(APITestCase):
         assert len(repos) == 0
 
     @with_feature("organizations:auto-repo-linking")
-    def test_creates_missing_repo(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
 
         self._setup_repo_test(project)
@@ -182,6 +150,7 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
+        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
     @with_feature("organizations:auto-repo-linking")
     def test_ignores_hidden_repo(self):
@@ -204,22 +173,6 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
-
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
-                external_id="12345",
-                name="octocat",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization, self.user)
-
         Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
@@ -234,16 +187,7 @@ class PushEventWebhookTest(APITestCase):
             name="bàxterthehacker",
         )
 
-        response = self.client.post(
-            path=url,
-            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert response.status_code == 204
+        self._setup_repo_test(project)
 
         commit_list = list(
             Commit.objects.filter(organization_id=project.organization_id)
@@ -273,11 +217,6 @@ class PushEventWebhookTest(APITestCase):
     def test_multiple_orgs(self):
         project = self.project  # force creation
 
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
         Repository.objects.create(
             organization_id=project.organization.id,
             external_id="35129377",
@@ -287,7 +226,8 @@ class PushEventWebhookTest(APITestCase):
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
@@ -305,7 +245,8 @@ class PushEventWebhookTest(APITestCase):
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="99",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
@@ -313,7 +254,7 @@ class PushEventWebhookTest(APITestCase):
             integration.add_organization(org2, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -339,20 +280,16 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
     @with_feature("organizations:auto-repo-linking")
-    def test_multiple_orgs_creates_missing_repos(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_multiple_orgs_creates_missing_repos(self, mock_metrics):
         project = self.project  # force creation
-
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
 
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
@@ -361,7 +298,7 @@ class PushEventWebhookTest(APITestCase):
             integration.add_organization(org2, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -380,22 +317,18 @@ class PushEventWebhookTest(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
+        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
     @with_feature("organizations:auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
 
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
-
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
@@ -413,7 +346,7 @@ class PushEventWebhookTest(APITestCase):
         repo.save()
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
@@ -431,23 +364,24 @@ class PushEventWebhookTest(APITestCase):
 
 @region_silo_test(stable=True)
 class PullRequestEventWebhook(APITestCase):
-    def _setup_repo_test(self, project):
-        url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
+    def setUp(self):
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
 
+    def _setup_repo_test(self, project):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
-                name="octocat",
+                provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -460,19 +394,6 @@ class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
-        url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
-
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
-                external_id="12345",
-                name="octocat",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -481,16 +402,7 @@ class PullRequestEventWebhook(APITestCase):
             name="baxterthehacker/public-repo",
         )
 
-        response = self.client.post(
-            path=url,
-            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="pull_request",
-            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert response.status_code == 204
+        self._setup_repo_test(project)
 
         prs = PullRequest.objects.filter(
             repository_id=repo.id, organization_id=project.organization.id
@@ -518,7 +430,8 @@ class PullRequestEventWebhook(APITestCase):
         assert len(repos) == 0
 
     @with_feature("organizations:auto-repo-linking")
-    def test_creates_missing_repo(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
         self._setup_repo_test(project)
 
@@ -528,6 +441,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].external_id == "35129377"
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
+        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
     @with_feature("organizations:auto-repo-linking")
     def test_ignores_hidden_repo(self):
@@ -548,27 +462,25 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0] == repo
 
     @with_feature("organizations:auto-repo-linking")
-    def test_multiple_orgs_creates_missing_repo(self):
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_multiple_orgs_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
-        url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
 
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
-                name="octocat",
+                provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(project.organization, self.user)
             integration.add_organization(org2, self.user)
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -587,22 +499,20 @@ class PullRequestEventWebhook(APITestCase):
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
+        mock_metrics.incr.assert_called_with("github.webhook.create_repository")
 
     @with_feature("organizations:auto-repo-linking")
     def test_multiple_orgs_ignores_hidden_repo(self):
         project = self.project  # force creation
-        url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
 
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
-                name="octocat",
+                provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(project.organization, self.user)
@@ -618,7 +528,7 @@ class PullRequestEventWebhook(APITestCase):
         repo.save()
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
@@ -643,10 +553,10 @@ class PullRequestEventWebhook(APITestCase):
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
-                name="octocat",
+                provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(project.organization, self.user)
@@ -685,18 +595,12 @@ class PullRequestEventWebhook(APITestCase):
     def test_closed(self):
         project = self.project  # force creation
 
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
-
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="github",
+            integration = self.create_integration(
+                organization=self.organization,
                 external_id="12345",
-                name="octocat",
+                provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
             integration.add_organization(project.organization, self.user)
@@ -709,7 +613,7 @@ class PullRequestEventWebhook(APITestCase):
         )
 
         response = self.client.post(
-            path=url,
+            path=self.url,
             data=PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",

@@ -29,7 +29,7 @@ from sentry.services.hybrid_cloud.integration.model import (
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
 from .repository import GitHubRepositoryProvider
@@ -101,9 +101,10 @@ class Webhook:
                     "identifier": event.get("repository", {}).get("full_name", None),
                 }
 
-                for org in list(orgs.values()):
+                for org in orgs.values():
                     if features.has("organizations:auto-repo-linking", org):
                         provider.create_repository(config, org)
+                        metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
 
