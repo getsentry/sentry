@@ -117,8 +117,12 @@ SOURCES_SCHEMA = {
     },
 }
 
-default_cluster = redis.redis_clusters.get("default")
 LAST_UPLOAD_TTL = 24 * 3600
+
+
+def _get_cluster():
+    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _last_upload_key(project_id: int) -> str:
@@ -127,11 +131,11 @@ def _last_upload_key(project_id: int) -> str:
 
 def record_last_upload(project: Project):
     timestamp = int(datetime.utcnow().timestamp() * 1000)
-    default_cluster.setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
+    _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 
 def get_last_upload(project_id: int):
-    return default_cluster.get(_last_upload_key(project_id))
+    return _get_cluster().get(_last_upload_key(project_id))
 
 
 class InvalidSourcesError(Exception):
