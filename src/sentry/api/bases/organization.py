@@ -80,8 +80,6 @@ class OrganizationPermission(SentryPermission):
     ) -> bool:
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
-        for scope in allowed_scopes:
-            print(f"request has access to scope {scope}: {request.access.has_scope(scope)}")
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
     def is_member_disabled_from_limit(

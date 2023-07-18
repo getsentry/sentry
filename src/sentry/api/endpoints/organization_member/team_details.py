@@ -399,33 +399,29 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         Note that the permission scopes also vary depending on the type of authorization token. The
         following table outlines the accepted scopes.
-         <table style="width: 100%;">
-            <tbody>
-                <tr>
-                    <td style="width: 48%; text-align: center; font-weight: bold; vertical-align: middle;"><a
-                            href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
-                    <td style="text-align: left; width: 52%;">
-                        <ul style="list-style-type: none; padding-left: 0;">
-                            <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                        </ul>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="width: 48%; text-align: center; font-weight: bold; vertical-align: middle;"><a
-                            href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
-                    <td style="text-align: left; width: 52%;">
-                        <ul style="list-style-type: none; padding-left: 0;">
-                            <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                            <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
-                        </ul>
-                    </td>
-                </tr>
-            </tbody>
+        <table style="width: 100%;">
+            <tr style="width: 50%;">
+                <td style="width: 50%; text-align: center; font-weight: bold; vertical-align: middle;"><a href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
+                <td style="width: 50%; text-align: left;">
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
+                    </ul>
+                </td>
+            </tr>
+            <tr style="width: 50%;">
+                <td style="width: 50%; text-align: center; font-weight: bold; vertical-align: middle;"><a href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
+                <td style="width: 50%; text-align: left;">
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
+                    </ul>
+                </td>
+            </tr>
         </table>
 
 
