@@ -230,6 +230,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
+                                "is_dead": kwargs.pop("is_dead", 0),
+                                "is_rage": kwargs.pop("is_rage", 0),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
@@ -341,6 +343,51 @@ def mock_segment_nagivation(
             "type": "default",
             "category": "navigation",
             "data": {"from": hrefFrom, "to": hrefTo},
+        },
+    )
+
+
+def mock_segment_click(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),
+            "type": "default",
+            "category": "ui.click",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                }
+            },
+        },
+    )
+
+
+def mock_segment_rageclick(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str, clickCount: int
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
+            "type": "default",
+            "category": "ui.multiClick",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                },
+                "clickCount": clickCount,
+            },
         },
     )
 

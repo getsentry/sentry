@@ -40,7 +40,7 @@ def set_issue_alert_fallback(rule, fallthrough_choice):
 
 
 def migrate_project_ownership_to_issue_alert_fallback(project, ProjectOwnership, Rule):
-    with transaction.atomic():
+    with transaction.atomic("default"):
         # Determine whether this project has a fallback setting.
         fallthrough_choice = None
         try:

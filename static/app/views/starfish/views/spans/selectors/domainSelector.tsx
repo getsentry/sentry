@@ -27,7 +27,7 @@ type State = {
   shouldRequeryOnInputChange: boolean;
 };
 
-const LIMIT = 50;
+const LIMIT = 100;
 
 export function DomainSelector({
   value = '',
@@ -42,13 +42,15 @@ export function DomainSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory, state.search);
 
-  const {data: domains, isLoading} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains, isLoading} = useSpansQuery<{'span.domain': string}[]>({
     eventView,
     initialData: [],
+    limit: LIMIT,
+    referrer: 'api.starfish.get-span-domains',
   });
 
   // If the maximum number of domains is returned, we need to requery on input change to get full results
-  if (!state.shouldRequeryOnInputChange && domains.length >= LIMIT) {
+  if (!state.shouldRequeryOnInputChange && domains && domains.length >= LIMIT) {
     setState({...state, shouldRequeryOnInputChange: true});
   }
 
@@ -65,7 +67,7 @@ export function DomainSelector({
   const options = optionsReady
     ? [
         {value: '', label: 'All'},
-        ...domains
+        ...(domains ?? [])
           .map(datum => ({
             value: datum['span.domain'],
             label: datum['span.domain'],

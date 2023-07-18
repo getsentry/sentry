@@ -4,7 +4,7 @@ import logging
 from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
@@ -23,6 +23,19 @@ from sentry.signals import repo_linked
 class RepoExistsError(APIException):
     status_code = 400
     detail = {"errors": {"__all__": "A repository with that name already exists"}}
+
+
+def get_integration_repository_provider(integration):
+    from sentry.plugins.base import bindings  # circular import
+
+    binding_key = "integration-repository.provider"
+    provider_key = (
+        integration.provider
+        if integration.provider.startswith("integrations:")
+        else "integrations:" + integration.provider
+    )
+    provider_cls = bindings.get(binding_key).get(provider_key)
+    return provider_cls(id=provider_key)
 
 
 class IntegrationRepositoryProvider:
@@ -99,7 +112,7 @@ class IntegrationRepositoryProvider:
             repo.save()
         else:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Repository)):
                     repo = Repository.objects.create(
                         organization_id=organization.id, name=result["name"], **repo_update_params
                     )
