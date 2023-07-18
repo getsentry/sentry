@@ -105,6 +105,8 @@ function ReplaysListTable({
           ReplayColumn.BROWSER,
           ReplayColumn.DURATION,
           ReplayColumn.COUNT_ERRORS,
+          ReplayColumn.COUNT_DEAD_CLICKS,
+          ReplayColumn.COUNT_RAGE_CLICKS,
           ReplayColumn.ACTIVITY,
         ]}
         emptyMessage={

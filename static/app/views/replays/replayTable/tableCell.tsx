@@ -190,6 +190,7 @@ export function OSCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        hideVersion
       />
     </Item>
   );
@@ -208,6 +209,7 @@ export function BrowserCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        hideVersion
       />
     </Item>
   );
@@ -220,6 +222,36 @@ export function DurationCell({replay}: Props) {
   return (
     <Item>
       <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+    </Item>
+  );
+}
+
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      {replay.count_rage_clicks ? (
+        <Count>{replay.count_rage_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      {replay.count_dead_clicks ? (
+        <Count>{replay.count_dead_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }
