@@ -43,7 +43,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.guild_url.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": server_name,
@@ -99,7 +99,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.guild_url.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": guild_name,
@@ -118,7 +118,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.guild_url.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
             status=500,
         )
 

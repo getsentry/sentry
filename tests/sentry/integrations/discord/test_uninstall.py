@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 GUILD_ID = "guild-id"
 LEAVE_GUILD_URL = (
-    f"{DiscordClient.base_url}{DiscordClient.users_guild_url.format(guild_id=GUILD_ID)}"
+    f"{DiscordClient.base_url}{DiscordClient.USERS_GUILD_URL.format(guild_id=GUILD_ID)}"
 )
 
 
@@ -72,7 +72,7 @@ class DiscordUninstallTest(APITestCase):
     def mock_discord_guild_leave(self, status: int = 204):
         responses.add(
             responses.DELETE,
-            url=f"{DiscordClient.base_url}{DiscordClient.users_guild_url.format(guild_id=GUILD_ID)}",
+            url=f"{DiscordClient.base_url}{DiscordClient.USERS_GUILD_URL.format(guild_id=GUILD_ID)}",
             status=status,
         )
 
@@ -100,7 +100,7 @@ class DiscordUninstallTest(APITestCase):
 
         self.uninstall()
 
-        # make sure other org integration persists and we did not make an
+        # Make sure other org integration persists and we did not make an
         # attempt to uninstall the bot from the shared server
         assert Integration.objects.filter(id=self.integration.id).exists()
         assert OrganizationIntegration.objects.filter(
