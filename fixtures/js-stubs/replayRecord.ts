@@ -9,6 +9,8 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
       name: 'Other',
       version: '',
     },
+    count_dead_clicks: 1,
+    count_rage_clicks: 1,
     count_errors: 1,
     count_segments: 14,
     count_urls: 1,
