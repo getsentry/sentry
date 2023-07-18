@@ -12,7 +12,7 @@ import {Organization} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = RouteComponentProps<{}, {}> & {
+export type OrganizationRateLimitProps = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
@@ -35,7 +35,7 @@ const getRateLimitValues = () => {
 // We can just generate this once
 const ACCOUNT_RATE_LIMIT_VALUES = getRateLimitValues();
 
-function OrganizationRateLimit({organization}: Props) {
+function OrganizationRateLimit({organization}: OrganizationRateLimitProps) {
   // TODO(billy): Update organization.quota in organizationStore with new values
 
   const {quota} = organization;
