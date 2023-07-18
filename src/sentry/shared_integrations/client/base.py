@@ -357,12 +357,7 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_error()
         print("error recorded")
         if buffer.is_integration_broken():
-            rpc_integration = integration_service.get_integration(
-                integration_id=self.integration_id
-            )
-            integration_service.update_integration(
-                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-            )
+            self.uninstall_integration(self.integration_id)
 
     def record_request_success(self, resp: Response):
         if not hasattr(self, "integration_id"):
@@ -382,9 +377,12 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_fatal()
         print("fatal recorded")
         if buffer.is_integration_broken():
-            rpc_integration = integration_service.get_integration(
-                integration_id=self.integration_id
-            )
-            integration_service.update_integration(
-                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-            )
+            self.uninstall_integration(self.integration_id)
+
+    def uninstall_integration(self, integration_id: int) -> None:
+        rpc_integration = integration_service.get_integration(
+            integration_id=self.integration_id
+        )
+        integration_service.update_integration(
+            integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+        )
