@@ -40,6 +40,7 @@ type Props = {
 
 type State = {
   showCompleteFunctionName: boolean;
+  showStackedFrames: boolean;
   showingAbsoluteAddresses: boolean;
 };
 
@@ -52,6 +53,7 @@ class Content extends Component<Props, State> {
   state: State = {
     showingAbsoluteAddresses: false,
     showCompleteFunctionName: false,
+    showStackedFrames: false,
   };
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
@@ -84,6 +86,10 @@ class Content extends Component<Props, State> {
 
   frameIsVisible = (frame: Frame, nextFrame: Frame) => {
     const {includeSystemFrames} = this.props;
+
+    if (this.state.showStackedFrames) {
+      return true;
+    }
 
     return (
       includeSystemFrames ||
@@ -126,6 +132,14 @@ class Content extends Component<Props, State> {
     }));
   };
 
+  handleToggleFrames = (event: React.MouseEvent<SVGElement>) => {
+    event.stopPropagation(); // to prevent collapsing if collapsible
+
+    this.setState(prevState => ({
+      showStackedFrames: !prevState.showStackedFrames,
+    }));
+  };
+
   getClassName() {
     const {className = '', includeSystemFrames} = this.props;
 
@@ -153,7 +167,8 @@ class Content extends Component<Props, State> {
       lockAddress,
     } = this.props;
 
-    const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
+    const {showingAbsoluteAddresses, showCompleteFunctionName, showStackedFrames} =
+      this.state;
 
     let firstFrameOmitted = null;
     let lastFrameOmitted = null;
@@ -205,6 +220,7 @@ class Content extends Component<Props, State> {
     const mechanism =
       platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
     const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+    let numHiddenFrames = 0;
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -244,6 +260,8 @@ class Content extends Component<Props, State> {
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
+            onShowFramesToggle={this.handleToggleFrames}
+            showStackedFrames={showStackedFrames}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
             frameMeta={meta?.frames?.[frameIdx]}
@@ -252,8 +270,12 @@ class Content extends Component<Props, State> {
             isANR={isANR}
             threadId={threadId}
             lockAddress={lockAddress}
+            numHiddenFrames={numHiddenFrames}
           />
         );
+        numHiddenFrames = 0;
+      } else {
+        numHiddenFrames += 1;
       }
 
       if (!repeatedFrame) {

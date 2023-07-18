@@ -64,13 +64,16 @@ type Props = {
   lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
+  numHiddenFrames?: number;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onShowFramesToggle?: (event: React.MouseEvent<SVGElement>) => void;
   organization?: Organization;
   platform?: PlatformType;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
+  showStackedFrames?: boolean;
   showingAbsoluteAddress?: boolean;
   threadId?: number;
   timesRepeated?: number;
@@ -78,6 +81,7 @@ type Props = {
 
 type State = {
   isExpanded?: boolean;
+  isShown?: boolean;
 };
 
 function makeFilter(
@@ -118,6 +122,7 @@ export class DeprecatedLine extends Component<Props, State> {
     isExpanded: false,
     emptySourceNotation: false,
     isHoverPreviewed: false,
+    isShown: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -125,6 +130,7 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
+    isShown: false,
   };
 
   toggleContext = evt => {
@@ -270,9 +276,24 @@ export class DeprecatedLine extends Component<Props, State> {
     return null;
   }
 
+  renderShowHideToggle(onShowFramesToggle) {
+    const numHiddenFrames = this.props.numHiddenFrames;
+    if (numHiddenFrames && numHiddenFrames > 0) {
+      return <a onClick={onShowFramesToggle}>Show {numHiddenFrames} more frames</a>;
+    }
+    return null;
+  }
+
   renderDefaultLine() {
-    const {isHoverPreviewed, debugFrames, data, isANR, threadId, lockAddress} =
-      this.props;
+    const {
+      isHoverPreviewed,
+      debugFrames,
+      data,
+      isANR,
+      threadId,
+      lockAddress,
+      onShowFramesToggle,
+    } = this.props;
     const organization = this.props.organization;
     const anrCulprit =
       isANR &&
@@ -305,6 +326,7 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
+          {this.renderShowHideToggle(onShowFramesToggle)}
           {!data.inApp ? (
             <InAppTag>{t('System')}</InAppTag>
           ) : (
