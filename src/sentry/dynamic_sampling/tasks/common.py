@@ -467,7 +467,7 @@ class GetActiveOrgsVolumes:
     def __iter__(self):
         return self
 
-    def __next__(self) -> List[int]:
+    def __next__(self) -> List[OrganizationDataVolume]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -554,7 +554,7 @@ class GetActiveOrgsVolumes:
 
         return False
 
-    def _get_from_cache(self):
+    def _get_from_cache(self) -> List[OrganizationDataVolume]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
