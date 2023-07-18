@@ -146,7 +146,7 @@ export default function EndpointOverview() {
                   size="sm"
                   position="right"
                   title={t(
-                    'the value at which 5% of requests are greater than the threshold over a given time range'
+                    '95% of requests in the selected period have a lower duration than this value'
                   )}
                 />
               </Header>
@@ -190,7 +190,7 @@ export default function EndpointOverview() {
                   size="sm"
                   position="right"
                   title={t(
-                    'the number of requests made to this endpoint per second over a given time range'
+                    'the number of requests made to this endpoint per second in the selected period'
                   )}
                 />
               </Header>

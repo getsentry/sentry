@@ -170,8 +170,12 @@ function SpanSummaryPage({params, location}: Props) {
                   <Block
                     title={t('Duration (P95)')}
                     description={tct(
-                      'The value at which 5% of this [spanType] are greater than the threshold',
-                      {spanType: spanDescriptionCardTitle}
+                      '95% of [spanType] in the selected period have a lower duration than this value',
+                      {
+                        spanType: spanDescriptionCardTitle.endsWith('y')
+                          ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
+                          : `${spanDescriptionCardTitle}s`,
+                      }
                     )}
                   >
                     <DurationCell
