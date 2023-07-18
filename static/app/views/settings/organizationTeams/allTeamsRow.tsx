@@ -169,10 +169,6 @@ class AllTeamsRow extends Component<Props, State> {
 
   getTeamRoleName = () => {
     const {organization, team} = this.props;
-    if (!organization.features.includes('team-roles') || !team.teamRole) {
-      return null;
-    }
-
     const {teamRoleList} = organization;
     const roleName = teamRoleList.find(r => r.id === team.teamRole)?.name;
 
@@ -207,7 +203,6 @@ class AllTeamsRow extends Component<Props, State> {
 
     const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
     const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
-    // TODO(team-roles): team admins can also manage membership
     const isDisabled = isIdpProvisioned || isPermissionGroup;
 
     return (
@@ -287,23 +282,18 @@ const TeamLink = styled(Link)`
 export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
-const TeamPanelItem = styled(PanelItem)`
+export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) min-content;
-  grid-template-rows: auto min-content;
-  gap: ${space(2)};
+  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px 110px;
+  gap: ${space(1)};
+`;
+
+const TeamPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE}
   align-items: center;
 
   > div:last-child {
     margin-left: auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(150px, 3fr) minmax(90px, 1fr) minmax(90px, 1fr) min-content;
-    grid-template-rows: auto;
-    > div:empty {
-      display: block !important;
-    }
   }
 `;
 

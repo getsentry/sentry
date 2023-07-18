@@ -90,7 +90,7 @@ function SpanSummaryPage({params, location}: Props) {
       'time_spent_percentage()',
       'http_error_count()',
     ],
-    'span-summary-page-metrics'
+    'api.starfish.span-summary-page-metrics'
   );
 
   const span = Object.assign({group: groupId}, spanMetrics as SpanMetrics & SpanMeta);
@@ -100,7 +100,7 @@ function SpanSummaryPage({params, location}: Props) {
       {group: groupId},
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
-      'span-summary-page-metrics'
+      'api.starfish.span-summary-page-metrics-chart'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);

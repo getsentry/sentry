@@ -48,7 +48,6 @@ from sentry.models import (
     ArtifactBundle,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     DocIntegration,
     DocIntegrationAvatar,
     Environment,
@@ -93,6 +92,7 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
     ActionService,
