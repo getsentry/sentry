@@ -48,7 +48,7 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(1);
 
     render(results[0]);
-    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('/')).toBeInTheDocument();
   });
 
   it('should accept three crumbs and return them all as individual segments', () => {
@@ -62,7 +62,7 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(3);
 
     render(results[0]);
-    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('/')).toBeInTheDocument();
 
     render(results[1]);
     expect(
@@ -96,7 +96,7 @@ describe('splitCrumbs', () => {
     expect(results).toHaveLength(3);
 
     render(results[0]);
-    expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
+    expect(screen.getByText('/')).toBeInTheDocument();
 
     render(results[1]);
     expect(screen.getByText('3 Pages')).toBeInTheDocument();
