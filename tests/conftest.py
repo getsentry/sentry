@@ -152,6 +152,14 @@ def setup_simulate_on_commit(request):
 
 
 @pytest.fixture(autouse=True)
+def setup_enforce_monotonic_transactions(request):
+    from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
+
+    with enforce_no_cross_transaction_interactions():
+        yield
+
+
+@pytest.fixture(autouse=True)
 def audit_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded
