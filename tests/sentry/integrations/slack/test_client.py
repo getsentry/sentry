@@ -121,9 +121,7 @@ class SlackClientTest(TestCase):
 
     @responses.activate
     def test_authorize_with_org_integration_id(self):
-        client = SlackClient(
-            org_integration_id=self.organization_integration.id
-        )
+        client = SlackClient(org_integration_id=self.organization_integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_access_token_response
 
@@ -136,8 +134,6 @@ class SlackClientTest(TestCase):
     @responses.activate
     def test_authorize_user_access_token(self):
         self.integration.update(metadata={"user_access_token": self.user_access_token})
-        client = SlackClient(
-            org_integration_id=self.organization_integration.id
-        )
+        client = SlackClient(org_integration_id=self.organization_integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_user_access_token_response
