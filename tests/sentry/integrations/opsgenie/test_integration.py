@@ -7,6 +7,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 EXTERNAL_ID = "test-app"
@@ -17,6 +18,7 @@ METADATA = {
 }
 
 
+@control_silo_test
 class OpsgenieIntegrationTest(IntegrationTestCase):
     provider = OpsgenieIntegrationProvider
     config = {"base_url": "https://api.opsgenie.com/", "api_key": "123"}
@@ -112,6 +114,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             "team_table": [{"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}]
         }
 
+    @responses.activate
     def test_update_config_invalid(self):
         integration = Integration.objects.create(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA

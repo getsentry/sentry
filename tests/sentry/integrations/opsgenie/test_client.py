@@ -1,4 +1,3 @@
-# import pytest
 import responses
 
 from sentry.models import Integration, OrganizationIntegration
@@ -21,7 +20,6 @@ class OpsgenieClientTest(APITestCase):
         self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
-    @responses.activate
     def test_get_client(self):
         client = self.installation.get_client()
         assert client.integration == self.installation.model

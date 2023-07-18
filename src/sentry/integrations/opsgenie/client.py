@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from sentry.integrations.client import ApiClient
 from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
@@ -43,8 +45,11 @@ class OpsgenieClient(IntegrationProxyClient):
     def metadata(self):
         return self.integration.metadata
 
+    # This doesn't work if the team name is "." or "..", which are allowed for some reason
+    # despite the API not working with these names.
     def get_team_id(self, integration_key: str, team_name: str) -> BaseApiResponseX:
         params = {"identifierType": "name"}
-        path = f"/teams/{team_name}"
+        quoted_name = quote(team_name)
+        path = f"/teams/{quoted_name}"
         headers = {"Authorization": "GenieKey " + integration_key}
         return self.get(path=path, headers=headers, params=params)

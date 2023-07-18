@@ -154,13 +154,10 @@ class OpsgenieIntegration(IntegrationInstallation):
                 team["id"] = resp["data"]["id"]
             except ApiError:
                 raise ValidationError(
-                    {"api_key": ["Could not save: invalid team name or integration key."]}
+                    {"api_key": ["Could not save due to invalid team name or integration key."]}
                 )
 
         return super().update_organization_config(data)
-
-    def get_config_data(self) -> Mapping[str, str]:
-        return super().get_config_data()
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
