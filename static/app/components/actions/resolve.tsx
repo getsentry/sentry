@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,15 +14,15 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
-  Release,
+  Project,
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion} from 'sentry/utils/formatters';
+import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface ResolveActionsProps {
+export interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -30,7 +31,7 @@ interface ResolveActionsProps {
   disabled?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
-  latestRelease?: Release;
+  latestRelease?: Project['latestRelease'];
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
@@ -150,6 +151,7 @@ function ResolveActions({
       });
     };
 
+    const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -159,10 +161,15 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label: latestRelease
-          ? t('The current release (%s)', formatVersion(latestRelease.version))
-          : t('The current release'),
-        details: actionTitle,
+        label: t('The current release'),
+        details: actionTitle ? (
+          actionTitle
+        ) : latestRelease ? (
+          <Fragment>
+            {formatVersion(latestRelease.version)}{' '}
+            {isSemver ? t('(semver)') : t('(timestamp)')}
+          </Fragment>
+        ) : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {

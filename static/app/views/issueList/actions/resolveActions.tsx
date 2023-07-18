@@ -1,5 +1,4 @@
-import ResolveActions from 'sentry/components/actions/resolve';
-import {Release} from 'sentry/types';
+import ResolveActions, {ResolveActionsProps} from 'sentry/components/actions/resolve';
 
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
@@ -7,15 +6,13 @@ type Props = {
   anySelected: boolean;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
-  params: {
+  params: Pick<
+    ResolveActionsProps,
+    'disabled' | 'hasRelease' | 'latestRelease' | 'projectSlug' | 'projectFetchError'
+  > & {
     confirm: ReturnType<typeof getConfirm>;
-    hasReleases: boolean;
     label: ReturnType<typeof getLabel>;
-    disabled?: boolean;
-    latestRelease?: Release;
     loadingProjects?: boolean;
-    projectFetchError?: boolean;
-    projectId?: string;
   };
 };
 
@@ -25,29 +22,21 @@ function ResolveActionsContainer({
   onShouldConfirm,
   onUpdate,
 }: Props) {
-  const {
-    hasReleases,
-    latestRelease,
-    projectId,
-    confirm,
-    label,
-    loadingProjects,
-    projectFetchError,
-  } = params;
+  const {hasRelease, projectSlug, confirm, label, loadingProjects, projectFetchError} =
+    params;
 
   // resolve requires a single project to be active in an org context
   // projectId is null when 0 or >1 projects are selected.
   const resolveDisabled = Boolean(!anySelected || projectFetchError);
   const resolveDropdownDisabled = Boolean(
-    !anySelected || !projectId || loadingProjects || projectFetchError
+    !anySelected || !projectSlug || loadingProjects || projectFetchError
   );
 
   return (
     <ResolveActions
-      hasRelease={hasReleases}
-      latestRelease={latestRelease}
-      projectSlug={projectId}
+      hasRelease={hasRelease}
       onUpdate={onUpdate}
+      projectSlug={projectSlug}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
       confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
