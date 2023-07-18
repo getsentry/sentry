@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TypedDict, TypeVar, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TypeVar
 
 import sentry_sdk
 
@@ -140,7 +141,8 @@ def index_bundle_in_flat_file(
     return FlatFileIndexingState.SUCCESS
 
 
-class BundleMeta(TypedDict):
+@dataclass(frozen=True)
+class BundleMeta:
     id: int
     timestamp: datetime
 
@@ -183,71 +185,58 @@ class FlatFileIndex:
         self._files_by_url: FilesByUrl = {}
         self._files_by_debug_id: FilesByDebugID = {}
 
-    def from_json(self, json_index: str) -> None:
-        flat_file_index = json.loads(json_index)
-        self._deserialize_json_index(flat_file_index)
+    def from_json(self, json_str: str) -> None:
+        json_idx = json.loads(json_str)
 
-    def _deserialize_json_index(self, flat_file_index: Dict[str, Any]) -> None:
-        if "bundles" in flat_file_index:
-            self._bundles = self._deserialize_bundles(flat_file_index["bundles"])
-
-        if "files_by_url" in flat_file_index:
-            self._files_by_url = flat_file_index["files_by_url"]
-
-        if "files_by_debug_id" in flat_file_index:
-            self._files_by_debug_id = flat_file_index["files_by_debug_id"]
-
-    @classmethod
-    def _deserialize_bundles(cls, bundles: List[Dict[str, Union[int, str]]]) -> Bundles:
-        deserialized_bundles: Bundles = []
-
-        for bundle in bundles:
-            bundle_id = bundle["id"]
-            bundle_timestamp = bundle["timestamp"]
-
-            deserialized_bundles.append(
-                BundleMeta(
-                    id=int(bundle_id), timestamp=datetime.fromisoformat(str(bundle_timestamp))
-                )
+        bundles = json_idx.get("bundles", [])
+        self._bundles = [
+            BundleMeta(
+                bundle["bundle_id"].split("/")[1],
+                datetime.fromisoformat(bundle["timestamp"]),
             )
-
-        return deserialized_bundles
+            for bundle in bundles
+        ]
+        self._files_by_url = json_idx.get("files_by_url", {})
+        self._files_by_debug_id = json_idx.get("files_by_debug_id", {})
 
     def to_json(self) -> str:
-        pre_serialized_index: Dict[str, Any] = {
-            "bundles": self._serialize_bundles(),
+        bundles = [
+            {
+                # NOTE: Symbolicator is using the `bundle_id` as the `?download=...`
+                # parameter is passes to the artifact-lookup API to download the
+                # linked bundle from, so this has to match whatever download_id
+                # the artifact-lookup API accepts.
+                "bundle_id": f"artifact_bundle/{bundle.id}",
+                "timestamp": datetime.isoformat(bundle.timestamp),
+            }
+            for bundle in self._bundles
+        ]
+        json_idx: Dict[str, Any] = {
+            "bundles": bundles,
             "files_by_url": self._files_by_url,
             "files_by_debug_id": self._files_by_debug_id,
         }
 
-        return json.dumps(pre_serialized_index)
-
-    def _serialize_bundles(self) -> List[Dict[str, Union[int, str]]]:
-        serialized_bundles: List[Dict[str, Union[int, str]]] = []
-
-        for bundle in self._bundles:
-            serialized_bundles.append(
-                {"id": bundle["id"], "timestamp": datetime.isoformat(bundle["timestamp"])}
-            )
-
-        return serialized_bundles
+        return json.dumps(json_idx)
 
     def merge_urls(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
         bundle_index = self._update_bundles(bundle_meta)
         if bundle_index is None:
             return
 
-        self._iterate_over_urls(bundle_index, bundle_archive)
+        for url in bundle_archive.get_all_urls():
+            self._add_sorted_entry(self._files_by_url, url, bundle_index)
 
     def merge_debug_ids(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
         bundle_index = self._update_bundles(bundle_meta)
         if bundle_index is None:
             return
 
-        self._iterate_over_debug_ids(bundle_index, bundle_archive)
+        for debug_id, _ in bundle_archive.get_all_debug_ids():
+            self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
     def _update_bundles(self, bundle_meta: BundleMeta) -> Optional[int]:
-        index_and_bundle_meta = self._index_and_bundle_meta_for_id(bundle_meta["id"])
+        index_and_bundle_meta = self._index_and_bundle_meta_for_id(bundle_meta.id)
         if index_and_bundle_meta is None:
             self._bundles.append(bundle_meta)
             return len(self._bundles) - 1
@@ -257,33 +246,24 @@ class FlatFileIndex:
         if found_bundle_meta == bundle_meta:
             return None
         else:
-            # TODO: we can for sure optimize the case in which we update the date of a bundle that already exists by
-            #  just sorting the list again or doing a smarter shift in the list.
+            # TODO: it might be possible to optimize updating and re-sorting
+            # an existing bundle
             self._bundles[found_bundle_index] = bundle_meta
             return found_bundle_index
-
-    def _iterate_over_debug_ids(self, bundle_index: int, bundle_archive: ArtifactBundleArchive):
-        for debug_id, _ in bundle_archive.get_all_debug_ids():
-            self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
-
-    def _iterate_over_urls(self, bundle_index: int, bundle_archive: ArtifactBundleArchive):
-        for url in bundle_archive.get_all_urls():
-            self._add_sorted_entry(self._files_by_url, url, bundle_index)
 
     def _add_sorted_entry(self, collection: Dict[T, List[int]], key: T, bundle_index: int):
         entries = collection.get(key, [])
         entries.append(bundle_index)
-        # We need to remove duplicates, and we can do this by naively converting a list to a set and then again to a
-        # list.
+        # Remove duplicates by doing a roundtrip through `set`.
         entries = list(set(entries))
         # Symbolicator will consider the newest element the last element of the list.
-        entries.sort(key=lambda index: self._bundles[index]["timestamp"])
+        entries.sort(key=lambda index: (self._bundles[index].timestamp, self._bundles[index].id))
         collection[key] = entries
 
-    def remove(self, artifact_bundle_id: int):
+    def remove(self, artifact_bundle_id: int) -> bool:
         index_and_bundle_meta = self._index_and_bundle_meta_for_id(artifact_bundle_id)
         if index_and_bundle_meta is None:
-            raise Exception("The bundle you want do delete doesn't exist in the index.")
+            return False
 
         found_bundle_index, _ = index_and_bundle_meta
         self._files_by_url = self._update_bundle_references(self._files_by_url, found_bundle_index)
@@ -291,6 +271,8 @@ class FlatFileIndex:
             self._files_by_debug_id, found_bundle_index
         )
         self._bundles.pop(found_bundle_index)
+
+        return True
 
     @staticmethod
     def _update_bundle_references(collection: Dict[T, List[int]], removed_bundle_index: int):
@@ -311,7 +293,7 @@ class FlatFileIndex:
 
     def _index_and_bundle_meta_for_id(self, artifact_bundle_id) -> Optional[Tuple[int, BundleMeta]]:
         for index, bundle in enumerate(self._bundles):
-            if bundle["id"] == artifact_bundle_id:
+            if bundle.id == artifact_bundle_id:
                 return index, bundle
 
         return None
