@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from sentry.integrations.discord.client import DiscordClient
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.utils.cache import cache
+
+from .utils import logger
 
 
 class DiscordCommandManager:
@@ -9,7 +12,7 @@ class DiscordCommandManager:
     # Discord bot. Upon initialization, the DiscordCommandManager will make
     # sure the list of commands in Discord matches those in this list.
     # See Discord docs for the structure of a command https://discord.com/developers/docs/interactions/application-commands#application-command-object
-    commands: list[object] = [
+    COMMANDS: list[object] = [
         {
             "name": "example",
             "description": "An example slash command!",
@@ -19,13 +22,16 @@ class DiscordCommandManager:
 
     def register_commands(self) -> None:
         """
-        Updates commands in Discord such that the remote list of
-        commands matches self.commands.
+        Fetches the current bot commands list and if it's out of date,
+        overwrites the bot commands list in Discord with the above list.
         """
-        # for some reason this is called many times during initialization,
-        # leading to us hitting a rate limit. So we'll just allow that
-        # API error to not break everything.
-        try:
-            DiscordClient().overwrite_application_commands(self.commands)
-        except ApiError:
-            pass
+        cache_key = "discord-bot-commands-updated"
+        result = cache.get(cache_key)
+
+        if result is None:
+            try:
+                DiscordClient().overwrite_application_commands(self.COMMANDS)
+            except ApiError as e:
+                logger.error("discord.setup.update_bot_commands_failure", extra={"status": e.code})
+
+            cache.set(cache_key, True, 3600)
