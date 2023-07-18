@@ -211,7 +211,8 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
 
     const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
 
-    const isProject = isGroupedByProject(fineTuneType) && this.props.organizations.length;
+    const isProject =
+      isGroupedByProject(fineTuneType) && this.props.organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
 
