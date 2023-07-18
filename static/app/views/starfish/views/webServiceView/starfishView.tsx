@@ -9,7 +9,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -34,6 +34,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
   const {organization, eventView} = props;
   const pageFilter = usePageFilters();
   const theme = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
 
   function renderCharts() {
     const query = new MutableSearch([
@@ -83,6 +84,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
             seriesName: t('Requests'),
             data: results[2].data,
           };
+
+          setIsLoading(loading);
 
           return (
             <Fragment>
@@ -163,7 +166,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
     );
   }
 
-  useSynchronizeCharts();
+  useSynchronizeCharts([isLoading]);
 
   return (
     <div data-test-id="starfish-view">

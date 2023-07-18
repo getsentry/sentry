@@ -50,7 +50,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0514_migrate_priority_saved_searches"),
+        ("sentry", "0515_slugify_invalid_monitors"),
     ]
 
     operations = [
