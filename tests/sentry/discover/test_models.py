@@ -1,5 +1,5 @@
 import pytest
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models import User
@@ -82,14 +82,20 @@ class DiscoverSavedQueryTest(TestCase):
             created_by_id=self.user.id,
         )
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(
+            router.db_for_write(DiscoverSavedQueryProject)
+        ):
             new_query.update(is_homepage=True)
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(
+            router.db_for_write(DiscoverSavedQueryProject)
+        ):
             new_query.is_homepage = True
             new_query.save()
 
-        with pytest.raises(IntegrityError), transaction.atomic():
+        with pytest.raises(IntegrityError), transaction.atomic(
+            router.db_for_write(DiscoverSavedQueryProject)
+        ):
             DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_homepage=True)
 
     def test_user_can_have_homepage_query_in_multiple_orgs(self):

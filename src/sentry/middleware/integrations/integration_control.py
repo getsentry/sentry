@@ -8,6 +8,8 @@ from sentry.silo import SiloMode
 
 from .parsers import (
     BitbucketRequestParser,
+    BitbucketServerRequestParser,
+    GithubEnterpriseRequestParser,
     GithubRequestParser,
     GitlabRequestParser,
     JiraRequestParser,
@@ -21,13 +23,15 @@ from .parsers.base import BaseRequestParser
 logger = logging.getLogger(__name__)
 
 ACTIVE_PARSERS = [
+    BitbucketRequestParser,
+    BitbucketServerRequestParser,
+    GithubEnterpriseRequestParser,
     GithubRequestParser,
     GitlabRequestParser,
     JiraRequestParser,
     JiraServerRequestParser,
-    SlackRequestParser,
     MsTeamsRequestParser,
-    BitbucketRequestParser,
+    SlackRequestParser,
     VstsRequestParser,
 ]
 

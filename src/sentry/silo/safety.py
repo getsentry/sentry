@@ -23,10 +23,13 @@ def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
     """
     Used to indicate that the wrapped block is safe to do
     mutations on outbox backed records.
+
     In production this context manager has no effect, but
     in tests it emits 'fencing' queries that are audited at the
     end of each test run by:
+
     sentry.testutils.silo.validate_protected_queries
+
     This code can't be co-located with the auditing logic because
     the testutils module cannot be used in production code.
     """

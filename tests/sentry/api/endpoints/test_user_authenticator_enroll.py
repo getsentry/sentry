@@ -2,14 +2,14 @@ from unittest import mock
 
 from django.conf import settings
 from django.core import mail
+from django.db import router
 from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
@@ -446,7 +446,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
             om.update(id=om.id + 1)
 
         self.setup_u2f(om)
@@ -466,7 +468,9 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
             om.update(token="123")
 
         self.setup_u2f(om)

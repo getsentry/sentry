@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db import router
 
 from sentry import audit_log
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     DeletedOrganization,
@@ -10,7 +10,7 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
@@ -91,7 +91,9 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(Organization)
+        ):
             Organization.objects.filter(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )

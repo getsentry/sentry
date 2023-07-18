@@ -1,17 +1,22 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {
+  EMPTY_OPTION_VALUE,
+  EmptyOption,
+} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-const {SPAN_MODULE, SPAN_OP, SPAN_ACTION, SPAN_DESCRIPTION} = SpanMetricsFields;
+const {SPAN_ACTION} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -31,27 +36,34 @@ export function ActionSelector({
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<[{'span.action': string}]>({
+  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
+    referrer: 'api.starfish.get-span-actions',
   });
 
   const options = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions.map(datum => ({
-          value: datum[SPAN_ACTION],
-          label: datum[SPAN_ACTION],
-        })),
+        {
+          value: EMPTY_OPTION_VALUE,
+          label: <EmptyOption />,
+        },
+        ...(actions ?? [])
+          .filter(datum => Boolean(datum[SPAN_ACTION]))
+          .map(datum => {
+            return {
+              value: datum[SPAN_ACTION],
+              label: datum[SPAN_ACTION],
+            };
+          }),
       ];
 
   return (
-    <CompactSelect
-      triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
-      }}
+    <SelectControl
+      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -83,34 +95,17 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const queryConditions: string[] = [];
-  queryConditions.push(`has:${SPAN_DESCRIPTION}`);
-
-  if (moduleName) {
-    queryConditions.push(`has:${SPAN_ACTION}`);
-  }
-
-  if (![ModuleName.ALL, ModuleName.NONE].includes(moduleName)) {
-    queryConditions.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    queryConditions.push(`!${SPAN_OP}:db.redis`);
-  }
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      queryConditions.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      queryConditions.push(`span.category:${spanCategory}`);
-    }
-  }
+  const query = buildEventViewQuery({
+    moduleName,
+    location: {...location, query: omit(location.query, SPAN_ACTION)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
       fields: [SPAN_ACTION, 'count()'],
       orderby: '-count',
-      query: queryConditions.join(' '),
+      query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },

@@ -1,8 +1,5 @@
 from typing import Iterable
 
-import pytest
-from django.db import ProgrammingError, transaction
-
 from sentry.models import (
     ActorTuple,
     Environment,
@@ -14,7 +11,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    ProjectTeam,
     RegionScheduledDeletion,
     Release,
     ReleaseProject,
@@ -24,6 +20,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.actor import get_actor_for_user
+from sentry.models.projectteam import ProjectTeam
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -554,13 +551,6 @@ class FilterToSubscribedUsersTest(TestCase):
 
 @region_silo_test
 class ProjectDeletionTest(TestCase):
-    def test_cannot_delete_with_queryset(self):
-        proj = self.create_project()
-        assert Project.objects.exists()
-        with pytest.raises(ProgrammingError), transaction.atomic():
-            Project.objects.filter(id=proj.id).delete()
-        assert Project.objects.exists()
-
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()
         user = self.create_user()

@@ -79,6 +79,10 @@ class MonitorEnvironmentLimitsExceeded(Exception):
     pass
 
 
+class MonitorEnvironmentValidationFailed(Exception):
+    pass
+
+
 def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, last_checkin)
@@ -447,6 +451,9 @@ class MonitorEnvironmentManager(BaseManager):
         if not environment_name:
             environment_name = "production"
 
+        if not Environment.is_valid_name(environment_name):
+            raise MonitorEnvironmentValidationFailed("Environment name too long")
+
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -640,7 +647,7 @@ def get_occurrence_data(reason: str, **kwargs):
             "group_type": MonitorCheckInMissed,
             "level": "warning",
             "reason": "missed_checkin",
-            "subtitle": f"No check-in reported at {expected_time}.",
+            "subtitle": f"No check-in reported on {expected_time}.",
         }
     elif reason == MonitorFailure.DURATION:
         timeout = kwargs.get("timeout", 30)
@@ -655,7 +662,7 @@ def get_occurrence_data(reason: str, **kwargs):
         "group_type": MonitorCheckInFailure,
         "level": "error",
         "reason": "error",
-        "subtitle": "An error occurred during the last check-in.",
+        "subtitle": "An error occurred during the latest check-in.",
     }
 
 

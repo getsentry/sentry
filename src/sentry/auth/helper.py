@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -30,7 +30,9 @@ from sentry.auth.idpmigration import (
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
+from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId, Provider
+from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
@@ -624,7 +626,7 @@ class AuthIdentityHandler:
             user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(AuthIdentity)):
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
                     user=user,
@@ -997,3 +999,6 @@ def EnablePartnerSSO(provider_key, sentry_org, provider_config):
         event=audit_log.get_event_id("SSO_ENABLE"),
         data=provider_model.get_audit_log_data(),
     )
+
+
+CHANNEL_PROVIDER_MAP = {ChannelName.FLY_IO.value: FlyOAuth2Provider}

@@ -44,7 +44,9 @@ export function TraceLink({event, noTrace}: TraceLinkProps) {
   );
 }
 
-const StyledLink = styled(Link)<{noTrace: boolean}>`
+const StyledLink = styled(Link, {shouldForwardProp: prop => prop !== 'noTrace'})<{
+  noTrace: boolean;
+}>`
   margin-left: ${p => (p.noTrace ? 0 : space(1))};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

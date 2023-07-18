@@ -3,9 +3,9 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from django.db import router
 from django.test import override_settings
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth import AuthService
@@ -22,20 +22,14 @@ from sentry.services.hybrid_cloud.rpc import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 _REGIONS = [
-    Region(
-        "north_america",
-        1,
-        "http://na.sentry.io",
-        RegionCategory.MULTI_TENANT,
-        "swordfish",
-    ),
+    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT, "swordfish"),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]
 
@@ -47,7 +41,7 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization.id,
                 defaults={
