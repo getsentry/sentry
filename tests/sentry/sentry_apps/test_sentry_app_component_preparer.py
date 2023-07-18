@@ -179,7 +179,10 @@ class TestPreparerAlertRuleAction(TestCase):
         )
 
         self.component = self.sentry_app.components.first()
-        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.first()
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
