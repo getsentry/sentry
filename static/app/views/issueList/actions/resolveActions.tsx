@@ -22,8 +22,15 @@ function ResolveActionsContainer({
   onShouldConfirm,
   onUpdate,
 }: Props) {
-  const {hasRelease, projectSlug, confirm, label, loadingProjects, projectFetchError} =
-    params;
+  const {
+    hasRelease,
+    latestRelease,
+    projectSlug,
+    confirm,
+    label,
+    loadingProjects,
+    projectFetchError,
+  } = params;
 
   // resolve requires a single project to be active in an org context
   // projectId is null when 0 or >1 projects are selected.
@@ -35,8 +42,9 @@ function ResolveActionsContainer({
   return (
     <ResolveActions
       hasRelease={hasRelease}
-      onUpdate={onUpdate}
+      latestRelease={latestRelease}
       projectSlug={projectSlug}
+      onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
       confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
