@@ -2,11 +2,10 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
-import {IconBroadcast} from 'sentry/icons';
+import {IconBroadcast, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -47,6 +46,18 @@ export default function SourceMapsWizard() {
 
   return (
     <Panel dashedBorder data-test-id="sourcemaps-wizard">
+      <CloseButton
+        onClick={() => {
+          setIsHidden(true);
+          setHideUntilTime(DISMISS_TIME);
+          trackAnalytics('issues.sourcemap_wizard_dismiss', {
+            organization: organization.id,
+          });
+        }}
+        icon={<IconClose size="xs" />}
+        aria-label={t('Sourcemaps Wizard Close')}
+        size="xs"
+      />
       <EmptyMessage
         size="large"
         icon={<IconBroadcast size="xl" />}
@@ -54,33 +65,6 @@ export default function SourceMapsWizard() {
         description={t(
           'Source maps are crucial for Sentry to de-minify yoiur stack traces. Send them automatically with the Sentry Wizard:'
         )}
-        action={
-          <ButtonBar gap={1}>
-            <Button
-              onClick={() =>
-                trackAnalytics('issues.sourcemap_wizard_copy', {
-                  organization: organization.id,
-                })
-              }
-              priority="primary"
-              href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps"
-              external
-            >
-              {t('Learn More')}
-            </Button>
-            <Button
-              onClick={() => {
-                setIsHidden(true);
-                setHideUntilTime(DISMISS_TIME);
-                trackAnalytics('issues.sourcemap_wizard_dismiss', {
-                  organization: organization.id,
-                });
-              }}
-            >
-              {t('Dismiss')}
-            </Button>
-          </ButtonBar>
-        }
       >
         <StyledCodeSnipped
           dark
@@ -100,6 +84,19 @@ export default function SourceMapsWizard() {
 }
 
 const StyledCodeSnipped = styled(CodeSnippet)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${space(2)};
+  width: 500px;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    width: 100%;
+  }
+`;
+
+const CloseButton = styled(Button)`
+  position: absolute;
+  top: -${space(1.5)};
+  right: -${space(1.5)};
+  border-radius: 50%;
+  height: ${p => p.theme.iconSizes.lg};
+  width: ${p => p.theme.iconSizes.lg};
 `;
