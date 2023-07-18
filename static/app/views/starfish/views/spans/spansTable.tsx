@@ -28,15 +28,12 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
-  'sps_percent_change()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -256,18 +253,8 @@ function getColumns(
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'sps_percent_change()',
-      name: DataTitles.change,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
       key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-      name: DataTitles.change,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName === ModuleName.HTTP
@@ -275,11 +262,6 @@ function getColumns(
           {
             key: 'http_error_count()',
             name: DataTitles.errorCount,
-            width: COL_WIDTH_UNDEFINED,
-          } as Column,
-          {
-            key: 'http_error_count_percent_change()',
-            name: DataTitles.change,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
         ]
