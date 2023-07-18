@@ -292,7 +292,9 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           stacktraceChangesEnabled={stacktraceChangesEnabled}
         >
-          <DefaultLineTitleWrapper stacktraceChangesEnabled={stacktraceChangesEnabled}>
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
