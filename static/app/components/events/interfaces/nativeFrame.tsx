@@ -309,10 +309,10 @@ function NativeFrame({
           <TypeCell>
             {!frame.inApp ? (
               stacktraceChangesEnabled ? null : (
-                <InAppTag>{t('System')}</InAppTag>
+                <Tag>{t('System')}</Tag>
               )
             ) : (
-              <InAppTag type="info">{t('In App')}</InAppTag>
+              <Tag type="info">{t('In App')}</Tag>
             )}
           </TypeCell>
           <ExpandCell>
@@ -455,8 +455,4 @@ const StackTraceFrame = styled('li')`
 
 const SymbolicatorIcon = styled('div')`
   width: ${p => p.theme.iconSizes.sm};
-`;
-
-const InAppTag = styled(Tag)`
-  margin-right: ${space(1)};
 `;
