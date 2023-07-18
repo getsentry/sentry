@@ -1,4 +1,3 @@
-import time
 from typing import Any, Mapping, MutableMapping
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -23,7 +22,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.auth.access import Access, OrganizationGlobalAccess
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization,
@@ -77,15 +76,12 @@ class TeamOrgMemberPermission(OrganizationPermission):
         ],
         "POST": ["org:read", "org:write", "org:admin", "team:write"],
         "PUT": _allowed_scopes,
-        "DELETE": _allowed_scopes,
+        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
     }
 
 
-def has_elevated_scope(access: Access) -> bool:
-    # skip validation if the token is not an org token
-    if not access.is_org_auth_token:
-        return True
-
+def _has_elevated_scope(access: Access) -> bool:
+    # validate the token has more than just org:read
     return (
         access.has_scope("org:admin")
         or access.has_scope("org:write")
@@ -107,18 +103,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are a team admin or have global write access
         * If the open membership organization setting is enabled
         """
-        print(f"can_admin_team: {can_admin_team(request.access, team)}")
-        print(f"request.access.has_global_access: {request.access.has_global_access}")
-        print(type(request.access))
         access = request.access
 
-        # We have a special case to check for org auth tokens because they always have global
-        # access. When open membership is disabled, we need to check if the token has elevated
-        # permissions in order to ensure org tokens with only "org:read" scope cannot add members
+        # Check for the org auth token edge case because they always have global access. When open
+        # membership is disabled, we need to check if the token has elevated permissions in order
+        # to ensure org tokens with only "org:read" scope cannot add members
         if access.is_org_auth_token and not access.has_open_membership:
-            print("hit org token check")
-            print(f"has_elevated_scope: {has_elevated_scope(access)}")
-            return has_elevated_scope(access)
+            return _has_elevated_scope(access)
 
         return access.has_global_access or can_admin_team(access, team)
 
@@ -134,6 +125,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are an active superuser
         * If they are removing their own membership
         * If they are a team admin or have global write access
+        * If they are an org owner/admin/manager
         """
         if is_active_superuser(request):
             return True
@@ -144,7 +136,10 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        return can_admin_team(request.access, team)
+        # We need to check if the token has elevated permissions because there are edge cases where
+        # an org owner/admin/manager with elevated permissions cannot remove a member from a team
+        # they are not part of.
+        return can_admin_team(request.access, team) or _has_elevated_scope(request.access)
 
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
@@ -206,20 +201,20 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
-        # NOTE: Required to use HTML to create the table because this markdown version doesn't
-        # support colspan.
+        # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
         r"""
         This request can return various success codes depending on the context of the team:
-        - **`201`**: The organization member has been successfully added.
-        - **`202`**: The organization member needs permission to join the team and an access request
+        - **`201`**: The member has been successfully added.
+        - **`202`**: The member needs permission to join the team and an access request
         has been generated.
-        - **`204`**: The organization member is already on the team.
+        - **`204`**: The member is already on the team.
 
         If the team is provisioned through an identity provider, then the member cannot join the
         team through Sentry.
 
         Note that the permission scopes also vary depending on the organization setting `"Open
-        Membership"`. The following table outlines the accepted scopes based on this setting.
+        Membership"` and the type of authorization token. The following table outlines the accepted
+        scopes.
         <table style="width: 100%;">
         <thead>
             <tr>
@@ -398,61 +393,47 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
-        """
+        # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
+        r"""
         Delete an organization member from a team.
 
-        Note that the permission scopes also vary depending on the organization setting `"Open
-        Membership"`. The following table outlines the accepted scopes based on this setting.
-        <table>
-        <thead>
-            <tr>
-            <th></th>
-            <th colspan="2" style="text-align: center; font-weight: bold;">Open Membership</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-            <td></td>
-            <td style="text-align: center; font-weight: bold;">On</td>
-            <td style="text-align: center; font-weight: bold;">Off</td>
-            </tr>
-            <tr>
-                <td style="text-align: center; font-weight: bold; vertical-align: middle;">Org-Scoped</td>
-                <td style="text-align: left;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                </ul>
-                </td>
-                <td style="text-align: left;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                </ul>
-                </td>
+        Note that the permission scopes also vary depending on the type of authorization token. The
+        following table outlines the accepted scopes.
+         <table style="width: 100%;">
+            <tbody>
+                <tr>
+                    <td style="width: 48%; text-align: center; font-weight: bold; vertical-align: middle;"><a
+                            href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
+                    <td style="text-align: left; width: 52%;">
+                        <ul style="list-style-type: none; padding-left: 0;">
+                            <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
+                        </ul>
+                    </td>
                 </tr>
                 <tr>
-                <td style="text-align: center; font-weight: bold; vertical-align: middle;">User-Scoped</td>
-                <td style="text-align: left;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
-                </ul>
-                </td>
-                <td style="text-align: left;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
-                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
-                </ul>
-                </td>
-            </tr>
-        </tbody>
+                    <td style="width: 48%; text-align: center; font-weight: bold; vertical-align: middle;"><a
+                            href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
+                    <td style="text-align: left; width: 52%;">
+                        <ul style="list-style-type: none; padding-left: 0;">
+                            <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
+                            <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody>
         </table>
-        *limited to the user's teams
+
+
+        \***`org:read`** can only be used to remove yourself from the teams you are a member of.
+
+
+        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user
+        auth token to remove other organization members from the teams they are admins of.
         """
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
