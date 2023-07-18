@@ -1,6 +1,8 @@
 import math
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, Tuple
 
 import sentry_sdk
@@ -24,6 +26,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_ORGS_PER_QUERY,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
+    RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     extrapolate_monthly_volume,
@@ -46,6 +49,44 @@ class TimeoutException(Exception):
             [task_context, *args],
         )
         self.task_context = task_context
+
+
+class LogStateCallable(Protocol):
+    """
+    A function that gets a DynamicSamplingLogState argument as the first parameter
+
+    This protocol is used by the timedFunctionWrapper to convert a function that can
+    update its state into a function that accepts a TaskContext and Timer and the rest
+    of the parameters of the wrapped function and executes updating the DynamicSamplingLogState
+    from the passed function.
+
+    """
+
+    def __call__(self, state: DynamicSamplingLogState, *args, **kwargs) -> Any:
+        ...
+
+
+def timed_function(name=None):
+    def timed_function_decorator(inner: LogStateCallable):
+        if name is not None:
+            func_name = name
+        else:
+            func_name = inner.__name__
+
+        @wraps(inner)
+        def wrapped(context: TaskContext, timer: Timer, *args, **kwargs):
+            if time.monotonic() > context.expiration_time:
+                raise TimeoutException(context)
+            with timer:
+                state = context.get_function_state(func_name)
+                val = inner(state, *args, **kwargs)
+                state.execution_time = timer.current()
+                context.set_function_state(func_name, state)
+                return val
+
+        return wrapped
+
+    return timed_function_decorator
 
 
 class ContextIterator(Protocol):
@@ -142,7 +183,14 @@ class GetActiveOrgs:
     are no more orgs
     """
 
-    def __init__(self, max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: Optional[int] = None):
+    def __init__(
+        self,
+        max_orgs: int = MAX_ORGS_PER_QUERY,
+        max_projects: Optional[int] = None,
+        time_interval: Optional[timedelta] = None,
+        granularity: Optional[Granularity] = None,
+    ):
+
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -152,11 +200,19 @@ class GetActiveOrgs:
         self.max_orgs = max_orgs
         self.max_projects = max_projects
         self.log_state = DynamicSamplingLogState()
+        if time_interval is None:
+            self.time_interval = timedelta(hours=1)
+        else:
+            self.time_interval = time_interval
+        if granularity is None:
+            self.granularity = Granularity(3600)
+        else:
+            self.granularity = granularity
 
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> List[int]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -176,12 +232,12 @@ class GetActiveOrgs:
                     ],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=1)
+                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
                         ),
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                     ],
-                    granularity=Granularity(3600),
+                    granularity=self.granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                     ],
@@ -269,6 +325,7 @@ class GetActiveOrgs:
         return ret_val
 
 
+# TODO this is obsolete replace it's usages with GetActiveOrgs
 def get_active_orgs_with_projects_counts(
     max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
 ) -> Generator[List[int], None, None]:
@@ -343,6 +400,166 @@ def get_active_orgs_with_projects_counts(
 
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
+
+
+@dataclass(frozen=True)
+class OrganizationDataVolume:
+    """
+    Represents the total and indexed number of transactions received by an organisation
+    (in a particular interval of time).
+    """
+
+    # organisation id
+    org_id: int
+    # total number of transactions
+    total: int
+    # number of transactions indexed (i.e. stored)
+    indexed: int
+
+    def is_valid_for_recalibration(self):
+        return self.total > 0 and self.indexed > 0
+
+
+class GetActiveOrgsVolumes:
+    """
+    Fetch organisations volumes in batches.
+    A batch will return at max max_orgs elements
+    """
+
+    def __init__(
+        self,
+        max_orgs: int = MAX_ORGS_PER_QUERY,
+        time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+        granularity: Optional[Granularity] = None,
+    ):
+
+        self.metric_id = indexer.resolve_shared_org(
+            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+        )
+        decision_string_id = indexer.resolve_shared_org("decision")
+        decision_tag = f"tags_raw[{decision_string_id}]"
+
+        self.keep_count_column = Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [Column(decision_tag), "keep"],
+                ),
+            ],
+            alias="keep_count",
+        )
+
+        self.offset = 0
+        self.last_result: List[OrganizationDataVolume] = []
+        self.has_more_results = True
+        self.max_orgs = max_orgs
+        self.log_state = DynamicSamplingLogState()
+        if granularity is None:
+            self.granularity = Granularity(60)
+        else:
+            self.granularity = granularity
+        self.time_interval = time_interval
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> List[int]:
+        self.log_state.num_iterations += 1
+        if self._enough_results_cached():
+            # we have enough in the cache to satisfy the current iteration
+            return self._get_from_cache()
+
+        if self.has_more_results:
+            # not enough for the current iteration and data still in the db top it up from db
+            query = (
+                Query(
+                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                    select=[
+                        Function("sum", [Column("value")], "total_count"),
+                        Column("org_id"),
+                        self.keep_count_column,
+                    ],
+                    groupby=[
+                        Column("org_id"),
+                    ],
+                    where=[
+                        Condition(
+                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                        ),
+                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                    ],
+                    granularity=self.granularity,
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                    ],
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(self.offset)
+            )
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+            )
+            self.log_state.num_db_calls += 1
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES.value,
+            )["data"]
+            count = len(data)
+
+            self.has_more_results = count > CHUNK_SIZE
+            self.offset += CHUNK_SIZE
+            if self.has_more_results:
+                data = data[:-1]
+            self.log_state.num_rows_total += len(data)
+            for row in data:
+                self.last_result.append(
+                    OrganizationDataVolume(
+                        org_id=row["org_id"], total=row["total_count"], indexed=row["keep_count"]
+                    )
+                )
+
+        if len(self.last_result) > 0:
+            # we have some data left return up to the max amount
+            return self._get_from_cache()  # we still have something left in cache
+        else:
+            # nothing left in the DB or cache
+            raise StopIteration()
+
+    def get_current_state(self):
+        """
+        Returns the current state of the iterator (how many orgs and projects it has iterated over)
+
+        part of the ContexIterator protocol
+
+        """
+        return self.log_state
+
+    def set_current_state(self, log_state: DynamicSamplingLogState):
+        self.log_state = log_state
+
+    def _enough_results_cached(self):
+        """
+        Return true if we have enough data to return a full batch in the cache (i.e. last_result)
+        """
+        if len(self.last_result) >= self.max_orgs:
+            return True
+
+        return False
+
+    def _get_from_cache(self):
+        """
+        Returns a batch from cache and removes the elements returned from the cache
+        """
+        if len(self.last_result) >= self.max_orgs:
+            ret_val = self.last_result[: self.max_orgs]
+            self.last_result = self.last_result[self.max_orgs :]
+        else:
+            ret_val = self.last_result
+            self.last_result = []
+        return ret_val
 
 
 def fetch_orgs_with_total_root_transactions_count(

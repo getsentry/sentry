@@ -4,8 +4,14 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
+from sentry.dynamic_sampling.tasks.common import (
+    GetActiveOrgs,
+    TimedIterator,
+    TimeoutException,
+    timed_function,
+)
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
+from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -138,3 +144,79 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             total_orgs += num_orgs
             assert num_orgs == 2  # only 2 orgs since we limit the number of projects
         assert total_orgs == 10
+
+
+def test_timed_function_decorator_updates_state():
+    """
+    Tests that the decorator correctly extracts the state
+    and passes it to the inner function.
+
+    At the end the Context should be properly updated for the wrapped function
+    It works with the default function name and also with custom names
+
+    """
+    t = Timer()
+    context = TaskContext(name="TC", num_seconds=60.0)
+
+    @timed_function()
+    def f1(state: DynamicSamplingLogState, x: int, y: str):
+        state.num_iterations = 1
+
+    @timed_function("f2x")
+    def f2(state: DynamicSamplingLogState, x: int, y: str):
+        state.num_iterations = 2
+
+    f1(context, t, 1, "x")
+    f2(context, t, 1, "x")
+
+    f1_state = context.get_function_state("f1")
+    assert f1_state is not None
+    assert f1_state.num_iterations == 1
+
+    f2_state = context.get_function_state("f2x")
+    assert f2_state is not None
+    assert f2_state.num_iterations == 2
+
+
+def test_timed_function_correctly_times_inner_function():
+    with freeze_time("2023-07-14 10:00:00") as frozen_time:
+        t = Timer()
+        context = TaskContext(name="TC", num_seconds=60.0)
+
+        @timed_function()
+        def f1(state: DynamicSamplingLogState, x: int, y: str):
+            state.num_iterations = 1
+            frozen_time.tick()
+
+        f1(context, t, 1, "x")
+        frozen_time.tick()
+        f1(context, t, 1, "x")
+
+        # two seconds passed inside f1 ( one for each call)
+        assert t.current() == 2.0
+
+
+def test_timed_function_correctly_raises_when_task_expires():
+    with freeze_time("2023-07-14 10:00:00") as frozen_time:
+        t = Timer()
+        context = TaskContext(name="TC", num_seconds=2.0)
+
+        @timed_function()
+        def f1(state: DynamicSamplingLogState, x: int, y: str):
+            state.num_iterations = 1
+            frozen_time.tick()
+
+        f1(context, t, 1, "x")
+        assert t.current() == 1.0
+        frozen_time.tick()
+        assert t.current() == 1.0  # timer should not be moving ouside the function
+        f1(context, t, 1, "x")
+
+        # two seconds passed inside f1 ( one for each call)
+        assert t.current() == 2.0
+
+        with pytest.raises(TimeoutException):
+            f1(context, t, 1, "x")
+
+        # the tick should not advance ( the function should not have been called)
+        assert t.current() == 2.0
