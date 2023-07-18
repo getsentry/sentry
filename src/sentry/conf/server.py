@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
+from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -633,14 +634,11 @@ SENTRY_REGION_CONFIG: Any = tuple()
 RPC_SHARED_SECRET = None
 
 # The protocol, host and port for control silo
-SENTRY_CONTROL_ADDRESS = ""
+# Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
+SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
-
-# Control silo address (public or private).
-# Usecases include sending requests to the Integration Proxy Endpoint.
-SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", "")
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
