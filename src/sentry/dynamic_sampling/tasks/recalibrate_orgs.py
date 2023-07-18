@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.tasks.common import (
     get_adjusted_base_rate_from_cache_or_compute,
 )
 from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
     MAX_REBALANCE_FACTOR,
     MAX_SECONDS,
     MIN_REBALANCE_FACTOR,
@@ -64,7 +65,7 @@ def recalibrate_orgs() -> None:
         for org_volumes in TimedIterator(
             context,
             GetActiveOrgsVolumes(
-                max_orgs=1000,
+                max_orgs=CHUNK_SIZE,
                 time_interval=RECALIBRATE_ORGS_QUERY_INTERVAL,
                 granularity=Granularity(60),
             ),
