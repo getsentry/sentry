@@ -1,12 +1,14 @@
 import os.path
 import zipfile
 from base64 import b64encode
+from hashlib import sha1
 from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 import responses
+from django.core.files.base import ContentFile
 
 from sentry.models import (
     ArtifactBundle,
@@ -18,9 +20,12 @@ from sentry.models import (
     ReleaseFile,
     SourceFileType,
 )
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.releasefile import update_artifact_index
+from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
@@ -52,6 +57,48 @@ def get_fixture_path(name):
 def load_fixture(name):
     with open(get_fixture_path(name), "rb") as fp:
         return fp.read()
+
+
+def make_compressed_zip_file(files):
+    def remove_and_return(dictionary, key):
+        dictionary.pop(key)
+        return dictionary
+
+    compressed = BytesIO(b"SYSB")
+    with zipfile.ZipFile(compressed, "a") as zip_file:
+        for file_path, info in files.items():
+            zip_file.writestr(file_path, bytes(info["content"]))
+
+        zip_file.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                    "files": {
+                        file_path: remove_and_return(info, "content")
+                        for file_path, info in files.items()
+                    }
+                }
+            ),
+        )
+    compressed.seek(0)
+
+    return compressed.getvalue()
+
+
+def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
+    blob1 = FileBlob.from_file(ContentFile(bundle_file))
+    total_checksum = sha1(bundle_file).hexdigest()
+
+    return assemble_artifacts(
+        org_id=project.organization.id,
+        project_ids=[project.id],
+        version=release,
+        dist=dist,
+        checksum=total_checksum,
+        chunks=[blob1.checksum],
+        upload_as_artifact_bundle=upload_as_artifact_bundle,
+    )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -3027,3 +3074,74 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "type": "js_invalid_source",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    @with_feature("organizations:sourcemaps-bundle-flat-file-indexing")
+    def test_bundle_index(self, process_with_symbolicator):
+        if not process_with_symbolicator:
+            return
+
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        file_a = make_compressed_zip_file(
+            {
+                "files/_/_/file.min.js": {
+                    "url": "~/file.min.js",
+                    "type": "minified_source",
+                    "content": load_fixture("file.min.js"),
+                    "headers": {
+                        "sourcemap": "file.sourcemap.js",
+                    },
+                },
+                "files/_/_/file.sourcemap.js": {
+                    "url": "~/file.sourcemap.js",
+                    "type": "source_map",
+                    "content": load_fixture("file.wc.sourcemap.js"),
+                },
+            },
+        )
+
+        upload_bundle(file_a, self.project, release.version)
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.function == "add"
+        assert frame.filename == "file1.js"
+        assert frame.lineno == 3
+        assert frame.colno == 9
+
+        assert frame.data["resolved_with"] == "index"
+        assert frame.data["symbolicated"]
