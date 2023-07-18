@@ -9,13 +9,15 @@ from sentry import audit_log
 from sentry.models import AuditLogEntry, ProjectOwnership
 from sentry.models.group import Group
 from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"
@@ -132,26 +134,30 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["codeownersAutoSync"] is False
 
     def test_audit_log_entry(self):
-        resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+        with outbox_runner():
+            resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
         assert resp.status_code == 200
 
-        auditlog = AuditLogEntry.objects.filter(
-            organization_id=self.project.organization.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            target_object=self.project.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auditlog = AuditLogEntry.objects.filter(
+                organization_id=self.project.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                target_object=self.project.id,
+            )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
 
     def test_audit_log_ownership_change(self):
-        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        with outbox_runner():
+            resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
 
-        auditlog = AuditLogEntry.objects.filter(
-            organization_id=self.project.organization.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            target_object=self.project.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auditlog = AuditLogEntry.objects.filter(
+                organization_id=self.project.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                target_object=self.project.id,
+            )
         assert len(auditlog) == 1
         assert "modified" in auditlog[0].data["ownership_rules"]
 
@@ -231,9 +237,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost #tiger-team"})
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.member_user_delete.delete()
+
         # Get after with the streamline-targeting-context flag
         with self.feature({"organizations:streamline-targeting-context": True}):
-            self.member_user_delete.delete()
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
@@ -256,9 +264,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost"})
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.member_user_delete.delete()
+
         # Get after with the streamline-targeting-context flag
         with self.feature({"organizations:streamline-targeting-context": True}):
-            self.member_user_delete.delete()
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {"$version": 1, "rules": []}
 
@@ -285,10 +295,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
         )
 
-        # Get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.member_user_delete.delete()
             self.member_user_delete2.delete()
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
