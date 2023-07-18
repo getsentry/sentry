@@ -112,7 +112,7 @@ SENTRY_SUBNET_SECRET = "hush-hush-im-invisible"
 
 
 @override_settings(
-    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET,
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
 class AwsLambdaProxyApiClientTest(TestCase):
