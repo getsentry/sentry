@@ -44,9 +44,9 @@ interface RawVersion {
 interface SemverVerison extends RawVersion {
   buildCode: string | null;
   components: number;
-  major: number | null;
-  minor: number | null;
-  patch: number | null;
+  major: number;
+  minor: number;
+  patch: number;
   pre: string | null;
 }
 
