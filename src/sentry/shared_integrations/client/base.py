@@ -13,10 +13,10 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
-from sentry.models.integrations.integration import Integration
 
 from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
 from ..exceptions.base import ApiError
@@ -347,12 +347,12 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_success()
         print("success recorded")
 
-    #    integration = integration_service.get_integrations(
-    #        integration_ids=[self.integration_id]
-    #    )[0]
-    #    print(integration)
-    #    integration.status = ObjectStatus.DISABLED
-    #    print(integration)
+        #    integration = integration_service.get_integrations(
+        #        integration_ids=[self.integration_id]
+        #    )[0]
+        #    print(integration)
+        #    integration.status = ObjectStatus.DISABLED
+        #    print(integration)
         rpc_integration = integration_service.get_integrations(
             integration_ids=[self.integration_id]
         )[0]
