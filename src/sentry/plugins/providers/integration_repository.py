@@ -105,7 +105,7 @@ class IntegrationRepositoryProvider:
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.save()
-            metrics.incr("in")
+            metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
         # then check if there is a repository without an integration that matches

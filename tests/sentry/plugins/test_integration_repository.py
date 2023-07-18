@@ -82,7 +82,8 @@ class IntegrationRepositoryTestCase(TestCase):
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
 
-    def test_create_repository__activates_existing_hidden_repo(self, get_jwt):
+    @patch("sentry.plugins.providers.integration_repository.metrics")
+    def test_create_repository__activates_existing_hidden_repo(self, mock_metrics, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.HIDDEN
         repo.save()
@@ -90,6 +91,7 @@ class IntegrationRepositoryTestCase(TestCase):
         self.provider.create_repository(self.config, self.organization)
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
+        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_relink")
 
     def test_create_repository__only_activates_hidden_repo(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"])
