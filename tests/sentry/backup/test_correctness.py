@@ -29,7 +29,8 @@ def import_export_then_validate(
     with open(fixture_file_path) as backup_file:
         expect = json.load(backup_file)
 
-    with unguarded_write():
+    # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
+    with unguarded_write(using="default"):
         rv = CliRunner().invoke(import_, [str(fixture_file_path)])
         assert rv.exit_code == 0, rv.output
 

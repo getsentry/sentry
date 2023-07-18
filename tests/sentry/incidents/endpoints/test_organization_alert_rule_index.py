@@ -4,6 +4,7 @@ from functools import cached_property
 
 import pytz
 import requests
+from django.db import router
 from freezegun import freeze_time
 
 from sentry import audit_log
@@ -339,7 +340,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
 
         resp = self.get_response(self.organization.slug)

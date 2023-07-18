@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.db import router
 from django.test import override_settings
 
 from sentry.models import OrganizationMapping
@@ -61,7 +62,9 @@ class RegionMappingTest(TestCase):
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_regions(regions), unguarded_write():
+        with override_regions(regions), unguarded_write(
+            using=router.db_for_write(OrganizationMapping)
+        ):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
                 # Region does not exist
@@ -123,7 +126,7 @@ class RegionMappingTest(TestCase):
         organization_mapping.region_name = "na"
         organization_mapping.idempotency_key = "test"
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             organization_mapping.save()
 
         region_config = [

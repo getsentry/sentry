@@ -1,4 +1,5 @@
 import pytest
+from django.db import router
 from django.test import override_settings
 
 from sentry.models.organizationmapping import OrganizationMapping
@@ -33,7 +34,7 @@ class RegionResolutionTest(TestCase):
         with override_settings(SENTRY_REGION=target_region.name):
             organization = self.create_organization()
         org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             org_mapping.region_name = target_region.name
             org_mapping.save()
         return organization

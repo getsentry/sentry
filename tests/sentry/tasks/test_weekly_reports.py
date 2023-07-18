@@ -6,6 +6,7 @@ from unittest import mock
 import pytz
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db import router
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
@@ -37,7 +38,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -65,7 +66,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:weekly-email-refresh")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         now = datetime.now().replace(tzinfo=pytz.utc)
@@ -116,7 +117,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Project)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(
                 flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
             )

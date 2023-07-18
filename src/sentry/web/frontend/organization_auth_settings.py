@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django import forms
 from django.contrib import messages
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -91,7 +91,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         )
 
         # This is safe -- we're not syncing flags to the org member mapping table.
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])

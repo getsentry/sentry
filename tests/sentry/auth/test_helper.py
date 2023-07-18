@@ -1,7 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models
+from django.db import models, router
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -281,7 +281,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
                 user_id=user.id,
                 organization=self.organization,
             )
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMember)):
                 existing_om.update(
                     flags=models.F("flags")
                     .bitor(OrganizationMember.flags["idp:provisioned"])

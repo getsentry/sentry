@@ -476,7 +476,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             # Flags are not replicated -- these updates are safe without outbox application.
             OrganizationMember.objects.filter(
                 organization_id=organization_id,

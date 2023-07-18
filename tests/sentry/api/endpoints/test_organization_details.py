@@ -6,6 +6,7 @@ import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.db import router
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -890,7 +891,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
@@ -929,7 +930,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_organization_does_not_exist(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)
