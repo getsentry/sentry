@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -72,6 +73,10 @@ type Props = {
   setError: (msg: string | undefined) => void;
 };
 
+export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
+  column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
+};
+
 function EndpointList({eventView, location, organization, setError}: Props) {
   const [widths, setWidths] = useState<number[]>([]);
   const [_eventView, setEventView] = useState<EventView>(eventView);
@@ -88,7 +93,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderBodyCell(
     tableData: TableData | null,
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     dataRow: TableDataRow,
     _deltaColumnMap: Record<string, string>
   ): React.ReactNode {
@@ -185,15 +190,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       });
     }
 
-    return (
-      column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+    return (column: TableColumnHeader, dataRow: TableDataRow): React.ReactNode =>
+      renderBodyCell(tableData, column, dataRow, deltaColumnMap);
   }
 
   function renderHeadCell(
     tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     title: React.ReactNode
   ): React.ReactNode {
     let align: Alignments = 'right';
@@ -201,7 +204,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       align = 'left';
     }
     const field = {
-      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      field: column.column?.kind === 'equation' ? (column.key as string) : column.name,
       width: column.width,
     };
 
@@ -252,7 +255,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
     const newColumnTitles = COLUMN_TITLES;
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+    return (column: TableColumnHeader, index: number): React.ReactNode =>
       renderHeadCell(tableMeta, column, newColumnTitles[index]);
   }
 
@@ -315,8 +318,8 @@ function EndpointList({eventView, location, organization, setError}: Props) {
               columnSortBy={columnSortBy}
               grid={{
                 onResizeColumn: handleResizeColumn,
-                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
-                renderBodyCell: renderBodyCellWithData(tableData) as any,
+                renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                renderBodyCell: renderBodyCellWithData(tableData),
               }}
               location={location}
             />

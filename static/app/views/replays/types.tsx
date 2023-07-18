@@ -15,9 +15,17 @@ export type ReplayRecord = {
     version: null | string;
   };
   /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks: number;
+  /**
    * The number of errors associated with the replay.
    */
   count_errors: number;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks: number;
   /**
    * The number of segments that make up the replay.
    */

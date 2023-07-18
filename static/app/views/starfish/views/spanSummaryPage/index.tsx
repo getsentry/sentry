@@ -9,6 +9,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
@@ -137,159 +138,168 @@ function SpanSummaryPage({params, location}: Props) {
   });
 
   return (
-    <Layout.Page>
-      <PageFiltersContainer>
-        <PageErrorProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
-              <Layout.Title>
-                {endpointMethod && endpoint
-                  ? `${endpointMethod} ${endpoint}`
-                  : !isSpanMetricsLoading && title}
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <PageErrorAlert />
-              <BlockContainer>
-                <FilterOptionsContainer>
-                  <StarfishDatePicker />
-                </FilterOptionsContainer>
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
+      <Layout.Page>
+        <PageFiltersContainer>
+          <PageErrorProvider>
+            <Layout.Header>
+              <Layout.HeaderContent>
+                {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
+                <Layout.Title>
+                  {endpointMethod && endpoint
+                    ? `${endpointMethod} ${endpoint}`
+                    : !isSpanMetricsLoading && title}
+                </Layout.Title>
+              </Layout.HeaderContent>
+            </Layout.Header>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                <PageErrorAlert />
                 <BlockContainer>
-                  <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
-                  <Block
-                    title={t('Throughput')}
-                    description={tct('Throughput of this [spanType] per second', {
-                      spanType: spanDescriptionCardTitle,
-                    })}
-                  >
-                    <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
-                  </Block>
-                  <Block
-                    title={t('Duration (P95)')}
-                    description={tct(
-                      '95% of [spanType] in the selected period have a lower duration than this value',
-                      {
-                        spanType: spanDescriptionCardTitle.endsWith('y')
-                          ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
-                          : `${spanDescriptionCardTitle}s`,
-                      }
-                    )}
-                  >
-                    <DurationCell
-                      milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
-                    />
-                  </Block>
-                  {span?.[SPAN_OP]?.startsWith('http') && (
+                  <FilterOptionsContainer>
+                    <StarfishDatePicker />
+                  </FilterOptionsContainer>
+                  <BlockContainer>
+                    <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                     <Block
-                      title={t('5XX Responses')}
-                      description={t('5XX responses in this span')}
+                      title={t('Throughput')}
+                      description={tct('Throughput of this [spanType] per second', {
+                        spanType: spanDescriptionCardTitle,
+                      })}
                     >
-                      <CountCell count={spanMetrics?.[`http_error_count()`]} />
+                      <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                     </Block>
-                  )}
-                  <Block title={t('Time Spent')}>
-                    <TimeSpentCell
-                      timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                      totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
-                    />
-                  </Block>
+                    <Block
+                      title={t('Duration (P95)')}
+                      description={tct(
+                        '95% of [spanType] in the selected period have a lower duration than this value',
+                        {
+                          spanType: spanDescriptionCardTitle.endsWith('y')
+                            ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
+                            : `${spanDescriptionCardTitle}s`,
+                        }
+                      )}
+                    >
+                      <DurationCell
+                        milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                      />
+                    </Block>
+                    {span?.[SPAN_OP]?.startsWith('http') && (
+                      <Block
+                        title={t('5XX Responses')}
+                        description={t('5XX responses in this span')}
+                      >
+                        <CountCell count={spanMetrics?.[`http_error_count()`]} />
+                      </Block>
+                    )}
+                    <Block
+                      title={t('Time Spent')}
+                      description={t(
+                        'Time spent in this span as a proportion of total application time'
+                      )}
+                    >
+                      <TimeSpentCell
+                        timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
+                        totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                      />
+                    </Block>
+                  </BlockContainer>
                 </BlockContainer>
-              </BlockContainer>
 
-              {span?.[SPAN_DESCRIPTION] && (
-                <BlockContainer>
-                  <Block>
-                    <Panel>
-                      <DescriptionPanelBody>
-                        <DescriptionContainer>
-                          <DescriptionTitle>{spanDescriptionCardTitle}</DescriptionTitle>
-                          <SpanDescription spanMeta={span} />
-                        </DescriptionContainer>
-                      </DescriptionPanelBody>
-                    </Panel>
-                  </Block>
-
-                  <Block>
-                    <ChartPanel title={DataTitles.throughput}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[spanMetricsThroughputSeries]}
-                        start=""
-                        end=""
-                        loading={areSpanMetricsSeriesLoading}
-                        utc={false}
-                        chartColors={[THROUGHPUT_COLOR]}
-                        isLineChart
-                        definedAxisTicks={4}
-                        aggregateOutputFormat="rate"
-                        tooltipFormatterOptions={{
-                          valueFormatter: value => formatThroughput(value),
-                        }}
-                      />
-                    </ChartPanel>
-                  </Block>
-
-                  <Block>
-                    <ChartPanel title={DataTitles.p95}>
-                      <Chart
-                        statsPeriod="24h"
-                        height={140}
-                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
-                        start=""
-                        end=""
-                        loading={areSpanMetricsSeriesLoading}
-                        utc={false}
-                        chartColors={[P95_COLOR]}
-                        isLineChart
-                        definedAxisTicks={4}
-                      />
-                    </ChartPanel>
-                  </Block>
-
-                  {span?.[SPAN_OP]?.startsWith('http') && (
+                {span?.[SPAN_DESCRIPTION] && (
+                  <BlockContainer>
                     <Block>
-                      <ChartPanel title={DataTitles.errorCount}>
+                      <Panel>
+                        <DescriptionPanelBody>
+                          <DescriptionContainer>
+                            <DescriptionTitle>
+                              {spanDescriptionCardTitle}
+                            </DescriptionTitle>
+                            <SpanDescription spanMeta={span} />
+                          </DescriptionContainer>
+                        </DescriptionPanelBody>
+                      </Panel>
+                    </Block>
+
+                    <Block>
+                      <ChartPanel title={DataTitles.throughput}>
                         <Chart
                           statsPeriod="24h"
                           height={140}
-                          data={[spanMetricsSeriesData?.[`http_error_count()`]]}
+                          data={[spanMetricsThroughputSeries]}
                           start=""
                           end=""
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
-                          chartColors={[ERRORS_COLOR]}
+                          chartColors={[THROUGHPUT_COLOR]}
+                          isLineChart
+                          definedAxisTicks={4}
+                          aggregateOutputFormat="rate"
+                          tooltipFormatterOptions={{
+                            valueFormatter: value => formatThroughput(value),
+                          }}
+                        />
+                      </ChartPanel>
+                    </Block>
+
+                    <Block>
+                      <ChartPanel title={DataTitles.p95}>
+                        <Chart
+                          statsPeriod="24h"
+                          height={140}
+                          data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
+                          start=""
+                          end=""
+                          loading={areSpanMetricsSeriesLoading}
+                          utc={false}
+                          chartColors={[P95_COLOR]}
                           isLineChart
                           definedAxisTicks={4}
                         />
                       </ChartPanel>
                     </Block>
-                  )}
-                </BlockContainer>
-              )}
 
-              {span && (
-                <SpanTransactionsTable
-                  span={span}
-                  sort={sort}
-                  endpoint={endpoint}
-                  endpointMethod={endpointMethod}
+                    {span?.[SPAN_OP]?.startsWith('http') && (
+                      <Block>
+                        <ChartPanel title={DataTitles.errorCount}>
+                          <Chart
+                            statsPeriod="24h"
+                            height={140}
+                            data={[spanMetricsSeriesData?.[`http_error_count()`]]}
+                            start=""
+                            end=""
+                            loading={areSpanMetricsSeriesLoading}
+                            utc={false}
+                            chartColors={[ERRORS_COLOR]}
+                            isLineChart
+                            definedAxisTicks={4}
+                          />
+                        </ChartPanel>
+                      </Block>
+                    )}
+                  </BlockContainer>
+                )}
+
+                {span && (
+                  <SpanTransactionsTable
+                    span={span}
+                    sort={sort}
+                    endpoint={endpoint}
+                    endpointMethod={endpointMethod}
+                  />
+                )}
+
+                <SampleList
+                  groupId={span.group}
+                  transactionName={transaction}
+                  transactionMethod={transactionMethod}
                 />
-              )}
-
-              <SampleList
-                groupId={span.group}
-                transactionName={transaction}
-                transactionMethod={transactionMethod}
-              />
-            </Layout.Main>
-          </Layout.Body>
-        </PageErrorProvider>
-      </PageFiltersContainer>
-    </Layout.Page>
+              </Layout.Main>
+            </Layout.Body>
+          </PageErrorProvider>
+        </PageFiltersContainer>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
 

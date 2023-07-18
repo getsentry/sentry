@@ -22,6 +22,7 @@ export type SpanTransactionMetrics = {
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
+  'transaction.method': string;
   transactionMethod: string;
 };
 
