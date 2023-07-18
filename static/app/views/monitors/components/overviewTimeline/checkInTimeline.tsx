@@ -69,7 +69,7 @@ export function CheckInTimeline(props: Props) {
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: 14px;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
   margin: ${space(2)} 0;
 `;
 
@@ -79,6 +79,8 @@ const JobTick = styled('div')<{
   status: CheckInStatus;
 }>`
   position: absolute;
+  top: calc(50% + 1px);
+  transform: translateY(-50%);
   background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
   opacity: 0.7;
   width: 4px;
