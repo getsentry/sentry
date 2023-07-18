@@ -259,6 +259,11 @@ def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
 
     for index, query in enumerate(queries):
         sql = query["sql"]
+        # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result
+        # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
+        # the VT TypeVar for Dict.
+        if sql is None:
+            continue  # type: ignore
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")

@@ -88,6 +88,6 @@ def in_test_assert_no_transaction(msg: str):
     from sentry.testutils import hybrid_cloud
 
     for conn in connections.all():
-        assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
+        assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
             connection=conn
         ), msg

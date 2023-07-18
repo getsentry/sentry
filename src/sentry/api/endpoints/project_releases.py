@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -125,7 +125,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     owner_id = owner.id
 
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(Release)):
                         release, created = (
                             Release.objects.create(
                                 organization_id=project.organization_id,
