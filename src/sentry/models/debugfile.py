@@ -43,7 +43,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.lang.native.sources import record_last_upload
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
@@ -599,6 +598,8 @@ def create_files_from_dif_zip(
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
+    from sentry.lang.native.sources import record_last_upload
+
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
