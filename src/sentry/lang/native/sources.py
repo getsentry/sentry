@@ -168,6 +168,10 @@ def get_internal_source(project: Project):
     )
 
     if last_upload := get_last_upload(project.id):
+        # Adding a random query string parameter here makes sure that the
+        # Symbolicator-internal `list_files` cache that is querying this API
+        # is not being hit. This means that uploads will be immediately visible
+        # to Symbolicator, and not depending on its internal cache TTL.
         sentry_source_url += f"?_last_upload={last_upload}"
 
     return {
