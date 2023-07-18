@@ -92,9 +92,12 @@ export function SpanGroupBreakdown({
     if (event.seriesName === 'db') {
       spansLink = `/starfish/database/`;
     } else if (event.seriesName === 'Other') {
-      spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
+      spansLinkQueryParams['!span.category'] = data
+        .filter(r => r.seriesName !== 'Other')
+        .map(r => r.seriesName);
     } else {
-      spansLinkQueryParams[SPAN_MODULE] = 'Other';
+      spansLinkQueryParams[SPAN_MODULE] = 'other';
       spansLinkQueryParams['span.category'] = event.seriesName;
     }
 
@@ -151,6 +154,12 @@ export function SpanGroupBreakdown({
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
             }
             tooltipFormatterOptions={{
+              nameFormatter: name => {
+                if (name === 'db') {
+                  return 'database';
+                }
+                return name;
+              },
               valueFormatter: value =>
                 dataDisplayType === DataDisplayType.PERCENTAGE
                   ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
@@ -162,6 +171,12 @@ export function SpanGroupBreakdown({
                 selected: Object.keys(event.selected).filter(key => event.selected[key]),
                 toggled: event.name,
               });
+            }}
+            legendFormatter={(name: string) => {
+              if (name === 'db') {
+                return 'database';
+              }
+              return name;
             }}
           />
         </VisuallyCompleteWithData>
