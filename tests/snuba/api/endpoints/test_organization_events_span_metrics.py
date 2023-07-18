@@ -194,6 +194,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["eps()"] == 0.01
         assert data[0]["sps()"] == 0.01
+        assert meta["fields"]["eps()"] == "rate"
+        assert meta["fields"]["sps()"] == "rate"
+        assert meta["units"]["eps()"] == "1/second"
+        assert meta["units"]["sps()"] == "1/second"
         assert meta["dataset"] == "spansMetrics"
 
     def test_epm(self):
@@ -218,6 +222,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["epm()"] == 0.6
         assert data[0]["spm()"] == 0.6
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["fields"]["spm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"
+        assert meta["units"]["spm()"] == "1/minute"
         assert meta["dataset"] == "spansMetrics"
 
     def test_time_spent_percentage(self):

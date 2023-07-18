@@ -632,6 +632,13 @@ SENTRY_REGION_CONFIG: Any = tuple()
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
+# Control silo address (public or private).
+# Usecases include sending requests to the Integration Proxy Endpoint.
+SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+
+# The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
+SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
+
 
 # Queue configuration
 from kombu import Exchange, Queue
@@ -1298,8 +1305,6 @@ SENTRY_FEATURES = {
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
-    # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # Enables automatically linking repositories using commit webhook data
@@ -1354,8 +1359,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable escalating forecast threshold a/b experiment
-    "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
@@ -1623,6 +1626,8 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
+    # Enable updates to the stacktrace ui
+    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page

@@ -1,6 +1,7 @@
 from typing import Optional
 
-from sentry.models import AuditLogEntry, CommitFileChange
+from sentry.models import AuditLogEntry
+from sentry.models.commitfilechange import CommitFileChange
 
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):

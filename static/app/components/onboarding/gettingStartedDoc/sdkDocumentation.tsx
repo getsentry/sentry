@@ -28,11 +28,14 @@ export const migratedDocs = [
   'java-spring-boot',
   'php',
   'php-laravel',
+  'php-symfony',
   'go',
   'rust',
   'minidump',
   'native',
   'native-qt',
+  'kotlin',
+  'node',
 ];
 
 type SdkDocumentationProps = {
