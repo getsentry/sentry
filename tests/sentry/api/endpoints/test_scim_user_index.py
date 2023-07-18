@@ -302,6 +302,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
 
     def test_get_members_no_filter__invited(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
         correct_get_data = {
@@ -322,7 +323,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
                 },
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": "1",
+                    "id": str(admin.id),
                     "userName": self.user.username,
                     "emails": [{"primary": True, "value": self.user.email, "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -338,6 +339,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     def test_get_members_no_filter__approved(self):
         user = self.create_user(email="test.user@okta.local")
         member = self.create_member(organization=self.organization, user=user)
+        admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=100")
         correct_get_data = {
@@ -348,7 +350,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
-                    "id": "1",
+                    "id": str(admin.id),
                     "userName": self.user.username,
                     "emails": [{"primary": True, "value": self.user.email, "type": "work"}],
                     "name": {"familyName": "N/A", "givenName": "N/A"},
@@ -405,6 +407,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22TEST.USER%40okta.local%22"
         )
+
         correct_get_data = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
             "totalResults": 1,
