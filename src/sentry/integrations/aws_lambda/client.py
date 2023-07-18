@@ -188,7 +188,7 @@ class AwsLambdaProxyClient(IntegrationProxyClient):
                 exception_cls = getattr(lambda_client.exceptions, class_name)
                 raise exception_cls()
 
-            return_response = response["return_response"]
+            return_response = validated_data["return_response"]
             return return_response
 
         return boto3_proxy_func

@@ -164,11 +164,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @patch.object(Integration, "get_installation")
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test_proxy_with_client_delegate(self, mock_get_installation):
-        global should_delegate_function_called
-        should_delegate_function_called = False
-        global delegate_function_called
-        delegate_function_called = False
-
         expected_proxy_payload = {
             "args": ["hello"],
             "kwargs": {"function_name": "lambdaE"},
@@ -182,13 +177,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
                 super().__init__(org_integration_id=org_integration_id)
 
             def should_delegate(self) -> bool:
-                global should_delegate_function_called
-                should_delegate_function_called = True
                 return True
 
             def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
-                global delegate_function_called
-                delegate_function_called = True
                 assert expected_proxy_payload == request.data
                 return JsonResponse(
                     data={
@@ -216,8 +207,6 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             f"{PROXY_BASE_PATH}/", **headers, data=expected_proxy_payload, format="json"
         )
 
-        assert should_delegate_function_called
-        assert delegate_function_called
         actual_response_payload = json.loads(proxy_response.content)
         assert actual_response_payload == {
             "function_name": "get_function",
