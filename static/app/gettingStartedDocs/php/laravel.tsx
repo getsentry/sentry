@@ -114,7 +114,7 @@ public function register() {
                 )}
               </p>
             ),
-            language: 'source-shell',
+            language: 'shell',
             code: 'php artisan sentry:test',
           },
         ],

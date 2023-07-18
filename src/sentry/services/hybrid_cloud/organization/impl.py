@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.dispatch import Signal
 
 from sentry import roles
@@ -228,7 +228,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             try:
                 org_member = OrganizationMember.objects.get(
                     user_id=user_id, organization_id=organization_id
@@ -290,7 +290,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
             Organization.outbox_for_update(org_id=organization_id).save()
 
@@ -322,7 +322,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
                 org_member = OrganizationMember.objects.filter(
@@ -406,7 +406,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             try:
                 org_member = OrganizationMember.objects.get(
                     organization_id=organization_id, user_id=user_id
@@ -451,7 +451,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for team in from_member.teams.all():
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
             except IntegrityError:
                 pass
@@ -470,13 +470,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_id=from_user_id, project__organization_id=organization_id
             ):
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(model)):
                         obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             # Flags are not replicated -- these updates are safe without outbox application.
             OrganizationMember.objects.filter(
                 organization_id=organization_id,
@@ -491,7 +491,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )

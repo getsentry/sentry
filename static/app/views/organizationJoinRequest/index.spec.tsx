@@ -6,6 +6,7 @@ import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 jest.mock('sentry/utils/analytics', () => ({
   trackAdhocEvent: jest.fn(),
 }));
+
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
@@ -17,7 +18,12 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('renders', function () {
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(
+      <OrganizationJoinRequest
+        {...TestStubs.routeComponentProps()}
+        params={{orgId: org.slug}}
+      />
+    );
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Email Address'})).toBeInTheDocument();
@@ -30,7 +36,12 @@ describe('OrganizationJoinRequest', function () {
       method: 'POST',
     });
 
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(
+      <OrganizationJoinRequest
+        {...TestStubs.routeComponentProps()}
+        params={{orgId: org.slug}}
+      />
+    );
 
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
@@ -55,7 +66,12 @@ describe('OrganizationJoinRequest', function () {
       statusCode: 400,
     });
 
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(
+      <OrganizationJoinRequest
+        {...TestStubs.routeComponentProps()}
+        params={{orgId: org.slug}}
+      />
+    );
 
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Address'}),
@@ -72,7 +88,12 @@ describe('OrganizationJoinRequest', function () {
 
   it('cancels', async function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+    render(
+      <OrganizationJoinRequest
+        {...TestStubs.routeComponentProps()}
+        params={{orgId: org.slug}}
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
