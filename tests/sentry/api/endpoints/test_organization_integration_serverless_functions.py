@@ -42,6 +42,58 @@ class AbstractServerlessTest(APITestCase):
     def sentry_dsn(self):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 
+    def set_up_response_mocks(self, get_function_response, update_function_configuration_kwargs):
+        responses.add(
+            responses.POST,
+            "http://controlserver/api/0/internal/integration-proxy/",
+            match=[
+                matchers.header_matcher(
+                    {
+                        "Content-Type": "application/json",
+                        "X-Sentry-Subnet-Organization-Integration": str(self.org_integration.id),
+                    },
+                ),
+                matchers.json_params_matcher(
+                    {
+                        "args": [],
+                        "function_name": "get_function",
+                        "kwargs": {
+                            "FunctionName": get_function_response["Configuration"]["FunctionName"],
+                        },
+                    }
+                ),
+            ],
+            json={
+                "function_name": "get_function",
+                "return_response": get_function_response,
+                "exception": None,
+            },
+        )
+        responses.add(
+            responses.POST,
+            "http://controlserver/api/0/internal/integration-proxy/",
+            match=[
+                matchers.header_matcher(
+                    {
+                        "Content-Type": "application/json",
+                        "X-Sentry-Subnet-Organization-Integration": str(self.org_integration.id),
+                    },
+                ),
+                matchers.json_params_matcher(
+                    {
+                        "args": [],
+                        "function_name": "update_function_configuration",
+                        "kwargs": update_function_configuration_kwargs,
+                    }
+                ),
+            ],
+            json={
+                "function_name": "update_function_configuration",
+                "return_response": {},
+                "exception": None,
+            },
+        )
+
 
 @region_silo_test(stable=True)
 @override_settings(
@@ -194,73 +246,25 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaD",
-                            },
-                        }
-                    ),
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaD",
+                "Layers": [
+                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
                 ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
+                "Environment": {
+                    "Variables": {
+                        "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                        "SENTRY_DSN": self.sentry_dsn,
+                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                    }
                 },
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaD",
-                                "Layers": [
-                                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                                ],
-                                "Environment": {
-                                    "Variables": {
-                                        "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-                                        "SENTRY_DSN": self.sentry_dsn,
-                                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                                    }
-                                },
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
+
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
@@ -311,74 +315,26 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaE",
-                            },
-                        }
-                    ),
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaE",
+                "Layers": [
+                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
                 ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
+                "Environment": {
+                    "Variables": {
+                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                        "SENTRY_DSN": self.sentry_dsn,
+                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                    }
                 },
+                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaE",
-                                "Layers": [
-                                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                                ],
-                                "Environment": {
-                                    "Variables": {
-                                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                                        "SENTRY_DSN": self.sentry_dsn,
-                                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                                    }
-                                },
-                                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
+
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
@@ -440,64 +396,16 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaD",
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
-                },
+            update_function_configuration_kwargs = {
+                "Environment": {"Variables": {"OTHER": "hi"}},
+                "FunctionName": "lambdaD",
+                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "Environment": {"Variables": {"OTHER": "hi"}},
-                                "FunctionName": "lambdaD",
-                                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
+
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
@@ -550,65 +458,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaF",
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
-                },
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaF",
+                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+                "Environment": {"Variables": {"OTHER": "hi"}},
+                "Handler": "lambda_handler.test_handler",
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaF",
-                                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-                                "Environment": {"Variables": {"OTHER": "hi"}},
-                                "Handler": "lambda_handler.test_handler",
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
+
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
@@ -662,68 +522,19 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaD",
-                            },
-                        }
-                    ),
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaD",
+                "Layers": [
+                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
                 ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
-                },
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaD",
-                                "Layers": [
-                                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                                ],
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
-        mock_client.get_function = MagicMock(return_value=get_function_response)
 
+        mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
             "name": "lambdaD",
@@ -743,6 +554,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             mock_client.get_function.assert_called_with(FunctionName="lambdaD")
 
             mock_client.update_function_configuration.assert_called_with(
+                # **update_function_configuration_kwargs
                 FunctionName="lambdaD",
                 Layers=[
                     "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
@@ -778,66 +590,18 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaG",
-                            },
-                        }
-                    ),
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaG",
+                "Layers": [
+                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
                 ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
-                },
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaG",
-                                "Layers": [
-                                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                                ],
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
-            )
+
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
         return_value = {
@@ -903,73 +667,24 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         }
 
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "get_function",
-                            "kwargs": {
-                                "FunctionName": "lambdaZ",
-                            },
-                        }
-                    ),
+            update_function_configuration_kwargs = {
+                "FunctionName": "lambdaZ",
+                "Layers": [
+                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
                 ],
-                json={
-                    "function_name": "get_function",
-                    "return_response": get_function_response,
-                    "exception": None,
+                "Environment": {
+                    "Variables": {
+                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                        "SENTRY_DSN": self.sentry_dsn,
+                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                    }
                 },
-            )
-            responses.add(
-                responses.POST,
-                "http://controlserver/api/0/internal/integration-proxy/",
-                match=[
-                    matchers.header_matcher(
-                        {
-                            "Content-Type": "application/json",
-                            "X-Sentry-Subnet-Organization-Integration": str(
-                                self.org_integration.id
-                            ),
-                        },
-                    ),
-                    matchers.json_params_matcher(
-                        {
-                            "args": [],
-                            "function_name": "update_function_configuration",
-                            "kwargs": {
-                                "FunctionName": "lambdaZ",
-                                "Layers": [
-                                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                                ],
-                                "Environment": {
-                                    "Variables": {
-                                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                                        "SENTRY_DSN": self.sentry_dsn,
-                                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                                    }
-                                },
-                                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-                            },
-                        }
-                    ),
-                ],
-                json={
-                    "function_name": "update_function_configuration",
-                    "return_response": {},
-                    "exception": None,
-                },
+                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+            }
+            self.set_up_response_mocks(
+                get_function_response=get_function_response,
+                update_function_configuration_kwargs=update_function_configuration_kwargs,
             )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
