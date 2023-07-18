@@ -97,6 +97,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+        from sentry.models.notificationsetting import NotificationSetting
 
         defaults = {"value": value.value}
         with configure_scope() as scope:
