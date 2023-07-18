@@ -15,7 +15,10 @@ class DiscordClient(IntegrationProxyClient):
     base_url: str = "https://discord.com/api/v10"
 
     # https://discord.com/developers/docs/resources/guild#get-guild
-    get_guild_url = "/guilds/{guild_id}"
+    GUILD_URL = "/guilds/{guild_id}"
+
+    # https://discord.com/developers/docs/resources/user#leave-guild
+    USERS_GUILD_URL = "/users/@me/guilds/{guild_id}"
 
     def __init__(
         self,
@@ -42,4 +45,10 @@ class DiscordClient(IntegrationProxyClient):
         """
         Normal version of get_guild_name that uses the regular auth flow.
         """
-        return self.get(self.get_guild_url.format(guild_id=guild_id))["name"]  # type:ignore
+        return self.get(self.GUILD_URL.format(guild_id=guild_id))["name"]  # type:ignore
+
+    def leave_guild(self, guild_id: str) -> None:
+        """
+        Leave the given guild_id, if the bot is currently a member.
+        """
+        self.delete(self.USERS_GUILD_URL.format(guild_id=guild_id))

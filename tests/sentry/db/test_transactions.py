@@ -99,16 +99,16 @@ class CaseMixin:
     def test_transaction_on_commit(self):
         def do_assertions():
             calls = []
-            transaction.on_commit(lambda: calls.append("a"))
+            transaction.on_commit(lambda: calls.append("a"), "default")
 
             with transaction.atomic("default"):
                 with transaction.atomic("default"):
                     with pytest.raises(AssertionError):
                         with transaction.atomic("default"):
-                            transaction.on_commit(lambda: calls.append("no go"))
+                            transaction.on_commit(lambda: calls.append("no go"), "default")
                             raise AssertionError("Oh no!")
-                    transaction.on_commit(lambda: calls.append("b"))
-                transaction.on_commit(lambda: calls.append("c"))
+                    transaction.on_commit(lambda: calls.append("b"), "default")
+                transaction.on_commit(lambda: calls.append("c"), "default")
                 assert calls == ["a"]
 
             assert calls == ["a", "b", "c"]

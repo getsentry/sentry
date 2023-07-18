@@ -116,7 +116,7 @@ export default function SpansTable({
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -192,25 +192,44 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
-function getDescriptionHeader(moduleName: ModuleName) {
+function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return 'Database Query';
+  }
+  if (spanCategory === 'cache') {
+    return 'Cache Query';
+  }
+  if (spanCategory === 'serialize') {
+    return 'Serializer';
+  }
+  if (spanCategory === 'middleware') {
+    return 'Middleware';
+  }
+  if (spanCategory === 'app') {
+    return 'Application Task';
+  }
+  if (moduleName === 'other') {
+    return 'Requests';
   }
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
-  const description = getDescriptionHeader(moduleName);
+function getColumns(
+  moduleName: ModuleName,
+  spanCategory?: string,
+  transaction?: string
+): Column[] {
+  const description = getDescriptionHeader(moduleName, spanCategory);
 
   const domain = getDomainHeader(moduleName);
 
   const order = [
     // We don't show the operation selector in specific modules, so there's no
     // point having that column
-    [ModuleName.ALL, ModuleName.NONE].includes(moduleName)
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
       ? {
           key: SPAN_OP,
           name: 'Operation',
