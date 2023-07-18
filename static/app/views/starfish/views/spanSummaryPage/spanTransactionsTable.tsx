@@ -39,7 +39,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<IndexedSpan, 'group'>;
+  span: Pick<IndexedSpan, 'group' | 'span.op'>;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
@@ -180,7 +180,9 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] => [
+const getColumnOrder = (
+  span: Pick<IndexedSpan, 'group' | 'span.op'>
+): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
