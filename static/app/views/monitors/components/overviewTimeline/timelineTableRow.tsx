@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -30,7 +30,7 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
   return (
-    <Fragment key={monitor.id}>
+    <TimelineRow key={monitor.id}>
       <MonitorDetails monitor={monitor} />
       <MonitorEnvContainer>
         {environments.map(({name}) => (
@@ -60,7 +60,7 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
           })}
         </TimelineContainer>
       )}
-    </Fragment>
+    </TimelineRow>
   );
 }
 
@@ -77,6 +77,22 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
     </DetailsContainer>
   );
 }
+
+const TimelineRow = styled('div')`
+  display: contents;
+
+  &:nth-child(odd) > * {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:hover > * {
+    background: ${p => p.theme.backgroundTertiary};
+  }
+
+  > * {
+    transition: background 50ms ease-in-out;
+  }
+`;
 
 const DetailsContainer = styled(Link)`
   color: ${p => p.theme.textColor};
