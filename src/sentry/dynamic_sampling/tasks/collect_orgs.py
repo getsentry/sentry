@@ -19,7 +19,7 @@ from sentry.tasks.base import instrumented_task
 )
 @dynamic_sampling_task
 def collect_orgs() -> None:
-    enabled = options.get("dynamic_sampling.tasks.collect_orgs") or False
+    enabled = options.get("dynamic-sampling.tasks.collect_orgs") or False
 
     if not enabled:
         return
