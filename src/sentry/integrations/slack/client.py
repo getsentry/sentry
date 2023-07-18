@@ -27,7 +27,7 @@ class SlackClient(IntegrationProxyClient):
 
     def __init__(
         self,
-        integration_id: int, | None = None,
+        integration_id: int | None = None,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
