@@ -10,7 +10,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.text import slugify
 
 from sentry import ratelimits
@@ -221,7 +221,7 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_config = params.pop("monitor_config", None)
 
             params["duration"] = (

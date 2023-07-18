@@ -6,7 +6,7 @@ import logging
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -263,7 +263,9 @@ class PushEventWebhook(Webhook):
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
-                                            with transaction.atomic():
+                                            with transaction.atomic(
+                                                router.db_for_write(CommitAuthor)
+                                            ):
                                                 commit_author.update(
                                                     email=author_email, external_id=external_id
                                                 )
@@ -299,7 +301,7 @@ class PushEventWebhook(Webhook):
 
                 if update_kwargs:
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(CommitAuthor)):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
@@ -308,7 +310,7 @@ class PushEventWebhook(Webhook):
 
             author.preload_users()
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,

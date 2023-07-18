@@ -15,7 +15,7 @@ import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
@@ -371,7 +371,7 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(organization=organization, **kwargs)
             if teams:
                 for team in teams:

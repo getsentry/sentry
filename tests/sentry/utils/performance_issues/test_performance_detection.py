@@ -413,7 +413,7 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 12
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -472,7 +472,7 @@ class PerformanceDetectionTest(TestCase):
             for call in incr_mock.mock_calls
             if call.args[0] == "performance.performance_issue.detected"
         ]
-        assert len(detection_calls) == 1
+        assert len(detection_calls) == 2
         tags = detection_calls[0].kwargs["tags"]
 
         assert tags["uncompressed_assets"]
