@@ -1,41 +1,33 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import splitCrumbs from 'sentry/components/replays/walker/splitCrumbs';
+import hydrateBreadcrumbs, {
+  replayInitBreadcrumb,
+} from 'sentry/utils/replays/hydrateBreadcrumbs';
 
-import splitCrumbs from './splitCrumbs';
+const replayRecord = TestStubs.ReplayRecord({});
 
-const PAGELOAD_CRUMB = TestStubs.Breadcrumb({
-  id: 4,
-  data: {
-    to: 'https://sourcemaps.io/',
-  },
-}) as Crumb;
+const INIT_FRAME = replayInitBreadcrumb(replayRecord);
 
-const NAV_CRUMB_BOOTSTRAP = TestStubs.Breadcrumb({
-  id: 5,
-  data: {
-    from: '/',
-    to: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
-  },
-}) as Crumb;
-
-const NAV_CRUMB_UNDERSCORE = TestStubs.Breadcrumb({
-  id: 6,
-  data: {
-    from: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
-    to: '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js',
-  },
-}) as Crumb;
+const [BOOTSTRAP_FRAME, UNDERSCORE_FRAME] = hydrateBreadcrumbs(replayRecord, [
+  TestStubs.Replay.NavFrame({
+    timestamp: new Date(),
+    data: {
+      from: '/',
+      to: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
+    },
+  }),
+]);
 
 describe('splitCrumbs', () => {
   const onClick = null;
   const startTimestampMs = 0;
 
   it('should accept an empty list, and print that there are zero pages', () => {
-    const crumbs = [];
+    const frames = [];
 
     const results = splitCrumbs({
-      crumbs,
+      frames,
       onClick,
       startTimestampMs,
     });
@@ -46,10 +38,10 @@ describe('splitCrumbs', () => {
   });
 
   it('should accept one crumb and return that single segment', () => {
-    const crumbs = [PAGELOAD_CRUMB];
+    const frames = [INIT_FRAME];
 
     const results = splitCrumbs({
-      crumbs,
+      frames,
       onClick,
       startTimestampMs,
     });
@@ -60,10 +52,10 @@ describe('splitCrumbs', () => {
   });
 
   it('should accept three crumbs and return them all as individual segments', () => {
-    const crumbs = [PAGELOAD_CRUMB, NAV_CRUMB_BOOTSTRAP, NAV_CRUMB_UNDERSCORE];
+    const frames = [INIT_FRAME, BOOTSTRAP_FRAME, UNDERSCORE_FRAME];
 
     const results = splitCrumbs({
-      crumbs,
+      frames,
       onClick,
       startTimestampMs,
     });
@@ -88,16 +80,16 @@ describe('splitCrumbs', () => {
   });
 
   it('should accept more than three crumbs and summarize the middle ones', () => {
-    const crumbs = [
-      PAGELOAD_CRUMB,
-      NAV_CRUMB_BOOTSTRAP,
-      NAV_CRUMB_BOOTSTRAP,
-      NAV_CRUMB_BOOTSTRAP,
-      NAV_CRUMB_UNDERSCORE,
+    const frames = [
+      INIT_FRAME,
+      BOOTSTRAP_FRAME,
+      BOOTSTRAP_FRAME,
+      BOOTSTRAP_FRAME,
+      UNDERSCORE_FRAME,
     ];
 
     const results = splitCrumbs({
-      crumbs,
+      frames,
       onClick,
       startTimestampMs,
     });
@@ -118,16 +110,16 @@ describe('splitCrumbs', () => {
   });
 
   it('should show the summarized items on hover', async () => {
-    const crumbs = [
-      PAGELOAD_CRUMB,
-      {...NAV_CRUMB_BOOTSTRAP, id: 1},
-      {...NAV_CRUMB_BOOTSTRAP, id: 2},
-      {...NAV_CRUMB_BOOTSTRAP, id: 3},
-      NAV_CRUMB_UNDERSCORE,
+    const frames = [
+      INIT_FRAME,
+      BOOTSTRAP_FRAME,
+      BOOTSTRAP_FRAME,
+      BOOTSTRAP_FRAME,
+      UNDERSCORE_FRAME,
     ];
 
     const results = splitCrumbs({
-      crumbs,
+      frames,
       onClick,
       startTimestampMs,
     });
