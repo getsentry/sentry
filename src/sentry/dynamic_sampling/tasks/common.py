@@ -65,6 +65,8 @@ class LogStateCallable(Protocol):
     def __call__(self, state: DynamicSamplingLogState, *args, **kwargs) -> Any:
         ...
 
+    __name__: str
+
 
 def timed_function(name=None):
     def timed_function_decorator(inner: LogStateCallable):
@@ -486,7 +488,10 @@ class GetActiveOrgsVolumes:
                     ],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                            # Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                            Column("timestamp"),
+                            Op.GTE,
+                            datetime.utcnow() - timedelta(hours=1),
                         ),
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),

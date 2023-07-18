@@ -6,6 +6,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
+    GetActiveOrgsVolumes,
     TimedIterator,
     TimeoutException,
     timed_function,
@@ -220,3 +221,64 @@ def test_timed_function_correctly_raises_when_task_expires():
 
         # the tick should not advance ( the function should not have been called)
         assert t.current() == 2.0
+
+
+NOW_ISH = timezone.now().replace(second=0, microsecond=0)
+
+
+@freeze_time(MOCK_DATETIME)
+class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    def setUp(self):
+        # create 12 orgs each and some transactions with a 2/1 drop/keep rate
+        for i in range(12):
+            org = self.create_organization(f"org-{i}")
+            project = self.create_project(organization=org)
+            for decision, value in [("drop", 2), ("keep", 1)]:
+                self.store_performance_metric(
+                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    tags={"transaction": "foo_transaction", "decision": decision},
+                    minutes_before_now=1,
+                    value=value,
+                    project_id=project.id,
+                    org_id=org.id,
+                )
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def test_get_active_orgs_volumes_exact_batch_match(self):
+        """
+        gets active org volumes, with a batch size multiple of
+        number of elements
+        """
+        total_orgs = 0
+        for orgs in GetActiveOrgsVolumes(max_orgs=3):
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            assert num_orgs == 3  # first batch should be full
+            for org in orgs:
+                assert org.total == 3
+                assert org.indexed == 1
+        assert total_orgs == 12
+
+    def test_get_active_orgs_volumes(self):
+        """
+        gets active org volumes, with a batch size that is not a multiple
+        of the number of elements in the DB
+        """
+        total_orgs = 0
+        for idx, orgs in enumerate(GetActiveOrgsVolumes(max_orgs=5)):
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            if idx in [0, 1]:
+                assert num_orgs == 5  # first two batches should be full
+            elif idx == 2:
+                assert num_orgs == 2  # last batch not full
+            else:
+                pytest.fail(f"Unexpected index {idx} only 3 iterations expected.")
+            for org in orgs:
+                assert org.total == 3
+                assert org.indexed == 1
+
+        assert total_orgs == 12
