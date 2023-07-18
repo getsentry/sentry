@@ -76,7 +76,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 
 
 @dataclass
-class BetterPriorityParams:
+class PriorityParams:
     # (event or issue age_hours) / (event or issue halflife hours)
     # any event or issue age that is greater than max_pow times the half-life hours will get clipped
     max_pow: int
@@ -238,7 +238,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
-        replace_better_priority_aggregation: Optional[bool] = False,
+        replace_priority_aggregation: Optional[bool] = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -249,8 +249,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_better_priority_aggregation and alias == "better_priority":
-                aggregation = self.aggregation_defs["better_priority_issue_platform"]
+            if replace_priority_aggregation and alias == "priority":
+                aggregation = self.aggregation_defs["priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -302,11 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if (
-            sort_field == "better_priority"
-            and group_category is not GroupCategory.ERROR.value
-            and features.has("organizations:issue-list-better-priority-sort", organization)
-        ):
+        if sort_field == "priority" and group_category is not GroupCategory.ERROR.value:
             aggregations = self._prepare_aggregations(
                 sort_field, start, end, having, aggregate_kwargs, True
             )
@@ -504,13 +500,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def better_priority_aggregation(
+def priority_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    return better_priority_aggregation_impl(
-        BetterPriorityParams(
+    return priority_aggregation_impl(
+        PriorityParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -530,13 +526,13 @@ def better_priority_aggregation(
     )
 
 
-def better_priority_issue_platform_aggregation(
+def priority_issue_platform_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    return better_priority_aggregation_impl(
-        BetterPriorityParams(
+    return priority_aggregation_impl(
+        PriorityParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -556,8 +552,8 @@ def better_priority_issue_platform_aggregation(
     )
 
 
-def better_priority_aggregation_impl(
-    params: BetterPriorityParams,
+def priority_aggregation_impl(
+    params: PriorityParams,
     timestamp_column: str,
     use_stacktrace: bool,
     start: datetime,
@@ -701,20 +697,17 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
-        "betterPriority": "better_priority",
     }
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
+        "priority": priority_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "better_priority": better_priority_aggregation,
-        "better_priority_issue_platform": better_priority_issue_platform_aggregation,
+        "priority_issue_platform": priority_issue_platform_aggregation,
     }
 
     @property

@@ -4,13 +4,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectTeam,
     Release,
     ReleaseProject,
     ReleaseProjectEnvironment,
     Team,
 )
 from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase

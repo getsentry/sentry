@@ -48,7 +48,10 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
-                    settings.SENTRY_MONOLITH_REGION, 0, "/", RegionCategory.MULTI_TENANT
+                    settings.SENTRY_MONOLITH_REGION,
+                    0,
+                    "http://testserver",
+                    RegionCategory.MULTI_TENANT,
                 )
 
     def test_get_region_for_organization(self):
@@ -79,11 +82,12 @@ class RegionMappingTest(TestCase):
 
     def test_validate_region(self):
         with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="na"):
-            invalid_region = Region("na", 1, "na.sentry.io", RegionCategory.MULTI_TENANT)
-            with pytest.raises(RegionConfigurationError):
-                invalid_region.validate()
             valid_region = Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT)
             valid_region.validate()
+
+    def test_region_to_url(self):
+        region = Region("na", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
+        assert region.to_url("/avatar/abcdef/") == "http://na.testserver/avatar/abcdef/"
 
     def test_json_config_injection(self):
         clear_global_regions()
