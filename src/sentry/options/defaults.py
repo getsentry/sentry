@@ -1392,4 +1392,4 @@ register(
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
 # Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic_sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
