@@ -426,7 +426,7 @@ const RowHeader = styled('span')<{
   stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
@@ -437,12 +437,9 @@ const RowHeader = styled('span')<{
   color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
   font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
-  ${p =>
-    p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr auto auto;
-    ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
+    grid-template-columns: auto 150px 120px 4fr auto auto ${space(2)};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
