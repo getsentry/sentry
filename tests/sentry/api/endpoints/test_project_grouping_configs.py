@@ -3,25 +3,27 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.models import ApiToken
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupingConfigsPermissionsTest(APITestCase):
 
     endpoint = "sentry-api-0-project-grouping-configs"
 
     def test_permissions(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=[])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=[])
         url = reverse(self.endpoint, args=(self.project.organization.slug, self.project.slug))
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
         assert response.status_code == 403
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupingConfigsTest(APITestCase):
 
     endpoint = "sentry-api-0-project-grouping-configs"
