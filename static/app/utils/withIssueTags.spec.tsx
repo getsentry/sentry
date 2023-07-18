@@ -113,7 +113,7 @@ describe('withIssueTags HoC', function () {
     });
 
     expect(screen.getByTestId('Suggested Values')).toHaveTextContent(
-      'me, [me, none], #best-team'
+      'me, my_teams, [me, my_teams, none], #best-team'
     );
 
     expect(screen.getByTestId('All Values')).toHaveTextContent(
