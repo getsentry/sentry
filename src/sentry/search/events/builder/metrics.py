@@ -50,6 +50,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+    is_timeseries_query = False
     organization_column: str = "organization_id"
 
     def __init__(
@@ -98,7 +99,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
         field = selected_cols[0] if selected_cols else None
-        if not self.is_alerts_query or not field:
+        if not field:
             return None
 
         if not is_on_demand_query(dataset, field, query):
@@ -111,13 +112,18 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
-        if not self.is_performance or not self.is_alerts_query:
-            return None
-
         spec = self._on_demand_spec
 
+        # TimeseriesQueryBuilder specific parameters
+        if self.is_timeseries_query:
+            limit = None
+            alias = "count"
+        else:
+            limit = self.limit
+            alias = spec.mri
+
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=spec.mri)],
+            select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=[
                 Condition(
                     lhs=Column(QUERY_HASH_KEY),
@@ -125,16 +131,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     rhs=spec.query_hash(),
                 ),
             ],
-            # TODO(ogi): groupby and orderby
-            limit=self.limit,
+            limit=limit,
             offset=self.offset,
             granularity=self.resolve_granularity(),
             is_alerts_query=self.is_alerts_query,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
-            # We do not need the series here, as later, we only extract the totals and assign it to the
-            # request.query
-            include_series=False,
+            include_series=True,
             start=self.params.start,
             end=self.params.end,
         )
@@ -768,7 +771,6 @@ class MetricsQueryBuilder(QueryBuilder):
                         metric_query = transform_mqb_query_to_metrics_query(
                             self.get_metrics_layer_snql_query().query, self.is_alerts_query
                         )
-                    # metric_query.where = metric_query_ondemand.where
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
@@ -792,7 +794,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     data.update(group["totals"])
                     metric_layer_result["data"].append(data)
                     for meta in metric_layer_result["meta"]:
-                        if data[meta["name"]] is None:
+                        if data.get(meta["name"]) is None:
                             data[meta["name"]] = self.get_default_value(meta["type"])
 
             return metric_layer_result
@@ -1038,6 +1040,7 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
+    is_timeseries_query = True
 
     def __init__(
         self,
@@ -1180,7 +1183,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1189,13 +1192,16 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        snuba_query, self.is_alerts_query
-                    )
+                    if self._on_demand_spec:
+                        metrics_query = self._get_on_demand_metrics_query()
+                    else:
+                        metrics_query = transform_mqb_query_to_metrics_query(
+                            snuba_query, self.is_alerts_query
+                        )
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
-                        metrics_query=metric_query,
+                        metrics_query=metrics_query,
                         use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
                         else UseCaseID.SESSIONS,
