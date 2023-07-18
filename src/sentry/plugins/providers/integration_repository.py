@@ -4,7 +4,7 @@ import logging
 from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
@@ -112,7 +112,7 @@ class IntegrationRepositoryProvider:
             repo.save()
         else:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Repository)):
                     repo = Repository.objects.create(
                         organization_id=organization.id, name=result["name"], **repo_update_params
                     )

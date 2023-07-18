@@ -49,8 +49,8 @@ export function getDateFromUnixTimestamp(timestamp: number) {
 }
 
 export function getXAxisDates(
-  dateStart: string,
-  dateEnd: string,
+  dateStart: moment.MomentInput,
+  dateEnd: moment.MomentInput,
   dateUtc: boolean = false,
   interval: IntervalPeriod = '1d'
 ): string[] {

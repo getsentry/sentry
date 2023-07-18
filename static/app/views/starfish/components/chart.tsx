@@ -393,7 +393,7 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 0} : undefined}
+                legend={showLegend ? {top: 0, right: 10} : undefined}
                 onClick={onClick}
                 onMouseOut={onMouseOut}
                 onMouseOver={onMouseOver}
@@ -434,7 +434,7 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 0} : undefined}
+                legend={showLegend ? {top: 0, right: 10} : undefined}
                 onClick={onClick}
               />
             );

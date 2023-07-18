@@ -7,7 +7,7 @@ from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
@@ -180,7 +180,9 @@ def save_issue_from_occurrence(
             "issues.save_issue_from_occurrence.transaction",
             tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
             sample_rate=1.0,
-        ) as metric_tags, transaction.atomic():
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
             group, is_new = _save_grouphash_and_group(
                 project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
             )

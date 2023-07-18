@@ -34,7 +34,7 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         class FakeTransactionModule:
             @staticmethod
             @contextlib.contextmanager
-            def atomic():
+            def atomic(*args, **kwds):
                 yield
 
         # Disable transaction isolation just within event manager, but not in

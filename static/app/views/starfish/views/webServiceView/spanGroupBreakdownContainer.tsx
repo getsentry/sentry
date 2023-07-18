@@ -72,7 +72,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       ['span.category']
     ),
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.span-category-breakdown',
+    referrer: 'api.starfish-web-service.span-category-breakdown',
     location,
     limit: 4,
   });
@@ -86,7 +86,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       []
     ),
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.total-time',
+    referrer: 'api.starfish-web-service.total-time',
     location,
   });
 
@@ -105,7 +105,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       true
     ),
     enabled: true,
-    referrer: 'starfish-web-service.span-category-breakdown-timeseries',
+    referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
     initialData: [],
   });
 

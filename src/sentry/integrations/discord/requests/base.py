@@ -85,7 +85,7 @@ class DiscordRequest:
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
 
-        self._error("discord.interactions.auth")
+        self._info("discord.interactions.auth")
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
     def _validate_data(self) -> None:
