@@ -34,7 +34,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             return self.respond({"type": 1}, status=200)
 
         elif discord_request.is_command():
-            # temporary response to example command
+            # Temporary response to example command
             return self.respond(
                 {
                     "type": 4,
