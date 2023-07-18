@@ -56,11 +56,6 @@ class DiscordClient(IntegrationProxyClient):
         """
         self.delete(self.USERS_GUILD_URL.format(guild_id=guild_id))
 
-    def get_application_commands(self) -> list[object]:
-        return self.get(
-            self.APPLICATION_COMMANDS.format(application_id=self.application_id)
-        )  # type:ignore
-
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
             self.APPLICATION_COMMANDS.format(application_id=self.application_id),
