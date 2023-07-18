@@ -17,6 +17,13 @@ const [BOOTSTRAP_FRAME, UNDERSCORE_FRAME] = hydrateBreadcrumbs(replayRecord, [
       to: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
     },
   }),
+  TestStubs.Replay.NavFrame({
+    timestamp: new Date(),
+    data: {
+      from: '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
+      to: '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js',
+    },
+  }),
 ]);
 
 describe('splitCrumbs', () => {
