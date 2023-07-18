@@ -1,5 +1,7 @@
 from html import escape
 
+from django.db import router
+
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models import PlatformExternalIssue
@@ -13,6 +15,7 @@ class Creator(Mediator):
     web_url = Param(str)
     project = Param(str)
     identifier = Param(str)
+    using = router.db_for_write(PlatformExternalIssue)
 
     def call(self):
         self._create_external_issue()

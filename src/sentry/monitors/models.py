@@ -79,6 +79,10 @@ class MonitorEnvironmentLimitsExceeded(Exception):
     pass
 
 
+class MonitorEnvironmentValidationFailed(Exception):
+    pass
+
+
 def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, last_checkin)
@@ -447,6 +451,9 @@ class MonitorEnvironmentManager(BaseManager):
         if not environment_name:
             environment_name = "production"
 
+        if not Environment.is_valid_name(environment_name):
+            raise MonitorEnvironmentValidationFailed("Environment name too long")
+
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -480,7 +487,16 @@ class MonitorEnvironment(Model):
     def get_audit_log_data(self):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+    def get_last_successful_checkin(self):
+        return (
+            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
+            .order_by("-date_added")
+            .first()
+        )
+
+    def mark_failed(
+        self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
+    ):
         from sentry.signals import monitor_environment_failed
 
         if last_checkin is None:
@@ -529,7 +545,16 @@ class MonitorEnvironment(Model):
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
 
-            occurrence_data = get_occurrence_data(reason)
+            if not occurrence_context:
+                occurrence_context = {}
+
+            occurrence_data = get_occurrence_data(reason, **occurrence_context)
+
+            # Get last successful check-in to show in evidence display
+            last_successful_checkin_timestamp = "None"
+            last_successful_checkin = self.get_last_successful_checkin()
+            if last_successful_checkin:
+                last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
@@ -541,14 +566,16 @@ class MonitorEnvironment(Model):
                 ],
                 type=occurrence_data["group_type"],
                 issue_title=f"Monitor failure: {self.monitor.name}",
-                subtitle="",
+                subtitle=occurrence_data["subtitle"],
                 evidence_display=[
                     IssueEvidence(
                         name="Failure reason", value=occurrence_data["reason"], important=True
                     ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
-                        name="Last check-in", value=last_checkin.isoformat(), important=False
+                        name="Last successful check-in",
+                        value=last_successful_checkin_timestamp,
+                        important=False,
                     ),
                 ],
                 evidence_data={},
@@ -613,13 +640,30 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_occurrence_data(reason: str):
+def get_occurrence_data(reason: str, **kwargs):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return {"group_type": MonitorCheckInMissed, "level": "warning", "reason": "missed_checkin"}
+        expected_time = kwargs.get("expected_time", "the expected time")
+        return {
+            "group_type": MonitorCheckInMissed,
+            "level": "warning",
+            "reason": "missed_checkin",
+            "subtitle": f"No check-in reported on {expected_time}.",
+        }
     elif reason == MonitorFailure.DURATION:
-        return {"group_type": MonitorCheckInTimeout, "level": "error", "reason": "duration"}
+        timeout = kwargs.get("timeout", 30)
+        return {
+            "group_type": MonitorCheckInTimeout,
+            "level": "error",
+            "reason": "duration",
+            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
+        }
 
-    return {"group_type": MonitorCheckInFailure, "level": "error", "reason": "error"}
+    return {
+        "group_type": MonitorCheckInFailure,
+        "level": "error",
+        "reason": "error",
+        "subtitle": "An error occurred during the latest check-in.",
+    }
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

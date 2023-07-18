@@ -1,12 +1,12 @@
 from urllib.parse import parse_qs, urlparse
 
 import responses
+from django.db import router
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -70,7 +70,9 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
-        with in_test_psql_role_override("postgres"), assume_test_silo_mode(SiloMode.REGION):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)), assume_test_silo_mode(
+            SiloMode.REGION
+        ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"
             )

@@ -283,7 +283,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 # if a member already belongs to a team, do nothing
                 continue
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
                 self.create_audit_entry(
                     request=request,
@@ -296,7 +296,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def _remove_members_operation(self, request: Request, member_id, team):
         member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
@@ -410,7 +410,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                 team.idp_provisioned = True
                 team.save()
 
@@ -428,7 +428,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         if path == "members":
                             # delete all the current team members
                             # and replace with the ones in the operation list
-                            with transaction.atomic():
+                            with transaction.atomic(router.db_for_write(OrganizationMember)):
                                 queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
                                 queryset.delete()
                                 self._add_members_operation(request, operation, team)

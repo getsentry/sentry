@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -29,19 +29,21 @@ export function DomainSelector({
   moduleName = ModuleName.ALL,
   spanCategory,
 }: Props) {
-  // TODO: This only returns the top 25 domains. It should either load them all, or paginate, or allow searching
+  // TODO: This only returns the top 100 domains. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains} = useSpansQuery<{'span.domain': string}[]>({
     eventView,
     initialData: [],
+    limit: 100,
+    referrer: 'api.starfish.get-span-domains',
   });
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => {
+    ...(domains ?? []).map(datum => {
       if (datum[SPAN_DOMAIN] === '') {
         return {
           value: EMPTY_OPTION_VALUE,
@@ -53,13 +55,11 @@ export function DomainSelector({
         label: datum['span.domain'],
       };
     }),
-  ];
+  ].sort((a, b) => a.value.localeCompare(b.value));
 
   return (
-    <CompactSelect
-      triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
-      }}
+    <SelectControl
+      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -67,7 +67,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            'span.domain': newValue.value,
+            [SPAN_DOMAIN]: newValue.value,
           },
         });
       }}

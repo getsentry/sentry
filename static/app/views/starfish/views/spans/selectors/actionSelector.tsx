@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -36,17 +36,18 @@ export function ActionSelector({
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<[{'span.action': string}]>({
+  const {data: actions} = useSpansQuery<{'span.action': string}[]>({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
+    referrer: 'api.starfish.get-span-actions',
   });
 
   const options = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
-        ...actions.map(datum => {
+        ...(actions ?? []).map(datum => {
           if (datum[SPAN_ACTION] === '') {
             return {
               value: EMPTY_OPTION_VALUE,
@@ -61,10 +62,8 @@ export function ActionSelector({
       ];
 
   return (
-    <CompactSelect
-      triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
-      }}
+    <SelectControl
+      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {
