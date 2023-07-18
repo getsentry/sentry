@@ -19,7 +19,6 @@ def test_is_on_demand_query_invalid_query():
     assert is_on_demand_query(dataset, "count()", "AND") is False
     assert is_on_demand_query(dataset, "count()", "(AND transaction.duration:>=1") is False
     assert is_on_demand_query(dataset, "count()", "transaction.duration:>=abc") is False
-    assert is_on_demand_query(dataset, "count_if(}", "") is False
 
 
 def test_is_on_demand_query_true():

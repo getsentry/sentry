@@ -135,7 +135,6 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # event.type is accepted as a valid search field but it will not me converted to a condition for metric extraction
     "event.type",
 ]
 
@@ -307,7 +306,7 @@ class OndemandMetricSpec:
 
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filter from the query since it can't be translated to a RuleCondition.
-        self._query = re.sub(r"event\.type:transaction\s*", "", query).strip()
+        self._query = re.sub(r"event\.type:transaction\s*", "", query)
         self._init_aggregate(field)
 
     def _init_aggregate(self, aggregate: str) -> None:
