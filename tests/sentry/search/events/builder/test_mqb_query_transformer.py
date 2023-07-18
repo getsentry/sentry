@@ -11,6 +11,10 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry.search.events.builder.mqb_query_transformer import (
+    MQBQueryTransformationException,
+    transform_mqb_query_to_metrics_query,
+)
 from sentry.snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -18,10 +22,6 @@ from sentry.snuba.metrics import (
     MetricOrderByField,
     MetricsQuery,
     TransactionMRI,
-)
-from sentry.snuba.metrics.mqb_query_transformer import (
-    MQBQueryTransformationException,
-    transform_mqb_query_to_metrics_query,
 )
 
 """

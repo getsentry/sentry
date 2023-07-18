@@ -755,10 +755,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer or self._on_demand_spec:
-            from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
+            from sentry.search.events.builder.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
+            from sentry.snuba.metrics.datasource import get_series
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
@@ -955,10 +955,10 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         """
 
         if self.use_metrics_layer or self._on_demand_spec:
-            from sentry.snuba.metrics import SnubaQueryBuilder
-            from sentry.snuba.metrics.mqb_query_transformer import (
+            from sentry.search.events.builder.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
+            from sentry.snuba.metrics import SnubaQueryBuilder
 
             snuba_request = self.get_metrics_layer_snql_query()
 
@@ -1181,10 +1181,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         if self.use_metrics_layer:
-            from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
+            from sentry.search.events.builder.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
+            from sentry.snuba.metrics.datasource import get_series
 
             snuba_query = self.get_snql_query()[0].query
             try:

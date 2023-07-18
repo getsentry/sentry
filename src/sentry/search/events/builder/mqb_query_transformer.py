@@ -1,24 +1,25 @@
 import inspect
 from typing import Set
 
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op
-from snuba_sdk.query import Query
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op, Query
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
+    DERIVED_OPS,
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
+    FUNCTION_ALLOWLIST,
     OPERATIONS,
     DerivedMetricException,
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
     TransactionMRI,
+    metric_object_factory,
 )
-from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
-from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
-from sentry.snuba.metrics.query import MetricOrderByField
-from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
-from sentry.snuba.metrics.query import MetricsQuery
-from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 
 TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
@@ -248,7 +249,7 @@ def _transform_orderby(query_orderby):
             except DerivedMetricException as e:
                 raise MQBQueryTransformationException(e)
 
-            metric_order_by = MetricOrderBy(
+            metric_order_by = MetricOrderByField(
                 field=transformed_field, direction=orderby_field.direction
             )
 
