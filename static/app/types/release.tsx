@@ -37,11 +37,24 @@ export type Deploy = {
   version: string;
 };
 
+interface RawVersion {
+  raw: string;
+}
+
+interface SemverVerison extends RawVersion {
+  buildCode: string | null;
+  components: number;
+  major: number;
+  minor: number;
+  patch: number;
+  pre: string | null;
+}
+
 export type VersionInfo = {
   buildHash: string | null;
   description: string;
   package: string | null;
-  version: {raw: string};
+  version: RawVersion | SemverVerison;
 };
 
 export interface BaseRelease {
