@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -152,6 +151,7 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
+    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -161,15 +161,17 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label: t('The current release'),
-        details: actionTitle ? (
-          actionTitle
-        ) : latestRelease ? (
-          <Fragment>
-            {formatVersion(latestRelease.version)}{' '}
-            {isSemver ? t('(semver)') : t('(timestamp)')}
-          </Fragment>
-        ) : null,
+        label:
+          hasIssueResolveSemver || !latestRelease
+            ? t('The current release')
+            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        details: actionTitle
+          ? actionTitle
+          : hasIssueResolveSemver && latestRelease
+          ? `${formatVersion(latestRelease.version)} (${
+              isSemver ? t('semver') : t('timestamp')
+            })`
+          : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
