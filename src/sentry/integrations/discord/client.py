@@ -21,7 +21,7 @@ class DiscordClient(IntegrationProxyClient):
     USERS_GUILD_URL = "/users/@me/guilds/{guild_id}"
 
     # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
-    application_commands = "/applications/{application_id}/commands"
+    APPLICATION_COMMANDS = "/applications/{application_id}/commands"
 
     def __init__(
         self,
@@ -58,11 +58,11 @@ class DiscordClient(IntegrationProxyClient):
 
     def get_application_commands(self) -> list[object]:
         return self.get(
-            self.application_commands.format(application_id=self.application_id)
+            self.APPLICATION_COMMANDS.format(application_id=self.application_id)
         )  # type:ignore
 
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
-            self.application_commands.format(application_id=self.application_id),
+            self.APPLICATION_COMMANDS.format(application_id=self.application_id),
             data=commands,
         )

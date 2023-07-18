@@ -131,7 +131,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def test_setup(self):
         provider = self.provider()
 
-        url = f"{DiscordClient.base_url}{DiscordClient.application_commands.format(application_id=self.application_id)}"
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
         responses.add(
             responses.PUT,
             url=url,
