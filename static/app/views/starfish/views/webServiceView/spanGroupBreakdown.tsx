@@ -110,7 +110,9 @@ export function SpanGroupBreakdown({
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {isEndpointBreakdownView ? t('Endpoint Breakdown') : t('Service Breakdown')}
+            {isEndpointBreakdownView
+              ? t('Endpoint Breakdown')
+              : t('Time Spent Breakdown')}
           </ChartLabel>
           {hasDropdownFeatureFlag && (
             <CompactSelect
