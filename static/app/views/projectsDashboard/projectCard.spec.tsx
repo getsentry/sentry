@@ -21,7 +21,8 @@ describe('ProjectCard', function () {
           ],
           platform: 'javascript',
         })}
-        params={{orgId: 'org-slug'}}
+        hasProjectAccess={false}
+        api={new MockApiClient()}
       />
     );
 
@@ -61,7 +62,8 @@ describe('ProjectCard', function () {
           platform: 'javascript',
           latestDeploys,
         })}
-        params={{orgId: 'org-slug'}}
+        hasProjectAccess={false}
+        api={new MockApiClient()}
       />
     );
 
@@ -95,7 +97,8 @@ describe('ProjectCard', function () {
           ],
           platform: 'javascript',
         })}
-        params={{orgId: 'org-slug'}}
+        hasProjectAccess={false}
+        api={new MockApiClient()}
       />
     );
 
@@ -121,7 +124,8 @@ describe('ProjectCard', function () {
           ],
           platform: 'javascript',
         })}
-        params={{orgId: 'org-slug'}}
+        hasProjectAccess={false}
+        api={new MockApiClient()}
       />
     );
 
@@ -135,7 +139,8 @@ describe('ProjectCard', function () {
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project()}
-        params={{orgId: 'org-slug'}}
+        hasProjectAccess={false}
+        api={new MockApiClient()}
       />
     );
 
