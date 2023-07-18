@@ -334,7 +334,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self,response: Response | None = None, error: Exception | None = None):
+    def record_response(self, response: Response | None = None, error: Exception | None = None):
         if not self.integration_id:
             return
         if self.is_response_error(response, error):
