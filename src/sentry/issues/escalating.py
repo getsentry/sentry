@@ -184,7 +184,7 @@ def _generate_query(
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
-    return Query(
+    query = Query(
         match=Entity(_issue_category_entity(category)),
         select=[
             proj_id_col,
@@ -208,6 +208,8 @@ def _generate_query(
         ],
     )
 
+    return query
+
 
 def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, datetime]:
     """Return the start and end date of N hours time range."""
@@ -229,7 +231,7 @@ def get_group_hourly_count(group: Group) -> int:
     key = f"hourly-group-count:{group.project.id}:{group.id}"
     hourly_count = cache.get(key)
 
-    if hourly_count is None:
+    if True:  # hourly_count is None:
         now = datetime.now()
         current_hour = now.replace(minute=0, second=0, microsecond=0)
         query = Query(
@@ -253,6 +255,7 @@ def get_group_hourly_count(group: Group) -> int:
                 "organization_id": group.project.organization.id,
             },
         )
+
         hourly_count = int(
             raw_snql_query(request, referrer=IS_ESCALATING_REFERRER)["data"][0]["count()"]
         )

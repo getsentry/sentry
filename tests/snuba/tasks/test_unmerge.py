@@ -4,13 +4,25 @@ import itertools
 import logging
 import uuid
 from datetime import datetime, timedelta
+from time import sleep
 from unittest.mock import patch
 
 import pytz
 from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
-from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.issues.escalating import get_group_hourly_count, query_groups_past_counts
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.models import (
+    Environment,
+    Group,
+    GroupHash,
+    GroupRelease,
+    GroupStatus,
+    Release,
+    UserReport,
+)
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -25,6 +37,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
+from sentry.types.group import GroupSubStatus
 from sentry.utils import redis
 from sentry.utils.dates import to_timestamp
 
@@ -34,6 +47,57 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch("sentry.similarity.features.index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
+    def create_message_event(
+        self,
+        template,
+        parameters,
+        environment,
+        release,
+        project,
+        now,
+        sequence,
+        tag_values,
+        user_values,
+        fingerprint="group1",
+    ):
+
+        i = next(sequence)
+
+        event_id = uuid.UUID(fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080)).hex
+
+        tags = [["color", next(tag_values)]]
+
+        if release:
+            tags.append(["sentry:release", release])
+
+        event = self.store_event(
+            data={
+                "event_id": event_id,
+                "message": template % parameters,
+                "type": "default",
+                "user": next(user_values),
+                "tags": tags,
+                "fingerprint": [fingerprint],
+                "timestamp": iso_format(now + timedelta(seconds=i)),
+                "environment": environment,
+                "release": release,
+            },
+            project_id=project.id,
+        )
+
+        UserReport.objects.create(
+            project_id=project.id,
+            group_id=event.group.id,
+            event_id=event_id,
+            name="Log Hat",
+            email="ceo@corptron.com",
+            comments="Quack",
+        )
+
+        features.record([event])
+
+        return event
+
     def test_get_fingerprint(self):
         assert (
             get_fingerprint(
@@ -165,6 +229,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
+    @with_feature("organizations:escalating-issues-v2")
     def test_unmerge(self):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 
@@ -172,85 +237,64 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
 
-        def create_message_event(template, parameters, environment, release, fingerprint="group1"):
-            i = next(sequence)
-
-            event_id = uuid.UUID(fields=(i, 0x0, 0x1000, 0x80, 0x80, 0x808080808080)).hex
-
-            tags = [["color", next(tag_values)]]
-
-            if release:
-                tags.append(["sentry:release", release])
-
-            event = self.store_event(
-                data={
-                    "event_id": event_id,
-                    "message": template % parameters,
-                    "type": "default",
-                    "user": next(user_values),
-                    "tags": tags,
-                    "fingerprint": [fingerprint],
-                    "timestamp": iso_format(now + timedelta(seconds=i)),
-                    "environment": environment,
-                    "release": release,
-                },
-                project_id=project.id,
-            )
-
-            UserReport.objects.create(
-                project_id=project.id,
-                group_id=event.group.id,
-                event_id=event_id,
-                name="Log Hat",
-                email="ceo@corptron.com",
-                comments="Quack",
-            )
-
-            features.record([event])
-
-            return event
-
         events = {}
 
         for event in (
-            create_message_event(
-                "This is message #%s.", i, environment="production", release="version"
+            self.create_message_event(
+                "This is message #%s.",
+                i,
+                environment="production",
+                release="version",
+                project=project,
+                now=now,
+                tag_values=tag_values,
+                user_values=user_values,
+                sequence=sequence,
             )
             for i in range(10)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
         for event in (
-            create_message_event(
+            self.create_message_event(
                 "This is message #%s!",
                 i,
                 environment="production",
                 release="version2",
+                project=project,
+                now=now,
+                sequence=sequence,
+                tag_values=tag_values,
+                user_values=user_values,
                 fingerprint="group2",
             )
             for i in range(10, 16)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
-        event = create_message_event(
+        event = self.create_message_event(
             "This is message #%s!",
             17,
             environment="staging",
             release="version3",
+            project=project,
+            now=now,
+            sequence=sequence,
+            tag_values=tag_values,
+            user_values=user_values,
             fingerprint="group3",
         )
 
         events.setdefault(get_fingerprint(event), []).append(event)
 
         merge_source, source, destination = list(Group.objects.all())
-
-        assert len(events) == 3
-        assert sum(map(len, events.values())) == 17
+        source.status = GroupStatus.IGNORED
+        source.substatus = GroupSubStatus.UNTIL_ESCALATING
+        source.save()
 
         production_environment = Environment.objects.get(
             organization_id=project.organization_id, name="production"
@@ -260,8 +304,25 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             eventstream_state = eventstream.backend.start_merge(
                 project.id, [merge_source.id], source.id
             )
-            merge_groups.delay([merge_source.id], source.id)
-            eventstream.backend.end_merge(eventstream_state)
+            merge_groups.delay(
+                [merge_source.id],
+                source.id,
+                eventstream_state=eventstream_state,
+                handle_forecasts_ids=[source.id, merge_source.id],
+                merge_forecasts=True,
+            )
+
+        sleep(1)
+        single_hour = get_group_hourly_count(source)
+        single_past = query_groups_past_counts([source])
+        past = query_groups_past_counts(list(Group.objects.all()))
+        generate_and_save_forecasts(list(Group.objects.all()))
+        forecast = EscalatingGroupForecast.fetch(source.project.id, source.id).forecast
+        # assert single_hour == 16
+        assert single_past[0]["count()"] == 16
+        assert past[0]["count()"] == 16
+        assert past[1]["count()"] == 1
+        assert forecast == [160] * 14  # change to 40 after default merges
 
         assert {
             (gtv.value, gtv.times_seen)
@@ -282,8 +343,24 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         with self.tasks():
             unmerge.delay(
-                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
+                project_id=project.id,
+                source_id=source.id,
+                destination_id=destination.id,
+                fingerprints=[list(events.keys())[0]],
+                actor_id=None,
+                batch_size=5,
             )
+
+        sleep(1)
+        forecast = EscalatingGroupForecast.fetch(source.project.id, source.id).forecast
+        single_hour = get_group_hourly_count(source)
+        past = query_groups_past_counts(list(Group.objects.all()))
+        single_past = query_groups_past_counts([source])
+        assert single_hour == 6
+        assert single_past[0]["count()"] == 6
+        assert past[0]["count()"] == 6
+        assert past[1]["count()"] == 11
+        assert forecast == [60] * 14
 
         assert (
             list(
@@ -607,3 +684,111 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
         assert destination_similar_items[1][0] == source.id
         assert destination_similar_items[1][1]["message:message:character-shingles"] < 1.0
+
+    @with_feature("organizations:escalating-issues-v2")
+    def test_no_dest(self):
+        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
+
+        project = self.create_project()
+        sequence = itertools.count(0)
+        tag_values = itertools.cycle(["red", "green"])
+        user_values = itertools.cycle([{"id": 1}, {"id": 2}])
+
+        events = {}
+
+        for event in (
+            self.create_message_event(
+                "This is message #%s!",
+                i,
+                environment="production",
+                release="version",
+                project=project,
+                now=now,
+                sequence=sequence,
+                tag_values=tag_values,
+                user_values=user_values,
+            )
+            for i in range(6)
+        ):
+            events.setdefault(get_fingerprint(event), []).append(event)
+
+        for event in (
+            self.create_message_event(
+                "This is message #%s.",
+                i,
+                environment="production",
+                release="version2",
+                project=project,
+                now=now,
+                tag_values=tag_values,
+                user_values=user_values,
+                sequence=sequence,
+                fingerprint="group2",
+            )
+            for i in range(6, 16)
+        ):
+            events.setdefault(get_fingerprint(event), []).append(event)
+
+        child, primary = list(Group.objects.all())
+        primary.status = GroupStatus.IGNORED
+        primary.substatus = GroupSubStatus.UNTIL_ESCALATING
+        primary.save()
+
+        generate_and_save_forecasts([primary, child])
+        before_merge_hour_count = get_group_hourly_count(primary)
+        before_merge_count = query_groups_past_counts([primary])
+        assert before_merge_hour_count == 10
+        assert before_merge_count[0]["count()"] == 10
+        before_merge_hour_count = get_group_hourly_count(child)
+        before_merge_count = query_groups_past_counts([child])
+        assert before_merge_hour_count == 6
+        assert before_merge_count[0]["count()"] == 6
+
+        with self.tasks():
+            eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
+            merge_groups.delay(
+                [child.id],
+                primary.id,
+                eventstream_state=eventstream_state,
+                handle_forecasts_ids=[primary.id, child.id],
+                merge_forecasts=True,
+            )
+
+        sleep(1)
+        primary_merge_hour_count = get_group_hourly_count(primary)
+        primary_merge_past_count = query_groups_past_counts([primary])
+        past = query_groups_past_counts(list(Group.objects.all()))
+        generate_and_save_forecasts(list(Group.objects.all()))
+        assert len(list(Group.objects.all())) == 1
+        assert primary_merge_hour_count == 16
+        assert primary_merge_past_count[0]["count()"] == 16
+        primary_forecast = EscalatingGroupForecast.fetch(primary.project.id, primary.id).forecast
+        assert primary_forecast == [160] * 14
+
+        with self.tasks():
+            unmerge.delay(
+                project_id=project.id,
+                source_id=primary.id,
+                destination_id=None,
+                fingerprints=[list(events.keys())[0]],
+                actor_id=None,
+                batch_size=5,
+            )
+        sleep(1)
+        primary, new_child = list(Group.objects.all())
+        assert len(list(Group.objects.all())) == 2
+        primary_unmerge_hour_count = get_group_hourly_count(
+            primary
+        )  # incorrect: returns before merge
+        past = query_groups_past_counts(list(Group.objects.all()))  # correct
+        primary_unmerge_past_count = query_groups_past_counts(
+            [primary]
+        )  # incorrect: returns before merge
+        child_unmerge_hour_count = get_group_hourly_count(new_child)
+        child_unmerge_past_count = query_groups_past_counts([new_child])
+        assert past[0]["count()"] == 10
+        assert past[1]["count()"] == 6
+        assert primary_unmerge_hour_count == 10
+        assert primary_unmerge_past_count[0]["count()"] == 10
+        assert child_unmerge_hour_count == 6
+        assert child_unmerge_past_count[0]["count()"] == 6

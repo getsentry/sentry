@@ -5,9 +5,15 @@ from typing import Any, Mapping, Optional, Tuple
 
 from django.db import transaction
 
-from sentry import eventstore, similarity, tsdb
+from sentry import eventstore, features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
+from sentry.issues.escalating import (
+    get_group_hourly_count,
+    invalidate_group_hourly_count_cache,
+    query_groups_past_counts,
+)
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Activity,
     Environment,
@@ -227,6 +233,8 @@ def migrate_events(
             user_id=args.actor_id,
             data={"destination_id": destination_id, **args.replacement.get_activity_args()},
         )
+        # JODI: create new grouphistory, groupinbox, inherit groupstatus here
+        # I think we want to do forecast on last iter - this is first, but also happens twice?
     else:
         eventstream_state = opt_eventstream_state
 
@@ -496,10 +504,22 @@ def unmerge(*posargs, **kwargs):
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
+        unmerged_groups_ids = []
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
             logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
             if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
+            unmerged_groups_ids.append(group_id)
+
+        # Generate new forecast for split
+        if features.has("organizations:escalating-issues-v2", source.organization):
+            unmerged_groups_ids.append(source.id)
+            unmerged_groups = Group.objects.filter(id__in=unmerged_groups_ids)
+            for group in unmerged_groups:
+                invalidate_group_hourly_count_cache(group)
+            generate_and_save_forecasts(unmerged_groups)
+
+        counts_async.apply_async(kwargs={}, queue="unmerge", countdown=60)
         return
 
     source_events = []
@@ -557,3 +577,12 @@ def unmerge(*posargs, **kwargs):
     )
 
     unmerge.delay(**new_args.dump_arguments())
+
+
+@instrumented_task(name="sentry.tasks.counts_async", queue="unmerge")
+def counts_async():
+    groups = Group.objects.all()
+    for group in groups:
+        get_group_hourly_count(group)
+        query_groups_past_counts([group])
+    query_groups_past_counts(groups)
