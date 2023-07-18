@@ -631,8 +631,8 @@ SENTRY_REGION_CONFIG: Any = tuple()
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
 
-# The protocol and domain name/ip and port of control silo
-CONTROL_SILO_ADDRESS = ""
+# The protocol, host and port for control silo
+SENTRY_CONTROL_ADDRESS = ""
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
@@ -3489,7 +3489,7 @@ if USE_SILOS:
         "a-long-value-that-is-shared-but-also-secret",
     ]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
-    CONTROL_SILO_ADDRESS = f"http://127.0.0.1:{control_port}"
+    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
 
 
 # How long we should wait for a gateway proxy request to return before giving up

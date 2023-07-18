@@ -156,7 +156,7 @@ class DispatchRemoteCallTest(TestCase):
         org = self.create_organization()
 
         with override_settings(
-            RPC_SHARED_SECRET=shared_secret, CONTROL_SILO_ADDRESS=control_address
+            RPC_SHARED_SECRET=shared_secret, SENTRY_CONTROL_ADDRESS=control_address
         ):
             response_value = RpcUserOrganizationContext(
                 organization=serialize_rpc_organization(org)
@@ -172,7 +172,7 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(
         SILO_MODE=SiloMode.REGION,
         RPC_SHARED_SECRET=shared_secret,
-        CONTROL_SILO_ADDRESS=control_address,
+        SENTRY_CONTROL_ADDRESS=control_address,
     )
     def test_region_to_control_null_result(self):
         self._set_up_mock_response("organization/get_organization_by_id", None)
@@ -185,7 +185,7 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(
         SILO_MODE=SiloMode.CONTROL,
         RPC_SHARED_SECRET=shared_secret,
-        CONTROL_SILO_ADDRESS=control_address,
+        SENTRY_CONTROL_ADDRESS=control_address,
     )
     def test_control_to_region_happy_path(self):
         user = self.create_user()
@@ -200,7 +200,7 @@ class DispatchRemoteCallTest(TestCase):
     @override_settings(
         SILO_MODE=SiloMode.CONTROL,
         RPC_SHARED_SECRET=shared_secret,
-        CONTROL_SILO_ADDRESS=control_address,
+        SENTRY_CONTROL_ADDRESS=control_address,
     )
     def test_region_to_control_with_list_result(self):
         users = [self.create_user() for _ in range(3)]

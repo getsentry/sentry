@@ -471,7 +471,7 @@ def dispatch_remote_call(
     service, _ = _look_up_service_method(service_name, method_name)
 
     if region is None:
-        address = settings.CONTROL_SILO_ADDRESS
+        address = settings.SENTRY_CONTROL_ADDRESS
     else:
         address = region.address
 
