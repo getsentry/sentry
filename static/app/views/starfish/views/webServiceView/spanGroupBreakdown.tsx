@@ -90,8 +90,6 @@ export function SpanGroupBreakdown({
     const spansLinkQueryParams = {};
     if (event.seriesName === 'db') {
       spansLink = `/starfish/database/`;
-    } else if (event.seriesName === 'http') {
-      spansLink = `/starfish/api/`;
     } else if (event.seriesName === 'Other') {
       spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
     } else {
