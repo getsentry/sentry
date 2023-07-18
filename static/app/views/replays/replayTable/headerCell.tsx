@@ -31,6 +31,7 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_dead_clicks"
           label={t('Dead Clicks')}
+          tooltip={t('placeholder')}
         />
       );
 
@@ -43,6 +44,7 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_rage_clicks"
           label={t('Rage Clicks')}
+          tooltip={t('placeholder')}
         />
       );
 
