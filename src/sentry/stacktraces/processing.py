@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, NamedTuple
+from typing import Any, Callable, Dict, List, NamedTuple, Set
 
 import sentry_sdk
 from django.utils import timezone
@@ -189,7 +189,7 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = {
+        platforms: Set[str] = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         }
@@ -311,7 +311,7 @@ def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
     infos = find_stacktraces_in_data(data, with_exceptions=True)
-    platforms = set()
+    platforms: Set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
@@ -330,11 +330,11 @@ def should_process_for_stacktraces(data):
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins.base import plugins
 
-    platforms = set()
+    platforms: Set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
 
-    processors = []
+    processors: List[Callable] = []
     for plugin in plugins.all(version=2):
         processors.extend(
             safe_execute(
@@ -360,7 +360,7 @@ def get_processable_frames(stacktrace_info, processors):
     """
     frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(frames)
-    rv = []
+    rv: List[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
@@ -376,7 +376,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     changed_processed = False
     raw_frames = []
     processed_frames = []
-    all_errors = []
+    all_errors: List[Any] = []
 
     bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(bare_frames)
@@ -470,13 +470,13 @@ def get_stacktrace_processing_task(infos, processors):
     """Returns a list of all tasks for the processors.  This can skip over
     processors that seem to not handle any frames.
     """
-    by_processor = {}
-    to_lookup = {}
+    by_processor: Dict[str, List[Any]] = {}
+    to_lookup: Dict[str, str] = {}
 
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important
     # to guarantee reproducible symbolicator requests.
-    by_stacktrace_info = {}
+    by_stacktrace_info: Dict[str, Any] = {}
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)
