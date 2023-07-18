@@ -998,7 +998,8 @@ def trigger_incident_triggers(incident):
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
-                    ).delay
+                    ).delay,
+                    router.db_for_write(AlertRuleTrigger),
                 )
 
 

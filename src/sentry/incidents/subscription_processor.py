@@ -701,7 +701,8 @@ class SubscriptionProcessor:
                     method=method,
                     new_status=new_status,
                     metric_value=metric_value,
-                ).delay
+                ).delay,
+                router.db_for_write(AlertRule),
             )
 
     def handle_incident_severity_update(self) -> None:

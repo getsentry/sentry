@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.db.models import (
@@ -71,8 +71,8 @@ def process_resource_change(instance, **kwargs):
         cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
         cache.delete_many(cache_keys)
 
-    transaction.on_commit(_spawn_update_schema_task)
-    transaction.on_commit(_clear_commit_context_cache)
+    transaction.on_commit(_spawn_update_schema_task, router.db_for_write(type(instance)))
+    transaction.on_commit(_clear_commit_context_cache, router.db_for_write(type(instance)))
 
 
 post_save.connect(

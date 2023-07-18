@@ -118,7 +118,7 @@ class TeamManager(BaseManager):
             except (Organization.DoesNotExist, Project.DoesNotExist):
                 pass
 
-        transaction.on_commit(_spawn_task)
+        transaction.on_commit(_spawn_task, router.db_for_write(Team))
 
 
 # TODO(dcramer): pull in enum library
