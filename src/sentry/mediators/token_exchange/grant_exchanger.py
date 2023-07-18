@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytz
+from django.db import router
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
@@ -23,6 +24,7 @@ class GrantExchanger(Mediator):
     code = Param(str)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate()

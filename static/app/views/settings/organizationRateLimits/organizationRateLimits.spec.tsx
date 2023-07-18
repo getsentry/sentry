@@ -1,6 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
+import OrganizationRateLimits, {
+  OrganizationRateLimitProps,
+} from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
 
@@ -13,8 +15,14 @@ describe('Organization Rate Limits', function () {
     },
   };
 
-  const renderComponent = props =>
-    render(<OrganizationRateLimits organization={organization} {...props} />);
+  const renderComponent = (props?: Partial<OrganizationRateLimitProps>) =>
+    render(
+      <OrganizationRateLimits
+        {...TestStubs.routeComponentProps()}
+        organization={organization}
+        {...props}
+      />
+    );
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

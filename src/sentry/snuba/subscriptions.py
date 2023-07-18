@@ -1,6 +1,6 @@
 import logging
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -92,7 +92,7 @@ def update_snuba_query(
     old_dataset = Dataset(snuba_query.dataset)
     old_query = snuba_query.query
     old_aggregate = snuba_query.aggregate
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
             type=query_type.value,
@@ -192,7 +192,7 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     before the update.
     :return: The QuerySubscription representing the subscription
     """
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(QuerySubscription)):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(

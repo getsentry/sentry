@@ -24,6 +24,7 @@ def test_multiprocessing_strategy():
     # multi-processing.
     factory = ProcessReplayRecordingStrategyFactory(
         num_processes=2,
+        num_threads=1,
         input_block_size=1,
         max_batch_size=1,
         max_batch_time=1,
@@ -38,19 +39,16 @@ def test_multiprocessing_strategy():
 
 
 class RecordingTestCaseMixin:
-    @staticmethod
-    def processing_factory():
+    def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
             input_block_size=1,
             max_batch_size=1,
             max_batch_time=1,
             num_processes=1,
+            num_threads=1,
             output_block_size=1,
+            force_synchronous=self.force_synchronous,
         )
-
-    def setUp(self):
-        self.replay_id = uuid.uuid4().hex
-        self.replay_recording_id = uuid.uuid4().hex
 
     def submit(self, messages):
         strategy = self.processing_factory().create_with_partitions(
@@ -153,6 +151,7 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        self.force_synchronous = True
         options.set("replay.storage.direct-storage-sample-rate", 0)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
@@ -192,6 +191,7 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        self.force_synchronous = True
         options.set("replay.storage.direct-storage-sample-rate", 100)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
@@ -216,3 +216,15 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
             retention_days=30,
         )
         return StorageBlob().get(recording_segment)
+
+
+class ThreadedFilestoreRecordingTestCase(FilestoreRecordingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.force_synchronous = False
+
+
+class ThreadedStorageRecordingTestCase(StorageRecordingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.force_synchronous = False

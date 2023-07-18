@@ -10,6 +10,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models import GroupHash
 from sentry.tasks.unmerge import unmerge
+from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
 
 
@@ -60,6 +61,13 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
         if not hash_list:
             return Response()
+
+        metrics.incr(
+            "grouping.unmerge_issues",
+            sample_rate=1.0,
+            # We assume that if someone's merged groups, they were all from the same platform
+            tags={"platform": group.platform or "unknown"},
+        )
 
         unmerge.delay(
             group.project_id, group.id, None, hash_list, request.user.id if request.user else None

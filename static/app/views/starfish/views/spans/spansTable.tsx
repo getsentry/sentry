@@ -92,7 +92,7 @@ export default function SpansTable({
     spanCategory,
     [sort],
     limit,
-    'use-span-list',
+    'api.starfish.use-span-list',
     spansCursor
   );
 
@@ -226,12 +226,16 @@ function getColumns(
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Column[] = [
-    {
-      key: SPAN_OP,
-      name: 'Operation',
-      width: 120,
-    },
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.NONE].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
       key: SPAN_DESCRIPTION,
       name: description,
@@ -296,7 +300,7 @@ function getColumns(
     });
   }
 
-  return order;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
 }
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

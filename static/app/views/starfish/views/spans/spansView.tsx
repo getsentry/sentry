@@ -40,6 +40,8 @@ type Query = {
 };
 
 export default function SpansView(props: Props) {
+  const moduleName = props.moduleName ?? ModuleName.ALL;
+
   const location = useLocation<Query>();
   const appliedFilters = pick(location.query, [
     SPAN_ACTION,
@@ -61,26 +63,31 @@ export default function SpansView(props: Props) {
 
       <PaddedContainer>
         <SpanTimeCharts
-          moduleName={props.moduleName || ModuleName.ALL}
+          moduleName={moduleName}
           appliedFilters={appliedFilters}
           spanCategory={props.spanCategory}
         />
       </PaddedContainer>
       <FilterOptionsContainer>
-        <SpanOperationSelector
-          moduleName={props.moduleName}
-          value={appliedFilters[SPAN_OP] || ''}
-          spanCategory={props.spanCategory}
-        />
+        {/* Specific modules like Database and API only show _one_ kind of span
+        op based on how we group them. So, the operation selector is pointless
+        there. */}
+        {[ModuleName.ALL, ModuleName.NONE].includes(moduleName) && (
+          <SpanOperationSelector
+            moduleName={moduleName}
+            value={appliedFilters[SPAN_OP] || ''}
+            spanCategory={props.spanCategory}
+          />
+        )}
 
         <ActionSelector
-          moduleName={props.moduleName}
+          moduleName={moduleName}
           value={appliedFilters[SPAN_ACTION] || ''}
           spanCategory={props.spanCategory}
         />
 
         <DomainSelector
-          moduleName={props.moduleName}
+          moduleName={moduleName}
           value={appliedFilters[SPAN_DOMAIN] || ''}
           spanCategory={props.spanCategory}
         />
@@ -88,7 +95,7 @@ export default function SpansView(props: Props) {
 
       <PaddedContainer>
         <SpansTable
-          moduleName={props.moduleName || ModuleName.ALL}
+          moduleName={moduleName}
           spanCategory={props.spanCategory}
           sort={sort}
           limit={LIMIT}
@@ -103,10 +110,11 @@ const PaddedContainer = styled('div')`
 `;
 
 const FilterOptionsContainer = styled(PaddedContainer)`
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+  max-width: 800px;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
