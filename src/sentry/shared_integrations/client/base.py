@@ -79,7 +79,7 @@ class BaseApiClient(TrackResponseMixin):
         return path
 
     def _get_redis_key(self):
-        if not self.integration_id:
+        if not hasattr(self, "integration_id"):
             return
         return f"sentry-integration-error:{self.integration_id}"
 
@@ -334,8 +334,8 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: Response | None = None, error: Exception | None = None):
-        if not self.integration_id:
+    def record_response(self,response: Response | None = None, error: Exception | None = None):
+        if not hasattr(self, "integration_id"):
             return
         if self.is_response_error(response, error):
             self.record_request_error(response, error)
@@ -345,7 +345,7 @@ class BaseApiClient(TrackResponseMixin):
             self.record_request_fatal(response, error)
 
     def record_request_error(self, resp: Response | None = None, error: Exception | None = None):
-        if not self.integration_id:
+        if not hasattr(self, "integration_id"):
             return
         if error is None:
             error = resp.get("error", None)
@@ -363,7 +363,7 @@ class BaseApiClient(TrackResponseMixin):
             )
 
     def record_request_success(self, resp: Response):
-        if not self.integration_id:
+        if not hasattr(self, "integration_id"):
             return
         if not self.is_response_success(resp):
             return
@@ -372,7 +372,7 @@ class BaseApiClient(TrackResponseMixin):
         print("success recorded")
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
-        if not self.integration_id:
+        if not hasattr(self, "integration_id"):
             return
         if not self.is_response_fatal(resp, error):
             return
@@ -386,3 +386,4 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
+integration_id
