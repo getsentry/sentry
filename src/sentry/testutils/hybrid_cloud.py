@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -156,9 +157,9 @@ class SimulatedTransactionWatermarks(threading.local):
             total += 1
         return total
 
-    def connection_above_watermark(
+    def connection_transaction_depth_above_watermark(
         self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
-    ) -> bool:
+    ) -> int:
         if connection is None:
             connection = transaction.get_connection(using)
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
@@ -166,7 +167,7 @@ class SimulatedTransactionWatermarks(threading.local):
     def connections_above_watermark(self) -> Set[str]:
         result = set()
         for connection in connections.all():
-            if self.connection_above_watermark(connection=connection):
+            if self.connection_transaction_depth_above_watermark(connection=connection):
                 result.add(connection.alias)
         return result
 
@@ -217,14 +218,16 @@ class TransactionDetailsWrapper:
     def __call__(self, execute: Callable[..., Any], query: str, *args: Any) -> Any:
         release = query.startswith("RELEASE")
         savepoint = query.startswith("SAVEPOINT")
-        depth = simulated_transaction_watermarks.connection_above_watermark(using=self.alias)
+        depth = simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            using=self.alias
+        )
         active_transaction = self.alias if release or savepoint or depth else None
         if (
             (savepoint and depth == 0)
             or not self.result
             or self.result[-1]["transaction"] != active_transaction
         ):
-            cur = {"transaction": active_transaction, "queries": []}
+            cur: TransactionDetails = {"transaction": active_transaction, "queries": []}
             self.result.append(cur)
         else:
             cur = self.result[-1]
@@ -233,7 +236,7 @@ class TransactionDetailsWrapper:
 
 
 @contextlib.contextmanager
-def collect_transaction_queries() -> contextlib.ContextManager[List[TransactionDetails]]:
+def collect_transaction_queries() -> Iterator[List[TransactionDetails]]:
     result: List[TransactionDetails] = []
 
     with contextlib.ExitStack() as stack:
@@ -267,7 +270,9 @@ def simulate_on_commit(request: Any):
         if connection.closed_in_transaction or connection.needs_rollback:
             return
 
-        if simulated_transaction_watermarks.connection_above_watermark(connection=connection):
+        if simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            connection=connection
+        ):
             return
 
         old_validate = connection.validate_no_atomic_block

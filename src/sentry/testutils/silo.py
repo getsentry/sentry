@@ -244,8 +244,11 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
     fence_depth = 0
     for query in queries:
         sql = query["sql"]
+        # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result
+        # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
+        # the VT TypeVar for Dict.
         if sql is None:
-            continue
+            continue  # type: ignore
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")
@@ -275,7 +278,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
                         "Full query log:",
                         "",
                     ]
-                    msg.extend([q["sql"] for q in queries])
+                    msg.extend([q["sql"] for q in queries if q["sql"]])
 
                     raise AssertionError("\n".join(msg))
 
