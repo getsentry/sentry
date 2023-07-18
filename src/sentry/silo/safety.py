@@ -21,7 +21,7 @@ def match_fence_query(query: str) -> Optional[re.Match[str]]:
 
 
 @contextlib.contextmanager
-def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
+def unguarded_write(using: str, *args: Any, **kwargs: Any):
     """
     Used to indicate that the wrapped block is safe to do
     mutations on outbox backed records.
@@ -39,7 +39,8 @@ def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
         yield
         return
 
-    using = validate_transaction_using_for_silo_mode(using)
+    validate_transaction_using_for_silo_mode(using)
+
     _fencing_counters[using] += 1
 
     with get_connection(using).cursor() as conn:
