@@ -223,7 +223,7 @@ function ResolveActions({
         onSelected={(statusDetails: ResolutionStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={projectSlug}
       />
     ));
