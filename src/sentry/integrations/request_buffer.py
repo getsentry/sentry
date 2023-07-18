@@ -24,7 +24,6 @@ class IntegrationRequestBuffer:
         self.client = redis.redis_clusters.get(cluster_id)
         self.is_fatal = False
 
-
     def _convert_obj_to_dict(self, redis_object):
         """
         Convert the request string stored in Redis to a python dict
@@ -44,8 +43,7 @@ class IntegrationRequestBuffer:
         Returns the list of daily aggregate error counts.
         """
         return [
-            self._convert_obj_to_dict(obj)
-            for obj in self._get_all_from_buffer(self.integrationkey)
+            self._convert_obj_to_dict(obj) for obj in self._get_all_from_buffer(self.integrationkey)
         ]
 
     def is_integration_broken(self):
