@@ -1697,7 +1697,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_project_filter(self):
         query = TimeseriesMetricQueryBuilder(
             self.params,
-            dataset=Dataset.PerformanceMetrics,
+            dataset=Dataset.Metrics,
             interval=900,
             query=f"project:{self.project.slug}",
             selected_columns=["p95(transaction.duration)"],

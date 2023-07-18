@@ -135,8 +135,8 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
+    # event.type is accepted as a valid search field but it will not me converted to a condition for metric extraction
     "event.type",
-    "project",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
