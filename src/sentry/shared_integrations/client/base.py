@@ -334,7 +334,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self,response: Response | None = None, error: Exception | None = None):
+    def record_response(self, response: Response | None = None, error: Exception | None = None):
         if not hasattr(self, "integration_id"):
             return
         if self.is_response_error(response, error):
@@ -386,4 +386,6 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
+
+
 integration_id
