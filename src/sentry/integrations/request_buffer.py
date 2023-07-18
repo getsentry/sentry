@@ -56,9 +56,9 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-    # fast shutoff
-    #  if self.is_fatal:
-    #      return True
+        # fast shutoff
+        #  if self.is_fatal:
+        #      return True
 
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
@@ -131,5 +131,6 @@ class IntegrationRequestBuffer:
         # if self.is_integration_broken():
         # call uninstal
         # integration_service.get_integrations(integration_ids=result.ids
+
 
 #    def uninstall(self):
