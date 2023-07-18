@@ -24,6 +24,7 @@ def test_multiprocessing_strategy():
     # multi-processing.
     factory = ProcessReplayRecordingStrategyFactory(
         num_processes=2,
+        num_threads=1,
         input_block_size=1,
         max_batch_size=1,
         max_batch_time=1,
@@ -44,6 +45,7 @@ class RecordingTestCaseMixin:
             max_batch_size=1,
             max_batch_time=1,
             num_processes=1,
+            num_threads=1,
             output_block_size=1,
             force_synchronous=self.force_synchronous,
         )

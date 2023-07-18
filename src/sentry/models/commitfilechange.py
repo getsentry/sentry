@@ -1,6 +1,6 @@
 from typing import Any, Iterable
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.db.models import (
@@ -62,7 +62,7 @@ def process_resource_change(instance, **kwargs):
                 kwargs={"commit_id": instance.commit_id}, countdown=60 * 5
             )
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 
 
 post_save.connect(
