@@ -228,7 +228,12 @@ class FlatFileIndexTest(FlatFileTestCase):
             flat_file_index.merge_urls(bundle_meta, bundle_archive)
 
         assert json.loads(flat_file_index.to_json()) == {
-            "bundles": [{"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                }
+            ],
             "files_by_url": {"~/path/to/app.js": [0], "~/path/to/other1.js": [0]},
             "files_by_debug_id": {},
         }
@@ -259,7 +264,12 @@ class FlatFileIndexTest(FlatFileTestCase):
             flat_file_index.merge_debug_ids(bundle_meta, bundle_archive)
 
         assert json.loads(flat_file_index.to_json()) == {
-            "bundles": [{"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                }
+            ],
             "files_by_debug_id": {
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
                 "f206e0e7-3d0c-41cb-bccc-11b716728e27": [0],
@@ -271,7 +281,12 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
-            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": existing_bundle_date.isoformat(),
+                }
+            ],
             "files_by_url": {"~/path/to/app.js": [0]},
         }
 
@@ -300,8 +315,14 @@ class FlatFileIndexTest(FlatFileTestCase):
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
-                {"id": existing_bundle_id, "timestamp": "2023-07-13T09:00:00+00:00"},
-                {"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"},
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": "2023-07-13T09:00:00+00:00",
+                },
+                {
+                    "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                },
             ],
             "files_by_debug_id": {},
             "files_by_url": {"~/path/to/app.js": [0, 1], "~/path/to/other1.js": [1]},
@@ -311,7 +332,12 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
-            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": existing_bundle_date.isoformat(),
+                }
+            ],
             "files_by_debug_id": {"f206e0e7-3d0c-41cb-bccc-11b716728e27": [0]},
         }
 
@@ -342,8 +368,14 @@ class FlatFileIndexTest(FlatFileTestCase):
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
-                {"id": existing_bundle_id, "timestamp": "2023-07-13T09:00:00+00:00"},
-                {"id": artifact_bundle.id, "timestamp": "2023-07-13T10:00:00+00:00"},
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": "2023-07-13T09:00:00+00:00",
+                },
+                {
+                    "bundle_id": f"artifact_bundle/{artifact_bundle.id}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                },
             ],
             "files_by_debug_id": {
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [1],
@@ -357,9 +389,15 @@ class FlatFileIndexTest(FlatFileTestCase):
 
         existing_json_index = {
             "bundles": [
-                {"id": 1234, "timestamp": (now - timedelta(hours=2)).isoformat()},
-                {"id": 5678, "timestamp": (now - timedelta(hours=1)).isoformat()},
-                {"id": 9101112, "timestamp": now.isoformat()},
+                {
+                    "bundle_id": f"artifact_bundle/{1234}",
+                    "timestamp": (now - timedelta(hours=2)).isoformat(),
+                },
+                {
+                    "bundle_id": f"artifact_bundle/{5678}",
+                    "timestamp": (now - timedelta(hours=1)).isoformat(),
+                },
+                {"bundle_id": f"artifact_bundle/{9101112}", "timestamp": now.isoformat()},
             ],
             "files_by_debug_id": {
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
@@ -376,8 +414,11 @@ class FlatFileIndexTest(FlatFileTestCase):
 
         assert json.loads(flat_file_index.to_json()) == {
             "bundles": [
-                {"id": 1234, "timestamp": "2023-07-13T08:00:00+00:00"},
-                {"id": 9101112, "timestamp": "2023-07-13T10:00:00+00:00"},
+                {"bundle_id": f"artifact_bundle/{1234}", "timestamp": "2023-07-13T08:00:00+00:00"},
+                {
+                    "bundle_id": f"artifact_bundle/{9101112}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                },
             ],
             "files_by_debug_id": {
                 "016ac8b3-60cb-427f-829c-7f99c92a6a95": [0],
@@ -393,7 +434,12 @@ class FlatFileIndexTest(FlatFileTestCase):
         existing_bundle_id = 0
         existing_bundle_date = timezone.now() - timedelta(hours=1)
         existing_json_index = {
-            "bundles": [{"id": existing_bundle_id, "timestamp": existing_bundle_date.isoformat()}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": existing_bundle_date.isoformat(),
+                }
+            ],
             "files_by_url": {"~/path/to/app.js": [0]},
         }
 
@@ -417,7 +463,12 @@ class FlatFileIndexTest(FlatFileTestCase):
             flat_file_index.merge_urls(bundle_meta, bundle_archive)
 
         assert json.loads(flat_file_index.to_json()) == {
-            "bundles": [{"id": existing_bundle_id, "timestamp": "2023-07-13T10:00:00+00:00"}],
+            "bundles": [
+                {
+                    "bundle_id": f"artifact_bundle/{existing_bundle_id}",
+                    "timestamp": "2023-07-13T10:00:00+00:00",
+                }
+            ],
             "files_by_url": {"~/path/to/app.js": [0]},
             "files_by_debug_id": {},
         }

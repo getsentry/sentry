@@ -175,8 +175,8 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
-        # We perform the condition check also before running the query, in order to reduce the amount of queries to
-        # the database.
+        # We perform the condition check also before running the query,
+        # in order to reduce the amount of queries to the database.
         if date_added > threshold_date:
             continue
 

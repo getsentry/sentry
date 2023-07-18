@@ -191,7 +191,7 @@ class FlatFileIndex:
         bundles = json_idx.get("bundles", [])
         self._bundles = [
             BundleMeta(
-                bundle["bundle_id"].split("/")[1],
+                int(bundle["bundle_id"].split("/")[1]),
                 datetime.fromisoformat(bundle["timestamp"]),
             )
             for bundle in bundles
@@ -291,7 +291,9 @@ class FlatFileIndex:
 
         return updated_collection
 
-    def _index_and_bundle_meta_for_id(self, artifact_bundle_id) -> Optional[Tuple[int, BundleMeta]]:
+    def _index_and_bundle_meta_for_id(
+        self, artifact_bundle_id: int
+    ) -> Optional[Tuple[int, BundleMeta]]:
         for index, bundle in enumerate(self._bundles):
             if bundle.id == artifact_bundle_id:
                 return index, bundle
