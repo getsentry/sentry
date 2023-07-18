@@ -235,7 +235,7 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(ApiAuthorization)
-    def test_apiAuthorization(self):
+    def test_api_authorization(self):
         user = self.create_user()
         app = ApiApplication.objects.create(name="test", owner=user)
         ApiAuthorization.objects.create(
@@ -257,26 +257,24 @@ class ModelBackupTests(TransactionTestCase):
         app = ApiApplication.objects.create(
             owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
         )
-        ApiToken.objects.create(
-            application=app, user=user, token=uuid4().hex + uuid4().hex, expires_at=None
-        )
+        ApiToken.objects.create(application=app, user=user, token=uuid4().hex, expires_at=None)
         return self.import_export_then_validate()
 
     @targets_models(ApiKey)
     def test_apikey(self):
         user = self.create_user()
-        self.create_organization(owner=user)
-        ApiKey.objects.create(key=uuid4().hex, organization_id=1)
+        org = self.create_organization(owner=user)
+        ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         return self.import_export_then_validate()
 
     @targets_models(Authenticator)
     def test_authenticator(self):
         user = self.create_user()
-        Authenticator.objects.create(id=1, user=user, type=1)
+        Authenticator.objects.create(user=user, type=1)
         return self.import_export_then_validate()
 
     @targets_models(AuthIdentity, AuthProvider)
-    def test_authIdentity(self):
+    def test_auth_identity(self):
         user = self.create_user()
         test_data = {
             "key1": "value1",
