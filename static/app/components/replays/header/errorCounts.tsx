@@ -68,7 +68,6 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const totalErrors = errorCountPerProject.reduce((acc, val) => acc + val.count, 0);
   return (
     <Tooltip
-      forceVisible
       title={
         <ColumnTooltipContent>
           {errorCountPerProject.map(({project, count}) => (
