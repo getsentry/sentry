@@ -190,7 +190,7 @@ export function OSCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
-        hideVersion
+        showVersion={false}
       />
     </Item>
   );
@@ -209,7 +209,7 @@ export function BrowserCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
-        hideVersion
+        showVersion={false}
       />
     </Item>
   );

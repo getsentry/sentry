@@ -31,7 +31,9 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_dead_clicks"
           label={t('Dead Clicks')}
-          tooltip={t('placeholder')}
+          tooltip={t(
+            'Dead clicks are slow clicks that are too slow and cause a timeout.'
+          )}
         />
       );
 
@@ -44,7 +46,9 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_rage_clicks"
           label={t('Rage Clicks')}
-          tooltip={t('placeholder')}
+          tooltip={t(
+            'Rage clicks occur when there are too many multi-clicks captured within a short period of time.'
+          )}
         />
       );
 
