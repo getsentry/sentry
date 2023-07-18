@@ -146,8 +146,7 @@ const TimelineRow = styled('div')`
     background: ${p => p.theme.backgroundTertiary};
   }
 
-  a,
-  a + div {
+  > * {
     transition: background 50ms ease-in-out;
   }
 `;
