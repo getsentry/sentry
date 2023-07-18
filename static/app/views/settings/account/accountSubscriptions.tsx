@@ -7,7 +7,10 @@ import moment from 'moment';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,7 +21,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+export type Subscription = {
   email: string;
   listDescription: string;
   listId: number;

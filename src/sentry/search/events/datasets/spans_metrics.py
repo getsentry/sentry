@@ -29,7 +29,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {}
+        return {constants.SPAN_MODULE_ALIAS: self._resolve_span_module}
 
     def resolve_metric(self, value: str) -> int:
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
@@ -84,13 +84,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "epm",
                     snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "eps",
                     snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "count",
@@ -343,6 +343,26 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return Function(
+            "transform",
+            [
+                self.builder.column("span.category"),
+                [
+                    "cache",
+                    "db",
+                    "http",
+                ],
+                [
+                    "cache",
+                    "db",
+                    "http",
+                ],
+                "other",
+            ],
+            alias,
+        )
 
     # Query Functions
     def _resolve_count_if(

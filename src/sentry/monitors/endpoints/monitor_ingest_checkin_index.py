@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
@@ -28,6 +28,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
@@ -145,7 +146,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_data = result.get("monitor")
             create_monitor = monitor_data and not monitor
             update_monitor = monitor_data and monitor
@@ -185,7 +186,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 monitor_environment = MonitorEnvironment.objects.ensure_environment(
                     project, monitor, result.get("environment")
                 )
-            except MonitorEnvironmentLimitsExceeded as e:
+            except (MonitorEnvironmentLimitsExceeded, MonitorEnvironmentValidationFailed) as e:
                 return self.respond({type(e).__name__: str(e)}, status=403)
 
             # Infer the original start time of the check-in from the duration.

@@ -179,11 +179,9 @@ class AlertRuleNotification(ProjectNotification):
         show_replay_link = features.has(
             "organizations:session-replay-issue-emails", self.organization
         )
-        replay_id = get_replay_id(self.event)
-        if has_session_replay and show_replay_link and replay_id:
+        if has_session_replay and show_replay_link and get_replay_id(self.event):
             context.update(
                 {
-                    "replay_id": replay_id,
                     "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
                 }
             )

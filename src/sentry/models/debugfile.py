@@ -363,6 +363,24 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
         return None
 
 
+@region_silo_only_model
+class ProguardArtifactRelease(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField()
+    project_id = BoundedBigIntegerField()
+    release_name = models.CharField(max_length=250)
+    proguard_uuid = models.UUIDField(db_index=True)
+    project_debug_file = FlexibleForeignKey("sentry.ProjectDebugFile")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_proguardartifactrelease"
+
+        unique_together = (("project_id", "release_name", "proguard_uuid"),)
+
+
 class DifMeta:
     def __init__(
         self,
@@ -580,6 +598,8 @@ def create_files_from_dif_zip(
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
+    from sentry.lang.native.sources import record_last_upload
+
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
@@ -597,6 +617,7 @@ def create_files_from_dif_zip(
         rv = create_debug_file_from_dif(to_create, project)
 
         # Uploading new dsysm changes the reprocessing revision
+        record_last_upload(project)
         bump_reprocessing_revision(project)
 
         return rv

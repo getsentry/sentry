@@ -60,6 +60,7 @@ class AssembleResult(NamedTuple):
 
     def delete_bundle(self):
         self.bundle.delete()
+        self.bundle_temp_file.close()
 
 
 def assemble_file(
@@ -126,6 +127,7 @@ def assemble_file(
             ChunkFileState.ERROR,
             detail="Reported checksum mismatch",
         )
+        return None
     else:
         file.save()
 
@@ -183,6 +185,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
+    from sentry.lang.native.sources import record_last_upload
     from sentry.models import BadDif, Project, debugfile
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -237,6 +240,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # and might resolve processing issues. If the file was not
                 # created, someone else has created it and will bump the
                 # revision instead.
+                record_last_upload(project)
                 bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(

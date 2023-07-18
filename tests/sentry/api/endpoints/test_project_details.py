@@ -4,11 +4,11 @@ from time import time
 from unittest import mock
 
 import pytz
+from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import (
@@ -24,11 +24,12 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectTeam,
     Rule,
     ScheduledDeletion,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -1202,7 +1203,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1229,7 +1230,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")

@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,6 +36,7 @@ import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -111,12 +113,15 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval={getInterval(pageFilter.selection.datetime, 'low')}
+        interval={getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        )}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-endpoint-overview"
+        referrer="api.starfish-web-service.starfish-endpoint-overview"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
@@ -137,6 +142,13 @@ export default function EndpointOverview() {
             <Fragment>
               <Header>
                 <ChartLabel>{DataTitles.p95}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    '95% of requests in the selected period have a lower duration than this value'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -174,6 +186,13 @@ export default function EndpointOverview() {
               />
               <Header>
                 <ChartLabel>{DataTitles.throughput}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the number of requests made to this endpoint per second in the selected period'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -209,6 +228,13 @@ export default function EndpointOverview() {
               <SidebarSpacer />
               <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the total number of requests that resulted in 5XX response codes over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -446,5 +472,5 @@ const Header = styled('div')`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: ${space(1)};
 `;

@@ -52,11 +52,13 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 
 
 @project_created.connect(weak=False)
-def record_new_project(project, user, **kwargs):
-    if user.is_authenticated:
+def record_new_project(project, user=None, user_id=None, **kwargs):
+    if user_id is not None:
+        default_user_id = user_id
+    elif user.is_authenticated:
         user_id = default_user_id = user.id
     else:
-        user = user_id = None
+        user_id = None
         try:
             default_user_id = (
                 Organization.objects.get(id=project.organization_id).get_default_owner().id
@@ -81,7 +83,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user.id if user else None,
+        user_id=user_id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -89,7 +91,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user.id if user else None,
+            user_id=user_id,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )

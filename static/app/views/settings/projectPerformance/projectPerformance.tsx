@@ -13,7 +13,10 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelFooter, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -911,7 +914,7 @@ const StyledJsonForm = styled(JsonForm)`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
     calc(${p => p.theme.panelBorderRadius} - 1px);

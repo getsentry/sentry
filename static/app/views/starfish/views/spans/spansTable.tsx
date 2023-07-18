@@ -57,9 +57,10 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
+  SpanMetricsFields;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `p95(${SPAN_SELF_TIME})`,
   `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
   'sps()',
@@ -91,7 +92,7 @@ export default function SpansTable({
     spanCategory,
     [sort],
     limit,
-    'use-span-list',
+    'api.starfish.use-span-list',
     spansCursor
   );
 
@@ -108,14 +109,14 @@ export default function SpansTable({
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
-        hasData={data.length > 0}
+        hasData={(data?.length ?? 0) > 0}
         isLoading={isLoading}
         disabled={shouldTrackVCD}
       >
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -144,7 +145,7 @@ function renderBodyCell(
   endpoint?: string,
   endpointMethod?: string
 ): React.ReactNode {
-  if (column.key === 'span.description') {
+  if (column.key === SPAN_DESCRIPTION) {
     const queryString = {
       ...location.query,
       endpoint,
@@ -152,16 +153,16 @@ function renderBodyCell(
     };
     return (
       <OverflowEllipsisTextContainer>
-        {row['span.group'] ? (
+        {row[SPAN_GROUP] ? (
           <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
-              row['span.group']
-            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
+              queryString ? `?${qs.stringify(queryString)}` : ''
+            }`}
           >
-            {row['span.description'] || '<null>'}
+            {row[SPAN_DESCRIPTION] || '<null>'}
           </Link>
         ) : (
-          row['span.description'] || '<null>'
+          row[SPAN_DESCRIPTION] || '<null>'
         )}
       </OverflowEllipsisTextContainer>
     );
@@ -191,36 +192,59 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
-function getDescriptionHeader(moduleName: ModuleName) {
+function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return 'Database Query';
+  }
+  if (spanCategory === 'cache') {
+    return 'Cache Query';
+  }
+  if (spanCategory === 'serialize') {
+    return 'Serializer';
+  }
+  if (spanCategory === 'middleware') {
+    return 'Middleware';
+  }
+  if (spanCategory === 'app') {
+    return 'Application Task';
+  }
+  if (moduleName === 'other') {
+    return 'Requests';
   }
   return 'Description';
 }
 
-export function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
-  const description = getDescriptionHeader(moduleName);
+function getColumns(
+  moduleName: ModuleName,
+  spanCategory?: string,
+  transaction?: string
+): Column[] {
+  const description = getDescriptionHeader(moduleName, spanCategory);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Column[] = [
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
-      key: 'span.op',
-      name: 'Operation',
-      width: 120,
-    },
-    {
-      key: 'span.description',
+      key: SPAN_DESCRIPTION,
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName !== ModuleName.ALL
       ? [
           {
-            key: 'span.domain',
+            key: SPAN_DOMAIN,
             name: domain,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
@@ -276,7 +300,7 @@ export function getColumns(moduleName: ModuleName, transaction?: string): Column
     });
   }
 
-  return order;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
 }
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

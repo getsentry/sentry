@@ -1,25 +1,19 @@
 from copy import deepcopy
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
-from rest_framework.test import APIRequestFactory
 
 from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.models import Integration
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -27,7 +21,7 @@ from sentry.types.region import Region, RegionCategory
 @control_silo_test(stable=True)
 class VstsRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    factory = APIRequestFactory()
+    factory = RequestFactory()
     path = f"{IntegrationControlMiddleware.integration_prefix}vsts/issue-updated/"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
@@ -51,8 +45,7 @@ class VstsRequestParserTest(TestCase):
     def test_routing_properly(self):
         request = self.factory.post(
             self.path,
-            data=WORK_ITEM_UPDATED,
-            format="json",
+            json=WORK_ITEM_UPDATED,
             HTTP_SHARED_SECRET=self.shared_secret,
         )
         parser = VstsRequestParser(request=request, response_handler=self.get_response)
@@ -112,7 +105,6 @@ class VstsRequestParserTest(TestCase):
 
         request = self.factory.post(
             self.path,
-            format="json",
             HTTP_SHARED_SECRET=self.shared_secret,
         )
 
@@ -134,8 +126,7 @@ class VstsRequestParserTest(TestCase):
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path,
-            data=WORK_ITEM_UPDATED,
-            format="json",
+            json=WORK_ITEM_UPDATED,
             HTTP_SHARED_SECRET=self.shared_secret,
         )
         parser = VstsRequestParser(request=request, response_handler=self.get_response)
@@ -145,28 +136,8 @@ class VstsRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": self.path,
-                "uri": f"http://testserver{self.path}",
-                "headers": {
-                    "Shared-Secret": self.shared_secret,
-                    "Content-Length": "4652",
-                    "Content-Type": "application/json",
-                    "Cookie": "",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-            assert outbox.payload == expected_payload
-            assert outbox == ControlOutbox(
-                id=outbox.id,
-                shard_scope=OutboxScope.WEBHOOK_SCOPE,
-                shard_identifier=WebhookProviderIdentifier.VSTS,
-                object_identifier=1,
-                category=OutboxCategory.WEBHOOK_PROXY,
-                region_name=self.region.name,
-                payload=expected_payload,
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.VSTS,
+                region_names=[self.region.name],
             )

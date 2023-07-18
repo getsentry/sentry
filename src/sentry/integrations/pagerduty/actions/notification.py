@@ -4,9 +4,10 @@ import logging
 from typing import Sequence
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PagerDutyClient
+from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.models import PagerDutyService
 from sentry.rules.actions import IntegrationEventAction
+from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -47,7 +48,18 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event, futures):
-            client = PagerDutyClient(integration_key=service.integration_key)
+            org_integration = self.get_organization_integration()
+            org_integration_id = None
+            if org_integration:
+                org_integration_id = org_integration.id
+            else:
+                org_integration_id = infer_org_integration(
+                    integration_id=service.integration_id, ctx_logger=logger
+                )
+            client = PagerDutyProxyClient(
+                org_integration_id=org_integration_id,
+                integration_key=service.integration_key,
+            )
             try:
                 resp = client.send_trigger(event)
             except ApiError as e:

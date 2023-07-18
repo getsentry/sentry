@@ -50,6 +50,9 @@ class Referrer(Enum):
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
     )
+    API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD_PRIMARY = (
+        "api.discover.total-sum-transaction-duration-field.primary"
+    )
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"
@@ -339,6 +342,34 @@ class Referrer(Enum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+
+    API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
+    API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
+    API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
+    API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
+    API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
+    API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
+    API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
+    API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
+    API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
+    API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
+        "api.starfish.span-summary-panel-samples-table-transactions"
+    )
+    API_STARFISH_SPAN_TRANSACTION_METRICS = "api.starfish.span-transaction-metrics"
+    API_STARFISH_TOTAL_TIME = "api.starfish-web-service.total-time"
+    API_STARFISH_HOMEPAGE_CHART = "api.starfish-web-service.homepage-chart"
+
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART = (
+        "api.starfish-web-service.span-category-breakdown-timeseries"
+    )
+    API_STARFISH_ENDPOINT_OVERVIEW = "api.starfish-web-service.starfish-endpoint-overview"
+    API_STARFISH_HTTP_ERROR_COUNT = "api.starfish.get-http-error-count"
+    API_STARFISH_SPAN_SUMMARY_PAGE_CHART = "api.starfish.span-summary-page-metrics-chart"
+    API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
+    API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -419,6 +450,7 @@ class Referrer(Enum):
     GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
+    GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"

@@ -1,6 +1,6 @@
 import logging
-from collections import namedtuple
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,12 +14,21 @@ from sentry.utils.safe import get_path, safe_execute
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
 
-StacktraceInfo = namedtuple(
-    "StacktraceInfo", ["stacktrace", "container", "platforms", "is_exception"]
-)
-StacktraceInfo.__hash__ = lambda x: id(x)
-StacktraceInfo.__eq__ = lambda a, b: a is b
-StacktraceInfo.__ne__ = lambda a, b: a is not b
+
+class StacktraceInfo(NamedTuple):
+    stacktrace: Any
+    container: Any
+    platforms: Any
+    is_exception: Any
+
+    def __hash__(self) -> int:
+        return id(self)
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    def __ne__(self, other: object) -> bool:
+        return self is not other
 
 
 class ProcessableFrame:
@@ -180,7 +189,7 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = {
+        platforms: Set[str] = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         }
@@ -221,7 +230,7 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace):
+def _normalize_in_app(stacktrace: List[Dict[str, str]]) -> None:
     """
     Ensures consistent values of in_app across a stacktrace.
     """
@@ -232,7 +241,9 @@ def _normalize_in_app(stacktrace):
             set_in_app(frame, False)
 
 
-def normalize_stacktraces_for_grouping(data, grouping_config=None):
+def normalize_stacktraces_for_grouping(
+    data: Mapping[str, Any], grouping_config: Any = None
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
@@ -263,34 +274,15 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
     with sentry_sdk.start_span(op=op, description="iterate_frames"):
         for frames in stacktraces:
             for frame in frames:
-                # Restore the original in_app value before the first grouping
-                # enhancers have been run. This allows to re-apply grouping
-                # enhancers on the original frame data.
-                orig_in_app = get_path(frame, "data", "orig_in_app")
-                if orig_in_app is not None:
-                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
-
-                if frame.get("raw_function") is not None:
-                    continue
-                raw_func = frame.get("function")
-                if not raw_func:
-                    continue
-                function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-                if function_name != raw_func:
-                    frame["raw_function"] = raw_func
-                    frame["function"] = function_name
+                _update_frame(frame, platform)
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            counter = 0
             for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
                 grouping_config.enhancements.apply_modifications_to_frame(
                     frames, platform, exception_data
                 )
-                counter += 1
-            sentry_sdk.set_tag("processing.mods_to_frame", counter)
-            sentry_sdk.set_tag("processing.num_frames", len(frames))
 
     # normalize in-app
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
@@ -298,11 +290,31 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
             _normalize_in_app(stacktrace)
 
 
+def _update_frame(frame: Dict[str, Any], platform: Optional[str]) -> None:
+    """Restore the original in_app value before the first grouping
+    enhancers have been run. This allows to re-apply grouping
+    enhancers on the original frame data.
+    """
+    orig_in_app = get_path(frame, "data", "orig_in_app")
+    if orig_in_app is not None:
+        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+
+    if frame.get("raw_function") is not None:
+        return
+    raw_func = frame.get("function")
+    if not raw_func:
+        return
+    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
+    if function_name != raw_func:
+        frame["raw_function"] = raw_func
+        frame["function"] = function_name
+
+
 def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
     infos = find_stacktraces_in_data(data, with_exceptions=True)
-    platforms = set()
+    platforms: Set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
@@ -321,11 +333,11 @@ def should_process_for_stacktraces(data):
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins.base import plugins
 
-    platforms = set()
+    platforms: Set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
 
-    processors = []
+    processors: List[Callable] = []
     for plugin in plugins.all(version=2):
         processors.extend(
             safe_execute(
@@ -351,7 +363,7 @@ def get_processable_frames(stacktrace_info, processors):
     """
     frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(frames)
-    rv = []
+    rv: List[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
@@ -367,7 +379,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     changed_processed = False
     raw_frames = []
     processed_frames = []
-    all_errors = []
+    all_errors: List[Any] = []
 
     bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(bare_frames)
@@ -461,13 +473,13 @@ def get_stacktrace_processing_task(infos, processors):
     """Returns a list of all tasks for the processors.  This can skip over
     processors that seem to not handle any frames.
     """
-    by_processor = {}
-    to_lookup = {}
+    by_processor: Dict[str, List[Any]] = {}
+    to_lookup: Dict[str, str] = {}
 
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important
     # to guarantee reproducible symbolicator requests.
-    by_stacktrace_info = {}
+    by_stacktrace_info: Dict[str, Any] = {}
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)

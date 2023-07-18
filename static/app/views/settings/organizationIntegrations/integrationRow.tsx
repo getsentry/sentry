@@ -4,7 +4,7 @@ import startCase from 'lodash/startCase';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';

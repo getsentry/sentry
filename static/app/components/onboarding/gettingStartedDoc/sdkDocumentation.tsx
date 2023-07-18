@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -15,6 +16,45 @@ export const migratedDocs = [
   'javascript-ember',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-nextjs',
+  'javascript',
+  'python-django',
+  'python',
+  'python-flask',
+  'python-wsgi',
+  'python-tryton',
+  'python-tornado',
+  'python-starlette',
+  'python-serverless',
+  'python-sanic',
+  'python-quart',
+  'python-pyramid',
+  'python-pylons',
+  'python-gcpfunctions',
+  'python-falcon',
+  'python-chalice',
+  'python-bottle',
+  'python-fastapi',
+  'python-asgi',
+  'python-aiohttp',
+  'python-awslambda',
+  'react-native',
+  'java-spring-boot',
+  'php',
+  'php-laravel',
+  'php-symfony',
+  'go',
+  'rust',
+  'minidump',
+  'native',
+  'native-qt',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
+  'kotlin',
+  'node',
+  'node-express',
+  'electron',
 ];
 
 type SdkDocumentationProps = {
@@ -25,10 +65,11 @@ type SdkDocumentationProps = {
   newOrg?: boolean;
 };
 
-type ModuleProps = {
-  activeProductSelection: ProductSolution[];
+export type ModuleProps = {
   dsn: string;
+  activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  platformKey?: PlatformKey;
 };
 
 // Loads the component containing the documentation for the specified platform
@@ -45,8 +86,12 @@ export function SdkDocumentation({
 
   const platformPath =
     platform?.type === 'framework'
-      ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
-      : platform?.id;
+      ? platform.language === 'minidump'
+        ? `minidump/minidump`
+        : platform?.id === 'native-qt'
+        ? `native/native-qt`
+        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : `${platform?.language}/${platform?.id}`;
 
   const {
     data: projectKeys = [],
@@ -81,6 +126,7 @@ export function SdkDocumentation({
       dsn={projectKeys[0].dsn.public}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
+      platformKey={platform?.id}
     />
   );
 }

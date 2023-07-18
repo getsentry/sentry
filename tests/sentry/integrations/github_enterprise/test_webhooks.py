@@ -12,8 +12,9 @@ from fixtures.github_enterprise import (
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -192,7 +193,7 @@ class PushEventWebhookTest(APITestCase):
             "verify_ssl": True,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github_enterprise",
                 external_id="35.232.149.196:12345",
@@ -358,7 +359,7 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github_enterprise",
                 external_id="35.232.149.196:234",
@@ -416,7 +417,7 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github_enterprise",
                 external_id="35.232.149.196:234",
@@ -472,7 +473,7 @@ class PullRequestEventWebhook(APITestCase):
             "verify_ssl": True,
         }
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github_enterprise",
                 external_id="35.232.149.196:234",

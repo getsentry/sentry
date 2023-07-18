@@ -274,6 +274,9 @@ export class DeprecatedLine extends Component<Props, State> {
     const {isHoverPreviewed, debugFrames, data, isANR, threadId, lockAddress} =
       this.props;
     const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
     const anrCulprit =
       isANR &&
       analyzeFrameForRootCause(
@@ -284,8 +287,14 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title" data-test-id="title">
-          <DefaultLineTitleWrapper>
+        <DefaultLine
+          className="title"
+          data-test-id="title"
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
+        >
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
@@ -305,7 +314,13 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          {!data.inApp ? (
+            stacktraceChangesEnabled ? null : (
+              <InAppTag>{t('System')}</InAppTag>
+            )
+          ) : (
+            <InAppTag type="info">{t('In App')}</InAppTag>
+          )}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -328,10 +343,18 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
+    const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table" data-test-id="title">
+        <DefaultLine
+          className="title as-table"
+          data-test-id="title"
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
+        >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
@@ -370,8 +393,19 @@ export class DeprecatedLine extends Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
-          {this.renderExpander()}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
+            {this.renderExpander()}
+          </DefaultLineTitleWrapper>
+
+          {!data.inApp ? (
+            stacktraceChangesEnabled ? null : (
+              <InAppTag>{t('System')}</InAppTag>
+            )
+          ) : (
+            <InAppTag type="info">{t('In App')}</InAppTag>
+          )}
         </DefaultLine>
       </StrictClick>
     );
@@ -445,10 +479,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')<{stacktraceChangesEnabled: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
@@ -484,9 +520,12 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')`
+const DefaultLine = styled('div')<{stacktraceChangesEnabled: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: ${p =>
+    p.stacktraceChangesEnabled
+      ? `1fr auto auto`
+      : `1fr auto ${space(2)}`}; /* sm icon size */
   align-items: center;
 `;
 
@@ -496,7 +535,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }
@@ -526,5 +564,9 @@ const IconWrapper = styled('div')`
 `;
 
 const SuspectFrameTag = styled(Tag)`
+  margin-right: ${space(1)};
+`;
+
+const InAppTag = styled(Tag)`
   margin-right: ${space(1)};
 `;

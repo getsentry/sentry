@@ -21,7 +21,6 @@ from sentry.models import (
     ApiToken,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -31,6 +30,7 @@ from sentry.models import (
     ReleaseStages,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
@@ -40,6 +40,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import (
     APITestCase,
     ReleaseCommitPatchTest,
@@ -48,7 +49,7 @@ from sentry.testutils import (
     TestCase,
 )
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -1629,7 +1630,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
 
         # test right org, wrong permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_api_key = ApiKey.objects.create(organization_id=org.id, scope_list=["project:read"])
         response = self.client.post(
             url,
@@ -1639,7 +1640,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             wrong_org_api_key = ApiKey.objects.create(
                 organization_id=org2.id, scope_list=["project:write"]
             )
@@ -1651,7 +1652,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test right org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_api_key = ApiKey.objects.create(
                 organization_id=org.id, scope_list=["project:write"]
             )
@@ -1679,7 +1680,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
 
         # test right org, wrong permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
@@ -1697,7 +1698,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             wrong_org_token_str = generate_token(org2.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
@@ -1715,7 +1716,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test right org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
@@ -1735,7 +1736,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         # Make sure org token usage was updated
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
         assert org_token.date_last_used is not None
         assert org_token.project_last_used_id == project1.id
@@ -1754,7 +1755,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization_id=org.id, name="getsentry/sentry-plugins", provider="dummy"
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
 
         team1 = self.create_team(organization=org)

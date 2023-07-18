@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {
   migratedDocs,
@@ -43,12 +42,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
-
-// in this case, the default is rendered inside the hook
-const SetUpSdkDocHook = HookOrDefault({
-  hookName: 'component:set-up-sdk-doc',
-});
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
@@ -141,6 +136,13 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     ? projects.find(proj => proj.slug === params.projectId)
     : undefined;
 
+  const currentPlatformKey = project?.platform ?? 'other';
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+
+  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
+    currentPlatform?.id === 'javascript'
+  );
+
   const products = useMemo(
     () => (location.query.product ?? []) as ProductSolution[],
     [location.query.product]
@@ -157,6 +159,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       staleTime: 0,
     }
   );
+
+  useEffect(() => {
+    setShowLoaderOnboarding(currentPlatform?.id === 'javascript');
+  }, [currentPlatform?.id]);
 
   useEffect(() => {
     if (!project || projectAlertRulesIsLoading || projectAlertRulesIsError) {
@@ -228,7 +234,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     // if the project is older than one hour, we don't delete it
     recentCreatedProject.olderThanOneHour === false;
 
-  const currentPlatformKey = project?.platform ?? 'other';
   const platformIntegration = platforms.find(p => p.id === currentPlatformKey);
   const platform: Platform = {
     key: currentPlatformKey as PlatformKey,
@@ -292,6 +297,20 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     );
   }, [api, recentCreatedProject, organization, shallProjectBeDeleted, router]);
 
+  const hideLoaderOnboarding = useCallback(() => {
+    setShowLoaderOnboarding(false);
+
+    if (!project?.id || !currentPlatform) {
+      return;
+    }
+
+    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+      organization,
+      platform: currentPlatform.id,
+      project_id: project?.id,
+    });
+  }, [organization, currentPlatform, project?.id]);
+
   useEffect(() => {
     // redirect if platform is not known.
     if (!platform.key || platform.key === 'other') {
@@ -315,8 +334,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const showDocsWithProductSelection =
     gettingStartedDocWithProductSelection &&
     (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
-
-  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
 
   return (
     <Fragment>
@@ -364,7 +381,15 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Button>
         </ButtonBar>
       </StyledPageHeader>
-      {currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+      {currentPlatform && showLoaderOnboarding ? (
+        <SetupDocsLoader
+          organization={organization}
+          project={project}
+          location={location}
+          platform={currentPlatform.id}
+          close={hideLoaderOnboarding}
+        />
+      ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
         <SdkDocumentation
           platform={currentPlatform}
           orgSlug={organization.slug}
@@ -372,28 +397,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           activeProductSelection={products}
         />
       ) : (
-        <Fragment>
-          {isSelfHosted ? (
-            <SetUpGeneralSdkDoc
-              organization={organization}
-              projectSlug={project.slug}
-              platform={platform}
-            />
-          ) : showDocsWithProductSelection ? (
-            <DocWithProductSelection
-              project={project}
-              location={location}
-              currentPlatform={platform.key}
-            />
-          ) : (
-            <SetUpSdkDocHook
-              organization={organization}
-              project={project}
-              location={location}
-              platform={platform}
-            />
-          )}
-        </Fragment>
+        <SetUpGeneralSdkDoc
+          organization={organization}
+          projectSlug={project.slug}
+          platform={platform}
+        />
       )}
       <div>
         {isGettingStarted && showPerformancePrompt && (
