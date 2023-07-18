@@ -24,6 +24,9 @@
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
+/src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
+/src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 
 ## Event Ingestion
 /src/sentry/attachments/                                 @getsentry/owners-ingest
@@ -387,13 +390,11 @@ yarn.lock                                                @getsentry/owners-js-de
 
 
 ## Telemetry Experience
-/src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py          @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
-/src/sentry/snuba/metrics/query.py                                               @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric_details.py                  @getsentry/telemetry-experience

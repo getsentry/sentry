@@ -124,6 +124,8 @@ class TransactionMRI(Enum):
     ALL_USER = "e:transactions/user.all@none"
     USER_MISERY = "e:transactions/user_misery@ratio"
     TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
+    HTTP_ERROR_COUNT = "e:transactions/http_error_count@none"
+    HTTP_ERROR_RATE = "e:transactions/http_error_rate@ratio"
 
     # Spans (might be moved to their own namespace soon)
     SPAN_USER = "s:transactions/span.user@none"

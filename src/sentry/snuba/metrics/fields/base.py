@@ -55,6 +55,7 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    http_error_count_transaction,
     max_timestamp,
     min_timestamp,
     miserable_users,
@@ -1545,6 +1546,25 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             unit="transactions",
             snql=lambda failure_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
                 failure_count, tx_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_COUNT.value,
+            metrics=[TransactionMRI.DURATION.value],
+            unit="transactions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_transaction(
+                org_id, metric_ids=metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
+            metrics=[
+                TransactionMRI.HTTP_ERROR_COUNT.value,
+                TransactionMRI.ALL.value,
+            ],
+            unit="transactions",
+            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
+                http_error_count, tx_count, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(

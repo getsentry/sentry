@@ -94,6 +94,7 @@ class TransactionMetricKey(Enum):
     USER_MISERY = "transaction.user_misery"
     FAILURE_COUNT = "transaction.failure_count"
     TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
+    HTTP_ERROR_RATE = "transaction.http_error_rate"
 
     # Span metrics.
     # NOTE: These might be moved to their own namespace soon.
@@ -113,6 +114,7 @@ class TransactionTagsKey(Enum):
 
     TRANSACTION_STATUS = "transaction.status"
     TRANSACTION_SATISFACTION = "satisfaction"
+    TRANSACTION_HTTP_STATUS_CODE = "http.status_code"
 
 
 class TransactionStatusTagValue(Enum):
