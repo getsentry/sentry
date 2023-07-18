@@ -24,6 +24,7 @@ export const migratedDocs = [
   'java-spring-boot',
   'php',
   'php-laravel',
+  'php-symfony',
   'go',
   'rust',
   'minidump',
@@ -32,6 +33,8 @@ export const migratedDocs = [
   'ruby',
   'ruby-rails',
   'ruby-rack',
+  'kotlin',
+  'node',
 ];
 
 type SdkDocumentationProps = {
