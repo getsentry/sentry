@@ -48,12 +48,14 @@ export const useSpanSamples = (options: Options) => {
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics'
+    'api.starfish.sidebar-span-metrics'
   );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
 
-  return useQuery<SpanSample[]>({
+  const enabled = Boolean(groupId && transactionName && !isLoadingSeries);
+
+  const result = useQuery<SpanSample[]>({
     queryKey: [
       'span-samples',
       groupId,
@@ -82,7 +84,9 @@ export const useSpanSamples = (options: Options) => {
         .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]);
     },
     refetchOnWindowFocus: false,
-    enabled: Boolean(groupId && transactionName && !isLoadingSeries),
+    enabled,
     initialData: [],
   });
+
+  return {...result, isEnabled: enabled};
 };

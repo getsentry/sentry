@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -29,22 +29,23 @@ export function SpanOperationSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: operations} = useSpansQuery<[{'span.op': string}]>({
+  const {data: operations} = useSpansQuery<{'span.op': string}[]>({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.get-span-operations',
   });
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(datum => ({
+    ...(operations ?? []).map(datum => ({
       value: datum[SPAN_OP],
       label: datum[SPAN_OP],
     })),
   ];
 
   return (
-    <CompactSelect
-      triggerProps={{prefix: t('Operation')}}
+    <SelectControl
+      inFieldLabel={`${t('Operation')}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -63,7 +63,7 @@ class OrganizationOnboardingTaskManager(BaseManager):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
                     self.create(organization_id=organization_id, task=task, **kwargs)
                     return True
             except IntegrityError:

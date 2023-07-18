@@ -3,11 +3,13 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization} from 'sentry/types';
+import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
+import {StarfishType} from 'sentry/views/starfish/types';
 
 const DEFAULT_STATS_PERIOD = '7d';
 
@@ -48,10 +50,72 @@ function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
 export function generateWebServiceEventView(
   location: Location,
   {withStaticFilters = false} = {},
-  organization: Organization
+  organization: Organization,
+  selection: PageFilters
 ) {
   const {query} = location;
+  const project = selection.projects[0];
+  const starfishType = STARFISH_TYPE_FOR_PROJECT[project] || StarfishType.BACKEND;
+
+  const getSavedQuery = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return generateMobileServiceSavedQuery(location);
+      case StarfishType.BACKEND:
+      default:
+        return generateWebServiceSavedQuery(location);
+    }
+  };
+
+  const savedQuery = getSavedQuery();
+
   const hasStartAndEnd = query.start && query.end;
+
+  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  widths[savedQuery.fields.length - 1] = '110';
+  savedQuery.widths = widths;
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = getDefaultStatsPeriod(organization);
+  }
+
+  const searchQuery = decodeScalar(query.query, '');
+  savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
+    searchQuery,
+    withStaticFilters
+  )}`;
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+
+  return eventView;
+}
+
+export function generateMobileServiceSavedQuery(location: Location) {
+  const {query} = location;
+  const orderby = decodeScalar(query.sort, `-eps`);
+
+  const fields = [
+    'transaction',
+    'eps()',
+    'p75(measurements.frames_slow_rate)',
+    'p75(measurements.time_to_initial_display)',
+  ];
+
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction transaction.op:ui.load',
+    fields,
+    version: 2,
+    dataset: DiscoverDatasets.METRICS,
+  };
+  savedQuery.orderby = orderby;
+
+  return savedQuery;
+}
+
+function generateWebServiceSavedQuery(location: Location) {
+  const {query} = location;
   const orderby = decodeScalar(query.sort, `-time_spent_percentage`);
 
   const fields = [
@@ -75,23 +139,7 @@ export function generateWebServiceEventView(
     version: 2,
     dataset: DiscoverDatasets.METRICS,
   };
-
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
-  widths[savedQuery.fields.length - 1] = '110';
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
-  }
   savedQuery.orderby = orderby;
 
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
-    searchQuery,
-    withStaticFilters
-  )}`;
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-
-  return eventView;
+  return savedQuery;
 }

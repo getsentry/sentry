@@ -4,6 +4,7 @@ from time import time
 from unittest import mock
 
 import pytz
+from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
@@ -23,10 +24,10 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOwnership,
     ProjectRedirect,
-    ProjectTeam,
     Rule,
     ScheduledDeletion,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase
@@ -1202,7 +1203,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1229,7 +1230,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
