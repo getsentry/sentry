@@ -4,7 +4,7 @@ from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -527,7 +527,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("isBookmarked"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass

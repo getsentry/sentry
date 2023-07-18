@@ -12,7 +12,7 @@ from django.apps import apps
 from django.core import management, serializers
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, connection, router, transaction
 
 from sentry.runner.decorators import configuration
 from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
@@ -227,22 +227,22 @@ def validate(
 def import_(src):
     """CLI command wrapping the `exec_import` functionality."""
 
-    try:
-        with transaction.atomic():
-            for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
+    for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
+        try:
+            with transaction.atomic(router.db_for_write(type(obj))):
                 if obj.object._meta.app_label not in EXCLUDED_APPS:
                     obj.save()
-    # For all database integrity errors, let's warn users to follow our
-    # recommended backup/restore workflow before reraising exception. Most of
-    # these errors come from restoring on a different version of Sentry or not restoring
-    # on a clean install.
-    except IntegrityError as e:
-        warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-        click.echo(
-            warningText,
-            err=True,
-        )
-        raise (e)
+        # For all database integrity errors, let's warn users to follow our
+        # recommended backup/restore workflow before reraising exception. Most of
+        # these errors come from restoring on a different version of Sentry or not restoring
+        # on a clean install.
+        except IntegrityError as e:
+            warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
+            click.echo(
+                warningText,
+                err=True,
+            )
+            raise (e)
 
     sequence_reset_sql = StringIO()
 
