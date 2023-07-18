@@ -50,30 +50,31 @@ def migrate_monitor_slugs(apps, schema_editor):
             # If there is a collision, delete the old monitor as the new one is receiving all check-ins
             monitors_to_clean_up.append(monitor.id)
 
-    for delete_monitor in Monitor.objects.filter(id__in=monitors_to_clean_up):
-        alert_rule_id = delete_monitor.config.get("alert_rule_id")
-        if alert_rule_id:
-            rule = (
-                Rule.objects.filter(
-                    project_id=delete_monitor.project_id,
-                    id=alert_rule_id,
+            alert_rule_id = monitor.config.get("alert_rule_id")
+            if alert_rule_id:
+                rule = (
+                    Rule.objects.filter(
+                        project_id=monitor.project_id,
+                        id=alert_rule_id,
+                    )
+                    .exclude(
+                        status__in=[
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
+                        ]
+                    )
+                    .first()
                 )
-                .exclude(
-                    status__in=[
-                        ObjectStatus.PENDING_DELETION,
-                        ObjectStatus.DELETION_IN_PROGRESS,
-                    ]
-                )
-                .first()
-            )
-            if rule:
-                rule.status = ObjectStatus.PENDING_DELETION
-                rule.save()
-                schedule(RegionScheduledDeletion, rule, days=0)
+                if rule:
+                    rule.status = ObjectStatus.PENDING_DELETION
+                    rule.save()
+                    schedule(RegionScheduledDeletion, rule, days=0)
 
-        delete_monitor.status = ObjectStatus.PENDING_DELETION
-        delete_monitor.save()
-        schedule(ScheduledDeletion, delete_monitor, days=0)
+            # revert slug so as not to attempt re-saving clean slug
+            monitor.slug = monitor_slug
+            monitor.status = ObjectStatus.PENDING_DELETION
+            monitor.save()
+            schedule(ScheduledDeletion, monitor, days=0)
 
 
 class Migration(CheckedMigration):
@@ -97,6 +98,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             migrate_monitor_slugs,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_monitior"]},
+            hints={"tables": ["sentry_monitor"]},
         ),
     ]
