@@ -78,6 +78,9 @@ class BaseApiClient(TrackResponseMixin):
             return f"{base_url}/{path}"
         return path
 
+    def _get_redis_key(self):
+        return f"sentry-integration-error:{self.integration_id}"
+
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """
         Allows subclasses to add hooks before sending requests out
@@ -88,8 +91,18 @@ class BaseApiClient(TrackResponseMixin):
         return False
 
     def is_response_error(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
+        if resp is not None:
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                return True
+
+        if e is not None:
+            if e is ConnectionError:
+                return True
+            if e is Timeout:
+                return True
+            if e is HTTPError:
+                return True
+
 
     def is_response_success(self, resp: Response) -> bool:
         # print("is_response_success")
@@ -204,11 +217,11 @@ class BaseApiClient(TrackResponseMixin):
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
-                self.record_request_error(e)
+                self.record_request_error(error=e)
                 raise ApiHostError.from_exception(e) from e
             except Timeout as e:
                 self.track_response_data("timeout", span, e)
-                self.record_request_error(e)
+                self.record_request_error(error=e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
@@ -220,10 +233,10 @@ class BaseApiClient(TrackResponseMixin):
                     if self.integration_type:
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
-                    self.record_request_error(e)
+                    self.record_request_error(error=e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
-                self.record_request_error(e)
+                self.record_request_error(error=e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -235,12 +248,12 @@ class BaseApiClient(TrackResponseMixin):
                 # Rather than worrying about what the other layers might be, we just stringify to detect this.
                 if "ConnectionResetError" in str(e):
                     self.track_response_data("connection_reset_error", span, e)
-                    self.record_request_error(e)
+                    self.record_request_error(error=e)
                     raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
                 # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
                 if "InvalidChunkLength" in str(e):
                     self.track_response_data("invalid_chunk_length", span, e)
-                    self.record_request_error(e)
+                    self.record_request_error(error=e)
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
@@ -327,7 +340,7 @@ class BaseApiClient(TrackResponseMixin):
             return
         if not self.is_response_error(resp, error):
             return
-        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_error()
         print("error recorded")
         if buffer.is_integration_broken():
@@ -343,7 +356,7 @@ class BaseApiClient(TrackResponseMixin):
             return
         if not self.is_response_success(resp):
             return
-        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_success()
         print("success recorded")
 
@@ -352,15 +365,13 @@ class BaseApiClient(TrackResponseMixin):
             return
         if not self.is_response_fatal(resp, error):
             return
-        buffer = IntegrationRequestBuffer(self.integration_id)
+        buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_fatal()
         print("fatal recorded")
         if buffer.is_integration_broken():
-            rpc_integration = integration_service.get_integrations(
-                integration_ids=[self.integration_id]
-            )[0]
-            print(rpc_integration)
-            integration = Integration.objects.get(id=rpc_integration.id)
-            print(integration)
-            integration.update(status=ObjectStatus.DISABLED)
-            print(integration)
+            rpc_integration = integration_service.get_integration(
+                integration_id=self.integration_id
+            )
+            integration_service.update_integration(
+                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+            )
