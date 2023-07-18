@@ -393,7 +393,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
-        # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
         r"""
         Delete an organization member from a team.
 
