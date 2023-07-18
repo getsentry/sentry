@@ -56,7 +56,7 @@ describe('EditSavedSearchModal', function () {
         id: 'saved-search-id',
         name: 'test',
         query: 'is:unresolved browser:firefox',
-        sort: IssueSortOptions.BETTER_PRIORITY,
+        sort: IssueSortOptions.PRIORITY,
         visibility: SavedSearchVisibility.OWNER,
       },
     });
@@ -97,7 +97,7 @@ describe('EditSavedSearchModal', function () {
         id: 'saved-search-id',
         name: 'test',
         query: 'is:unresolved browser:firefox',
-        sort: IssueSortOptions.BETTER_PRIORITY,
+        sort: IssueSortOptions.PRIORITY,
         visibility: SavedSearchVisibility.OWNER,
       },
     });

@@ -35,7 +35,8 @@ function WebServiceView({selection, location, router}: Props) {
     {
       withStaticFilters,
     },
-    organization
+    organization,
+    selection
   );
 
   useEffect(() => {
@@ -50,7 +51,7 @@ function WebServiceView({selection, location, router}: Props) {
   }, [selection.datetime, previousDateTime, selection, api, organization, location]);
 
   return (
-    <SentryDocumentTitle title={t('Web Service')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Service Overview')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <StarfishLanding
           router={router}

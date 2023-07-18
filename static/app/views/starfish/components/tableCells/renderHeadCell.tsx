@@ -62,7 +62,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
   );
 };
 
-const getAlignment = (key: string): Alignments => {
+export const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);

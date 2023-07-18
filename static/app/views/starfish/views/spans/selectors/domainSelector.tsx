@@ -30,15 +30,16 @@ export function DomainSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
+  const {data: domains} = useSpansQuery<{'span.domain': string}[]>({
     eventView,
     initialData: [],
     limit: 100,
+    referrer: 'api.starfish.get-span-domains',
   });
 
   const options = [
     {value: '', label: 'All'},
-    ...domains.map(datum => ({
+    ...(domains ?? []).map(datum => ({
       value: datum['span.domain'],
       label: datum['span.domain'],
     })),

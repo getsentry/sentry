@@ -32,7 +32,7 @@ export function useSpansQuery<T = any[]>({
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
@@ -132,7 +132,7 @@ export function useWrappedDiscoverQuery<T>({
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
@@ -155,20 +155,17 @@ export function useWrappedDiscoverQuery<T>({
     },
   });
 
+  // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
+  // does not!
   const meta = result.data?.meta as EventsMetaType | undefined;
-  if (meta) {
-    // TODO: Remove this hack when the backend returns `"rate"` as the data
-    // type for `sps()` and other rate fields!
-    meta.fields['sps()'] = 'rate';
-    meta.units['sps()'] = '1/second';
-  }
 
-  const data: T = result.isLoading && initialData ? initialData : result.data?.data;
+  const data =
+    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,
     data,
-    meta, // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it does not!
+    meta,
   };
 }
 
