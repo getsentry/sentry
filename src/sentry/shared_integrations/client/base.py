@@ -16,6 +16,7 @@ from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
+from sentry.models.integrations.integration import Integration
 
 from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
 from ..exceptions.base import ApiError
@@ -352,6 +353,14 @@ class BaseApiClient(TrackResponseMixin):
     #    print(integration)
     #    integration.status = ObjectStatus.DISABLED
     #    print(integration)
+        rpc_integration = integration_service.get_integrations(
+            integration_ids=[self.integration_id]
+        )[0]
+        print(rpc_integration)
+        integration = Integration.objects.get(id=rpc_integration.id)
+        print(integration)
+        integration.update(status=ObjectStatus.DISABLED)
+        print(integration)
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
         if not self.integration_id:
@@ -362,9 +371,11 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_fatal()
         print("fatal recorded")
         if buffer.is_integration_broken():
-            integration = integration_service.get_integrations(
+            rpc_integration = integration_service.get_integrations(
                 integration_ids=[self.integration_id]
             )[0]
+            print(rpc_integration)
+            integration = Integration.objects.get(id=rpc_integration.id)
             print(integration)
-            integration.status = ObjectStatus.DISABLED
+            integration.update(status=ObjectStatus.DISABLED)
             print(integration)

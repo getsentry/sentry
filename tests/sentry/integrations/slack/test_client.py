@@ -107,6 +107,7 @@ class SlackClientTest(TestCase):
         client = SlackClient(integration_id=self.integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_not_authed_response
+        # {"ok": True, "auth": None}
 
     @responses.activate
     def test_authorize_manually(self):
@@ -117,6 +118,7 @@ class SlackClientTest(TestCase):
             headers={"Authorization": f"Bearer {self.user_access_token}"},
         )
         assert response == self.mock_user_access_token_response
+        # {"ok": True, "auth": "user"}
 
     @responses.activate
     def test_authorize_with_org_integration_id(self):
