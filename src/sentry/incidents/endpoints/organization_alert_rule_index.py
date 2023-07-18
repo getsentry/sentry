@@ -16,23 +16,22 @@ from sentry.api.paginator import (
     CombinedQuerysetPaginator,
     OffsetPaginator,
 )
-from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
-from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.signals import alert_rule_created
-
-from sentry.services.hybrid_cloud.app import app_service
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
 from sentry.constants import ObjectStatus
+from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, Project, Rule, Team
 from sentry.models.rule import RuleSource
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.utils.cursors import Cursor, StringCursor
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
+from sentry.utils.cursors import Cursor, StringCursor
 
 from .utils import parse_team_params
 
@@ -195,17 +194,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        # serializer = AlertRuleSerializer(
-        #     context={"organization": organization, "access": request.access, "user": request.user},
-        #     data=request.data,
-        # )
-
-        # if serializer.is_valid():
-        #     alert_rule = serializer.save()
-        #     return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
-
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = AlertRuleSerializer(
             context={
                 "organization": organization,
@@ -237,9 +225,8 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
                 session_id = request.query_params.get("sessionId")
                 duplicate_rule = request.query_params.get("duplicateRule")
                 wizard_v3 = request.query_params.get("wizardV3")
-                temp = alert_rule.snuba_query.subscriptions.all().select_related("project")
-                project = temp[0].project
-                # import pdb; pdb.set_trace()
+                subscriptions = alert_rule.snuba_query.subscriptions.all()
+                project = subscriptions[0].project
                 alert_rule_created.send_robust(
                     user=request.user,
                     project=project,
