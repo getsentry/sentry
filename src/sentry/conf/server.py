@@ -112,6 +112,7 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -631,6 +632,13 @@ SENTRY_REGION_CONFIG: Any = tuple()
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+# Control silo address (public or private).
+# Usecases include sending requests to the Integration Proxy Endpoint.
+SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+
+# The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
+SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 
 # Queue configuration

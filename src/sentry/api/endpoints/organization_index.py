@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -216,7 +216,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
             try:
 
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Organization)):
                     org = create_organization_with_outbox_message(
                         create_options={"name": result["name"], "slug": result.get("slug")}
                     )
