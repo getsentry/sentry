@@ -228,7 +228,7 @@ class ModelBackupTests(TransactionTestCase):
         self.create_incident()
         return self.import_export_then_validate()
 
-    @targets_models(Incident, IncidentActivity)
+    @targets_models(IncidentActivity)
     def test_incidentActivity(self):
         IncidentActivity.objects.create(
             incident=self.create_incident(),
@@ -237,7 +237,7 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets_models(IncidentSnapshot, Incident, TimeSeriesSnapshot)
+    @targets_models(IncidentSnapshot, TimeSeriesSnapshot)
     def test_incidentSnapshot(self):
         IncidentSnapshot.objects.create(
             incident=self.create_incident(),
@@ -252,15 +252,13 @@ class ModelBackupTests(TransactionTestCase):
         )
         return self.import_export_then_validate()
 
-    @targets_models(IncidentSubscription, Incident)
+    @targets_models(IncidentSubscription)
     def test_incidentSubscription(self):
         user_id = self.create_user().id
         IncidentSubscription.objects.create(incident=self.create_incident(), user_id=user_id)
         return self.import_export_then_validate()
 
-    @targets_models(
-        IncidentTrigger, AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion
-    )
+    @targets_models(IncidentTrigger)
     def test_incidentTrigger(self):
         excluded = self.create_project()
         rule = self.create_alert_rule(include_all_projects=True)
