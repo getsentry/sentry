@@ -861,7 +861,6 @@ module = [
     "sentry.snuba.spans_metrics",
     "sentry.snuba.tasks",
     "sentry.stacktraces.functions",
-    "sentry.stacktraces.processing",
     "sentry.tagstore.base",
     "sentry.tagstore.query",
     "sentry.tagstore.snuba.backend",
