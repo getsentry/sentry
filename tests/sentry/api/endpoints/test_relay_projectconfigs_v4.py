@@ -6,6 +6,8 @@ from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
@@ -105,9 +107,13 @@ def projectconfig_debounced_cache(monkeypatch):
 
 @pytest.fixture
 def project_config_get_mock(monkeypatch):
+
     monkeypatch.setattr(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig("mock_project", is_mock_config=True),
+        lambda *args, **kwargs: ProjectConfig(
+            Project(id=101, name="mock_project", organization=Organization(pk=666)),
+            is_mock_config=True,
+        ),
     )
 
 

@@ -49,7 +49,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Relay unauthorized for full config information", 403)
 
         version = request.GET.get("version") or "1"
-
         set_tag("relay_protocol_version", version)
 
         if version == "4":
