@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -140,4 +141,39 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         provider.setup()
 
+        assert responses.assert_call_count(count=1, url=url)
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.commands.logger.error")
+    def test_setup_failure(self, mock_log_error):
+        mock_log_error.return_value = None
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+
+        assert responses.assert_call_count(count=1, url=url)
+        assert mock_log_error.call_count == 1
+
+    @responses.activate
+    def test_setup_cache(self):
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+        provider.setup()
+
+        # Second provider.setup() should not update commands -> 1 call to API
         assert responses.assert_call_count(count=1, url=url)
