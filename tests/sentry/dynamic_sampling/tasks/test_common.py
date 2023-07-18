@@ -46,12 +46,15 @@ class FakeContextIterator:
     def get_current_state(self):
         return DynamicSamplingLogState(num_iterations=self.count)
 
+    def set_current_state(self, state: DynamicSamplingLogState):
+        self.count = state.num_iterations
+
 
 def test_timed_iterator_no_timout():
 
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
-        it = TimedIterator(context, "ti1", FakeContextIterator(frozen_time, 1))
+        it = TimedIterator(context, FakeContextIterator(frozen_time, 1), "ti1")
         # should iterate while there is no timeout
         assert (next(it)) == 1
         assert context.get_function_state("ti1") == DynamicSamplingLogState(
@@ -78,7 +81,7 @@ def test_timed_iterator_no_timout():
 def test_timed_iterator_with_timeout():
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
-        it = TimedIterator(context, "ti1", FakeContextIterator(frozen_time, 4))
+        it = TimedIterator(context, FakeContextIterator(frozen_time, 4), "ti1")
         # should iterate while there is no timeout
         assert (next(it)) == 1
         assert context.get_function_state("ti1") == DynamicSamplingLogState(
