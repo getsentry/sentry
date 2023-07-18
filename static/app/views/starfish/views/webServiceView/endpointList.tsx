@@ -4,7 +4,6 @@ import {Location, LocationDescriptorObject} from 'history';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -15,7 +14,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,21 +25,17 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  t('Change'),
   DataTitles.p95,
-  t('Change'),
   DataTitles.errorCount,
-  t('Change'),
   DataTitles.timeSpent,
 ];
 
@@ -120,17 +115,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <Tooltip
-          title={tct('Total time spent by endpoint is [cumulativeTime])', {
-            cumulativeTime: (
-              <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
-            ),
-          })}
-          containerDisplayMode="block"
-          position="top"
-        >
-          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
-        </Tooltip>
+        <TimeSpentCell
+          timeSpentPercentage={cumulativeTimePercentage}
+          totalSpanTime={cumulativeTime}
+        />
       );
     }
 

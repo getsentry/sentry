@@ -399,7 +399,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         ).order_by("email", "id")
         if query_params["filter"]:
             filtered_users = user_service.get_many_by_email(
-                emails=query_params["filter"],
+                emails=[query_params["filter"]],
                 organization_id=organization.id,
                 is_verified=False,
             )
