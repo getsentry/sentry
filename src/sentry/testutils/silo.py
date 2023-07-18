@@ -122,37 +122,58 @@ class SiloModeTestDecorator:
         return issubclass(test_class, AcceptanceTestCase)
 
     def _add_siloed_test_classes_to_module(
-        self, test_class: type, regions: Sequence[Region]
+        self, test_class: type, regions: Sequence[Region] | None
     ) -> type:
-        for silo_mode in self.silo_modes:
-            silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
-            siloed_test_class = type(
-                f"{test_class.__name__}__In{silo_mode_name}Mode",
+        is_acceptance_test = self._is_acceptance_test(test_class)
+
+        def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
+            return type(
+                name,
                 (test_class, _SiloModeTestCase),
                 {
                     "silo_mode": silo_mode,
-                    "regions": regions,
-                    "is_acceptance_test": self._is_acceptance_test(test_class),
+                    "regions": tuple(regions or _DEFAULT_TEST_REGIONS),
+                    "is_acceptance_test": is_acceptance_test,
                 },
+            )
+
+        for silo_mode in self.silo_modes:
+            silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
+            siloed_test_class = create_overriding_test_class(
+                f"{test_class.__name__}__In{silo_mode_name}Mode", silo_mode
             )
 
             module = sys.modules[test_class.__module__]
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
-        return test_class  # the unmodified test case that runs in monolith mode
+        # Return the value to be wrapped by the original decorator
+        if regions is None:
+            # Pass the original class through, with no modification
+            return test_class
+        else:
+            # Override without changing the original name. We don't need to change
+            # the silo mode, but we do need to override the region config.
+            return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
 
-    def __call__(self, decorated_obj: Any = None, stable: bool = False) -> Any:
+    def __call__(
+        self,
+        decorated_obj: Any = None,
+        stable: bool = False,
+        regions: Sequence[Region] | None = None,
+    ) -> Any:
         if decorated_obj:
-            return self._call(decorated_obj, stable)
+            return self._call(decorated_obj, stable, regions)
 
         def receive_decorated_obj(f: Any) -> Any:
-            return self._call(f, stable)
+            return self._call(f, stable, regions)
 
         return receive_decorated_obj
 
     def _mark_parameterized_by_silo_mode(
-        self, test_method: TestMethod, regions: Sequence[Region]
+        self, test_method: TestMethod, regions: Sequence[Region] | None
     ) -> TestMethod:
+        regions = tuple(regions or _DEFAULT_TEST_REGIONS)
+
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
             with override_settings(SILO_MODE=silo_mode):
@@ -175,9 +196,7 @@ class SiloModeTestDecorator:
             new_test_method
         )
 
-    def _call(self, decorated_obj: Any, stable: bool, regions: Sequence[Region] = ()) -> Any:
-        regions = regions or _DEFAULT_TEST_REGIONS
-
+    def _call(self, decorated_obj: Any, stable: bool, regions: Sequence[Region] | None) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
         is_function = inspect.isfunction(decorated_obj)
 
