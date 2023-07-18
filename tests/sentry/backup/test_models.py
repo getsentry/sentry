@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from click.testing import CliRunner
 from django.core.management import call_command
+from django.db import router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
@@ -114,7 +115,8 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        with unguarded_write():
+        # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
+        with unguarded_write(using=router.db_for_write(Organization)):
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
@@ -134,7 +136,8 @@ class ModelBackupTests(TransactionTestCase):
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
-            with unguarded_write():
+            # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
+            with unguarded_write(using=router.db_for_write(Organization)):
                 # Reset the Django database.
                 call_command("flush", verbosity=0, interactive=False)
 

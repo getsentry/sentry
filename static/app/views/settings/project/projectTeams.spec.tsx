@@ -8,12 +8,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import type {Organization, Project} from 'sentry/types';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
 describe('ProjectTeams', function () {
-  let org;
-  let project;
-  let routerContext;
+  let org: Organization;
+  let project: Project;
+  let routerContext: Record<string, any>;
 
   const team1WithAdmin = TestStubs.Team({
     access: ['team:read', 'team:write', 'team:admin'],
@@ -68,6 +69,7 @@ describe('ProjectTeams', function () {
   it('renders', function () {
     const {container} = render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -100,6 +102,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -157,6 +160,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -205,6 +209,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -251,6 +256,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -296,6 +302,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
+        {...TestStubs.routeComponentProps()}
         params={{projectId: project.slug}}
         project={project}
         organization={org}

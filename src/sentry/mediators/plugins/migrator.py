@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models import Repository
@@ -10,6 +12,7 @@ from sentry.utils.cache import memoize
 class Migrator(Mediator):
     integration = Param(Integration)
     organization = Param(RpcOrganization)
+    using = router.db_for_write(Integration)
 
     def call(self):
         for project in self.projects:
