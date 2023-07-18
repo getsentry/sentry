@@ -63,7 +63,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         """
-        Fetches alert rules for a project
+        Fetches alert rules for a project - UNUSED. check API logs to confirm?
         """
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
@@ -84,7 +84,8 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project) -> Response:
         """
-        Create an alert rule
+        Create an alert rule - only used when creating metric alert rules but organizationalertruleindex should do the same thing
+        need to copy over the sentry app and slack lookup stuff though
         """
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist

@@ -16,6 +16,12 @@ from sentry.api.paginator import (
     CombinedQuerysetPaginator,
     OffsetPaginator,
 )
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.incidents.logic import get_slack_actions_with_async_lookups
+from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.signals import alert_rule_created
+
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
 from sentry.api.utils import InvalidParams
@@ -26,6 +32,7 @@ from sentry.models import OrganizationMemberTeam, Project, Rule, Team
 from sentry.models.rule import RuleSource
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
+from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 from .utils import parse_team_params
 
@@ -182,19 +189,69 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         """
-        Create an alert rule
+        Create a metric alert rule - CEO maybe pass in the project? that seems dumb idk
         """
 
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        # serializer = AlertRuleSerializer(
+        #     context={"organization": organization, "access": request.access, "user": request.user},
+        #     data=request.data,
+        # )
+
+        # if serializer.is_valid():
+        #     alert_rule = serializer.save()
+        #     return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = AlertRuleSerializer(
-            context={"organization": organization, "access": request.access, "user": request.user},
+            context={
+                "organization": organization,
+                "access": request.access,
+                "user": request.user,
+                "ip_address": request.META.get("REMOTE_ADDR"),
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=organization.id
+                ),
+            },
             data=request.data,
         )
-
         if serializer.is_valid():
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+            if get_slack_actions_with_async_lookups(organization, request.user, request.data):
+                # need to kick off an async job for Slack
+                client = RedisRuleStatus()
+                task_args = {
+                    "organization_id": organization.id,
+                    "uuid": client.uuid,
+                    "data": request.data,
+                    "user_id": request.user.id,
+                }
+                find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+                return Response({"uuid": client.uuid}, status=202)
+            else:
+                alert_rule = serializer.save()
+                referrer = request.query_params.get("referrer")
+                session_id = request.query_params.get("sessionId")
+                duplicate_rule = request.query_params.get("duplicateRule")
+                wizard_v3 = request.query_params.get("wizardV3")
+                temp = alert_rule.snuba_query.subscriptions.all().select_related("project")
+                project = temp[0].project
+                # import pdb; pdb.set_trace()
+                alert_rule_created.send_robust(
+                    user=request.user,
+                    project=project,
+                    rule=alert_rule,
+                    rule_type="metric",
+                    sender=self,
+                    referrer=referrer,
+                    session_id=session_id,
+                    is_api_token=request.auth is not None,
+                    duplicate_rule=duplicate_rule,
+                    wizard_v3=wizard_v3,
+                )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
