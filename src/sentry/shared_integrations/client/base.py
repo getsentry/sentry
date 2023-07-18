@@ -12,8 +12,8 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
@@ -337,7 +337,6 @@ class BaseApiClient(TrackResponseMixin):
             integration.status = ObjectStatus.DISABLED
             print(integration)
 
-
     def record_request_success(self, resp: Response):
         if not self.integration_id:
             return
@@ -346,12 +345,13 @@ class BaseApiClient(TrackResponseMixin):
         buffer = IntegrationRequestBuffer(self.integration_id)
         buffer.record_success()
         print("success recorded")
-   #    integration = integration_service.get_integrations(
-   #        integration_ids=[self.integration_id]
-   #    )[0]
-   #    print(integration)
-   #    integration.status = ObjectStatus.DISABLED
-   #    print(integration)
+
+    #    integration = integration_service.get_integrations(
+    #        integration_ids=[self.integration_id]
+    #    )[0]
+    #    print(integration)
+    #    integration.status = ObjectStatus.DISABLED
+    #    print(integration)
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
         if not self.integration_id:
