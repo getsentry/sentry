@@ -47,6 +47,9 @@ export const migratedDocs = [
   'minidump',
   'native',
   'native-qt',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
   'kotlin',
   'node',
 ];
