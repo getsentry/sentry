@@ -103,7 +103,6 @@ class BaseApiClient(TrackResponseMixin):
             if e is HTTPError:
                 return True
 
-
     def is_response_success(self, resp: Response) -> bool:
         # print("is_response_success")
         # print("resp")
