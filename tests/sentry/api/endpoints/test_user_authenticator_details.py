@@ -3,7 +3,6 @@ from unittest import mock
 
 from django.conf import settings
 from django.core import mail
-from django.db.models import F
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
@@ -106,11 +105,12 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.create_organization(
+            name="test monkey", owner=self.user, flags=Organization.flags.require_2fa
+        )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-device-details"
     method = "delete"
