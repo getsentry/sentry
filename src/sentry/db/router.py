@@ -143,10 +143,17 @@ class SiloRouter:
             # Incrementally build up our result cache so we don't
             # have to scan through models more than once.
             self.__table_to_silo[table] = self._db_for_model(model)
+        else:
+            # We no longer have the model and can't determine silo assignment.
+            # Default to None for sentry/getsentry app_label as models
+            # in those apps must have silo assignments, and 'default'
+            # for other app_labels that can't have silo assignments.
+            fallback = "default"
+            if app_label in {"sentry", "getsentry"}:
+                fallback = None
+            self.__table_to_silo[table] = fallback
 
-        # All actively used tables should be in this map, but we also
-        # need to handle tables in migrations that no longer exist.
-        return self.__table_to_silo.get(table, "default")
+        return self.__table_to_silo[table]
 
     def db_for_read(self, model, **hints):
         return self._db_for_model(model)
