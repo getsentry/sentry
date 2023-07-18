@@ -1,21 +1,31 @@
 from django.db import models
+from django.db.models import CASCADE
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, region_silo_only_model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    control_silo_only_model,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.integrations.organization_integrity_backfill_mixin import (
     OrganizationIntegrityBackfillMixin,
 )
 
 
-@region_silo_only_model
+@control_silo_only_model
 class PagerDutyService(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
     __include_in_export__ = False
 
-    organization_integration_id = HybridCloudForeignKey(
-        "sentry.OrganizationIntegration", on_delete="CASCADE"
+    # organization_integration_id = HybridCloudForeignKey(
+    organization_integration = FlexibleForeignKey(
+        "sentry.OrganizationIntegration", on_delete=CASCADE, db_constraint=False
     )
-    organization_id = BoundedBigIntegerField(db_index=True)
+
+    # organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+
     # From a region point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
     integration_key = models.CharField(max_length=255)
