@@ -67,6 +67,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
   none: t('Domain'),
+  Other: t('Domain'),
   '': t('Domain'),
 };
 

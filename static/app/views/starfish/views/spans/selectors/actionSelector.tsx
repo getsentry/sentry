@@ -82,6 +82,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
   none: t('Action'),
+  Other: t('Action'),
   '': t('Action'),
 };
 
