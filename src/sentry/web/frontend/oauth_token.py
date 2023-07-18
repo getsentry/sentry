@@ -45,19 +45,6 @@ class OAuthTokenView(View):
 
     @never_cache
     def post(self, request: HttpRequest) -> HttpResponse:
-        client_details = self._get_client_details_if_valid_request(request=request)
-
-        if not isinstance(client_details, dict):
-            return client_details  # client_details contains an error response.
-
-        if client_details["grant_type"] == GrantTypes.AUTHORIZATION:
-            return self._get_access_tokens(
-                request=request, application=client_details["application"]
-            )
-        return self._get_refresh_token(request, application=client_details["application"])
-
-    def _get_client_details_if_valid_request(self, request: Request) -> Union[dict, HttpResponse]:
-        """Returns the client's ID and associated ApiApplication if they provided the correct client secret."""
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
         if not client_id:
@@ -81,9 +68,11 @@ class OAuthTokenView(View):
             elif client_secret != application.client_secret:
                 return self.error(request, "invalid client_secret")
 
-        return {"client_id": client_id, "grant_type": grant_type, "application": application}
+        if grant_type == GrantTypes.AUTHORIZATION:
+            return self.get_access_tokens(request=request, application=application)
+        return self.get_refresh_token(request, application=application)
 
-    def _get_access_tokens(self, request: Request, application: ApiApplication) -> HttpResponse:
+    def get_access_tokens(self, request: Request, application: ApiApplication) -> HttpResponse:
         code = request.POST.get("code")
         try:
             grant = ApiGrant.objects.get(application=application, code=code)
@@ -100,22 +89,21 @@ class OAuthTokenView(View):
             return self.error(request, "invalid_grant", "invalid redirect_uri")
 
         access_token = ApiToken.from_grant(grant=grant)
-        id_token = self._get_open_id_token(request=request, grant=grant)
-        return self._process_token_details(token=access_token, id_token=id_token)
 
-    def _get_open_id_token(self, request: Request, grant: ApiGrant) -> Union[OpenIDToken, None]:
+        id_token = None
         if grant.has_scope("openid"):
-            open_id_token = OpenIDToken(
+            id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
                 # Encrypt with a random secret until we implement secure shared secrets in prod
                 secrets.token_urlsafe(),
                 nonce=request.POST.get("nonce"),
             )
-            return open_id_token.get_encrypted_id_token(grant=grant)
-        return None
+            id_token = id_token.get_encrypted_id_token(grant=grant)
 
-    def _get_refresh_token(self, request: Request, application: ApiApplication) -> HttpResponse:
+        return self.process_token_details(token=access_token, id_token=id_token)
+
+    def get_refresh_token(self, request: Request, application: ApiApplication) -> HttpResponse:
         refresh_token_code = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
 
@@ -135,9 +123,9 @@ class OAuthTokenView(View):
 
         refresh_token.refresh()
 
-        return self._process_token_details(token=refresh_token)
+        return self.process_token_details(token=refresh_token)
 
-    def _process_token_details(
+    def process_token_details(
         self, token: ApiToken, id_token: Union[OpenIDToken, None] = None
     ) -> HttpResponse:
         token_information = {
