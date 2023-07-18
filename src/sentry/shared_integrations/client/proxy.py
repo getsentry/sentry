@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Mapping
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -54,9 +55,7 @@ def infer_org_integration(
 
 def get_proxy_url() -> str:
     control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", "")
-    control_address = control_address.rstrip("/")
-    proxy_base_path = PROXY_BASE_PATH.lstrip("/")
-    return f"{control_address}/{proxy_base_path}"
+    return urljoin(control_address, PROXY_BASE_PATH)
 
 
 class IntegrationProxyClient(ApiClient):
