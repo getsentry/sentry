@@ -72,7 +72,7 @@ def check_missing(current_datetime=None):
             ]
         )[:MONITOR_LIMIT]
     )
-    metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_missing.count", qs.count())
     for monitor_environment in qs:
         try:
             logger.info(
@@ -110,7 +110,7 @@ def check_timeout(current_datetime=None):
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
     ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
-    metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         try:
