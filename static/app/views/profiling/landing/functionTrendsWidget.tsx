@@ -20,6 +20,7 @@ import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {TrendType} from 'sentry/utils/profiling/hooks/types';
 import {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
@@ -129,6 +130,7 @@ export function FunctionTrendsWidget({
                 <FunctionTrendsEntry
                   key={`${f.project}-${f.function}-${f.package}`}
                   trendFunction={trendFunction}
+                  trendType={trendType}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => setExpandedIndex(i)}
                   func={f}
@@ -186,6 +188,7 @@ interface FunctionTrendsEntryProps {
   isExpanded: boolean;
   setExpanded: () => void;
   trendFunction: string;
+  trendType: TrendType;
 }
 
 function FunctionTrendsEntry({
@@ -193,6 +196,7 @@ function FunctionTrendsEntry({
   isExpanded,
   setExpanded,
   trendFunction,
+  trendType,
 }: FunctionTrendsEntryProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -204,6 +208,25 @@ function FunctionTrendsEntry({
 
   let before = <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />;
   let after = <PerformanceDuration nanoseconds={func.aggregate_range_2} abbreviation />;
+
+  function handleGoToProfile() {
+    switch (trendType) {
+      case 'improvement':
+        trackAnalytics('profiling_views.go_to_flamegraph', {
+          organization,
+          source: 'profiling.function_trends.improvement',
+        });
+        break;
+      case 'regression':
+        trackAnalytics('profiling_views.go_to_flamegraph', {
+          organization,
+          source: 'profiling.function_trends.regression',
+        });
+        break;
+      default:
+        throw new Error('Unknown trend type');
+    }
+  }
 
   if (project && beforeExamples.length >= 2 && afterExamples.length >= 2) {
     // By choosing the 2nd most recent example in each period, we guarantee the example
@@ -220,7 +243,11 @@ function FunctionTrendsEntry({
       },
     });
 
-    before = <Link to={beforeTarget}>{before}</Link>;
+    before = (
+      <Link to={beforeTarget} onClick={handleGoToProfile}>
+        {before}
+      </Link>
+    );
 
     const afterTarget = generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
@@ -232,7 +259,11 @@ function FunctionTrendsEntry({
       },
     });
 
-    after = <Link to={afterTarget}>{after}</Link>;
+    after = (
+      <Link to={afterTarget} onClick={handleGoToProfile}>
+        {after}
+      </Link>
+    );
   }
 
   return (
