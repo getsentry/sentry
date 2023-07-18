@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
+from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Set
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
-from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
@@ -267,47 +266,36 @@ def normalize_stacktraces_for_grouping(data: Mapping[str, Any], grouping_config=
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with sentry_sdk.start_span(op=op, description="iterate_stacktraces"):
+    with sentry_sdk.start_span(op=op, description="iterate_frames"):
         for frames, exception_data in stacktraces:
             for frame in frames:
-                _update_frame(frame, platform)
+                # Restore the original in_app value before the first grouping
+                # enhancers have been run. This allows to re-apply grouping
+                # enhancers on the original frame data.
+                orig_in_app = get_path(frame, "data", "orig_in_app")
+                if orig_in_app is not None:
+                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+
+                if frame.get("raw_function") is not None:
+                    continue
+                raw_func = frame.get("function")
+                if not raw_func:
+                    continue
+                function_name = trim_function_name(raw_func, frame.get("platform") or platform)
+                if function_name != raw_func:
+                    frame["raw_function"] = raw_func
+                    frame["function"] = function_name
 
             # If a grouping config is available, run grouping enhancers
-            if grouping_config:
-                if exception_data:
-                    with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-                        grouping_config.enhancements.apply_modifications_to_frame(
-                            frames, platform, exception_data
-                        )
-            else:
-                metrics.incr(
-                    "stacktraces.no_grouping_config",
-                    tags={"platform": platform or "unknown"},
-                )
+            if grouping_config is not None and exception_data:
+                with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
+                    grouping_config.enhancements.apply_modifications_to_frame(
+                        frames, platform, exception_data
+                    )
 
             # normalize in-app
             with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
                 _normalize_in_app(frames)
-
-
-def _update_frame(frame: Dict[str, Any], platform: Optional[str]) -> None:
-    """Restore the original in_app value before the first grouping
-    enhancers have been run. This allows to re-apply grouping
-    enhancers on the original frame data.
-    """
-    orig_in_app = get_path(frame, "data", "orig_in_app")
-    if orig_in_app is not None:
-        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
-
-    if frame.get("raw_function") is not None:
-        return
-    raw_func = frame.get("function")
-    if not raw_func:
-        return
-    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-    if function_name != raw_func:
-        frame["raw_function"] = raw_func
-        frame["function"] = function_name
 
 
 def should_process_for_stacktraces(data):
