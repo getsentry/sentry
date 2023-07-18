@@ -273,8 +273,109 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "detail": "Invalid organization role.",
         }
 
-    def test_users_get_populated(self):
+    def test_get_members_with_filter__invited(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        response = self.client.get(
+            f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22test.user%40okta.local%22"
+        )
+        correct_get_data = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 1,
+            "startIndex": 1,
+            "itemsPerPage": 1,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(member.id),
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
+                }
+            ],
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == correct_get_data
+
+    def test_get_members_no_filter__invited(self):
+        member = self.create_member(organization=self.organization, email="test.user@okta.local")
+        admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        response = self.client.get(f"{url}?startIndex=1&count=100")
+        correct_get_data = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 2,
+            "startIndex": 1,
+            "itemsPerPage": 2,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(member.id),
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
+                },
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(admin.id),
+                    "userName": self.user.username,
+                    "emails": [{"primary": True, "value": self.user.email, "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "owner",
+                },
+            ],
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == correct_get_data
+
+    def test_get_members_no_filter__approved(self):
+        user = self.create_user(email="test.user@okta.local")
+        member = self.create_member(organization=self.organization, user=user)
+        admin = OrganizationMember.objects.get(organization=self.organization, user_id=self.user.id)
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        response = self.client.get(f"{url}?startIndex=1&count=100")
+        correct_get_data = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 2,
+            "startIndex": 1,
+            "itemsPerPage": 2,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(admin.id),
+                    "userName": self.user.username,
+                    "emails": [{"primary": True, "value": self.user.email, "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "owner",
+                },
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": str(member.id),
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "active": True,
+                    "meta": {"resourceType": "User"},
+                    "sentryOrgRole": self.organization.default_role,
+                },
+            ],
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == correct_get_data
+
+    def test_get_members_with_filter__approved(self):
+        user = self.create_user(email="test.user@okta.local")
+        member = self.create_member(organization=self.organization, user=user)
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22test.user%40okta.local%22"
@@ -306,6 +407,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         response = self.client.get(
             f"{url}?startIndex=1&count=100&filter=userName%20eq%20%22TEST.USER%40okta.local%22"
         )
+
         correct_get_data = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
             "totalResults": 1,
