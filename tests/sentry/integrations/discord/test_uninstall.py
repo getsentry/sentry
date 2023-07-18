@@ -1,4 +1,5 @@
 from typing import Any, Optional
+from unittest import mock
 
 import responses
 
@@ -90,6 +91,14 @@ class DiscordUninstallTest(APITestCase):
         self.mock_discord_guild_leave(status=404)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.integration.logger.error")
+    def test_uninstall_unexpected_failure(self, mock_log_error):
+        self.mock_discord_guild_leave(status=500)
+        self.uninstall()
+        self.assert_leave_guild_api_call_count(1)
+        assert mock_log_error.call_count == 1
 
     @responses.activate
     def test_uninstall_multiple_orgs(self):
