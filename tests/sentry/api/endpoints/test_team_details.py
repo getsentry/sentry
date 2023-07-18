@@ -57,7 +57,7 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
