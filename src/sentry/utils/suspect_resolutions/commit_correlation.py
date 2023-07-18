@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Sequence, Set
 
-from sentry.models import CommitFileChange, Group, GroupRelease, Release, ReleaseCommit
+from sentry.models import Group, GroupRelease, Release, ReleaseCommit
+from sentry.models.commitfilechange import CommitFileChange
 
 
 @dataclass

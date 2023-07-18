@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from urllib.parse import urlparse
 
 import rest_framework
 from django.db import IntegrityError, transaction
@@ -649,6 +651,27 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
+        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+        metrics.incr(
+            "grouping.merge_issues",
+            sample_rate=1.0,
+            tags={
+                # We assume that if someone's merging groups, they're from the same platform
+                "platform": group_list[0].platform or "unknown",
+                # TODO: It's probably cleaner to just send this value from the front end
+                "referer": (
+                    "issue stream"
+                    if re.search(issue_stream_regex, referer)
+                    else "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                ),
+            },
+        )
 
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 

@@ -16,7 +16,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
 
 
-class TestSentryAppIntallationDeletionTask(TestCase):
+class TestSentryAppInstallationDeletionTask(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization()

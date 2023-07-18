@@ -2,14 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitFileChange,
-    GroupRelease,
-    GroupStatus,
-    ReleaseCommit,
-)
+from sentry.models import Activity, Commit, GroupRelease, GroupStatus, ReleaseCommit
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType

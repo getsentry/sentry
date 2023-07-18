@@ -78,12 +78,9 @@ from sentry.utils.snuba import raw_snql_query
 def boost_low_volume_projects() -> None:
     context = TaskContext("sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_SECONDS)
     fetch_projects_timer = Timer()
-    iterator_name = GetActiveOrgs.__name__
 
     try:
-        for orgs in TimedIterator(
-            context, iterator_name, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)
-        ):
+        for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
             for (
                 org_id,
                 projects_with_tx_count_and_rates,
