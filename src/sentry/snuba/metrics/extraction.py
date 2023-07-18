@@ -17,6 +17,7 @@ from typing import (
 
 from typing_extensions import NotRequired
 
+from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -216,6 +217,8 @@ def is_on_demand_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
+    if features.has("organizations:on-demand-metrics-extraction-experimental", None):
+        return False
 
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
