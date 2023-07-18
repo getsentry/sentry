@@ -8,7 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
 describe('ProjectTeams', function () {
