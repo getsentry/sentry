@@ -45,8 +45,8 @@ class OpsgenieClient(IntegrationProxyClient):
     def metadata(self):
         return self.integration.metadata
 
-    # This doesn't work if the team name is "." or "..", which are allowed for some reason
-    # despite the API not working with these names.
+    # This doesn't work if the team name is "." or "..", which Opsgenie allows for some reason
+    # despite their API not working with these names.
     def get_team_id(self, integration_key: str, team_name: str) -> BaseApiResponseX:
         params = {"identifierType": "name"}
         quoted_name = quote(team_name)
