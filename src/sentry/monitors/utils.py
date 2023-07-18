@@ -40,8 +40,8 @@ def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
-        return date_added.replace(second=0, microsecond=0) + max(
-            timedelta(minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT
+        return date_added.replace(second=0, microsecond=0) + timedelta(
+            minutes=max(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
         )
 
     return None
