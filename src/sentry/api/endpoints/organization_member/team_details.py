@@ -60,7 +60,6 @@ class TeamOrgMemberPermission(OrganizationPermission):
     _allowed_scopes = [
         "org:read",
         "org:write",
-        "org:admin",
         "team:write",
         "team:admin",
     ]
@@ -69,24 +68,19 @@ class TeamOrgMemberPermission(OrganizationPermission):
         "GET": [
             "org:read",
             "org:write",
-            "org:admin",
             "member:read",
             "member:write",
             "member:admin",
         ],
-        "POST": ["org:read", "org:write", "org:admin", "team:write"],
+        "POST": ["org:read", "org:write", "team:write"],
         "PUT": _allowed_scopes,
-        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
+        "DELETE": ["org:read", "org:write", "team:write"],
     }
 
 
 def _has_elevated_scope(access: Access) -> bool:
     # validate the token has more than just org:read
-    return (
-        access.has_scope("org:admin")
-        or access.has_scope("org:write")
-        or access.has_scope("team:write")
-    )
+    return access.has_scope("org:write") or access.has_scope("team:write")
 
 
 @extend_schema(tags=["Teams"])
@@ -110,7 +104,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         # to ensure org tokens with only "org:read" scope cannot add members
         if access.is_org_auth_token and not access.has_open_membership:
             return _has_elevated_scope(access)
-
+        print(access.has_global_access, can_admin_team(access, team))
         return access.has_global_access or can_admin_team(access, team)
 
     def _can_delete(
@@ -136,9 +130,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        # We need to check if the token has elevated permissions because there are edge cases where
-        # an org owner/admin/manager with elevated permissions cannot remove a member from a team
-        # they are not part of.
+        # We need to check if the token has elevated permissions because there is an edge case where
+        # an org owner/manager cannot remove a member from a team they are not part of using team:write
         return can_admin_team(request.access, team) or _has_elevated_scope(request.access)
 
     def _create_access_request(
@@ -238,7 +231,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             </td>
             <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                 <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
                 <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                 </ul>
@@ -254,7 +246,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             </td>
             <td style="text-align: left; width: 33%;">
                 <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                 <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
                 <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
                 <li><strong style="color: #9c5f99;">&bull; org:read +</strong></li>
@@ -404,7 +395,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 <td style="width: 50%; text-align: left;">
                     <ul style="list-style-type: none; padding-left: 0;">
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                     </ul>
                 </td>
@@ -415,7 +405,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     <ul style="list-style-type: none; padding-left: 0;">
                         <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
                     </ul>

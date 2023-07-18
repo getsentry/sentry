@@ -436,6 +436,15 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.manager_on_team
         ).exists()
 
+        # owner
+        self.get_success_response(
+            self.org.slug, self.owner_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.owner_on_team
+        ).exists()
+
     def test_manager_can_remove_members(self):
         self.login_as(self.manager_on_team)
 
@@ -446,6 +455,15 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+        # manager
+        self.get_success_response(
+            self.org.slug, self.manager_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.manager_on_team
         ).exists()
 
         # owner
