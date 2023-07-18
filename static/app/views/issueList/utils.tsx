@@ -175,7 +175,6 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
-  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -192,8 +191,6 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.NEW:
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
-      return t('Priority');
-    case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');

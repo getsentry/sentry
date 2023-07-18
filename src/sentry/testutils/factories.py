@@ -48,7 +48,6 @@ from sentry.models import (
     ArtifactBundle,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     DocIntegration,
     DocIntegrationAvatar,
     Environment,
@@ -93,6 +92,7 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
     ActionService,
@@ -1302,11 +1302,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
+    def create_alert_rule_trigger(
+        alert_rule, label=None, alert_threshold=100, excluded_projects=None
+    ):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

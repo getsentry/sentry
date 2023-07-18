@@ -6,18 +6,14 @@ import logging
 from datetime import datetime
 from typing import Sequence
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.issues.escalating import (
     ParsedGroupsCount,
     parse_groups_past_counts,
     query_groups_past_counts,
 )
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.escalating_issues_alg import (
-    generate_issue_forecast,
-    looser_version,
-    standard_version,
-)
+from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
 from sentry.models import Group
 from sentry.tasks.base import instrumented_task
 
@@ -38,25 +34,14 @@ def save_forecast_per_group(
     for group_id, group_count in group_counts.items():
         group = group_dict.get(group_id)
         if group:
-            forecast_threshold_version = (
-                looser_version
-                if features.has(
-                    "organizations:escalating-issues-experiment-group", group.project.organization
-                )
-                else standard_version
-            )
-
-            forecasts = generate_issue_forecast(group_count, time, forecast_threshold_version)
+            forecasts = generate_issue_forecast(group_count, time, standard_version)
             forecasts_list = [forecast["forecasted_value"] for forecast in forecasts]
 
             escalating_group_forecast = EscalatingGroupForecast(
                 group.project.id, group_id, forecasts_list, time
             )
             escalating_group_forecast.save()
-    logger.info(
-        "Saved forecasts in nodestore",
-        extra={"num_groups": len(group_counts.keys())},
-    )
+
     analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
@@ -66,12 +51,15 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     `groups`: Sequence of groups to be forecasted
     """
     past_counts = query_groups_past_counts(groups)
-    logger.info(
-        "Queried groups from snuba",
-        extra={"num_groups": len(past_counts)},
-    )
     group_counts = parse_groups_past_counts(past_counts)
     save_forecast_per_group(groups, group_counts)
+    logger.info(
+        "generate_and_save_forecasts",
+        extra={
+            "detail": "Created forecast for groups",
+            "group_ids": [group.id for group in groups],
+        },
+    )
 
 
 @instrumented_task(

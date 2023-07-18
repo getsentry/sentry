@@ -1,5 +1,4 @@
 import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
@@ -7,6 +6,7 @@ import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
+import {StyledJsonForm} from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 import {
   getParentData,
   getParentField,
@@ -38,11 +38,16 @@ function NotificationSettingsByOrganization({
       initialData={getParentData(notificationType, notificationSettings, organizations)}
       onSubmitSuccess={onSubmitSuccess}
     >
-      <JsonForm
+      <StyledJsonForm
         title={t('Organizations')}
-        fields={organizations.map(organization =>
-          getParentField(notificationType, notificationSettings, organization, onChange)
-        )}
+        fields={organizations.map(organization => {
+          return getParentField(
+            notificationType,
+            notificationSettings,
+            organization,
+            onChange
+          );
+        })}
       />
     </Form>
   );

@@ -29,14 +29,15 @@ export function SpanOperationSelector({
   const location = useLocation();
   const eventView = getEventView(location, moduleName, spanCategory);
 
-  const {data: operations} = useSpansQuery<[{'span.op': string}]>({
+  const {data: operations} = useSpansQuery<{'span.op': string}[]>({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.get-span-operations',
   });
 
   const options = [
     {value: '', label: 'All'},
-    ...operations.map(datum => ({
+    ...(operations ?? []).map(datum => ({
       value: datum[SPAN_OP],
       label: datum[SPAN_OP],
     })),

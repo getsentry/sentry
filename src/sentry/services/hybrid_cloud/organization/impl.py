@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.dispatch import Signal
 
 from sentry import roles
@@ -296,7 +296,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
-        return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
+        return flags_to_bits(
+            flags.sso__linked,
+            flags.sso__invalid,
+            flags.member_limit__restricted,
+            flags.idp__provisioned,
+            flags.idp__role_restricted,
+        )
 
     def add_organization_member(
         self,
@@ -485,7 +491,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
