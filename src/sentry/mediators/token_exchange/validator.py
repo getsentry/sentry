@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
@@ -14,6 +16,7 @@ class Validator(Mediator):
     install = Param(RpcSentryAppInstallation)
     client_id = Param(str)
     user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate_is_sentry_app_making_request()

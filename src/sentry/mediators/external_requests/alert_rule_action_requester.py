@@ -3,6 +3,7 @@ from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
+from django.db import router
 from requests import RequestException
 from requests.models import Response
 
@@ -34,6 +35,7 @@ class AlertRuleActionRequester(Mediator):
     uri = Param(str)
     fields = Param(list, required=False, default=[])
     http_method = Param(str, required=False, default="POST")
+    using = router.db_for_write(SentryAppInstallation)
 
     def call(self):
         return self._make_request()

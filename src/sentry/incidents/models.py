@@ -3,7 +3,7 @@ from enum import Enum
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
@@ -19,7 +19,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.models import Team
+from sentry.models import Organization, Team
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
@@ -114,7 +114,7 @@ class IncidentManager(BaseManager):
         here since if we're creating multiple Incidents a second for an
         Organization then we're likely failing at making Incidents useful.
         """
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Organization)):
             result = self.filter(organization=organization).aggregate(models.Max("identifier"))
             identifier = result["identifier__max"]
             if identifier is None:

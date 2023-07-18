@@ -2,6 +2,7 @@ import {Fragment, ReactNode, useCallback, useEffect, useMemo, useState} from 're
 import {browserHistory} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -197,27 +198,42 @@ function FunctionTrendsEntry({
   const {projects} = useProjects();
   const project = projects.find(p => p.id === func.project);
 
-  let functionName = <Fragment>{func.function}</Fragment>;
+  const [beforeExamples, afterExamples] = useMemo(() => {
+    return partition(func.worst, ([ts, _example]) => ts <= func.breakpoint);
+  }, [func]);
 
-  if (project && func['examples()'].length > 0) {
-    const target = generateProfileFlamechartRouteWithQuery({
+  let before = <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />;
+  let after = <PerformanceDuration nanoseconds={func.aggregate_range_2} abbreviation />;
+
+  if (project && beforeExamples.length >= 2 && afterExamples.length >= 2) {
+    // By choosing the 2nd most recent example in each period, we guarantee the example
+    // occurred within the period and eliminate confusion with picking an example in
+    // the same bucket as the breakpoint.
+
+    const beforeTarget = generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: func['examples()'][0],
+      profileId: beforeExamples[beforeExamples.length - 2][1],
       query: {
         frameName: func.function as string,
         framePackage: func.package as string,
       },
     });
 
-    functionName = <Link to={target}>{functionName}</Link>;
-  }
+    before = <Link to={beforeTarget}>{before}</Link>;
 
-  functionName = (
-    <FunctionName>
-      <Tooltip title={func.package}>{functionName}</Tooltip>
-    </FunctionName>
-  );
+    const afterTarget = generateProfileFlamechartRouteWithQuery({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      profileId: afterExamples[afterExamples.length - 2][1],
+      query: {
+        frameName: func.function as string,
+        framePackage: func.package as string,
+      },
+    });
+
+    after = <Link to={afterTarget}>{after}</Link>;
+  }
 
   return (
     <Fragment>
@@ -227,16 +243,18 @@ function FunctionTrendsEntry({
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
-        {functionName}
+        <FunctionName>
+          <Tooltip title={func.package}>{func.function}</Tooltip>
+        </FunctionName>
         <Tooltip
           title={tct('Appeared [count] times.', {
             count: <Count value={func['count()']} />,
           })}
         >
           <DurationChange>
-            <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />
+            {before}
             <IconArrow direction="right" size="xs" />
-            <PerformanceDuration nanoseconds={func.aggregate_range_2} abbreviation />
+            {after}
           </DurationChange>
         </Tooltip>
         <Button
