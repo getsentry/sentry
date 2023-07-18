@@ -180,12 +180,12 @@ class BaseTeamSerializerResponse(TypedDict):
 
 # We require a third Team Response TypedDict that inherits like so:
 # TeamSerializerResponse
-#   - BaseTeamSerializerResponse
-#   - _TeamSerializerResponseOptional
+#   * BaseTeamSerializerResponse
+#   * _TeamSerializerResponseOptional
 # instead of having this inheritance:
 # BaseTeamSerializerResponse
-#   - _TeamSerializerResponseOptional
-# b/c of how drf-spectacular builds a schema using @extend_schema. When specifying a DRF serializer
+#   * _TeamSerializerResponseOptional
+# b/c of how drf-spectacular builds schema using @extend_schema. When specifying a DRF serializer
 # as a response, the schema will include all optional fields even if the response body for that
 # request never includes those fields. There is no way to have a single serializer that we can
 # manipulate to exclude optional fields at will, so we need two separate serializers where one
@@ -339,7 +339,7 @@ class BaseTeamSerializer(Serializer):
         }
 
 
-# See CombinedTeamSerializerResponse for explanation as to why this is needed
+# See TeamSerializerResponse for explanation as to why this is needed
 class TeamSerializer(BaseTeamSerializer):
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
