@@ -43,6 +43,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.lang.native.sources import record_last_upload
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
@@ -615,6 +616,7 @@ def create_files_from_dif_zip(
         rv = create_debug_file_from_dif(to_create, project)
 
         # Uploading new dsysm changes the reprocessing revision
+        record_last_upload(project)
         bump_reprocessing_revision(project)
 
         return rv
