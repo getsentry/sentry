@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, models, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -16,8 +16,7 @@ from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-
-# from sentry.services.hybrid_cloud.integration import integration_service
+#from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -69,9 +68,7 @@ class Integration(DefaultFieldsModel):
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
-        with outbox_context(
-            transaction.atomic(router.db_for_write(OrganizationIntegration)), flush=False
-        ):
+        with outbox_context(transaction.atomic(), flush=False):
             for organization_integration in self.organizationintegration_set.all():
                 organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
@@ -109,7 +106,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+            with transaction.atomic():
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,
@@ -137,7 +134,7 @@ class Integration(DefaultFieldsModel):
             )
             return False
 
-    def uninstall(self):
+    def disable(self):
         """
         Uninstall this integration from all of its organizations.
         """

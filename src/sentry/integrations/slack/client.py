@@ -39,7 +39,7 @@ class SlackClient(IntegrationProxyClient):
             )
 
         super().__init__(
-            org_integration_id, verify_ssl, integration_id, logging_context=logging_context
+            org_integration_id=org_integration_id, verify_ssl=verify_ssl, integration_id=integration_id, logging_context=logging_context
         )
 
     @control_silo_function
@@ -59,7 +59,6 @@ class SlackClient(IntegrationProxyClient):
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
-
         token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         )
@@ -67,7 +66,7 @@ class SlackClient(IntegrationProxyClient):
         return prepared_request
 
     def is_response_error(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-        return super().is_response_error(resp)
+        return super().is_response_error(resp,e)
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
 
@@ -75,7 +74,7 @@ class SlackClient(IntegrationProxyClient):
             if "account_inactive" == e:
                 return True
 
-        return super().is_response_fatal(resp)
+        return super().is_response_fatal(resp,e)
 
     def track_response_data(
         self,
@@ -145,6 +144,5 @@ class SlackClient(IntegrationProxyClient):
             method, path, headers=headers, data=data, params=params, json=json
         )
         if not response.json.get("ok"):
-            self.record_request_error(response, response.get("error", ""))
             raise ApiError(response.get("error", ""))  # type: ignore
         return response
