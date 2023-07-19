@@ -11,7 +11,7 @@ describe('GettingStartedWithSpring', function () {
     // Steps
     for (const step of steps()) {
       expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
+        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type], level: 4})
       ).toBeInTheDocument();
     }
 
