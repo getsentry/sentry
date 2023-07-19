@@ -455,7 +455,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             project_id=self.project.id,
             last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
         )
-        assert groups is not None
+        assert groups
         auto_assignment_cache_keys = [
             GroupOwner.get_autoassigned_owner_cache_key(
                 group.id, self.project.id, auto_assignment_types
