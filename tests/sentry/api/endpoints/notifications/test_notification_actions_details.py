@@ -297,6 +297,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             service_name=service_name,
             integration_key="abc",
             organization_integration_id=second_integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=second_integration.id,
         )
         data["targetIdentifier"] = service.id
         response = self.get_error_response(
@@ -311,6 +313,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             service_name=service_name,
             integration_key="def",
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         data["targetIdentifier"] = service.id
         response = self.get_success_response(

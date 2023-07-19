@@ -187,7 +187,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs)
+        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
 
         if limit is not None:
             ois = ois[:limit]
@@ -233,7 +233,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return (
             serialize_integration(integration),
-            [serialize_organization_integration(oi) for oi in organization_integrations],
+            organization_integrations,
         )
 
     def update_integrations(

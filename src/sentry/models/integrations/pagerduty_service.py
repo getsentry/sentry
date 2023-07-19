@@ -9,13 +9,10 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.integrations.organization_integrity_backfill_mixin import (
-    OrganizationIntegrityBackfillMixin,
-)
 
 
 @control_silo_only_model
-class PagerDutyService(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
+class PagerDutyService(DefaultFieldsModel):
     __include_in_export__ = False
 
     # organization_integration_id = HybridCloudForeignKey(
