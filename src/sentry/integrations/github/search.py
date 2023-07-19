@@ -12,7 +12,9 @@ from sentry.shared_integrations.exceptions import ApiError
 
 
 @control_silo_endpoint
-class GitHubSearchEndpoint(IntegrationEndpoint):
+class GithubSharedSearchEndpoint(IntegrationEndpoint):
+    """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
+
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
@@ -20,7 +22,6 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
             integration = Integration.objects.get(
                 organizationintegration__organization_id=organization.id,
                 id=integration_id,
-                provider="github",
             )
         except Integration.DoesNotExist:
             return Response(status=404)
