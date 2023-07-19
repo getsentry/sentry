@@ -27,11 +27,14 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
+)
+from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.naming_layer import (
+    TransactionMetricKey,
+    TransactionMRI,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
-from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
@@ -2005,6 +2008,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
         EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
 
+        assert metrics_query.limit is not None
         assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
@@ -2036,6 +2040,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             MetricsQuery(**metrics_query_dict)
 
         mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        assert mq.limit is not None
         assert mq.limit.limit == 50
 
 

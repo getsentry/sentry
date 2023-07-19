@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from io import BytesIO
+from typing import ClassVar
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,9 +25,11 @@ class AvatarBase(Model):
 
     __include_in_export__ = False
 
-    ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
+    ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
-    FILE_TYPE = None
+    # abstract
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
+    FILE_TYPE: ClassVar[str]
 
     file_id = BoundedBigIntegerField(unique=True, null=True)
     ident = models.CharField(max_length=32, unique=True, db_index=True)

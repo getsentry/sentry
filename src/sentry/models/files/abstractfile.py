@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import io
 import mmap
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
+from typing import ClassVar, Type
 
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
+from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
@@ -39,6 +44,7 @@ class ChunkedFileBlobIndexWrapper:
     def detach_tempfile(self):
         if not self.prefetched:
             raise TypeError("Can only detech tempfiles in prefetch mode")
+        assert self._curfile is not None
         rv = self._curfile
         self._curfile = None
         self.close()
@@ -109,6 +115,7 @@ class ChunkedFileBlobIndexWrapper:
             raise ValueError("I/O operation on closed file")
 
         if self.prefetched:
+            assert self._curfile is not None
             return self._curfile.seek(pos)
 
         if pos < 0:
@@ -125,6 +132,8 @@ class ChunkedFileBlobIndexWrapper:
                 break
         else:
             raise ValueError("Cannot seek to pos")
+        assert self._curfile is not None
+        assert self._curidx is not None
         self._curfile.seek(pos - self._curidx.offset)
 
     def seek(self, pos, whence=io.SEEK_SET):
@@ -141,9 +150,12 @@ class ChunkedFileBlobIndexWrapper:
         if self.closed:
             raise ValueError("I/O operation on closed file")
         if self.prefetched:
+            assert self._curfile is not None
             return self._curfile.tell()
         if self._curfile is None:
             return self.size
+        assert self._curidx is not None
+        assert self._curfile is not None
         return self._curidx.offset + self._curfile.tell()
 
     def read(self, n=-1):
@@ -151,6 +163,7 @@ class ChunkedFileBlobIndexWrapper:
             raise ValueError("I/O operation on closed file")
 
         if self.prefetched:
+            assert self._curfile is not None
             return self._curfile.read(n)
 
         result = bytearray()
@@ -190,9 +203,11 @@ class AbstractFile(Model):
     class Meta:
         abstract = True
 
-    FILE_BLOB_MODEL = None
-    FILE_BLOB_INDEX_MODEL = None
-    DELETE_UNREFERENCED_BLOB_TASK = None
+    # abstract
+    FILE_BLOB_MODEL: ClassVar[Type[AbstractFileBlob]]
+    FILE_BLOB_INDEX_MODEL: ClassVar[Type[Model]]
+    DELETE_UNREFERENCED_BLOB_TASK: ClassVar[SentryTask]
+    blobs: models.ManyToManyField
 
     def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
         return ChunkedFileBlobIndexWrapper(

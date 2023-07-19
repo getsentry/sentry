@@ -1,4 +1,5 @@
-from django.core.validators import ValidationError, validate_slug
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import re
@@ -23,7 +25,7 @@ REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/" "react/master/scripts/error-codes/codes.json"
 )
 
-error_processors = {}
+error_processors: dict[str, Processor] = {}
 
 
 def is_expired(ts):
@@ -95,15 +97,13 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == "args[]":
-            if isinstance(v, bytes):
-                v = v.decode("utf-8", "replace")
             args.append(v)
 
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
     # the format string with <redacted>.
-    args = tuple(args + ["<redacted>"] * (arg_count - len(args)))[:arg_count]
-    exc["value"] = msg_format % args
+    args_t = tuple(args + ["<redacted>"] * (arg_count - len(args)))[:arg_count]
+    exc["value"] = msg_format % args_t
 
     return True
 
@@ -121,7 +121,6 @@ def rewrite_exception(data):
         if exc is None:
             continue
 
-        processor: Processor
         for processor in error_processors.values():
             try:
                 original_value = exc.get("value")
