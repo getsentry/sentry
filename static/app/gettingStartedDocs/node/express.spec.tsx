@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithExpress, steps} from './express';
 
 describe('GettingStartedWithExpress', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithExpress dsn="test-dsn" />);
 
     // Steps
