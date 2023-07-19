@@ -117,7 +117,6 @@ class SlackClientTest(TestCase):
             headers={"Authorization": f"Bearer {self.user_access_token}"},
         )
         assert response == self.mock_user_access_token_response
-        # {"ok": True, "auth": "user"}
 
     @responses.activate
     def test_authorize_with_org_integration_id(self):

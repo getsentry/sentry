@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -16,8 +16,6 @@ from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-
-# from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -107,7 +105,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic(using=None):
+            with transaction.atomic(router.db_for_write(OrganizationIntegration),using=None):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,
@@ -137,10 +135,7 @@ class Integration(DefaultFieldsModel):
 
     def disable(self):
         """
-        Uninstall this integration from all of its organizations.
+        Disable this integration
         """
 
         self.update(status=ObjectStatus.DISABLED)
-
-    #    orgs_ids = [org.id for org in integration_service.get_organization_integrations(integration_id=self.id)]
-    #    integration_service.update_organization_integrations(org_integration_ids=orgs_ids, status=ObjectStatus.DISABLED)

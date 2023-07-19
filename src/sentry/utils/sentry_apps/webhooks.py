@@ -102,11 +102,9 @@ def send_and_save_webhook_request(
 
     elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
         raise ApiTimeoutError.from_request(response.request)
-        # timeout
 
     elif 400 <= response.status_code < 500:
         raise ClientError(response.status_code, url, response=response)
-        # errors - 429
 
     response.raise_for_status()
     return response

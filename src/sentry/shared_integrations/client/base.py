@@ -78,16 +78,22 @@ class BaseApiClient(TrackResponseMixin):
             return f"{base_url}/{path}"
         return path
 
-    def _get_redis_key(self):
-        if not hasattr(self, "integration_id"):
-            return
-        return f"sentry-integration-error:{self.integration_id}"
-
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
+
+    def _get_redis_key(self):
+        """
+        Returns the redis key for the integration or False if cannot make key
+        """
+        if not hasattr(self, "integration_id"):
+            return False
+        if not self.integration_id:
+            return False
+        return f"sentry-integration-error:{self.integration_id}"
+
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
         return False
@@ -340,9 +346,7 @@ class BaseApiClient(TrackResponseMixin):
             self.record_request_fatal(response, error)
 
     def record_request_error(self, resp: Response | None = None, error: Exception | None = None):
-        if not hasattr(self, "integration_id"):
-            return
-        if not self.integration_id:
+        if not self._get_redis_key():
             return
         if error is None:
             error = resp.get("error", None)
@@ -355,7 +359,7 @@ class BaseApiClient(TrackResponseMixin):
             self.uninstall_integration(self.integration_id)
 
     def record_request_success(self, resp: Response):
-        if not hasattr(self, "integration_id"):
+        if not self._get_redis_key():
             return
         if not self.is_response_success(resp):
             return
@@ -364,9 +368,7 @@ class BaseApiClient(TrackResponseMixin):
         print("success recorded")
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
-        if not hasattr(self, "integration_id"):
-            return
-        if not self.is_response_fatal(resp, error):
+        if not self._get_redis_key():
             return
         buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_fatal()
