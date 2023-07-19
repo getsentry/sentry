@@ -4,7 +4,19 @@ import functools
 import inspect
 import re
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterable, List, MutableMapping, MutableSet, Set, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    MutableMapping,
+    MutableSet,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+)
 from unittest import TestCase
 
 import pytest
@@ -234,15 +246,18 @@ def get_protected_operations() -> List[re.Pattern]:
     return _protected_operations
 
 
-def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
+def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
     """
     Validate a list of queries to ensure that protected queries
     are wrapped in role_override fence values.
 
     See sentry.db.postgres.roles for where fencing queries come from.
     """
+    context_queries = 5
     fence_depth = 0
-    for query in queries:
+    start_fence_index = 0
+
+    for index, query in enumerate(queries):
         sql = query["sql"]
         # The real type of queries is Iterable[Dict[str, str | None]], due to some weird bugs in django which can result
         # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
@@ -254,33 +269,40 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
             operation = match.group("operation")
             if operation == "start":
                 fence_depth += 1
+                start_fence_index = index
             elif operation == "end":
                 fence_depth = max(fence_depth - 1, 0)
             else:
                 raise AssertionError("Invalid fencing operation encounted")
 
         for protected in get_protected_operations():
-            if protected.match(sql):
-                if fence_depth == 0:
-                    msg = [
-                        "Found protected operation without explicit outbox escape!",
-                        "",
-                        sql,
-                        "",
-                        "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
-                        "If you are confident that outboxes are being generated, wrap the "
-                        "operation that generates this query with the `unguarded_write()` ",
-                        "context manager to resolve this failure. For example:",
-                        "",
-                        "with unguarded_write():",
-                        "    record.delete()",
-                        "",
-                        "Full query log:",
-                        "",
-                    ]
-                    msg.extend([q["sql"] for q in queries if q["sql"]])
+            if protected.match(sql) and fence_depth == 0:
+                start = max(0, start_fence_index - context_queries)
+                end = min(index + context_queries, len(queries))
 
-                    raise AssertionError("\n".join(msg))
+                query_slice = queries[start:end]
+                msg = [
+                    "Found protected operation without explicit outbox escape!",
+                    "",
+                    sql,
+                    "",
+                    "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
+                    "If you are confident that outboxes are being generated, wrap the "
+                    "operation that generates this query with the `unguarded_write()` ",
+                    "context manager to resolve this failure. For example:",
+                    "",
+                    "with unguarded_write(using=router.db_for_write(OrganizationMembership):",
+                    "    member.delete()",
+                    "",
+                    "Query logs:",
+                    "",
+                ]
+                for query in query_slice:
+                    msg.append(query["sql"])
+                    if query["sql"] == sql:
+                        msg.append("^" * len(sql))
+
+                raise AssertionError("\n".join(msg))
 
 
 def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
