@@ -21,7 +21,6 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -377,10 +376,9 @@ class Factories:
                 for team in teams:
                     project.add_team(team)
             if fire_project_created:
-                with in_test_hide_transaction_boundary():
-                    project_created.send(
-                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                    )
+                project_created.send(
+                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                )
         return project
 
     @staticmethod
