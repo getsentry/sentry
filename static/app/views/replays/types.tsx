@@ -116,7 +116,9 @@ export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
   | 'browser'
+  // | 'count_dead_clicks'
   | 'count_errors'
+  //  | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
   | 'id'
@@ -133,7 +135,9 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'activity',
   'browser.name',
   'browser.version',
+  //  'count_dead_clicks',
   'count_errors',
+  // 'count_rage_clicks',
   'duration',
   'finished_at',
   'id',
