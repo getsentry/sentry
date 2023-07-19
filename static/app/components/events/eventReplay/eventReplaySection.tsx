@@ -5,7 +5,7 @@ type EventReplaySectionProps = {children: JSX.Element};
 
 export function EventReplaySection({children}: EventReplaySectionProps) {
   return (
-    <EventDataSection type="replay" title={t('Replay')}>
+    <EventDataSection type="replay" title={t('Session Replay')}>
       {children}
     </EventDataSection>
   );
