@@ -32,7 +32,7 @@ function HeaderCell({column, sort}: Props) {
           fieldName="count_dead_clicks"
           label={t('Dead Clicks')}
           tooltip={t(
-            'Dead clicks are user clicks that do not result in any page activity after 7 seconds.'
+            'A dead click is a user click that does not result in any page activity after 7 seconds.'
           )}
         />
       );
@@ -47,7 +47,7 @@ function HeaderCell({column, sort}: Props) {
           fieldName="count_rage_clicks"
           label={t('Rage Clicks')}
           tooltip={t(
-            'A rage click is 5 or more clicks on a dead element (no page activity after 7 seconds).'
+            'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds.'
           )}
         />
       );
