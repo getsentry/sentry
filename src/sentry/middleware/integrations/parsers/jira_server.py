@@ -30,5 +30,4 @@ class JiraServerRequestParser(BaseRequestParser):
     def get_response(self):
         if self.match.func.view_class == JiraServerIssueUpdatedWebhook:  # type: ignore
             return self.get_response_from_issue_update_webhook()
-        else:
-            return self.get_response_from_control_silo()
+        return self.get_response_from_control_silo()

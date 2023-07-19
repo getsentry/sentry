@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
-from sentry.integrations.github.search import GitHubSearchEndpoint
-from sentry.integrations.github.webhook import get_github_external_id
+from sentry.integrations.github.webhook import (
+    GitHubIntegrationsWebhookEndpoint,
+    get_github_external_id,
+)
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -38,12 +40,10 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class == GitHubSearchEndpoint:
-            return self.get_response_from_control_silo()
-        else:
+        if self.match.func.view_class == GitHubIntegrationsWebhookEndpoint:
             regions = self.get_regions_from_organizations()
             if len(regions) == 0:
                 logger.error("no_regions", extra={"path": self.request.path})
                 return self.get_response_from_control_silo()
             return self.get_response_from_outbox_creation(regions=regions)
+        return self.get_response_from_control_silo()

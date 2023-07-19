@@ -6,7 +6,6 @@ from typing import Tuple
 from django.http import HttpResponse
 from django.urls import resolve
 
-from sentry.integrations.gitlab.search import GitlabIssueSearchEndpoint
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -75,8 +74,6 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         return self.get_response_from_outbox_creation(regions=regions)
 
     def get_response(self) -> HttpResponse:
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class == GitlabWebhookEndpoint:
+        if self.match.func.view_class == GitlabWebhookEndpoint:
             return self.get_response_from_gitlab_webhook()
-        if view_class == GitlabIssueSearchEndpoint:
-            return self.get_response_from_control_silo()
+        return self.get_response_from_control_silo()

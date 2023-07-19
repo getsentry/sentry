@@ -47,7 +47,6 @@ class BitbucketRequestParser(BaseRequestParser):
         return self.get_response_from_outbox_creation(regions=[region])
 
     def get_response(self):
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class == BitbucketWebhookEndpoint:
+        if self.match.func.view_class == BitbucketWebhookEndpoint:
             return self.get_bitbucket_webhook_response()
         return self.get_response_from_control_silo()
