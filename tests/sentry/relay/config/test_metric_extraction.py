@@ -1,7 +1,7 @@
 from unittest.mock import ANY
 
+import sentry.relay.config.metric_extraction as extraction
 from sentry.incidents.models import AlertRule
-from sentry.relay.config.metric_extraction import convert_query_to_metric, get_metric_specs
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 
@@ -18,13 +18,13 @@ def create_alert(query: str) -> AlertRule:
 def test_empty_query():
     alert = create_alert("")
 
-    assert convert_query_to_metric(alert.snuba_query) is None
+    assert extraction.convert_query_to_metric(alert.snuba_query) is None
 
 
 def test_simple_query_count():
     alert = create_alert("transaction.duration:>=1000")
 
-    metric = convert_query_to_metric(alert.snuba_query)
+    metric = extraction.convert_query_to_metric(alert.snuba_query)
 
     assert metric
     assert metric[1] == {
@@ -37,13 +37,13 @@ def test_simple_query_count():
 
 
 def test_get_metric_specs_empty():
-    assert len(get_metric_specs([])) == 0
+    assert len(extraction._get_metric_specs([])) == 0
 
 
 def test_get_metric_specs_single():
     alert = create_alert("transaction.duration:>=1000")
 
-    specs = get_metric_specs([alert])
+    specs = extraction._get_metric_specs([alert])
 
     assert len(specs) == 1
     assert specs[0] == {
@@ -59,7 +59,7 @@ def test_get_metric_specs_multiple():
     alert_1 = create_alert("transaction.duration:>=1")
     alert_2 = create_alert("transaction.duration:>=2")
 
-    specs = get_metric_specs([alert_1, alert_2])
+    specs = extraction._get_metric_specs([alert_1, alert_2])
 
     assert len(specs) == 2
 
@@ -74,7 +74,7 @@ def test_get_metric_specs_multiple_duplicated():
     alert_2 = create_alert("transaction.duration:>=1000")
     alert_3 = create_alert("transaction.duration:>=1000")
 
-    specs = get_metric_specs([alert_1, alert_2, alert_3])
+    specs = extraction._get_metric_specs([alert_1, alert_2, alert_3])
 
     assert len(specs) == 1
     assert specs[0] == {

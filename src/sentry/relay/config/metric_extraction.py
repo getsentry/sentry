@@ -58,7 +58,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
         .select_related("snuba_query")
     )
 
-    metrics = get_metric_specs(alerts)
+    metrics = _get_metric_specs(alerts)
 
     if not metrics:
         return None
