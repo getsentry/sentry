@@ -370,8 +370,9 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_fatal()
         print("fatal recorded")
         print(buffer.is_integration_broken())
-   #     if buffer.is_integration_broken():
-   #         self.disable_integration()
+
+    #     if buffer.is_integration_broken():
+    #         self.disable_integration()
 
     def disable_integration(self) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
