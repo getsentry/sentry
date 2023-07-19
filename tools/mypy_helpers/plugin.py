@@ -54,5 +54,5 @@ class SentryMypyPlugin(Plugin):
         return None
 
 
-def plugin(version: str):
+def plugin(version: str) -> type[SentryMypyPlugin]:
     return SentryMypyPlugin
