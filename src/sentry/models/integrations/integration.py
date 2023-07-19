@@ -16,8 +16,7 @@ from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-
-# from sentry.services.hybrid_cloud.integration import integration_service
+#from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -69,7 +68,7 @@ class Integration(DefaultFieldsModel):
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=None), flush=False):
             for organization_integration in self.organizationintegration_set.all():
                 organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
@@ -107,7 +106,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(using=None):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,
