@@ -28,7 +28,7 @@ type State = {
 class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
   rotateClientSecret = async () => {
     try {
-      const rotate_response = await this.api.requestPromise(
+      const rotateResponse = await this.api.requestPromise(
         `/api-applications/${this.props.params.appId}/rotate-secret/`,
         {
           method: 'POST',
@@ -40,7 +40,7 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
           <Header>{t('New Client Secret (ONE TIME ONLY)')}</Header>
           <Body>
             <p>
-              <b>Your client secret is:</b> {rotate_response.client_secret}
+              <b>Your client secret is:</b> {rotateResponse.clientSecret}
             </p>
           </Body>
         </Fragment>
@@ -105,7 +105,7 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                       <StyledSpan>
                         <em>hidden</em>
                       </StyledSpan>
-                      <StyledButton onClick={this.rotateClientSecret}>
+                      <StyledButton onClick={this.rotateClientSecret} priority="danger">
                         Rotate client secret
                       </StyledButton>
                     </ClientSecretDiv>
