@@ -8,7 +8,7 @@ from snuba_sdk import Column, Function, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import function_aliases
+from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.referrer import Referrer
@@ -345,24 +345,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return function_converter
 
     def _resolve_span_module(self, alias: str) -> SelectType:
-        return Function(
-            "transform",
-            [
-                self.builder.column("span.category"),
-                [
-                    "cache",
-                    "db",
-                    "http",
-                ],
-                [
-                    "cache",
-                    "db",
-                    "http",
-                ],
-                "other",
-            ],
-            alias,
-        )
+        return field_aliases.resolve_span_module(self.builder, alias)
 
     # Query Functions
     def _resolve_count_if(
