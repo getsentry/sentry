@@ -36,5 +36,10 @@ class RepositoryService(RpcService):
     ) -> List[RpcRepository]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_repository(self, *, organization_id: int, id: int) -> Optional[RpcRepository]:
+        pass
+
 
 repository_service = cast(RepositoryService, RepositoryService.create_delegation())

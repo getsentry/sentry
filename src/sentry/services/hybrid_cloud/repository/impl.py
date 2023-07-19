@@ -31,3 +31,9 @@ class DatabaseBackedRepositoryService(RepositoryService):
         if status is not None:
             query = query.filter(status=status)
         return [serialize_repository(repo) for repo in query]
+
+    def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
+        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        if repository is None:
+            return None
+        return serialize_repository(repository)
