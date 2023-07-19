@@ -65,6 +65,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
+        self.percentiles: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
@@ -417,6 +418,13 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
+        if snql_function.snql_percentile is not None:
+            resolved_function = snql_function.snql_percentile(arguments, alias)
+            if not resolve_only:
+                self.percentiles.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
         if snql_function.snql_set is not None:
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
@@ -673,16 +681,19 @@ class MetricsQueryBuilder(QueryBuilder):
                 functions=self.sets,
                 entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
+            # Percentiles are a part of distributions but they're expensive, treat them as their own entity so we'll run
+            # a query with the cheap distributions first then only get page_size quantiles
+            "percentiles": QueryFramework(
+                orderby=[],
+                having=[],
+                functions=self.percentiles,
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+            ),
         }
         primary = None
         # if orderby spans more than one table, the query isn't possible with metrics
         for orderby in self.orderby:
-            if orderby.exp in self.distributions:
-                query_framework["distribution"].orderby.append(orderby)
-                if primary not in [None, "distribution"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "distribution"
-            elif orderby.exp in self.sets:
+            if orderby.exp in self.sets:
                 query_framework["set"].orderby.append(orderby)
                 if primary not in [None, "set"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
@@ -692,6 +703,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 if primary not in [None, "counter"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "counter"
+            elif orderby.exp in self.distributions:
+                query_framework["distribution"].orderby.append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.percentiles:
+                query_framework["percentiles"].orderby.append(orderby)
+                if primary not in [None, "percentiles"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "percentiles"
             else:
                 # An orderby that isn't on a function add it to all of them
                 for framework in query_framework.values():
@@ -699,14 +720,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         having_entity: Optional[str] = None
         for condition in self.flattened_having:
-            if condition.lhs in self.distributions:
-                if having_entity is None:
-                    having_entity = "distribution"
-                elif having_entity != "distribution":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.sets:
+            if condition.lhs in self.sets:
                 if having_entity is None:
                     having_entity = "set"
                 elif having_entity != "set":
@@ -720,6 +734,20 @@ class MetricsQueryBuilder(QueryBuilder):
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
+            elif condition.lhs in self.distributions:
+                if having_entity is None:
+                    having_entity = "distribution"
+                elif having_entity != "distribution":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+            elif condition.lhs in self.percentiles:
+                if having_entity is None:
+                    having_entity = "percentiles"
+                elif having_entity != "percentiles":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
 
         if primary is not None and having_entity is not None and having_entity != primary:
             raise IncompatibleMetricsQuery(
@@ -730,12 +758,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if primary is None:
             if having_entity is not None:
                 primary = having_entity
-            elif len(self.distributions) > 0:
-                primary = "distribution"
             elif len(self.counters) > 0:
                 primary = "counter"
             elif len(self.sets) > 0:
                 primary = "set"
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.percentiles) > 0:
+                primary = "percentiles"
             else:
                 raise IncompatibleMetricsQuery("Need at least one function")
 
