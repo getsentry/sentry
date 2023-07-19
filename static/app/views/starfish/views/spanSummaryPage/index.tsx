@@ -10,7 +10,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -111,8 +111,8 @@ function SpanSummaryPage({params, location}: Props) {
     data: spanMetricsSeriesData?.['sps()'].data,
   };
 
-  const title = getDescriptionLabel(location, span, true);
-  const spanDescriptionCardTitle = getDescriptionLabel(location, span);
+  const title = getDescriptionLabel(span, true);
+  const spanDescriptionCardTitle = getDescriptionLabel(span);
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -163,13 +163,22 @@ function SpanSummaryPage({params, location}: Props) {
                     <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                     <Block
                       title={t('Throughput')}
-                      description={t('Throughput of this span per second')}
+                      description={tct('Throughput of this [spanType] per second', {
+                        spanType: spanDescriptionCardTitle,
+                      })}
                     >
                       <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                     </Block>
                     <Block
                       title={t('Duration (P95)')}
-                      description={t('Time spent in this span')}
+                      description={tct(
+                        '95% of [spanType] in the selected period have a lower duration than this value',
+                        {
+                          spanType: spanDescriptionCardTitle.endsWith('y')
+                            ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
+                            : `${spanDescriptionCardTitle}s`,
+                        }
+                      )}
                     >
                       <DurationCell
                         milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
@@ -330,6 +339,8 @@ const BlockTitle = styled('h3')`
   margin: 0;
   margin-bottom: ${space(1)};
   white-space: nowrap;
+  display: flex;
+  height: ${space(3)};
 `;
 
 const BlockContent = styled('h4')`
@@ -374,31 +385,25 @@ const DescriptionTitle = styled('h4')`
 
 export default SpanSummaryPage;
 
-const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boolean) => {
-  const module = extractRoute(location);
-  if (module === 'api') {
+const getDescriptionLabel = (spanMeta: SpanMeta, title?: boolean) => {
+  const spanOp = spanMeta[SPAN_OP];
+  if (spanOp?.startsWith('http')) {
     return title ? t('URL Request Summary') : t('URL Request');
   }
-  if (module === 'database') {
-    return title ? t('Query Summary') : t('Query');
-  }
-
-  const spanOp = spanMeta[SPAN_OP];
-  let label;
-  if (spanOp?.startsWith('http')) {
-    label = title ? t('URL Request Summary') : t('URL Request');
+  if (spanOp === 'db.redis') {
+    return title ? t('Cache Query Summary') : t('Cache Query');
   }
   if (spanOp?.startsWith('db')) {
-    label = title ? t('Query Summary') : t('Query');
-  }
-  if (spanOp?.startsWith('serialize')) {
-    label = title ? t('Serializer Summary') : t('Serializer');
+    return title ? t('Database Query Summary') : t('Database Query');
   }
   if (spanOp?.startsWith('task')) {
-    label = title ? t('Task Summary') : t('Task');
+    return title ? t('Application Task Summary') : t('Application Task');
   }
-  if (!label) {
-    label = title ? t('Span Summary') : t('Span Description');
+  if (spanOp?.startsWith('serialize')) {
+    return title ? t('Serializer Summary') : t('Serializer');
   }
-  return label;
+  if (spanOp?.startsWith('middleware')) {
+    return title ? t('Middleware Summary') : t('Middleware');
+  }
+  return title ? t('Request Summary') : t('Request');
 };

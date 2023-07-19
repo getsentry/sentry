@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
 
@@ -73,7 +74,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
         assert response.get("Content-Length") == str(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)
