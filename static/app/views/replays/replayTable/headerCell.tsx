@@ -32,7 +32,7 @@ function HeaderCell({column, sort}: Props) {
           fieldName="count_dead_clicks"
           label={t('Dead Clicks')}
           tooltip={t(
-            'Dead clicks are slow clicks that are too slow and cause a timeout.'
+            'Dead clicks are user clicks that do not result in any page activity after 7 seconds.'
           )}
         />
       );
@@ -46,9 +46,7 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_rage_clicks"
           label={t('Rage Clicks')}
-          tooltip={t(
-            'Rage clicks occur when there are too many multi-clicks captured within a short period of time.'
-          )}
+          tooltip={t('A rage click is 5 dead clicks within 7 seconds.')}
         />
       );
 
