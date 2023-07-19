@@ -1,4 +1,6 @@
-export function ReleaseMeta(params) {
+import type {ReleaseMeta as ReleaseMetaType} from 'sentry/types';
+
+export function ReleaseMeta(params: Partial<ReleaseMetaType>): ReleaseMetaType {
   const project = TestStubs.Project();
   return {
     version: 'sentry-android-shop@1.2.0',
