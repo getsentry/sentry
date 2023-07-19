@@ -102,7 +102,7 @@ describe('ReleaseActions', function () {
 
     const restoreAction = screen.getByTestId('restore');
 
-    expect(restoreAction).toBeInTheDocument(1);
+    expect(restoreAction).toBeInTheDocument();
     expect(restoreAction).toHaveTextContent('Restore');
 
     await userEvent.click(restoreAction);
