@@ -92,10 +92,8 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
             error_groups.append(g)
         else:
             other_groups.append(g)
-
     all_results += _process_groups(error_groups, start_date, end_date, GroupCategory.ERROR)
     all_results += _process_groups(other_groups, start_date, end_date)
-
     return all_results
 
 
@@ -164,7 +162,13 @@ def _query_with_pagination(
             query=query,
             tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
         )
+        print("Executing Query:")
+        print(query)
+        print("-"*40)
+        print("Results:")
         results = raw_snql_query(request, referrer=REFERRER)["data"]
+        print(results)
+        print("="*40)
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:

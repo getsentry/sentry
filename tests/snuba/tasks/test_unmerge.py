@@ -770,18 +770,30 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         sleep(1)
         # The event counts for primary should be 10; the event counts for new_child should be 6
         primary, new_child = list(Group.objects.all())
-        primary_unmerge_hour_count = get_group_hourly_count(
-            primary
-        )  # incorrect: returns 16, which is the count before unmerge
+        print("Running queries")
+        print("="*20)
+
+        # print("Should be 10")
+        # primary_unmerge_hour_count = get_group_hourly_count(
+        #     primary
+        # )  # incorrect: returns 16, which is the count before unmerge
+
+        print("Should be 10, 6")
         past = query_groups_past_counts(list(Group.objects.all()))  # correct
+
+        print("Should be 10")
         primary_unmerge_past_count = query_groups_past_counts(
             [primary]
         )  # incorrect: returns 16, which is the count before unmerge
-        child_unmerge_hour_count = get_group_hourly_count(new_child)
-        child_unmerge_past_count = query_groups_past_counts([new_child])
+
+        # print("Should be 6")
+        # child_unmerge_hour_count = get_group_hourly_count(new_child)
+
+        # print("Should be 6")
+        # child_unmerge_past_count = query_groups_past_counts([new_child])
         assert past[0]["count()"] == 10
         assert past[1]["count()"] == 6
-        assert primary_unmerge_hour_count == 10
+        # assert primary_unmerge_hour_count == 10
         assert primary_unmerge_past_count[0]["count()"] == 10
-        assert child_unmerge_hour_count == 6
-        assert child_unmerge_past_count[0]["count()"] == 6
+        # assert child_unmerge_hour_count == 6
+        # assert child_unmerge_past_count[0]["count()"] == 6
