@@ -151,10 +151,10 @@ ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 DEFAULT_COMPARATORS: ComparatorMap = {
     "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
     "sentry.userrole": [DateUpdatedComparator("date_updated")],
     "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
-    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
 }
 
 
