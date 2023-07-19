@@ -111,7 +111,6 @@ from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -279,8 +278,7 @@ class Factories:
                 yield
             else:
                 with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
-                    with override_regions([region]):
-                        yield
+                    yield
 
         with org_creation_context():
             org = Organization.objects.create(name=name, **kwargs)
