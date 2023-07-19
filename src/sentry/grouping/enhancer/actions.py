@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
@@ -23,6 +25,9 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
+    _is_modifier: Any = None
+    _is_updater: Any = None
+
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
 
@@ -35,12 +40,12 @@ class Action:
     @property
     def is_modifier(self):
         """Does this action modify the frame?"""
-        return self._is_modifier  # type: ignore[attr-defined]
+        return self._is_modifier
 
     @property
     def is_updater(self):
         """Does this action update grouping components?"""
-        return self._is_updater  # type: ignore[attr-defined]
+        return self._is_updater
 
     @classmethod
     def _from_config_structure(cls, val, version):

@@ -8,9 +8,8 @@ from typing import Dict, List
 import msgpack
 import sentry_sdk
 from parsimonious.exceptions import ParseError
-
-# Module "parsimonious.grammar" does not explicitly export attribute "NodeVisitor"
-from parsimonious.grammar import Grammar, NodeVisitor  # type: ignore[attr-defined]
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
