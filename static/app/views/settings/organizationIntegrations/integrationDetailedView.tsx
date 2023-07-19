@@ -344,32 +344,21 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             name: 'githubPRBot',
             type: 'boolean',
             label: t('Enable Pull Request Bot'),
-            visible: ({features}) => features.has('pr-comment-bot'),
-            help: (
-              <Fragment>
-                {t(
-                  'Allow Sentry to comment on pull requests about issues impacting your app.'
-                )}
-              </Fragment>
+            visible: ({features}) => features.includes('pr-comment-bot'),
+            help: t(
+              'Allow Sentry to comment on pull requests about issues impacting your app.'
             ),
             disabled: !hasIntegration || !hasOrgWrite,
-            disabledReason: (
-              <Fragment>
-                {t('You must have a GitHub integration to enable this feature.')}
-              </Fragment>
+            disabledReason: t(
+              'You must have a GitHub integration to enable this feature.'
             ),
           },
         ],
       },
     ];
 
-    const jsonFormSettings = {
-      features: new Set(organization.features),
-    };
-
     return (
       <Form
-        data-test-id="organization-settings"
         apiMethod="PUT"
         apiEndpoint={endpoint}
         saveOnBlur
@@ -377,7 +366,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         initialData={organization}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm {...jsonFormSettings} forms={forms} />
+        <JsonForm features={organization.features} forms={forms} />
       </Form>
     );
   }
