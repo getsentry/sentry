@@ -37,3 +37,18 @@ class DatabaseBackedRepositoryService(RepositoryService):
         if repository is None:
             return None
         return serialize_repository(repository)
+
+    def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
+        repository = Repository.objects.filter(
+            organization_id=organization_id, id=update.id
+        ).first()
+        if repository is None:
+            return
+
+        repository.name = update.name
+        repository.external_id = update.external_id
+        repository.config = update.config
+        repository.integration_id = update.integration_id
+        repository.provider = update.provider
+        repository.status = update.status
+        repository.save()
