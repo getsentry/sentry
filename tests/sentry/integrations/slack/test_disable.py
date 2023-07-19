@@ -1,5 +1,3 @@
-from sentry.utils import json
-
 import responses
 from django.test import override_settings
 
@@ -10,6 +8,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -20,7 +19,6 @@ secret = "hush-hush-im-invisible"
     SENTRY_CONTROL_ADDRESS=control_address,
 )
 class SlackClientDisable(TestCase):
-
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
