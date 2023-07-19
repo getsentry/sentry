@@ -51,6 +51,7 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -61,10 +62,11 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isToggleable?: boolean;
+  isToggled?: boolean;
   lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
-  numHiddenFrames?: number;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<SVGElement>) => void;
@@ -277,9 +279,18 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   renderShowHideToggle(onShowFramesToggle) {
-    const numHiddenFrames = this.props.numHiddenFrames;
-    if (numHiddenFrames && numHiddenFrames > 0) {
-      return <a onClick={onShowFramesToggle}>Show {numHiddenFrames} more frames</a>;
+    const hiddenFrameCount = this.props.hiddenFrameCount;
+    if (hiddenFrameCount) {
+      return (
+        <a
+          onClick={e => {
+            onShowFramesToggle(e);
+          }}
+        >
+          {this.props.isToggled ? 'Hide' : 'Show'} {hiddenFrameCount} more{' '}
+          {hiddenFrameCount === 1 ? 'frame' : 'frames'}
+        </a>
+      );
     }
     return null;
   }

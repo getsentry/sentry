@@ -40,8 +40,8 @@ type Props = {
 
 type State = {
   showCompleteFunctionName: boolean;
-  showStackedFrames: boolean;
   showingAbsoluteAddresses: boolean;
+  toggleFrameMap: {[frameIndex: number]: boolean};
 };
 
 class Content extends Component<Props, State> {
@@ -50,11 +50,87 @@ class Content extends Component<Props, State> {
     expandFirstFrame: true,
   };
 
+  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
+    const {includeSystemFrames} = this.props;
+
+    return (
+      includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp) ||
+      // the last non-app frame
+      (!frame.inApp && !nextFrame)
+    );
+  };
+
+  setInitialFrameMap(): {[frameIndex: number]: boolean} {
+    const {data} = this.props;
+    const indexMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame =
+        nextFrame &&
+        frame.lineNo === nextFrame.lineNo &&
+        frame.instructionAddr === nextFrame.instructionAddr &&
+        frame.package === nextFrame.package &&
+        frame.module === nextFrame.module &&
+        frame.function === nextFrame.function;
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        indexMap[frameIdx] = false;
+      }
+    });
+    return indexMap;
+  }
+
   state: State = {
     showingAbsoluteAddresses: false,
     showCompleteFunctionName: false,
-    showStackedFrames: false,
+    toggleFrameMap: this.setInitialFrameMap(),
   };
+
+  getInitialFrameCounts() {
+    const {data} = this.props;
+    let count = 0;
+    const countMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame =
+        nextFrame &&
+        frame.lineNo === nextFrame.lineNo &&
+        frame.instructionAddr === nextFrame.instructionAddr &&
+        frame.package === nextFrame.package &&
+        frame.module === nextFrame.module &&
+        frame.function === nextFrame.function;
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        countMap[frameIdx] = count;
+        count = 0;
+      } else {
+        if (!repeatedFrame && !frame.inApp) {
+          count += 1;
+        }
+      }
+    });
+    return countMap;
+  }
+
+  getRepeatedFrameIndeces() {
+    const {data} = this.props;
+    const repeats: number[] = [];
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame =
+        nextFrame &&
+        frame.lineNo === nextFrame.lineNo &&
+        frame.instructionAddr === nextFrame.instructionAddr &&
+        frame.package === nextFrame.package &&
+        frame.module === nextFrame.module &&
+        frame.function === nextFrame.function;
+
+      if (repeatedFrame) {
+        repeats.push(frameIdx);
+      }
+    });
+    return repeats;
+  }
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
@@ -83,22 +159,6 @@ class Content extends Component<Props, State> {
 
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
-
-  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
-    const {includeSystemFrames} = this.props;
-
-    if (this.state.showStackedFrames) {
-      return true;
-    }
-
-    return (
-      includeSystemFrames ||
-      frame.inApp ||
-      (nextFrame && nextFrame.inApp) ||
-      // the last non-app frame
-      (!frame.inApp && !nextFrame)
-    );
-  };
 
   findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
@@ -132,11 +192,14 @@ class Content extends Component<Props, State> {
     }));
   };
 
-  handleToggleFrames = (event: React.MouseEvent<SVGElement>) => {
+  handleToggleFrames = (event: React.MouseEvent<SVGElement>, frameIndex: number) => {
     event.stopPropagation(); // to prevent collapsing if collapsible
 
     this.setState(prevState => ({
-      showStackedFrames: !prevState.showStackedFrames,
+      toggleFrameMap: {
+        ...prevState.toggleFrameMap,
+        [frameIndex]: !prevState.toggleFrameMap[frameIndex],
+      },
     }));
   };
 
@@ -167,11 +230,13 @@ class Content extends Component<Props, State> {
       lockAddress,
     } = this.props;
 
-    const {showingAbsoluteAddresses, showCompleteFunctionName, showStackedFrames} =
+    const {showingAbsoluteAddresses, showCompleteFunctionName, toggleFrameMap} =
       this.state;
 
     let firstFrameOmitted = null;
     let lastFrameOmitted = null;
+    const frameCountMap = this.getInitialFrameCounts();
+    const repeatedIndeces = this.getRepeatedFrameIndeces();
 
     if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
@@ -220,7 +285,24 @@ class Content extends Component<Props, State> {
     const mechanism =
       platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
     const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-    let numHiddenFrames = 0;
+
+    let keys: number[] = [];
+    Object.keys(toggleFrameMap)
+      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
+      .forEach(indexString => {
+        const index = parseInt(indexString, 10);
+        const res: number[] = [];
+        let i = 1;
+        let numHidden = frameCountMap[index];
+        while (numHidden > 0) {
+          if (!repeatedIndeces.includes(index - i)) {
+            res.push(index - i);
+            numHidden -= 1;
+          }
+          i += 1;
+        }
+        keys = [...keys, ...res];
+      });
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
@@ -237,9 +319,11 @@ class Content extends Component<Props, State> {
         nRepeats++;
       }
 
-      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
+      if (
+        (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
+        keys.includes(frameIdx)
+      ) {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
-
         frames.push(
           <DeprecatedLine
             key={frameIdx}
@@ -260,8 +344,11 @@ class Content extends Component<Props, State> {
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
-            onShowFramesToggle={this.handleToggleFrames}
-            showStackedFrames={showStackedFrames}
+            onShowFramesToggle={e => {
+              this.handleToggleFrames(e, frameIdx);
+            }}
+            isToggleable={frameIdx in toggleFrameMap}
+            isToggled={toggleFrameMap[frameIdx]}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
             frameMeta={meta?.frames?.[frameIdx]}
@@ -270,12 +357,9 @@ class Content extends Component<Props, State> {
             isANR={isANR}
             threadId={threadId}
             lockAddress={lockAddress}
-            numHiddenFrames={numHiddenFrames}
+            hiddenFrameCount={frameCountMap[frameIdx]}
           />
         );
-        numHiddenFrames = 0;
-      } else if (!repeatedFrame) {
-        numHiddenFrames += 1;
       }
 
       if (!repeatedFrame) {
