@@ -72,7 +72,7 @@ export default function SpansView(props: Props) {
         {/* Specific modules like Database and API only show _one_ kind of span
         op based on how we group them. So, the operation selector is pointless
         there. */}
-        {[ModuleName.ALL, ModuleName.NONE].includes(moduleName) && (
+        {[ModuleName.ALL, ModuleName.OTHER].includes(moduleName) && (
           <SpanOperationSelector
             moduleName={moduleName}
             value={appliedFilters[SPAN_OP] || ''}
@@ -114,7 +114,7 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   grid-template-columns: repeat(3, 1fr);
   gap: ${space(1)};
   margin-bottom: ${space(2)};
-  max-width: 700px;
+  max-width: 800px;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`

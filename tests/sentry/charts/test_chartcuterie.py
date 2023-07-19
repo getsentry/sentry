@@ -7,6 +7,7 @@ from django.urls.base import reverse
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -73,7 +74,7 @@ class ChartcuterieTest(TestCase):
         assert url == absolute_uri(reverse("sentry-serve-media", args=["abc123.png"]))
 
         resp = self.client.get(url)
-        assert b"".join(resp.streaming_content) == image_data
+        assert close_streaming_response(resp) == image_data
 
     @responses.activate
     def test_failed(self):
