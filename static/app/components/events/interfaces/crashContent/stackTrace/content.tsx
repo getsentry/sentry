@@ -66,13 +66,7 @@ class Content extends Component<Props, State> {
     const indexMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         indexMap[frameIdx] = false;
       }
@@ -98,13 +92,7 @@ class Content extends Component<Props, State> {
     const countMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         countMap[frameIdx] = count;
         count = 0;
@@ -122,13 +110,7 @@ class Content extends Component<Props, State> {
     const repeats: number[] = [];
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         repeats.push(frameIdx);
@@ -185,6 +167,17 @@ class Content extends Component<Props, State> {
     const penultimateFrame = frames[frames.length - 2];
 
     return penultimateFrame.inApp && !lastFrame.inApp;
+  }
+
+  isRepeatedFrame(frame, nextFrame): boolean {
+    return (
+      nextFrame &&
+      frame.lineNo === nextFrame.lineNo &&
+      frame.instructionAddr === nextFrame.instructionAddr &&
+      frame.package === nextFrame.package &&
+      frame.module === nextFrame.module &&
+      frame.function === nextFrame.function
+    );
   }
 
   findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
@@ -320,13 +313,7 @@ class Content extends Component<Props, State> {
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         nRepeats++;
