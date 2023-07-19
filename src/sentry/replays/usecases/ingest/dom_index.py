@@ -145,8 +145,9 @@ def get_user_actions(
                     "a",
                     "button",
                 )
-                if is_timeout_reason and is_target_tagname:
-                    is_rage = payload["data"].get("clickcount", 0) >= 3
+                timeout = payload["data"].get("timeafterclickms", 0)
+                if is_timeout_reason and is_target_tagname and timeout >= 7000:
+                    is_rage = payload["data"].get("clickcount", 0) >= 5
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
@@ -159,10 +160,6 @@ def get_user_actions(
                 logger.info("sentry.replays.slow_click", extra=log)
                 continue
             elif category == "ui.multiClick":
-                click = create_click_event(payload, replay_id, is_dead=False, is_rage=True)
-                if click is not None:
-                    result.append(click)
-
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()
                 log["project_id"] = project_id
