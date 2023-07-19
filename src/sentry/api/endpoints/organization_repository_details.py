@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, Repository, ScheduledDeletion
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -89,6 +90,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 ):
                     repo.reset_pending_deletion_field_names()
                     repo.delete_pending_deletion_option()
+                elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
+                    repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
 
         return Response(serialize(repo, request.user))
 
