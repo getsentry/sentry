@@ -68,8 +68,9 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
 )
 def generate_and_save_missing_forecasts(group_id: int) -> None:
     """
-    Runs generate_and_save_forecasts in a task as a fallback if the forecast does not exist.
-    This should not happen, but exists as a fallback.
+    Runs generate_and_save_forecasts in a task if the forecast does not exist.
+    This will happen if the forecast in nodestore TTL expired and the issue has not been seen in
+    7 days.
     """
     group = Group.objects.filter(id=group_id)
     generate_and_save_forecasts(group)

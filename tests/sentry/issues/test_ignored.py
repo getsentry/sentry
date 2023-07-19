@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models import (
     Group,
@@ -86,7 +86,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert status_details == {"ignoreUntilEscalating": True}
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
-        assert fetched_forecast is None
+        assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_logger.exception.call_args.args[0] == (
             f"Forecast does not exist for project id: {self.group.project.id} group id: {str(self.group.id)}"
         )
