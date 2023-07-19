@@ -348,7 +348,9 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {this.renderShowHideToggle(onShowFramesToggle)}
+          {stacktraceChangesEnabled
+            ? this.renderShowHideToggle(onShowFramesToggle)
+            : null}
           {!data.inApp ? (
             <InAppTag>{t('System')}</InAppTag>
           ) : (
@@ -562,7 +564,8 @@ const DefaultLine = styled('div')<{
       : `1fr auto ${space(2)}`}; /* sm icon size */
   align-items: center;
   column-gap: ${space(1)};
-  background: ${p => (p.isSubFrame ? `${p.theme.gray100} !important` : '')};
+  background: ${p =>
+    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.gray100} !important` : ''};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
