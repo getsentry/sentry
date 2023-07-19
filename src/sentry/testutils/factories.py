@@ -108,6 +108,7 @@ from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -1101,7 +1102,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -1391,7 +1392,8 @@ class Factories:
         **integration_params: Any,
     ) -> Integration:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
+        with outbox_runner():
+            organization_integration = integration.add_organization(organization)
         organization_integration.update(**(oi_params or {}))
 
         return integration

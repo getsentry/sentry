@@ -36,30 +36,31 @@ class StatusActionTest(APITestCase):
         self.org = self.create_organization(owner=owner)
         self.team = self.create_team(organization=self.org, members=[self.user])
 
-        self.integration = Integration.objects.create(
-            provider="msteams",
-            name="Fellowship of the Ring",
-            external_id="f3ll0wsh1p",
-            metadata={
-                "service_url": "https://smba.trafficmanager.net/amer",
-                "access_token": "y0u_5h4ll_n07_p455",
-                "expires_at": int(time.time()) + 86400,
-            },
-        )
-        OrganizationIntegration.objects.create(
-            organization_id=self.org.id, integration=self.integration
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="msteams",
+                name="Fellowship of the Ring",
+                external_id="f3ll0wsh1p",
+                metadata={
+                    "service_url": "https://smba.trafficmanager.net/amer",
+                    "access_token": "y0u_5h4ll_n07_p455",
+                    "expires_at": int(time.time()) + 86400,
+                },
+            )
+            OrganizationIntegration.objects.create(
+                organization_id=self.org.id, integration=self.integration
+            )
 
-        self.idp = IdentityProvider.objects.create(
-            type="msteams", external_id="f3ll0wsh1p", config={}
-        )
-        self.identity = Identity.objects.create(
-            external_id="g4nd4lf",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+            self.idp = IdentityProvider.objects.create(
+                type="msteams", external_id="f3ll0wsh1p", config={}
+            )
+            self.identity = Identity.objects.create(
+                external_id="g4nd4lf",
+                idp=self.idp,
+                user=self.user,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(

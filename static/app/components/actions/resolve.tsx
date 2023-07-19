@@ -13,15 +13,15 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
-  Release,
+  Project,
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion} from 'sentry/utils/formatters';
+import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface ResolveActionsProps {
+export interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -30,7 +30,7 @@ interface ResolveActionsProps {
   disabled?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
-  latestRelease?: Release;
+  latestRelease?: Project['latestRelease'];
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
@@ -150,6 +150,8 @@ function ResolveActions({
       });
     };
 
+    const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
+    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -159,10 +161,17 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label: latestRelease
-          ? t('The current release (%s)', formatVersion(latestRelease.version))
-          : t('The current release'),
-        details: actionTitle,
+        label:
+          hasIssueResolveSemver || !latestRelease
+            ? t('The current release')
+            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        details: actionTitle
+          ? actionTitle
+          : hasIssueResolveSemver && latestRelease
+          ? `${formatVersion(latestRelease.version)} (${
+              isSemver ? t('semver') : t('timestamp')
+            })`
+          : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -223,7 +232,7 @@ function ResolveActions({
         onSelected={(statusDetails: ResolutionStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={projectSlug}
       />
     ));
