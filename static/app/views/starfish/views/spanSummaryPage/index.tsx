@@ -160,6 +160,10 @@ function SpanSummaryPage({params, location}: Props) {
                     <StarfishDatePicker />
                   </FilterOptionsContainer>
                   <BlockContainer>
+                    {span?.[SPAN_OP]?.startsWith('db') &&
+                      span?.[SPAN_OP] !== 'db.redis' && (
+                        <Block title={t('Table')}>{span?.[SPAN_DOMAIN]}</Block>
+                      )}
                     <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                     <Block
                       title={t('Throughput')}
