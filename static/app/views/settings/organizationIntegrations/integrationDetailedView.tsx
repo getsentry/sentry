@@ -351,7 +351,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
                 </Link>
               </Fragment>
             ),
-            disabled: !hasIntegration && !hasOrgWrite,
+            disabled: !hasIntegration || !hasOrgWrite,
             disabledReason: (
               <Fragment>
                 {t('You must have a GitHub integration to enable this feature.')}
