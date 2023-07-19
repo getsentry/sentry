@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import {
   render,
@@ -13,15 +14,16 @@ import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 describe('ReleaseActions', function () {
   const organization = TestStubs.Organization();
   const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
-  const location = {
+  const location: Location = {
+    ...TestStubs.location(),
     pathname: `/organizations/sentry/releases/${release.version}/`,
     query: {
-      project: 1,
+      project: '1',
       statsPeriod: '24h',
       yAxis: 'events',
     },
   };
-  let mockUpdate;
+  let mockUpdate: ReturnType<typeof MockApiClient.addMockResponse>;
 
   beforeEach(function () {
     mockUpdate = MockApiClient.addMockResponse({
@@ -41,7 +43,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />
     );
@@ -85,11 +87,12 @@ describe('ReleaseActions', function () {
 
     render(
       <ReleaseActions
+        {...TestStubs.routeComponentProps()}
         organization={organization}
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
-        releaseMeta={{projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />
     );
@@ -99,7 +102,7 @@ describe('ReleaseActions', function () {
 
     const restoreAction = screen.getByTestId('restore');
 
-    expect(restoreAction).toBeInTheDocument(1);
+    expect(restoreAction).toBeInTheDocument();
     expect(restoreAction).toHaveTextContent('Restore');
 
     await userEvent.click(restoreAction);
@@ -133,7 +136,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />,
       {context: routerContext}
@@ -162,13 +165,12 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={{
           ...location,
           pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,
         }}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByLabelText('Newer')).toHaveAttribute(
