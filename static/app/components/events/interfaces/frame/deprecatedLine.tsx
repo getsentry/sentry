@@ -328,6 +328,7 @@ export class DeprecatedLine extends Component<Props, State> {
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
           stacktraceChangesEnabled={stacktraceChangesEnabled}
+          isNotInApp={!data.inApp}
         >
           <DefaultLineTitleWrapper
             stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
@@ -398,6 +399,7 @@ export class DeprecatedLine extends Component<Props, State> {
           stacktraceChangesEnabled={stacktraceChangesEnabled}
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
+          isNotInApp={!data.inApp}
         >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
@@ -566,14 +568,17 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')<{
   hasToggle: boolean;
+  isNotInApp: boolean;
   isSubFrame: boolean;
   stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
     p.stacktraceChangesEnabled
-      ? p.hasToggle
-        ? `1fr auto auto ${space(2)}`
+      ? p.isNotInApp
+        ? p.hasToggle
+          ? `1fr auto ${space(2)}`
+          : `1fr ${space(2)}`
         : `1fr auto ${space(2)}`
       : `1fr auto auto`};
   align-items: center;
