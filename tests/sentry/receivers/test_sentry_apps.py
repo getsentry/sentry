@@ -441,7 +441,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "email": self.assignee.email,
             }
         }
-        sub_data["user"] = serialize(self.user, UserSerializer())
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
         delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
@@ -465,7 +466,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "id": self.assignee.id,
             }
         }
-        sub_data["user"] = serialize(self.user, UserSerializer())
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
         delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
