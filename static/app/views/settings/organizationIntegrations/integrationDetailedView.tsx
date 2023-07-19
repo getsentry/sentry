@@ -10,7 +10,6 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
@@ -345,10 +344,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               <Fragment>
                 {t(
                   'Allow Sentry to comment on pull requests about issues impacting your app.'
-                )}{' '}
-                <Link to={`/settings/${organization.slug}/integrations/github`}>
-                  {t('Configure GitHub integration')}
-                </Link>
+                )}
               </Fragment>
             ),
             disabled: !hasIntegration || !hasOrgWrite,
