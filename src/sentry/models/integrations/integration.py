@@ -105,7 +105,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic(router.db_for_write(OrganizationIntegration), using=None):
+            with transaction.atomic(using=router.db_for_write(OrganizationIntegration))
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,

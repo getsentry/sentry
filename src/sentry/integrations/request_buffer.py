@@ -52,8 +52,8 @@ class IntegrationRequestBuffer:
 
         """
         # fast shutoff
-        #  if self.is_fatal:
-        #      return True
+        if self.is_fatal:
+            return True
 
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
@@ -114,11 +114,9 @@ class IntegrationRequestBuffer:
 
     def record_error(self):
         self.add("error")
-        # if self.is_integration_broken():
-        # call uninstall
 
     def record_success(self):
-        return self.add("success")
+        self.add("success")
 
     def record_fatal(self):
         # skip to uninstall or call is_integration_broken?
@@ -126,7 +124,3 @@ class IntegrationRequestBuffer:
         self.add("fatal")
         # if self.is_integration_broken():
         # call uninstal
-        # integration_service.get_integrations(integration_ids=result.ids
-
-
-#    def uninstall(self):

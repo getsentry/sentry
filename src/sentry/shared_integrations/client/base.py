@@ -335,20 +335,17 @@ class BaseApiClient(TrackResponseMixin):
         return output
 
     def record_response(self, response: Response | None = None, error: Exception | None = None):
-        if not hasattr(self, "integration_id"):
-            return
-        if self.is_response_error(response, error):
+        print("record_response")
+        if self.is_response_fatal(response, error):
+            self.record_request_fatal(response, error)
+        elif self.is_response_error(response, error):
             self.record_request_error(response, error)
         elif self.is_response_success(response):
             self.record_request_success(response)
-        elif self.is_response_fatal(response, error):
-            self.record_request_fatal(response, error)
 
     def record_request_error(self, resp: Response | None = None, error: Exception | None = None):
         if not self._get_redis_key():
             return
-        if error is None:
-            error = resp.get("error", None)
         if not self.is_response_error(resp, error):
             return
         buffer = IntegrationRequestBuffer(self._get_redis_key())
@@ -372,13 +369,14 @@ class BaseApiClient(TrackResponseMixin):
         buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_fatal()
         print("fatal recorded")
-        if buffer.is_integration_broken():
-            self.disable_integration(self.integration_id)
+        print(buffer.is_integration_broken())
+   #     if buffer.is_integration_broken():
+   #         self.disable_integration()
 
     def disable_integration(self) -> None:
-        rpc_integration, rpc_org_integration = integration_service.get_organization_context(
+        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
-        )
+        )[0]
         integration_service.update_integration(
             integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
         )
