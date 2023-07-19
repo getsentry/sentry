@@ -1,4 +1,3 @@
-import datetime
 import logging
 import secrets
 from typing import Union
@@ -58,15 +57,11 @@ class OAuthTokenView(View):
         except ApiApplication.DoesNotExist:
             return self.error(request, "invalid_client", "invalid client_id")
 
-        # date that we started requiring client secrets
-        cutoff_date = datetime.datetime(2023, 7, 16).time()
-
-        if application.date_added.time() > cutoff_date:
-            client_secret = request.POST.get("client_secret")
-            if not client_secret:
-                return self.error(request, "missing client_secret")
-            elif client_secret != application.client_secret:
-                return self.error(request, "invalid client_secret")
+        client_secret = request.POST.get("client_secret")
+        if not client_secret:
+            return self.error(request, "missing client_secret")
+        elif client_secret != application.client_secret:
+            return self.error(request, "invalid client_secret")
 
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)

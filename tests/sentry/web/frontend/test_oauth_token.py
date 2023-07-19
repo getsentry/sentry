@@ -1,4 +1,3 @@
-import datetime
 from functools import cached_property
 
 from django.utils import timezone
@@ -262,41 +261,6 @@ class OAuthTokenCodeTest(TestCase):
         assert token.application == self.application
         assert token.user == self.grant.user
         assert token.get_scopes() == self.grant.get_scopes()
-
-        assert data["access_token"] == token.token
-        assert data["refresh_token"] == token.refresh_token
-        assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
-
-    def test_old_application_no_secret(self):
-        """Tests that applications created before we
-        required client secret still work without the client secret."""
-        old_application = ApiApplication.objects.create(
-            owner=self.user,
-            redirect_uris="https://example.com",
-            date_added=datetime.datetime(2023, 6, 15).astimezone(),
-        )
-        grant = ApiGrant.objects.create(
-            user=self.user, application=old_application, redirect_uri="https://example.com"
-        )
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "authorization_code",
-                "redirect_uri": old_application.get_default_redirect_uri(),
-                "code": grant.code,
-                "client_id": old_application.client_id,
-            },
-        )
-
-        assert resp.status_code == 200
-        data = json.loads(resp.content)
-
-        token = ApiToken.objects.get(token=data["access_token"])
-        assert token.application == old_application
-        assert token.user == grant.user
-        assert token.get_scopes() == grant.get_scopes()
 
         assert data["access_token"] == token.token
         assert data["refresh_token"] == token.refresh_token
