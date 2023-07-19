@@ -78,10 +78,8 @@ def get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     metrics: Dict[str, MetricSpec] = {}
 
     for alert in alert_rules:
-        result = convert_query_to_metric(alert.snuba_query)
-        if result:
-            query_hash, spec = result
-            metrics[query_hash] = spec
+        if result := convert_query_to_metric(alert.snuba_query):
+            metrics[result[0]] = result[1]
 
     return [spec for spec in metrics.values()]
 
