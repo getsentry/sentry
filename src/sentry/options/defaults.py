@@ -1148,7 +1148,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.n_plus_one_api_calls.ea-rollout", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.n_plus_one_api_calls.ea-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_api_calls.ga-rollout",
@@ -1202,6 +1204,20 @@ register(
 )
 register(
     "performance.issues.m_n_plus_one_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.http_overhead.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -1282,6 +1298,11 @@ register(
 register(
     "performance.issues.consecutive_db.min_time_saved_threshold",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.http_overhead.http_request_delay_threshold",
+    default=500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 
@@ -1373,4 +1394,4 @@ register(
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
 # Turns on and off the running for dynamic sampling collect_orgs.
-register("dynamic_sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

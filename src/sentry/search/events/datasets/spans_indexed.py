@@ -42,6 +42,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
         }
 
     @property
@@ -155,7 +156,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         "divide", [Function("count", []), args["interval"]], alias
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
@@ -165,7 +166,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
             ]
         }
@@ -185,6 +186,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
 
     def _resolve_bounded_sample(
         self,

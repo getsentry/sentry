@@ -202,16 +202,16 @@ PREBUILT_DASHBOARDS = {
                 },
                 {
                     "title": "Errors by Country",
-                    "displayType": "world_map",
+                    "displayType": "table",
                     "interval": "5m",
                     "widgetType": "discover",
                     "queries": [
                         {
                             "name": "Error counts",
                             "conditions": "!event.type:transaction has:geo.country_code",
-                            "fields": ["count()"],
+                            "fields": ["geo.country_code", "geo.region", "count()"],
                             "aggregates": ["count()"],
-                            "columns": [],
+                            "columns": ["geo.country_code", "geo.region"],
                             "orderby": "",
                         }
                     ],

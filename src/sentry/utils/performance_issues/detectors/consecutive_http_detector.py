@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -16,6 +14,7 @@ from sentry.utils.safe import get_path
 from ..base import (
     DetectorType,
     PerformanceDetector,
+    does_overlap_previous_span,
     fingerprint_http_spans,
     get_duration_between_spans,
     get_notification_attachment_body,
@@ -128,12 +127,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _overlaps_last_span(self, span: Span) -> bool:
         if len(self.consecutive_http_spans) == 0:
             return False
-
         last_span = self.consecutive_http_spans[-1]
-
-        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
-        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
-        return last_span_ends > current_span_begins
+        return does_overlap_previous_span(last_span, span)
 
     def _reset_variables(self) -> None:
         self.consecutive_http_spans = []
@@ -182,6 +177,25 @@ class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
 
     type = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+
+    def visit_span(self, span: Span) -> None:
+        if is_event_from_browser_javascript_sdk(self.event()):
+            return
+
+        span_id = span.get("span_id", None)
+
+        if not span_id or not self._is_eligible_http_span(span):
+            return
+
+        span_duration = get_span_duration(span).total_seconds() * 1000
+        if span_duration < self.settings.get("span_duration_threshold"):
+            return
+
+        if self._overlaps_last_span(span):
+            self._validate_and_store_performance_problem()
+            self._reset_variables()
+
+        self._add_problem_span(span)
 
     def _validate_and_store_performance_problem(self):
         exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(

@@ -99,7 +99,7 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
+    pathname: `/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',

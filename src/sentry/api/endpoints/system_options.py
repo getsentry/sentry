@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -95,7 +95,7 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(type(option))):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)
                     else:

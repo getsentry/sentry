@@ -6,7 +6,8 @@ from django.utils import timezone
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTeam, ProjectTransactionThreshold, ReleaseStages
+from sentry.models import ProjectTransactionThreshold, ReleaseStages
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
