@@ -574,7 +574,7 @@ const DefaultLine = styled('div')<{
       ? p.hasToggle
         ? `1fr auto auto ${space(2)}`
         : `1fr auto ${space(2)}`
-      : `1fr auto ${space(2)}`}; /* sm icon size */
+      : `1fr auto auto`};
   align-items: center;
   column-gap: ${space(1)};
   background: ${p =>
