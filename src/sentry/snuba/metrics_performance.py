@@ -37,6 +37,7 @@ def query(
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
@@ -81,6 +82,7 @@ def bulk_timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
     apply_formatting: Optional[bool] = True,
 ) -> SnubaTSResult:
@@ -179,6 +181,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """
