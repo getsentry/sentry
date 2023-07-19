@@ -8,9 +8,9 @@ import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {DebugIdBundleAssociation, Organization, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -20,6 +20,15 @@ import ProjectProguardRow from './projectProguardRow';
 export type ProjectProguardProps = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
+};
+
+export type ProguardMappingAssociation = {
+  releases: string[];
+};
+
+export type AssociatedMapping = {
+  mapping: DebugFile | undefined;
+  releaseAssociation: DebugIdBundleAssociation[] | undefined;
 };
 
 function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {
@@ -41,6 +50,34 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
       staleTime: 0,
     }
   );
+
+  const results = useQueries({
+    queries:
+      mappings?.map(mapping => {
+        return {
+          queryKey: [
+            `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
+            {
+              query: {
+                proguard_uuid: mapping.uuid,
+              },
+            },
+          ],
+          queryFn: () =>
+            api.requestPromise(
+              `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
+              {
+                method: 'GET',
+                query: {
+                  proguard_uuid: mapping.uuid,
+                },
+              }
+            ) as Promise<ProguardMappingAssociation>,
+        };
+      }) ?? [],
+  });
+
+  const associationsFetched = results.every(result => result.isFetched);
 
   const mappingsPageLinks = getResponseHeader?.('Link');
 
@@ -80,7 +117,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
   const query =
     typeof location.query.query === 'string' ? location.query.query : undefined;
 
-  const isLoading = loading || dataLoading;
+  const isLoading = loading || dataLoading || !associationsFetched;
 
   return (
     <Fragment>
@@ -119,7 +156,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
       >
         {!mappings?.length
           ? null
-          : mappings.map(mapping => {
+          : mappings.map((mapping, index) => {
               const downloadUrl = `${api.baseUrl}/projects/${
                 organization.slug
               }/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
@@ -127,6 +164,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
               return (
                 <ProjectProguardRow
                   mapping={mapping}
+                  associations={results[index].data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
                   downloadRole={organization.debugFilesRole}
