@@ -51,8 +51,17 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        # fast shutoff
-        if self.is_fatal:
+        #fast shutoff
+        #if self.is_fatal:
+        #   return True
+
+        data = [
+            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
+            for item in self._get()
+            if item.get("fatal_count", 0) > 0
+        ][0 : IS_BROKEN_RANGE - 1]
+
+        if len(data):
             return True
 
         data = [
@@ -79,7 +88,6 @@ class IntegrationRequestBuffer:
 
         other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
         buffer_key = self.integrationkey
-        print(buffer_key)
         now = datetime.now().strftime("%Y-%m-%d")
 
         pipe = self.client.pipeline()
