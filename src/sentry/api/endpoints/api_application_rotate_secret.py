@@ -24,4 +24,4 @@ class ApiApplicationRotateSecretEndpoint(Endpoint):
             raise ResourceDoesNotExist
         new_token = generate_token()
         api_application.update(client_secret=new_token)
-        return Response(serialize({"client_secret": new_token}))
+        return Response(serialize({"clientSecret": new_token}))
