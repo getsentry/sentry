@@ -11,6 +11,7 @@ from sentry.api.endpoints.project_release_file_details import (
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.response import close_streaming_response
 
 
 def test_closes_depnedent_files_is_iterable():
@@ -92,13 +93,13 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
         assert response.get("Content-Length") == str(f.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
         # Download as a superuser
         self.login_as(user=self.user)
         response = self.client.get(url + "?download=1")
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
         # # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
@@ -167,7 +168,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         response = self._get(id, "?download=1")
         assert response.status_code == 200
-        body = b"".join(response.streaming_content)
+        body = close_streaming_response(response)
         assert sha1(body).hexdigest() == checksum
 
     def test_archived_with_dist(self):

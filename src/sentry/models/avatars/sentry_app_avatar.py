@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar, List
 
 from django.db import models
 
@@ -47,7 +47,7 @@ class SentryAppAvatar(ControlAvatarBase):
 
     AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
 
-    FILE_TYPE = "avatar.file"
+    FILE_TYPE: ClassVar[str] = "avatar.file"
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)

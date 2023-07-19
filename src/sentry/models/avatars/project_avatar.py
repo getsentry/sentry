@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, region_silo_only_model
@@ -12,9 +16,9 @@ class ProjectAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
+    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]] = ((0, "letter_avatar"), (1, "upload"))
 
-    FILE_TYPE = "avatar.file"
+    FILE_TYPE: ClassVar[str] = "avatar.file"
 
     project = FlexibleForeignKey("sentry.Project", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)

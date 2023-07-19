@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from random import random
-from typing import Any, Callable, Mapping, Sequence, Type, Union
+from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -77,6 +77,44 @@ class BaseApiClient(TrackResponseMixin):
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: Literal[True] = ...,
+    ) -> Response:
+        ...
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: bool = ...,
+    ) -> BaseApiResponseX:
+        ...
 
     def _request(
         self,

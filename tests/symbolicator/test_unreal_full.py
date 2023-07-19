@@ -68,7 +68,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
     def unreal_crash_test_impl(self, filename):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)

@@ -5,7 +5,7 @@ from typing import Any, Iterable, Mapping
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from requests import Request, Response
+from requests import Request
 
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
@@ -51,7 +51,8 @@ class BaseSiloClient(BaseApiClient):
             headers=clean_proxy_headers(incoming_request.headers),
             data=incoming_request.body,
         ).prepare()
-        raw_response: Response = super()._request(  # type: ignore
+        assert incoming_request.method is not None
+        raw_response = super()._request(
             incoming_request.method,
             incoming_request.get_full_path(),
             prepared_request=prepared_request,

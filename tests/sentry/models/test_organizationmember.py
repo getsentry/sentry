@@ -209,12 +209,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(

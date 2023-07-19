@@ -76,7 +76,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -95,7 +95,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=https%3A%2F%2Ftestdomain.com%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -112,7 +112,7 @@ class AuthenticationTest(AuthProviderTestCase):
             HTTP_REFERER="http://example.com",
         )
 
-        assert resp.data["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
+        assert resp.json()["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
 
     def _test_paths_with_status(self, status):
         for path in self.paths:
