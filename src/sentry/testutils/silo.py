@@ -280,7 +280,7 @@ def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
                 start = max(0, start_fence_index - context_queries)
                 end = min(index + context_queries, len(queries))
 
-                context_queries = queries[start:end]
+                query_slice = queries[start:end]
                 msg = [
                     "Found protected operation without explicit outbox escape!",
                     "",
@@ -297,7 +297,7 @@ def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
                     "Query logs:",
                     "",
                 ]
-                for query in context_queries:
+                for query in query_slice:
                     msg.append(query["sql"])
                     if query["sql"] == sql:
                         msg.append("^" * len(sql))
