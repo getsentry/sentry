@@ -24,7 +24,7 @@ class OAuthTokenTest(TestCase):
     def test_missing_grant_type(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {"client_id": "abcd"})
+        resp = self.client.post(self.path, {"client_id": "abcd", "client_secret": "abcd"})
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
@@ -32,7 +32,9 @@ class OAuthTokenTest(TestCase):
     def test_invalid_grant_type(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {"grant_type": "foo", "client_id": "abcd"})
+        resp = self.client.post(
+            self.path, {"grant_type": "foo", "client_id": "abcd", "client_secret": "abcd"}
+        )
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
@@ -72,7 +74,6 @@ class OAuthTokenCodeTest(TestCase):
 
     def test_invalid_client_id(self):
         self.login_as(self.user)
-
         resp = self.client.post(
             self.path,
             {
@@ -83,9 +84,8 @@ class OAuthTokenCodeTest(TestCase):
                 "client_secret": self.client_secret,
             },
         )
-
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid_client"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
     def test_missing_client_secret(self):
         self.login_as(self.user)
@@ -117,8 +117,8 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
 
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid client_secret"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
     def test_missing_code(self):
         self.login_as(self.user)
@@ -381,8 +381,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
             },
         )
 
-        assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid_client"}
+        assert resp.status_code == 401
+        assert json.loads(resp.content) == {"error": "invalid_credentials"}
 
     def test_missing_refresh_token(self):
         self.login_as(self.user)

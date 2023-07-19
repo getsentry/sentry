@@ -46,22 +46,24 @@ class OAuthTokenView(View):
     def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
+        client_secret = request.POST.get("client_secret")
+
         if not client_id:
             return self.error(request, "invalid_client", "missing client_id")
-        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
-            return self.error(request, "unsupported_grant_type")
-        try:
-            application = ApiApplication.objects.get(
-                client_id=client_id, status=ApiApplicationStatus.active
-            )
-        except ApiApplication.DoesNotExist:
-            return self.error(request, "invalid_client", "invalid client_id")
-
-        client_secret = request.POST.get("client_secret")
         if not client_secret:
             return self.error(request, "missing client_secret")
-        elif client_secret != application.client_secret:
-            return self.error(request, "invalid client_secret")
+
+        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
+            return self.error(request, "unsupported_grant_type")
+
+        try:
+            application = ApiApplication.objects.get(
+                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
+            )
+        except ApiApplication.DoesNotExist:
+            return self.error(
+                request, "invalid_credentials", "invalid client_id or client_secret", status=401
+            )
 
         if grant_type == GrantTypes.AUTHORIZATION:
             token_data = self.get_access_tokens(request=request, application=application)
