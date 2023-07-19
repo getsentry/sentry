@@ -5,7 +5,7 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {
+import type {
   BreadcrumbFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
@@ -15,6 +15,7 @@ import {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {isDeadClick, isRageClick} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 export function getColor(frame: ReplayFrame): Color {
@@ -25,11 +26,9 @@ export function getColor(frame: ReplayFrame): Color {
       case 'issue':
         return 'red300';
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
-          ? 'red300'
-          : 'yellow300';
+        return isDeadClick(frame as SlowClickFrame) ? 'red300' : 'yellow300';
       case 'ui.multiClick':
-        return 'red300';
+        return isRageClick(frame as MultiClickFrame) ? 'red300' : 'yellow300';
       case 'replay.mutations':
         return 'yellow300';
       case 'ui.click':
@@ -74,11 +73,13 @@ export function getBreadcrumbType(frame: ReplayFrame): BreadcrumbType {
       case 'issue':
         return BreadcrumbType.ERROR;
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
+        return isDeadClick(frame as SlowClickFrame)
           ? BreadcrumbType.ERROR
           : BreadcrumbType.WARNING;
       case 'ui.multiClick':
-        return BreadcrumbType.ERROR;
+        return isRageClick(frame as MultiClickFrame)
+          ? BreadcrumbType.ERROR
+          : BreadcrumbType.WARNING;
       case 'replay.mutations':
         return BreadcrumbType.WARNING;
       case 'ui.click':
@@ -128,11 +129,9 @@ export function getTitle(frame: ReplayFrame): ReactNode {
       case 'navigation':
         return 'Navigation';
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
-          ? 'Dead Click'
-          : 'Slow Click';
+        return isDeadClick(frame as SlowClickFrame) ? 'Dead Click' : 'Slow Click';
       case 'ui.multiClick':
-        return 'Rage Click';
+        return isRageClick(frame as MultiClickFrame) ? 'Rage Click' : 'Multi Click';
       case 'replay.mutations':
         return 'Replay';
       case 'ui.click':
@@ -184,7 +183,7 @@ export function getDescription(frame: ReplayFrame): ReactNode {
       case 'ui.slowClickDetected': {
         const slowClickFrame = frame as SlowClickFrame;
         const node = slowClickFrame.data.node;
-        return slowClickFrame.data.endReason === 'timeout'
+        return isDeadClick(slowClickFrame)
           ? tct(
               'Click on [selector] did not cause a visible effect within [timeout] ms',
               {
@@ -199,10 +198,15 @@ export function getDescription(frame: ReplayFrame): ReactNode {
       }
       case 'ui.multiClick':
         const multiClickFrame = frame as MultiClickFrame;
-        return tct('Rage clicked [clickCount] times on [selector]', {
-          clickCount: multiClickFrame.data.clickCount,
-          selector: stringifyNodeAttributes(multiClickFrame.data.node),
-        });
+        return isRageClick(multiClickFrame)
+          ? tct('Rage clicked [clickCount] times on [selector]', {
+              clickCount: multiClickFrame.data.clickCount,
+              selector: stringifyNodeAttributes(multiClickFrame.data.node),
+            })
+          : tct('[clickCount] clicks on [selector]', {
+              clickCount: multiClickFrame.data.clickCount,
+              selector: stringifyNodeAttributes(multiClickFrame.data.node),
+            });
       case 'replay.mutations': {
         const mutationFrame = frame as MutationFrame;
         return mutationFrame.data.limit

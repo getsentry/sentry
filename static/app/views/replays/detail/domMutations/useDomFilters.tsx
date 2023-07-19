@@ -4,7 +4,7 @@ import uniq from 'lodash/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {frameOpOrCategory} from 'sentry/utils/replays/types';
+import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {
@@ -39,7 +39,7 @@ function typeToLabel(val: string): string {
 
 const FILTERS = {
   type: (item: Extraction, type: string[]) =>
-    type.length === 0 || type.includes(frameOpOrCategory(item.frame)),
+    type.length === 0 || type.includes(getFrameOpOrCategory(item.frame)),
   searchTerm: (item: Extraction, searchTerm: string) =>
     JSON.stringify(item.html).toLowerCase().includes(searchTerm),
 };
@@ -65,7 +65,7 @@ function useDomFilters({actions}: Options): Return {
 
   const getMutationsTypes = useCallback(
     () =>
-      uniq(actions.map(mutation => frameOpOrCategory(mutation.frame)).concat(type))
+      uniq(actions.map(mutation => getFrameOpOrCategory(mutation.frame)).concat(type))
         .sort()
         .map(value => ({value, label: typeToLabel(value)})),
     [actions, type]
