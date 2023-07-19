@@ -23,7 +23,6 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -111,6 +110,7 @@ from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -401,10 +401,9 @@ class Factories:
                 for team in teams:
                     project.add_team(team)
             if fire_project_created:
-                with in_test_hide_transaction_boundary():
-                    project_created.send(
-                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                    )
+                project_created.send(
+                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                )
         return project
 
     @staticmethod
@@ -1127,7 +1126,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -1417,7 +1416,8 @@ class Factories:
         **integration_params: Any,
     ) -> Integration:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
+        with outbox_runner():
+            organization_integration = integration.add_organization(organization)
         organization_integration.update(**(oi_params or {}))
 
         return integration

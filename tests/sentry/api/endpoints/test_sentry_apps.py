@@ -585,6 +585,8 @@ class PostSentryAppsTest(SentryAppsTest):
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
     def test_members_cant_create(self):
+        # create extra owner because we are demoting one
+        self.create_member(organization=self.organization, user=self.create_user(), role="owner")
         member_om = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
@@ -594,6 +596,8 @@ class PostSentryAppsTest(SentryAppsTest):
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
+        # create extra owner because we are demoting one
+        self.create_member(organization=self.organization, user=self.create_user(), role="owner")
         member_om = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )

@@ -376,6 +376,7 @@ function Chart({
     return (
       <ChartZoom
         router={router}
+        saveOnZoom
         period={statsPeriod}
         start={start}
         end={end}

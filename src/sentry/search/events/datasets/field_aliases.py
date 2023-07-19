@@ -83,3 +83,24 @@ def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> Sel
     )
     builder.meta_resolver_map[alias] = "string"
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)
+
+
+def resolve_span_module(builder, alias: str) -> SelectType:
+    return Function(
+        "transform",
+        [
+            builder.column("span.category"),
+            [
+                "cache",
+                "db",
+                "http",
+            ],
+            [
+                "cache",
+                "db",
+                "http",
+            ],
+            "other",
+        ],
+        alias,
+    )
