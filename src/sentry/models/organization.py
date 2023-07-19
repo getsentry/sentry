@@ -29,7 +29,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
@@ -324,8 +323,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             "user_id", flat=True
         )
 
-        with in_test_hide_transaction_boundary():
-            return user_service.get_many(filter={"user_ids": list(owners)})
+        return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):

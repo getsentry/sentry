@@ -8,9 +8,7 @@ from typing import Any, MutableMapping, Optional
 
 from django.db.transaction import get_connection
 
-from sentry.silo.patches.silo_aware_transaction_patch import (
-    validate_transaction_using_for_silo_mode,
-)
+from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
 
 _fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
 _fencing_counters: MutableMapping[str, int] = defaultdict(int)
@@ -21,7 +19,7 @@ def match_fence_query(query: str) -> Optional[re.Match[str]]:
 
 
 @contextlib.contextmanager
-def unguarded_write(using: str, *args: Any, **kwargs: Any):
+def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
     """
     Used to indicate that the wrapped block is safe to do
     mutations on outbox backed records.
@@ -39,8 +37,7 @@ def unguarded_write(using: str, *args: Any, **kwargs: Any):
         yield
         return
 
-    validate_transaction_using_for_silo_mode(using)
-
+    using = determine_using_by_silo_mode(using)
     _fencing_counters[using] += 1
 
     with get_connection(using).cursor() as conn:
