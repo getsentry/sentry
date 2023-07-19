@@ -10,7 +10,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import {DebugIdBundleAssociation, Organization, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -51,33 +51,29 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
     }
   );
 
-  const results = useQueries({
+  const associationsResults = useQueries({
     queries:
       mappings?.map(mapping => {
-        return {
-          queryKey: [
-            `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
-            {
-              query: {
-                proguard_uuid: mapping.uuid,
-              },
+        const queryKey = [
+          `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
+          {
+            query: {
+              proguard_uuid: mapping.uuid,
             },
-          ],
+          },
+        ] as ApiQueryKey;
+        return {
+          queryKey,
           queryFn: () =>
-            api.requestPromise(
-              `/projects/${organization.slug}/${projectId}/files/proguard-artifact-releases/`,
-              {
-                method: 'GET',
-                query: {
-                  proguard_uuid: mapping.uuid,
-                },
-              }
-            ) as Promise<ProguardMappingAssociation>,
+            api.requestPromise(queryKey[0], {
+              method: 'GET',
+              query: queryKey[1]?.query,
+            }) as Promise<ProguardMappingAssociation>,
         };
       }) ?? [],
   });
 
-  const associationsFetched = results.every(result => result.isFetched);
+  const associationsFetched = associationsResults.every(result => result.isFetched);
 
   const mappingsPageLinks = getResponseHeader?.('Link');
 
@@ -164,7 +160,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
               return (
                 <ProjectProguardRow
                   mapping={mapping}
-                  associations={results[index].data}
+                  associations={associationsResults[index].data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
                   downloadRole={organization.debugFilesRole}

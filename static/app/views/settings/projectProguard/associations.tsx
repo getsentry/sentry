@@ -63,7 +63,7 @@ export function ProguardAssociations({associations, loading}: Props) {
     return <Placeholder width="200px" height="20px" />;
   }
 
-  if (!associations?.releases.length) {
+  if (!associations.releases.length) {
     return (
       <NoAssociations>
         {t('No releases associated with this proguard mapping file')}
@@ -80,7 +80,7 @@ export function ProguardAssociations({associations, loading}: Props) {
         displayTimeout={0}
         showUnderline
       >
-        {tn('%s Release', '%s Releases', associations?.releases.length)}
+        {tn('%s Release', '%s Releases', associations.releases.length)}
       </WiderHovercard>{' '}
       {t('associated')}
     </div>

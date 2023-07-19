@@ -27,7 +27,7 @@ type Props = {
 };
 
 function ProjectProguardRow({
-  associations = {releases: []},
+  associations = {releases: []} as ProguardMappingAssociation,
   mapping,
   onDelete,
   downloadUrl,
