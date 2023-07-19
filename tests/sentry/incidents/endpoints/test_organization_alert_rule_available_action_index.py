@@ -64,6 +64,8 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             service_name=service_name,
             integration_key=SERVICES[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
 
         data = build_action_response(

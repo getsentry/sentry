@@ -258,20 +258,20 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration_id=integration.id
             )
-            PagerDutyService.objects.create(
+            id1 = PagerDutyService.objects.create(
                 organization_integration_id=org_integration.id,
                 organization_id=self.organization.id,
                 integration_id=integration.id,
                 integration_key="key1",
                 service_name="service1",
-            )
-            PagerDutyService.objects.create(
+            ).id
+            id2 = PagerDutyService.objects.create(
                 organization_integration_id=org_integration.id,
                 organization_id=self.organization.id,
                 integration_id=integration.id,
                 integration_key="key2",
                 service_name="service2",
-            )
+            ).id
 
         result = integration_service.get_organization_integration(
             integration_id=integration.id,
@@ -279,8 +279,18 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result
         assert result.config["pagerduty_services"] == [
-            dict(integration_key="key1", service_name="service1"),
-            dict(integration_key="key2", service_name="service2"),
+            dict(
+                integration_key="key1",
+                service_name="service1",
+                id=id1,
+                integration_id=integration.id,
+            ),
+            dict(
+                integration_key="key2",
+                service_name="service2",
+                id=id2,
+                integration_id=integration.id,
+            ),
         ]
 
     def test_get_organization_context(self):
