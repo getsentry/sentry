@@ -86,9 +86,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert status_details == {"ignoreUntilEscalating": True}
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
-        assert fetched_forecast is not None
-        if fetched_forecast:
-            assert fetched_forecast.forecast == ONE_EVENT_FORECAST
+        assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_logger.exception.call_args.args[0] == (
             f"Forecast does not exist for project id: {self.group.project.id} group id: {str(self.group.id)}"
         )
