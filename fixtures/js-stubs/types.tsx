@@ -1,4 +1,4 @@
-import {EntryException} from 'sentry/types';
+import {EntryException, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayListRecord,
   ReplayRecord,
@@ -123,6 +123,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;
