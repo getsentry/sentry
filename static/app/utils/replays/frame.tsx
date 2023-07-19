@@ -131,7 +131,7 @@ export function getTitle(frame: ReplayFrame): ReactNode {
     const [type, action] = frame.category.split('.');
     switch (frame.category) {
       case 'replay.init':
-        return 'Replay Init';
+        return 'Replay Start';
       case 'navigation':
         return 'Navigation';
       case 'ui.slowClickDetected':

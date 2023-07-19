@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from typing import Any, Mapping
 
 from django.conf import settings
@@ -20,6 +19,7 @@ from sentry.silo.util import (
     encode_subnet_signature,
     trim_leading_slashes,
 )
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +79,12 @@ class IntegrationProxyClient(ApiClient):
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
         control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
-        is_test_environment = "pytest" in sys.argv[0]
 
         if is_region_silo and subnet_secret and control_address:
             self._should_proxy_to_control = True
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
-        if is_test_environment and not self._use_proxy_url_for_tests:
+        if in_test_environment() and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
