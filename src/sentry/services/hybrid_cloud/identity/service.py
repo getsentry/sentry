@@ -7,6 +7,7 @@ from abc import abstractmethod
 from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
+from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -38,16 +39,17 @@ class IdentityService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_identity(
-        self,
-        *,
-        provider_id: int,
-        user_id: Optional[int] = None,
-        identity_ext_id: Optional[str] = None,
-    ) -> Optional[RpcIdentity]:
+    def get_identities(self, *, filter: IdentityFilterArgs) -> Optional[RpcIdentity]:
         """
-        Returns an RpcIdentity using the idp.id (provider_id) and either the user.id (user_id)
-        or identity.external_id (identity_ext_id)
+        Returns a list of RpcIdentity based on the given filters.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_identity(self, *, filter: IdentityFilterArgs) -> Optional[RpcIdentity]:
+        """
+        Returns the first RpcIdentity based on the given filters.
         """
         pass
 
