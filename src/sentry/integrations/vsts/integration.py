@@ -151,7 +151,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
         return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client(base_url=self.instance)
         try:
             # since we don't actually use webhooks for vsts commits,
