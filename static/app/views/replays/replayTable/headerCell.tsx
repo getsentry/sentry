@@ -46,7 +46,9 @@ function HeaderCell({column, sort}: Props) {
           sort={sort}
           fieldName="count_rage_clicks"
           label={t('Rage Clicks')}
-          tooltip={t('A rage click is 5 dead clicks within 7 seconds.')}
+          tooltip={t(
+            'A rage click is 5 or more clicks on a dead element (no page activity after 7 seconds).'
+          )}
         />
       );
 
