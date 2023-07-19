@@ -2,16 +2,14 @@ from django.db import models
 from django.db.models import CASCADE
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models.base import ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.silo import SiloMode
 
 
-@control_silo_only_model
+# Temporary -- this will become a control silo model again after a future getsentry merge.
+@ModelSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
 class PagerDutyService(DefaultFieldsModel):
     __include_in_export__ = False
 
