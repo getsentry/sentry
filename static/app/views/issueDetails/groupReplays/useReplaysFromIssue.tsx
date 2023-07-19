@@ -54,15 +54,13 @@ function useReplayFromIssue({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(
-        organization.features.includes('replay-rage-click-dead-click-columns')
-      ),
+      fields: getReplayListFields(organization),
       query: `id:[${String(replayIds)}]`,
       range: '14d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, replayIds, organization.features]);
+  }, [location.query.sort, replayIds, organization]);
 
   useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {

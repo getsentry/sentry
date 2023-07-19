@@ -1,6 +1,7 @@
 import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
 
+import {Organization} from 'sentry/types';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
@@ -112,7 +113,10 @@ export type ReplayListLocationQuery = {
 };
 
 // Sync with ReplayListRecord above
-export function getReplayListFields(hasDeadRageCols) {
+export function getReplayListFields(organization: Organization) {
+  const hasDeadRageCols = organization.features.includes(
+    'replay-rage-click-dead-click-columns'
+  );
   return hasDeadRageCols
     ? [
         'activity',

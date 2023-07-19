@@ -36,16 +36,14 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: getReplayListFields(
-          organization.features.includes('replay-rage-click-dead-click-columns')
-        ),
+        fields: getReplayListFields(organization),
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location, organization.features]);
+  }, [location, organization]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();

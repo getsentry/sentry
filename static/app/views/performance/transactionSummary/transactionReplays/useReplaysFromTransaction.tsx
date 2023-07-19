@@ -87,14 +87,12 @@ function useReplaysFromTransaction({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(
-        organization.features.includes('replay-rage-click-dead-click-columns')
-      ),
+      fields: getReplayListFields(organization),
       projects: [],
       query: `id:[${String(response.replayIds)}]`,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, response.replayIds, organization.features]);
+  }, [location.query.sort, response.replayIds, organization]);
 
   useEffect(() => {
     fetchReplayIds();
