@@ -82,11 +82,17 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
 }
 
 export function isDeadClick(frame: SlowClickFrame) {
-  return (frame as SlowClickFrame).data.endReason === 'timeout';
+  return frame.data.endReason === 'timeout';
+}
+
+export function isDeadRageClick(frame: SlowClickFrame) {
+  return Boolean(
+    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+  );
 }
 
 export function isRageClick(frame: MultiClickFrame) {
-  return (frame as MultiClickFrame).data.clickCount >= 5;
+  return frame.data.clickCount >= 5;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;

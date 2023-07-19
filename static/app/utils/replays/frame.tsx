@@ -15,7 +15,7 @@ import type {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick, isRageClick} from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick, isRageClick} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 export function getColor(frame: ReplayFrame): Color {
@@ -129,7 +129,11 @@ export function getTitle(frame: ReplayFrame): ReactNode {
       case 'navigation':
         return 'Navigation';
       case 'ui.slowClickDetected':
-        return isDeadClick(frame as SlowClickFrame) ? 'Dead Click' : 'Slow Click';
+        return isDeadRageClick(frame as SlowClickFrame)
+          ? 'Rage Click'
+          : isDeadClick(frame as SlowClickFrame)
+          ? 'Dead Click'
+          : 'Slow Click';
       case 'ui.multiClick':
         return isRageClick(frame as MultiClickFrame) ? 'Rage Click' : 'Multi Click';
       case 'replay.mutations':

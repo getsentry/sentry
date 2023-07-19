@@ -32,7 +32,7 @@ import type {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick} from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
 import type {
   NetworkSpan,
   RecordingEvent,
@@ -255,7 +255,8 @@ export default class ReplayReader {
             frame.category
           ) ||
           (frame.category === 'ui.slowClickDetected' &&
-            isDeadClick(frame as SlowClickFrame))
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
         // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
