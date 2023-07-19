@@ -110,3 +110,6 @@ class DiscordRequest:
 
     def is_ping(self) -> bool:
         return self._data.get("type", 0) == 1
+
+    def is_command(self) -> bool:
+        return self._data.get("type", 0) == 2
