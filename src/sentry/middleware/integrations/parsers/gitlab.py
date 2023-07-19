@@ -6,7 +6,8 @@ from typing import Tuple
 from django.http import HttpResponse
 from django.urls import resolve
 
-from sentry.integrations.gitlab.webhooks import GitlabWebhookMixin
+from sentry.integrations.gitlab.search import GitlabIssueSearchEndpoint
+from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
@@ -61,17 +62,21 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
             pass
         return None
 
-    def get_response(self) -> HttpResponse:
-        result = resolve(self.request.path)
-        if result.url_name == "sentry-extensions-gitlab-webhook":
-            maybe_http_response = self._resolve_external_id()
-            if isinstance(maybe_http_response, HttpResponse):
-                return maybe_http_response
+    def get_response_from_gitlab_webhook(self):
+        maybe_http_response = self._resolve_external_id()
+        if isinstance(maybe_http_response, HttpResponse):
+            return maybe_http_response
 
-        # All Gitlab webhooks will be sent to region silos
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         return self.get_response_from_outbox_creation(regions=regions)
+
+    def get_response(self) -> HttpResponse:
+        view_class = self.match.func.view_class  # type: ignore
+        if view_class == GitlabWebhookEndpoint:
+            return self.get_response_from_gitlab_webhook()
+        if view_class == GitlabIssueSearchEndpoint:
+            return self.get_response_from_control_silo()
