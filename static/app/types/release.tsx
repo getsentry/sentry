@@ -41,7 +41,7 @@ interface RawVersion {
   raw: string;
 }
 
-interface SemverVerison extends RawVersion {
+export interface SemverVerison extends RawVersion {
   buildCode: string | null;
   components: number;
   major: number;
