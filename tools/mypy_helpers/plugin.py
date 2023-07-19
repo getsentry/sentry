@@ -43,6 +43,22 @@ def replace_get_connection_sig_callback(ctx: FunctionSigContext) -> CallableType
     return signature.copy_modified(arg_kinds=[ARG_POS], arg_types=[str_type])
 
 
+def replace_on_commit_sig_callback(ctx: FunctionSigContext) -> CallableType:
+    signature = ctx.default_signature
+    using_arg = signature.argument_by_name("using")
+    if not using_arg:
+        ctx.api.fail("The using parameter is required", ctx.context)
+
+    # Update the parameter type to be required and str
+    str_type = ctx.api.named_generic_type("builtins.str", [])
+    arg_kinds = signature.arg_kinds[0:-1]
+    arg_types = signature.arg_types[0:-1]
+
+    return signature.copy_modified(
+        arg_kinds=[*arg_kinds, ARG_POS], arg_types=[*arg_types, str_type]
+    )
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -51,6 +67,8 @@ class SentryMypyPlugin(Plugin):
             return replace_transaction_atomic_sig_callback
         if fullname == "django.db.transaction.get_connection":
             return replace_get_connection_sig_callback
+        if fullname == "django.db.transaction.on_commit":
+            return replace_on_commit_sig_callback
         return None
 
 
