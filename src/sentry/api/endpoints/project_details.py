@@ -467,7 +467,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         has_project_write = request.access and (
             request.access.has_scope("project:write")
             or request.access.has_scope("project:admin")
-            or request.access.has_project_scope(project, "project:write")
+            or request.access.has_any_project_scope(project, ["project:write", "project:admin"])
         )
 
         if has_project_write:

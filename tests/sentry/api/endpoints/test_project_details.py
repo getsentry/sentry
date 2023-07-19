@@ -252,6 +252,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(platform="javascript")
+        self.team = self.project.teams.first()
         self.user = self.create_user("bar@example.com")
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -270,7 +271,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
 
@@ -281,26 +282,11 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200, response.content
 
-    def test_member_updates_denied_with_token(self):
+    def test_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
-            role="member",
-        )
-
-        authorization = self.create_bearer_token(self.user, ["project:write"])
-
-        response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
-        )
-        assert response.status_code == 403, response.content
-
-    def test_admin_updates_allowed_with_correct_token_scope(self):
-        self.create_member(
-            user=self.user,
-            organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="admin",
         )
 
@@ -312,11 +298,28 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200, response.content
 
-    def test_manager_updates_allowed_with_correct_token_scope(self):
+    @with_feature("organizations:team-roles")
+    def test_team_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            role="member",
+        )
+        self.create_team_membership(user=self.user, team=self.team, role="admin")
+
+        for scope in ["project:write", "project:admin"]:
+            authorization = self.create_bearer_token(self.user, [scope])
+
+            response = self.client.put(
+                self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+            )
+            assert response.status_code == 200, response.content
+
+    def test_manager_update_allowed_with_correct_token_scope(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
             role="manager",
         )
 
@@ -328,11 +331,11 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200, response.content
 
-    def test_owner_updates_allowed_with_correct_token_scope(self):
+    def test_owner_update_allowed_with_correct_token_scope(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="owner",
         )
 
@@ -344,11 +347,26 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200, response.content
 
-    def test_admin_updates_denied_with_token(self):
+    def test_member_update_denied_with_token(self):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
+            role="member",
+        )
+
+        authorization = self.create_bearer_token(self.user, ["project:write"])
+
+        response = self.client.put(
+            self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+        )
+        assert response.status_code == 403, response.content
+
+    def test_admin_update_denied_with_token(self):
+        self.create_member(
+            user=self.user,
+            organization=self.project.organization,
+            teams=[self.team],
             role="admin",
         )
 
@@ -364,7 +382,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.create_member(
             user=self.user,
             organization=self.project.organization,
-            teams=[self.project.teams.first()],
+            teams=[self.team],
             role="member",
         )
 
