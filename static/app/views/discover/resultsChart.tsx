@@ -186,12 +186,12 @@ type ContainerState = {
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   state: ContainerState = {
-    yAxisOptions: this.getYAxisOptions(this.props.eventView),
+    yAxisOptions: this.props.eventView.getYAxisOptions(),
   };
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    const yAxisOptions = this.getYAxisOptions(this.props.eventView);
-    const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
+    const yAxisOptions = this.props.eventView.getYAxisOptions();
+    const nextYAxisOptions = nextProps.eventView.getYAxisOptions();
 
     if (!valueIsEqual(yAxisOptions, nextYAxisOptions, true)) {
       this.setState({yAxisOptions: nextYAxisOptions});
@@ -210,18 +210,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     }
 
     return !isEqual(restProps, restNextProps);
-  }
-
-  getYAxisOptions(eventView) {
-    const yAxisOptions = eventView.getYAxisOptions();
-
-    // // Equations on World Map isn't supported on the events-geo endpoint
-    // // Disabling equations as an option to prevent erroring out
-    // if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
-    //   return yAxisOptions.filter(({value}) => !isEquation(value));
-    // }
-
-    return yAxisOptions;
   }
 
   render() {
