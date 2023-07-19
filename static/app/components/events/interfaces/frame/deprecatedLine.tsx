@@ -308,6 +308,9 @@ export class DeprecatedLine extends Component<Props, State> {
       hiddenFrameCount,
     } = this.props;
     const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
     const anrCulprit =
       isANR &&
       analyzeFrameForRootCause(
@@ -323,6 +326,7 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
         >
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
@@ -374,12 +378,17 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
+    const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
           className="title as-table"
           data-test-id="title"
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
         >
@@ -539,11 +548,17 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')<{hasToggle: boolean; isSubFrame: boolean}>`
+const DefaultLine = styled('div')<{
+  hasToggle: boolean;
+  isSubFrame: boolean;
+  stacktraceChangesEnabled: boolean;
+}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.hasToggle
-      ? `1fr auto auto ${space(2)}`
+    p.stacktraceChangesEnabled
+      ? p.hasToggle
+        ? `1fr auto auto ${space(2)}`
+        : `1fr auto ${space(2)}`
       : `1fr auto ${space(2)}`}; /* sm icon size */
   align-items: center;
   column-gap: ${space(1)};
