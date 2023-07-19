@@ -55,6 +55,7 @@ export const migratedDocs = [
   'node',
   'node-express',
   'electron',
+  'elixir',
 ];
 
 type SdkDocumentationProps = {
