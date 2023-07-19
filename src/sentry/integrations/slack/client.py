@@ -39,7 +39,10 @@ class SlackClient(IntegrationProxyClient):
             )
 
         super().__init__(
-            org_integration_id=org_integration_id, verify_ssl=verify_ssl, integration_id=integration_id, logging_context=logging_context
+            org_integration_id=org_integration_id,
+            verify_ssl=verify_ssl,
+            integration_id=integration_id,
+            logging_context=logging_context,
         )
 
     @control_silo_function
@@ -66,7 +69,7 @@ class SlackClient(IntegrationProxyClient):
         return prepared_request
 
     def is_response_error(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-        return super().is_response_error(resp,e)
+        return super().is_response_error(resp, e)
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
 
@@ -74,7 +77,7 @@ class SlackClient(IntegrationProxyClient):
             if "account_inactive" == e:
                 return True
 
-        return super().is_response_fatal(resp,e)
+        return super().is_response_fatal(resp, e)
 
     def track_response_data(
         self,
