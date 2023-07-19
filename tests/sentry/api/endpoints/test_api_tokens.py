@@ -60,6 +60,20 @@ class ApiTokensCreateTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
+    def test_invalid_choice(self):
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.post(
+            url,
+            data={
+                "scopes": [
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                ]
+            },
+        )
+        assert response.status_code == 400
+        assert not ApiToken.objects.filter(user=self.user).exists()
+
 
 @control_silo_test(stable=True)
 class ApiTokensDeleteTest(APITestCase):
