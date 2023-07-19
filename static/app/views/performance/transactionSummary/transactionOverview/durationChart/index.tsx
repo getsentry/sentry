@@ -11,6 +11,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
@@ -31,7 +32,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-const yAxisValues = ['p50', 'p75', 'p95', 'p99', 'p100'];
+const yAxisValues = ['p50', 'p75', 'p95', 'p99', 'p100', 'avg'];
 
 /**
  * Fetch and render a stacked area chart that shows duration percentiles over
@@ -107,7 +108,8 @@ function DurationChart({
     interval: getInterval(datetimeSelection, 'high'),
   };
 
-  const parameter = SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? '';
+  const parameter =
+    SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD[currentFilter] ?? 'transaction.duration';
 
   const header = (
     <HeaderTitleLegend>
@@ -142,16 +144,24 @@ function DurationChart({
         referrer="api.performance.transaction-summary.duration-chart"
         queryExtras={queryExtras}
       >
-        {({results, errored, loading, reloading, timeframe: timeFrame}) => (
-          <Content
-            series={results}
-            errored={errored}
-            loading={loading}
-            reloading={reloading}
-            timeFrame={timeFrame}
-            {...contentCommonProps}
-          />
-        )}
+        {({results, errored, loading, reloading, timeframe: timeFrame}) => {
+          // Function arguments are superflous and take up space in the chart
+          // labels, so remove them.
+          const series = results?.map(result => ({
+            ...result,
+            seriesName: `${parseFunction(result.seriesName)?.name}()`,
+          }));
+          return (
+            <Content
+              series={series}
+              errored={errored}
+              loading={loading}
+              reloading={reloading}
+              timeFrame={timeFrame}
+              {...contentCommonProps}
+            />
+          );
+        }}
       </EventsRequest>
     </Fragment>
   );
