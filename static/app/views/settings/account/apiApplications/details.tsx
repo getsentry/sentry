@@ -106,9 +106,7 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                     </TextCopyInput>
                   ) : (
                     <ClientSecret>
-                      <StyledSpan>
-                        <em>hidden</em>
-                      </StyledSpan>
+                      <HiddenSecret>{t('hidden')}</HiddenSecret>
                       <Button
                         size="md"
                         onClick={this.rotateClientSecret}
@@ -136,8 +134,9 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
   }
 }
 
-const StyledSpan = styled('span')`
+const HiddenSecret = styled('span')`
   width: 100px;
+  font-style: italic;
 `;
 
 const ClientSecret = styled('div')`
