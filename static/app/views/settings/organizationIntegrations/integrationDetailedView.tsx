@@ -25,6 +25,9 @@ import AbstractIntegrationDetailedView, {Tab} from './abstractIntegrationDetaile
 import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
+// Show the features tab if the org has features for the integration
+const integrationFeatures = {github: ['pr-comment-bot']};
+
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
@@ -141,11 +144,13 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   renderTabs() {
     // TODO: Convert to styled component
-    const {integrationSlug} = this.props.params;
     const {organization} = this.props;
     // TODO(cathy): remove feature check
     const tabs =
-      integrationSlug === 'github' && organization.features.includes('pr-comment-bot')
+      this.provider.key in integrationFeatures &&
+      organization.features.filter(value =>
+        integrationFeatures[this.provider.key].includes(value)
+      )
         ? this.tabs
         : this.tabs.filter(tab => tab !== 'features');
 
