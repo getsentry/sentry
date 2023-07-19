@@ -17,9 +17,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def setUp(self):
         super().setUp()
         self.application_id = "application-id"
+        self.public_key = "public-key"
         self.bot_token = "bot-token"
         options.set("discord.application-id", self.application_id)
         options.set("discord.bot-token", self.bot_token)
+        options.set("discord.public-key", self.public_key)
 
     def assert_setup_flow(
         self,
