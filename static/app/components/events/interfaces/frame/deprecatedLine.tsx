@@ -305,6 +305,7 @@ export class DeprecatedLine extends Component<Props, State> {
       lockAddress,
       onShowFramesToggle,
       isSubFrame,
+      hiddenFrameCount,
     } = this.props;
     const organization = this.props.organization;
     const anrCulprit =
@@ -317,7 +318,12 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title" data-test-id="title" isSubFrame={!!isSubFrame}>
+        <DefaultLine
+          className="title"
+          data-test-id="title"
+          isSubFrame={!!isSubFrame}
+          hasToggle={!!hiddenFrameCount}
+        >
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
@@ -363,6 +369,7 @@ export class DeprecatedLine extends Component<Props, State> {
       showCompleteFunctionName,
       isHoverPreviewed,
       isSubFrame,
+      hiddenFrameCount,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
@@ -374,6 +381,7 @@ export class DeprecatedLine extends Component<Props, State> {
           className="title as-table"
           data-test-id="title"
           isSubFrame={!!isSubFrame}
+          hasToggle={!!hiddenFrameCount}
         >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
@@ -531,10 +539,14 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')<{isSubFrame: boolean}>`
+const DefaultLine = styled('div')<{hasToggle: boolean; isSubFrame: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto ${space(2)}; /* sm icon size */
+  grid-template-columns: ${p =>
+    p.hasToggle
+      ? `1fr auto auto ${space(2)}`
+      : `1fr auto ${space(2)}`}; /* sm icon size */
   align-items: center;
+  column-gap: ${space(1)};
   background: ${p => (p.isSubFrame ? `${p.theme.gray100} !important` : '')};
 `;
 
