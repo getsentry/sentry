@@ -24,12 +24,10 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 class BaseIntegrationServiceTest(TestCase):
-    # TODO(hybrid-cloud): Refactor this to use individual assume_test_silos
-    #  for each colocated model init.
-    @assume_test_silo_mode(SiloMode.MONOLITH)
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
+
         self.integration1 = self.create_integration(
             organization=self.organization,
             name="Example",
@@ -38,9 +36,6 @@ class BaseIntegrationServiceTest(TestCase):
             status=ObjectStatus.ACTIVE,
             metadata={"meta": "data"},
         )
-        self.org_integration1 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration1.id
-        )
         self.integration2 = self.create_integration(
             organization=self.organization,
             name="Github",
@@ -48,18 +43,24 @@ class BaseIntegrationServiceTest(TestCase):
             external_id="github:1",
             oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
         )
-        self.org_integration2 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration2.id
-        )
         self.integration3 = self.create_integration(
             organization=self.organization,
             name="Example",
             provider="example",
             external_id="example:2",
         )
-        self.org_integration3 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration3.id
-        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration1 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration1.id
+            )
+            self.org_integration2 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration2.id
+            )
+            self.org_integration3 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration3.id
+            )
+
         self.integrations = [self.integration1, self.integration2, self.integration3]
         self.org_integrations = [
             self.org_integration1,
