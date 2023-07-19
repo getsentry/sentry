@@ -50,16 +50,15 @@ class Content extends Component<Props, State> {
     expandFirstFrame: true,
   };
 
-  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
-    const {includeSystemFrames} = this.props;
+  constructor(props) {
+    super(props);
+    this.state.toggleFrameMap = this.setInitialFrameMap();
+  }
 
-    return (
-      includeSystemFrames ||
-      frame.inApp ||
-      (nextFrame && nextFrame.inApp) ||
-      // the last non-app frame
-      (!frame.inApp && !nextFrame)
-    );
+  state: State = {
+    showingAbsoluteAddresses: false,
+    showCompleteFunctionName: false,
+    toggleFrameMap: {},
   };
 
   setInitialFrameMap(): {[frameIndex: number]: boolean} {
@@ -81,10 +80,16 @@ class Content extends Component<Props, State> {
     return indexMap;
   }
 
-  state: State = {
-    showingAbsoluteAddresses: false,
-    showCompleteFunctionName: false,
-    toggleFrameMap: this.setInitialFrameMap(),
+  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
+    const {includeSystemFrames} = this.props;
+
+    return (
+      includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp) ||
+      // the last non-app frame
+      (!frame.inApp && !nextFrame)
+    );
   };
 
   getInitialFrameCounts() {
