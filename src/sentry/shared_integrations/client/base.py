@@ -94,7 +94,6 @@ class BaseApiClient(TrackResponseMixin):
             return False
         return f"sentry-integration-error:{self.integration_id}"
 
-
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
         return False
 
