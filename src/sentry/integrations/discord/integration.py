@@ -116,12 +116,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         }
 
     def get_guild_name(self, guild_id: str) -> str:
-        bot_token = options.get("discord.bot-token")
-        url = DiscordClient.GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {bot_token}"}
         try:
-            response = DiscordClient().get(url, headers=headers)
-            guild_name = response["name"]  # type:ignore
+            guild_name = DiscordClient().get_guild_name(guild_id)
         except ApiError:
             return guild_id
         return guild_name
