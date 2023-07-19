@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -5,14 +6,17 @@ import * as OrgActions from 'sentry/actionCreators/organizations';
 import AccountSettingsLayout from 'sentry/views/settings/account/accountSettingsLayout';
 
 describe('AccountSettingsLayout', function () {
-  let spy;
-  let api;
+  let spy: jest.SpyInstance;
+  let api: jest.Mock;
 
-  const organization = {
+  const {routerProps} = initializeOrg();
+
+  const organization = TestStubs.Organization({
     id: '44',
     name: 'Org Index',
     slug: 'org-index',
-  };
+    access: undefined,
+  });
 
   beforeEach(function () {
     spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
@@ -24,14 +28,16 @@ describe('AccountSettingsLayout', function () {
   it('fetches org details for SidebarDropdown', function () {
     const {rerender} = render(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout params={{}} />
+        <AccountSettingsLayout {...routerProps}>content</AccountSettingsLayout>
       </BreadcrumbContextProvider>
     );
 
     // org from index endpoint, no `access` info
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout params={{}} organization={organization} />
+        <AccountSettingsLayout {...routerProps} organization={organization}>
+          content
+        </AccountSettingsLayout>
       </BreadcrumbContextProvider>
     );
 
@@ -45,13 +51,15 @@ describe('AccountSettingsLayout', function () {
   it('does not fetch org details for SidebarDropdown', function () {
     const {rerender} = render(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout params={{}} />
+        <AccountSettingsLayout {...routerProps}>content</AccountSettingsLayout>
       </BreadcrumbContextProvider>
     );
 
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout params={{}} organization={TestStubs.Organization()} />
+        <AccountSettingsLayout {...routerProps} organization={TestStubs.Organization()}>
+          content
+        </AccountSettingsLayout>
       </BreadcrumbContextProvider>
     );
 
