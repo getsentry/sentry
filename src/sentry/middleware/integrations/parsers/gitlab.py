@@ -74,6 +74,6 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         return self.get_response_from_outbox_creation(regions=regions)
 
     def get_response(self) -> HttpResponse:
-        if self.match.func.view_class == GitlabWebhookEndpoint:
+        if self.view_class == GitlabWebhookEndpoint:
             return self.get_response_from_gitlab_webhook()
         return self.get_response_from_control_silo()

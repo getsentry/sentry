@@ -28,6 +28,6 @@ class JiraServerRequestParser(BaseRequestParser):
         return self.get_response_from_outbox_creation(regions=regions)
 
     def get_response(self):
-        if self.match.func.view_class == JiraServerIssueUpdatedWebhook:  # type: ignore
+        if self.view_class == JiraServerIssueUpdatedWebhook:
             return self.get_response_from_issue_update_webhook()
         return self.get_response_from_control_silo()

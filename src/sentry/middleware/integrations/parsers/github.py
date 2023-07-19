@@ -40,7 +40,7 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        if self.match.func.view_class == GitHubIntegrationsWebhookEndpoint:
+        if self.view_class == GitHubIntegrationsWebhookEndpoint:
             regions = self.get_regions_from_organizations()
             if len(regions) == 0:
                 logger.error("no_regions", extra={"path": self.request.path})
