@@ -16,7 +16,7 @@ import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
@@ -287,8 +287,9 @@ export class DeprecatedLine extends Component<Props, State> {
             onShowFramesToggle(e);
           }}
         >
-          {this.props.isToggled ? 'Hide' : 'Show'} {hiddenFrameCount} more{' '}
-          {hiddenFrameCount === 1 ? 'frame' : 'frames'}
+          {this.props.isToggled
+            ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+            : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
         </a>
       );
     }
