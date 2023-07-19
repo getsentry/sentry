@@ -67,7 +67,7 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
-  unselectedSeries = 'p100()',
+  unselectedSeries = ['p100()', 'avg()'],
   display,
   trendFunction,
   trendColumn,
