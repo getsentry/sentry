@@ -1,5 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
 
@@ -42,16 +47,16 @@ describe('ApiApplications', function () {
     expect(screen.getByDisplayValue('1234')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Example App Name')).toBeInTheDocument();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Homepage')).toBeInTheDocument();
-    expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
-    expect(screen.getByText('Terms of Service')).toBeInTheDocument();
-    expect(screen.getByText('Authorized Redirect URIs')).toBeInTheDocument();
-    expect(screen.getByText('Authorized JavaScript Origins')).toBeInTheDocument();
-    expect(screen.getByText('Client ID')).toBeInTheDocument();
-    expect(screen.getByText('Client Secret')).toBeInTheDocument();
-    expect(screen.getByText('Authorization URL')).toBeInTheDocument();
-    expect(screen.getByText('Token URL')).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Homepage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Privacy Policy')).toBeInTheDocument();
+    expect(screen.getByLabelText('Terms of Service')).toBeInTheDocument();
+    expect(screen.getByLabelText('Authorized Redirect URIs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Authorized JavaScript Origins')).toBeInTheDocument();
+    expect(screen.getByLabelText('Client ID')).toBeInTheDocument();
+    expect(screen.getByLabelText('Client Secret')).toBeInTheDocument();
+    expect(screen.getByLabelText('Authorization URL')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token URL')).toBeInTheDocument();
   });
 
   it('handles client secret rotation', async function () {
@@ -71,7 +76,6 @@ describe('ApiApplications', function () {
         termsUrl: ['http://example.com/terms'],
       },
     });
-
     const rotateSecretApiCall = MockApiClient.addMockResponse({
       method: 'POST',
       url: '/api-applications/abcd/rotate-secret/',
@@ -92,12 +96,20 @@ describe('ApiApplications', function () {
         }}
       />
     );
+    renderGlobalModal();
 
     expect(screen.getByText('hidden')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Rotate client secret'})
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Rotate client secret'}));
+
+    expect(
+      screen.getByText('This will be the only time your client secret is visible!')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Rotated Client Secret')).toBeInTheDocument();
+    expect(screen.getByText('Your client secret is:')).toBeInTheDocument();
+    expect(screen.getByText('newSecret!')).toBeInTheDocument();
 
     expect(rotateSecretApiCall).toHaveBeenCalledTimes(1);
   });

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/actions/button';
+import {Alert} from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -32,15 +33,18 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
         `/api-applications/${this.props.params.appId}/rotate-secret/`,
         {
           method: 'POST',
-          data: {},
         }
       );
       openModal(({Body, Header}) => (
         <Fragment>
-          <Header>{t('New Client Secret (ONE TIME ONLY)')}</Header>
+          <Header>{t('Rotated Client Secret')}</Header>
           <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
             <p>
-              <b>Your client secret is:</b> {rotateResponse.clientSecret}
+              {t('Your client secret is:')}
+              <code>{rotateResponse.clientSecret}</code>
             </p>
           </Body>
         </Fragment>
@@ -101,14 +105,18 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                       {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
-                    <ClientSecretDiv>
+                    <ClientSecret>
                       <StyledSpan>
                         <em>hidden</em>
                       </StyledSpan>
-                      <StyledButton onClick={this.rotateClientSecret} priority="danger">
+                      <Button
+                        size="md"
+                        onClick={this.rotateClientSecret}
+                        priority="danger"
+                      >
                         Rotate client secret
-                      </StyledButton>
-                    </ClientSecretDiv>
+                      </Button>
+                    </ClientSecret>
                   )
                 }
               </FormField>
@@ -128,17 +136,14 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
   }
 }
 
-const StyledButton = styled(Button)`
-  width: 150px;
-`;
-
 const StyledSpan = styled('span')`
   width: 100px;
 `;
 
-const ClientSecretDiv = styled('div')`
+const ClientSecret = styled('div')`
   display: flex;
   justify-content: right;
+  align-items: center;
   margin-right: 0;
 `;
 
