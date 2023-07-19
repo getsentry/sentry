@@ -703,8 +703,8 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
 
     def test_remix_up_to_date(self):
         event = self.store_event(
@@ -744,8 +744,8 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
 
     def test_not_part_of_pipeline(self):
         event = self.store_event(
