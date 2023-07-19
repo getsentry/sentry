@@ -319,7 +319,7 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(IncidentActivity)
-    def test_incidentActivity(self):
+    def test_incident_activity(self):
         IncidentActivity.objects.create(
             incident=self.create_incident(),
             type=1,
