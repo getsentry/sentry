@@ -39,7 +39,7 @@ class IdentityService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_identities(self, *, filter: IdentityFilterArgs) -> Optional[RpcIdentity]:
+    def get_identities(self, *, filter: IdentityFilterArgs) -> List[RpcIdentity]:
         """
         Returns a list of RpcIdentity based on the given filters.
         """
