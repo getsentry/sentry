@@ -164,11 +164,11 @@ def _query_with_pagination(
         )
         print("Executing Query:")
         print(query)
-        print("-"*40)
+        print("-" * 40)
         print("Results:")
         results = raw_snql_query(request, referrer=REFERRER)["data"]
         print(results)
-        print("="*40)
+        print("=" * 40)
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:

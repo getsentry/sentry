@@ -161,15 +161,13 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         # The event counts for primary should be 10; the event counts for new_child should be 6
         primary, new_child = list(Group.objects.all())
 
-        print("="*40)
+        print("=" * 40)
 
         # query events for groups x, y -> correctly returns 10, 6
         past = query_groups_past_counts(list(Group.objects.all()))
 
         # query events for just group x -> incorrectly returns 16 which is the count before unmerge
-        primary_unmerge_past_count = query_groups_past_counts(
-            [primary]
-        )
+        primary_unmerge_past_count = query_groups_past_counts([primary])
 
         assert past[0]["count()"] == 10
         assert past[1]["count()"] == 6

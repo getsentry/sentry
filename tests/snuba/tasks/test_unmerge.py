@@ -771,7 +771,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         # The event counts for primary should be 10; the event counts for new_child should be 6
         primary, new_child = list(Group.objects.all())
         print("Running queries")
-        print("="*20)
+        print("=" * 20)
 
         # print("Should be 10")
         # primary_unmerge_hour_count = get_group_hourly_count(
