@@ -512,7 +512,15 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "count_errors", "count_segments", "count_urls", "activity"},
+    numeric_keys={
+        "duration",
+        "count_errors",
+        "count_segments",
+        "count_urls",
+        "count_dead_clicks",
+        "count_rage_clicks",
+        "activity",
+    },
 )
 
 
