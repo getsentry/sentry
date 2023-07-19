@@ -128,7 +128,7 @@ def _update_escalating_metrics(event: Event) -> None:
         project_id=event.project.id,
         metric_name="event_ingested",
         value=1,
-        tags={"group": event.group_id},
+        tags={"group": str(event.group_id)},
         unit=None,
     )
 
