@@ -161,4 +161,4 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, ti
     state.num_orgs += 1
     state.num_iterations += 1
     state.execution_time = timer.current()
-    context.set_function_state(state)
+    context.set_function_state(name, state)
