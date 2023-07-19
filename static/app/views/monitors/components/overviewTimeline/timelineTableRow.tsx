@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
+import {statusMap} from 'sentry/views/monitors/utils/constants';
 
 import {CheckInTimeline, CheckInTimelineProps} from './checkInTimeline';
 import {MonitorBucket} from './types';
@@ -33,9 +34,15 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
     <TimelineRow key={monitor.id}>
       <MonitorDetails monitor={monitor} />
       <MonitorEnvContainer>
-        {environments.map(({name}) => (
-          <MonitorEnvLabel key={name}>{name}</MonitorEnvLabel>
-        ))}
+        {environments.map(({name, status}) => {
+          const {Icon, color} = statusMap[status];
+          return (
+            <EnvWithStatus key={name}>
+              <MonitorEnvLabel>{name}</MonitorEnvLabel>
+              <Icon color={color} />
+            </EnvWithStatus>
+          );
+        })}
         {!isExpanded && (
           <Button size="xs" onClick={() => setExpanded(true)}>
             {tct('Show [num] More', {
@@ -120,10 +127,17 @@ const MonitorEnvContainer = styled('div')`
   text-align: right;
 `;
 
+const EnvWithStatus = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
 const MonitorEnvLabel = styled('div')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  flex: 1;
 `;
 
 const TimelineContainer = styled('div')`
