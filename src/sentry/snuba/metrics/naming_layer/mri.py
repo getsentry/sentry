@@ -161,6 +161,10 @@ class SpanMRI(Enum):
     HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
 
 
+class ErrorsMRI(Enum):
+    EVENT_INGESTED = "c:errors/event_ingested@none"
+
+
 @dataclass
 class ParsedMRI:
     entity: str
