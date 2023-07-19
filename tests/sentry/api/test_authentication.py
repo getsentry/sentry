@@ -5,6 +5,7 @@ import pytest
 from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
 from sentry_relay import generate_key_pair
 
 from sentry.api.authentication import (
@@ -12,11 +13,13 @@ from sentry.api.authentication import (
     DSNAuthentication,
     OrgAuthTokenAuthentication,
     RelayAuthentication,
+    RpcSignatureAuthentication,
     TokenAuthentication,
 )
 from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.services.hybrid_cloud.rpc import RpcServiceSetupException, generate_request_signature
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
@@ -242,3 +245,67 @@ def test_statically_configured_relay(settings, internal):
     assert relay.public_key == str(pk)
     # data should be deserialized in request.relay_request_data
     assert request.relay_request_data == data
+
+
+@override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
+@control_silo_test(stable=True)
+class TestRpcSignatureAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = RpcSignatureAuthentication()
+        self.org = self.create_organization(owner=self.user)
+
+    def test_authenticate_success(self):
+        data = b'{"meta":{},"args":{"id":1}'
+        request = RequestFactory().post("/", data=data, content_type="application/json")
+        request = Request(request=request)
+
+        signature = generate_request_signature(request.path_info, request.body)
+        request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        user, token = self.auth.authenticate(request)
+        assert user.is_anonymous
+        assert token == signature
+
+    def test_authenticate_old_key_validates(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        with override_settings(RPC_SHARED_SECRET=["an-old-key"]):
+            signature = generate_request_signature(request.path_info, request.body)
+            request.META["HTTP_AUTHORIZATION"] = f"rpcsignature {signature}"
+
+        request = Request(request=request)
+
+        # Update settings so that we have a new key
+        with override_settings(RPC_SHARED_SECRET=["a-long-secret-key", "an-old-key"]):
+            user, token = self.auth.authenticate(request)
+
+        assert user.is_anonymous
+        assert token == signature
+
+    def test_authenticate_without_signature(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abcdef"
+
+        request = Request(request=request)
+
+        assert self.auth.authenticate(request) is None
+
+    def test_authenticate_invalid_signature(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"
+
+        request = Request(request=request)
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_authenticate_no_shared_secret(self):
+        request = RequestFactory().post("/", data="", content_type="application/json")
+        request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"
+
+        request = Request(request=request)
+
+        with override_settings(RPC_SHARED_SECRET=None):
+            with pytest.raises(RpcServiceSetupException):
+                self.auth.authenticate(request)

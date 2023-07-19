@@ -8,6 +8,27 @@ from sentry.utils.query import bulk_delete_objects
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
+def _delete_children(manager, relations, transaction_id=None, actor_id=None):
+    # Ideally this runs through the deletion manager
+    for relation in relations:
+        task = manager.get(
+            transaction_id=transaction_id,
+            actor_id=actor_id,
+            task=relation.task,
+            **relation.params,
+        )
+
+        # If we want smaller tasks then this also has to return when has_more is true.
+        # This could significant increase the number of tasks we spawn. Get better estimates
+        # by collecting metrics.
+        has_more = True
+        while has_more:
+            has_more = task.chunk()
+            if has_more:
+                metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
+    return False
+
+
 class BaseRelation:
     def __init__(self, params, task):
         self.task = task
@@ -126,24 +147,7 @@ class BaseDeletionTask:
             self.delete_instance(instance)
 
     def delete_children(self, relations):
-        # Ideally this runs through the deletion manager
-        for relation in relations:
-            task = self.manager.get(
-                transaction_id=self.transaction_id,
-                actor_id=self.actor_id,
-                task=relation.task,
-                **relation.params,
-            )
-
-            # If we want smaller tasks then this also has to return when has_more is true.
-            # This could significant increase the number of tasks we spawn. Get better estimates
-            # by collecting metrics.
-            has_more = True
-            while has_more:
-                has_more = task.chunk()
-                if has_more:
-                    metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
-        return False
+        return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
     def mark_deletion_in_progress(self, instance_list):
         pass
