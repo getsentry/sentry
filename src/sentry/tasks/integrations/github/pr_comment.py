@@ -309,6 +309,12 @@ def github_comment_reactions():
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
                 break
 
+            if e.code == 404:
+                metrics.incr("github_pr_comment.comment_reactions.not_found_error")
+                continue
+
             metrics.incr("github_pr_comment.comment_reactions.api_error")
             sentry_sdk.capture_exception(e)
             continue
+
+        metrics.incr("github_pr_comment.comment_reactions.success")
