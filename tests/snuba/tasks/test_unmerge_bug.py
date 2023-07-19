@@ -131,6 +131,13 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         # get_group_hourly_count(child) == 6
         # query_groups_past_counts should show the same counts
 
+        print("=" * 40)
+        print("Querying before merge + unmerge:")
+        # query events for groups x, y -> correctly returns 10, 6
+        past = query_groups_past_counts(list(Group.objects.all()))
+        # query events for just group x -> incorrectly returns 16 which is the count before unmerge
+        primary_unmerge_past_count = query_groups_past_counts([primary])
+
         # Merge primary and child
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
@@ -162,7 +169,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         primary, new_child = list(Group.objects.all())
 
         print("=" * 40)
-
+        print("Querying after merge + unmerge:")
         # query events for groups x, y -> correctly returns 10, 6
         past = query_groups_past_counts(list(Group.objects.all()))
 
