@@ -13,7 +13,6 @@ from sentry.issues.escalating import (
     invalidate_group_hourly_count_cache,
     query_groups_past_counts,
 )
-from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Activity,
     Environment,
@@ -517,9 +516,9 @@ def unmerge(*posargs, **kwargs):
             unmerged_groups = Group.objects.filter(id__in=unmerged_groups_ids)
             for group in unmerged_groups:
                 invalidate_group_hourly_count_cache(group)
-            generate_and_save_forecasts(unmerged_groups)
+            # generate_and_save_forecasts(unmerged_groups)
 
-        counts_async.apply_async(kwargs={}, queue="unmerge", countdown=60)
+        # counts_async.apply_async(kwargs={}, queue="unmerge", countdown=60)
         return
 
     source_events = []

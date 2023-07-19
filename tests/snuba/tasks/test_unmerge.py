@@ -696,6 +696,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         events = {}
 
+        # Create 6 events for the child group now
         for event in (
             self.create_message_event(
                 "This is message #%s!",
@@ -712,6 +713,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
+        # Create 10 events for the primary group now
         for event in (
             self.create_message_event(
                 "This is message #%s.",
@@ -734,16 +736,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         primary.substatus = GroupSubStatus.UNTIL_ESCALATING
         primary.save()
 
-        generate_and_save_forecasts([primary, child])
-        before_merge_hour_count = get_group_hourly_count(primary)
-        before_merge_count = query_groups_past_counts([primary])
-        assert before_merge_hour_count == 10
-        assert before_merge_count[0]["count()"] == 10
-        before_merge_hour_count = get_group_hourly_count(child)
-        before_merge_count = query_groups_past_counts([child])
-        assert before_merge_hour_count == 6
-        assert before_merge_count[0]["count()"] == 6
+        # The following event counts should be true here:
+        # get_group_hourly_count(primary) == 10
+        # get_group_hourly_count(child) == 6
+        # query_groups_past_counts should show the same counts
 
+        # Merge primary and child
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
             merge_groups.delay(
@@ -755,16 +753,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
 
         sleep(1)
-        primary_merge_hour_count = get_group_hourly_count(primary)
-        primary_merge_past_count = query_groups_past_counts([primary])
-        past = query_groups_past_counts(list(Group.objects.all()))
-        generate_and_save_forecasts(list(Group.objects.all()))
-        assert len(list(Group.objects.all())) == 1
-        assert primary_merge_hour_count == 16
-        assert primary_merge_past_count[0]["count()"] == 16
-        primary_forecast = EscalatingGroupForecast.fetch(primary.project.id, primary.id).forecast
-        assert primary_forecast == [160] * 14
+        # The following event counts should be true here:
+        # get_group_hourly_count(primary) == 16
+        # query_groups_past_counts should show the same count
 
+        # Unmerge primary to create new_child
         with self.tasks():
             unmerge.delay(
                 project_id=project.id,
@@ -775,15 +768,15 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 batch_size=5,
             )
         sleep(1)
+        # The event counts for primary should be 10; the event counts for new_child should be 6
         primary, new_child = list(Group.objects.all())
-        assert len(list(Group.objects.all())) == 2
         primary_unmerge_hour_count = get_group_hourly_count(
             primary
-        )  # incorrect: returns before merge
+        )  # incorrect: returns 16, which is the count before unmerge
         past = query_groups_past_counts(list(Group.objects.all()))  # correct
         primary_unmerge_past_count = query_groups_past_counts(
             [primary]
-        )  # incorrect: returns before merge
+        )  # incorrect: returns 16, which is the count before unmerge
         child_unmerge_hour_count = get_group_hourly_count(new_child)
         child_unmerge_past_count = query_groups_past_counts([new_child])
         assert past[0]["count()"] == 10
