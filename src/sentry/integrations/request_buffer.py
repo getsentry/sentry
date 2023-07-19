@@ -51,8 +51,8 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        #fast shutoff
-        #if self.is_fatal:
+        # fast shutoff
+        # if self.is_fatal:
         #   return True
 
         data = [
