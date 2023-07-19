@@ -85,6 +85,7 @@ type Props = {
   hideYAxisSplitLine?: boolean;
   isBarChart?: boolean;
   isLineChart?: boolean;
+  legendFormatter?: (name: string) => string;
   log?: boolean;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
@@ -178,6 +179,7 @@ function Chart({
   errored,
   onLegendSelectChanged,
   onDataZoom,
+  legendFormatter,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -309,6 +311,7 @@ function Chart({
       ? {
           top: 0,
           right: 10,
+          ...(legendFormatter ? {formatter: legendFormatter} : {}),
         }
       : undefined,
     isGroupedByDate: true,
@@ -373,6 +376,7 @@ function Chart({
     return (
       <ChartZoom
         router={router}
+        saveOnZoom
         period={statsPeriod}
         start={start}
         end={end}

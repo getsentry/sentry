@@ -328,7 +328,9 @@ export class DeprecatedLine extends Component<Props, State> {
           hasToggle={!!hiddenFrameCount}
           stacktraceChangesEnabled={stacktraceChangesEnabled}
         >
-          <DefaultLineTitleWrapper>
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
@@ -352,7 +354,9 @@ export class DeprecatedLine extends Component<Props, State> {
             ? this.renderShowHideToggle(onShowFramesToggle)
             : null}
           {!data.inApp ? (
-            <InAppTag>{t('System')}</InAppTag>
+            stacktraceChangesEnabled ? null : (
+              <InAppTag>{t('System')}</InAppTag>
+            )
           ) : (
             <InAppTag type="info">{t('In App')}</InAppTag>
           )}
@@ -432,9 +436,16 @@ export class DeprecatedLine extends Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
-          {this.renderExpander()}
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
+            {this.renderExpander()}
+          </DefaultLineTitleWrapper>
+
           {!data.inApp ? (
-            <InAppTag>{t('System')}</InAppTag>
+            stacktraceChangesEnabled ? null : (
+              <InAppTag>{t('System')}</InAppTag>
+            )
           ) : (
             <InAppTag type="info">{t('In App')}</InAppTag>
           )}
@@ -511,10 +522,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')<{stacktraceChangesEnabled: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`

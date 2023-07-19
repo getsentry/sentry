@@ -551,5 +551,6 @@ class OnCommitBackedOrganizationSignalService(OrganizationSignalService):
                 organization_id=organization_id,
                 signal=_signal,
                 args=args,
-            )
+            ),
+            router.db_for_write(Organization),
         )

@@ -65,7 +65,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == b"".join(response.streaming_content)
+        assert b"File contents here" == close_streaming_response(response)
 
     def test_delete(self):
         self.login_as(user=self.user)
