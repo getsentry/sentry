@@ -1471,6 +1471,8 @@ SENTRY_FEATURES = {
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
+    # Enables inviting new members based on GitHub commit activity.
+    "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable inviting members to organizations.
@@ -1483,6 +1485,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Display if a release is using semver when resolving issues
+    "organizations:issue-resolve-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles

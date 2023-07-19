@@ -1148,7 +1148,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.n_plus_one_api_calls.ea-rollout", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.n_plus_one_api_calls.ea-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_api_calls.ga-rollout",

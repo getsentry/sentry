@@ -53,6 +53,8 @@ export const migratedDocs = [
   'ruby-rack',
   'kotlin',
   'node',
+  'node-express',
+  'electron',
 ];
 
 type SdkDocumentationProps = {

@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -215,11 +216,19 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const organization = useOrganization();
+  const stacktraceChangesEnabled = !!organization?.features.includes(
+    'issue-details-stacktrace-improvements'
+  );
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <RowHeader expandable={expandable} expanded={expanded}>
+        <RowHeader
+          expandable={expandable}
+          expanded={expanded}
+          stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
+        >
           <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
@@ -298,10 +307,12 @@ function NativeFrame({
             )}
           </GroupingCell>
           <TypeCell>
-            {frame.inApp ? (
-              <Tag type="info">{t('In App')}</Tag>
+            {!frame.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
             ) : (
-              <Tag>{t('System')}</Tag>
+              <Tag type="info">{t('In App')}</Tag>
             )}
           </TypeCell>
           <ExpandCell>
@@ -401,6 +412,7 @@ const Package = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  padding-right: 2px; /* Needed to prevent text cropping with italic font */
 `;
 
 const FileName = styled('span')`
@@ -408,9 +420,13 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
+const RowHeader = styled('span')<{
+  expandable: boolean;
+  expanded: boolean;
+  stacktraceChangesEnabled: boolean;
+}>`
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
@@ -418,13 +434,12 @@ const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
-  ${p =>
-    p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr auto auto;
-    ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
+    grid-template-columns: auto 150px 120px 4fr auto auto ${space(2)};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }

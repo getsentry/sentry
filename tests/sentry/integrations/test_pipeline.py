@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.db import router
+
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -57,7 +59,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = Integration.objects.create(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        with receivers_raise_on_send(), outbox_runner(), unguarded_write():
+        with receivers_raise_on_send(), outbox_runner(), unguarded_write(
+            using=router.db_for_write(OrganizationMapping)
+        ):
             for org in na_orgs:
                 integration.add_organization(org)
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
@@ -138,7 +142,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # Installing organization is from the same region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping.update(region_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
@@ -155,7 +159,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # Installing organization is from a different region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
