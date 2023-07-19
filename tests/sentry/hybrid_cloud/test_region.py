@@ -74,7 +74,7 @@ class RegionResolutionTest(TestCase):
                 region_resolution.resolve({})
 
         with override_regions(_TEST_REGIONS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self.create_organization(_TEST_REGIONS[1])
+            self.create_organization(region=_TEST_REGIONS[1])
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
 
