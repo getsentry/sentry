@@ -18,7 +18,9 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
     ) -> Response:
         try:
             integration = Integration.objects.get(
-                organizationintegration__organization_id=organization.id, id=integration_id
+                organizationintegration__organization_id=organization.id,
+                id=integration_id,
+                provider="github",
             )
         except Integration.DoesNotExist:
             return Response(status=404)

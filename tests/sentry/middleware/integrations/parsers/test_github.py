@@ -40,7 +40,7 @@ class GithubRequestParserTest(TestCase):
         assert response.content == b"no-error"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_properly(self):
+    def test_routing_webhook_properly(self):
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -64,6 +64,26 @@ class GithubRequestParserTest(TestCase):
         ):
             parser.get_response()
             assert get_response_from_outbox_creation.called
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_search_properly(self):
+        path = reverse(
+            "sentry-integration-github-search",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "integration_id": self.integration.id,
+            },
+        )
+        request = self.factory.post(path, data={}, content_type="application/json")
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
