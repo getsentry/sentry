@@ -211,6 +211,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=batch_features.get(
+                    "organizations:on-demand-metrics-extraction", False
+                ),
             )
 
         try:

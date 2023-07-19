@@ -17,7 +17,6 @@ from typing import (
 
 from typing_extensions import NotRequired
 
-from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -122,7 +121,8 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
 }
 
-# Query fields that on their own do not require on-demand metric extraction.
+# Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
+# will be converted to metric extraction conditions.
 _STANDARD_METRIC_FIELDS = [
     "release",
     "dist",
@@ -136,8 +136,9 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # event.type is accepted as a valid search field but it will not me converted to a condition for metric extraction
+    # These fields are skipped during on demand spec generation and will not be converted to metric extraction conditions
     "event.type",
+    "project",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
@@ -217,8 +218,6 @@ def is_on_demand_query(
     dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
-    if features.has("organizations:on-demand-metrics-extraction-experimental", None):
-        return False
 
     if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
@@ -226,9 +225,8 @@ def is_on_demand_query(
     for field in _get_aggregate_fields(aggregate):
         if not _is_standard_metrics_field(field):
             return True
-
     try:
-        return not _is_standard_metrics_query(event_search.parse_search_query(query or ""))
+        return not is_standard_metrics_query(query)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -252,6 +250,10 @@ def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
     return []
+
+
+def is_standard_metrics_query(query: Optional[str] = "") -> bool:
+    return _is_standard_metrics_query(event_search.parse_search_query(query))
 
 
 def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
@@ -293,7 +295,7 @@ class OndemandMetricSpec:
     op: MetricOperationType
 
     # The original query used to construct the metric spec.
-    _query: str
+    query: Sequence[SearchFilter]
     # Rule condition parsed from the aggregate field expression.
     _field_condition: Optional[RuleCondition]
 
@@ -308,10 +310,36 @@ class OndemandMetricSpec:
 
         """
 
-        # On-demand metrics are implicitly transaction metrics. Remove the
-        # filter from the query since it can't be translated to a RuleCondition.
-        self._query = re.sub(r"event\.type:transaction\s*", "", query).strip()
+        self._init__query(query)
         self._init_aggregate(field)
+
+    def _init__query(self, query: str) -> None:
+        # On-demand metrics are implicitly transaction metrics. Remove the
+        # filters from the query that can't be translated to a RuleCondition.
+        query = re.sub(r"event\.type:transaction\s*", "", query)
+        query = re.sub(r"project:\w+\s*", "", query)
+
+        self._query = query.strip()
+
+    def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
+        """
+        Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+        """
+
+        for token in tokens:
+            if not _is_standard_metrics_search_filter(token):
+                return False
+
+        return True
+
+    def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
+        if isinstance(token, SearchFilter):
+            return _is_standard_metrics_field(token.key.name)
+
+        if isinstance(token, ParenExpression):
+            return _is_standard_metrics_query(token.children)
+
+        return True
 
     def _init_aggregate(self, aggregate: str) -> None:
         """
