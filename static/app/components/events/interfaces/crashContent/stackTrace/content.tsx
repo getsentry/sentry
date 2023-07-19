@@ -139,24 +139,24 @@ class Content extends Component<Props, State> {
 
   getHiddenFrameIndices(toggleFrameMap, frameCountMap) {
     const repeatedIndeces = this.getRepeatedFrameIndices();
-    let keys: number[] = [];
+    let hiddenFrameIndices: number[] = [];
     Object.keys(toggleFrameMap)
       .filter(frameIndex => toggleFrameMap[frameIndex] === true)
       .forEach(indexString => {
         const index = parseInt(indexString, 10);
-        const res: number[] = [];
+        const indicesToBeAdded: number[] = [];
         let i = 1;
         let numHidden = frameCountMap[index];
         while (numHidden > 0) {
           if (!repeatedIndeces.includes(index - i)) {
-            res.push(index - i);
+            indicesToBeAdded.push(index - i);
             numHidden -= 1;
           }
           i += 1;
         }
-        keys = [...keys, ...res];
+        hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
       });
-    return keys;
+    return hiddenFrameIndices;
   }
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
@@ -307,7 +307,10 @@ class Content extends Component<Props, State> {
     );
 
     const frameCountMap = this.getInitialFrameCounts();
-    const keys: number[] = this.getHiddenFrameIndices(toggleFrameMap, frameCountMap);
+    const hiddenFrameIndices: number[] = this.getHiddenFrameIndices(
+      toggleFrameMap,
+      frameCountMap
+    );
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
     const mechanism =
@@ -331,7 +334,7 @@ class Content extends Component<Props, State> {
 
       if (
         (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
-        keys.includes(frameIdx)
+        hiddenFrameIndices.includes(frameIdx)
       ) {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
         frames.push(
@@ -357,7 +360,7 @@ class Content extends Component<Props, State> {
             onShowFramesToggle={e => {
               this.handleToggleFrames(e, frameIdx);
             }}
-            isSubFrame={keys.includes(frameIdx)}
+            isSubFrame={hiddenFrameIndices.includes(frameIdx)}
             isToggled={toggleFrameMap[frameIdx]}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
