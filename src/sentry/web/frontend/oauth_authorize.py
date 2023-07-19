@@ -2,7 +2,7 @@ import logging
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -270,7 +270,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def approve(self, request: HttpRequest, application, **params):
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
                     application=application, user_id=request.user.id, scope_list=params["scopes"]
                 )

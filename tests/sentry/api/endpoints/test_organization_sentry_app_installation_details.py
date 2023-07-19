@@ -56,7 +56,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
 
-@control_silo_test()
+@control_silo_test(stable=True)
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)

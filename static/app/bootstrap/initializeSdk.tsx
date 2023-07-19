@@ -62,7 +62,6 @@ function getSentryIntegrations(routes?: Function) {
         : {}),
       _experiments: {
         enableInteractions: true,
-        enableHTTPTimings: true,
         onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
     }),

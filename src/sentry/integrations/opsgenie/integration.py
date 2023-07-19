@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from requests.exceptions import MissingSchema
 from rest_framework.request import Request
+from rest_framework.serializers import ValidationError
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -21,7 +22,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import OpsgenieSetupClient
+from .client import OpsgenieClient, OpsgenieSetupClient
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -120,7 +121,43 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> Any:
+        org_integration_id = self.org_integration.id if self.org_integration else None
+        return OpsgenieClient(integration=self.model, org_integration_id=org_integration_id)
+
+    def get_organization_config(self) -> Sequence[Any]:
+        fields = [
+            {
+                "name": "team_table",
+                "type": "table",
+                "label": "Opsgenie teams with the Sentry integration enabled",
+                "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
+                "addButtonText": "",
+                "columnLabels": {"team": "Team", "integration_key": "Integration Key"},
+                "columnKeys": ["team", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
+            }
+        ]
+
+        return fields
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        client = self.get_client()
+        # get the team ID/test the API key for a newly added row
+        teams = data["team_table"]
+        unsaved_teams = [team for team in teams if team["id"] == ""]
+        for team in unsaved_teams:
+            try:
+                resp = client.get_team_id(
+                    integration_key=team["integration_key"], team_name=team["team"]
+                )
+                team["id"] = resp["data"]["id"]
+            except ApiError:
+                raise ValidationError(
+                    {"api_key": ["Could not save due to invalid team name or integration key."]}
+                )
+
+        return super().update_organization_config(data)
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):

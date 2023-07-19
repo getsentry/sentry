@@ -229,7 +229,8 @@ def import_(src):
     """CLI command wrapping the `exec_import` functionality."""
 
     try:
-        with transaction.atomic():
+        # Import / export only works in monolith mode with a consolidated db.
+        with transaction.atomic("default"):
             for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
                 if obj.object._meta.app_label not in EXCLUDED_APPS:
                     obj.save()

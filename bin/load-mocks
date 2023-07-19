@@ -15,7 +15,7 @@ from random import randint
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from pytz import utc
@@ -451,7 +451,7 @@ def main(
                     else CheckInStatus.ERROR,
                 )
 
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(Release)):
                     has_release = Release.objects.filter(
                         version=sha1(uuid4().bytes).hexdigest(),
                         organization_id=project.organization_id,
@@ -474,7 +474,7 @@ def main(
                 raw_commits = generate_commits(user)
 
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(Repository)):
                         repo, _ = Repository.objects.get_or_create(
                             organization_id=org.id,
                             provider="integrations:github",

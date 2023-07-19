@@ -163,6 +163,7 @@ def test_parse_replay_dead_click_actions():
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
                         "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
@@ -193,8 +194,9 @@ def test_parse_replay_dead_click_actions():
                     "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
-                        "clickcount": 3,
+                        "clickcount": 5,
                         "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
@@ -261,13 +263,16 @@ def test_parse_replay_rage_click_actions():
                 "payload": {
                     "timestamp": 1.1,
                     "type": "default",
-                    "category": "ui.multiClick",
+                    "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 7000.0,
+                        "clickcount": 5,
                         "nodeId": 59,
                         "node": {
                             "id": 59,
-                            "tagName": "div",
+                            "tagName": "a",
                             "attributes": {
                                 "id": "id",
                                 "class": "class1 class2",
@@ -300,7 +305,7 @@ def test_parse_replay_rage_click_actions():
 
     action = payload["clicks"][0]
     assert action["node_id"] == 59
-    assert action["tag"] == "div"
+    assert action["tag"] == "a"
     assert action["id"] == "id"
     assert action["class"] == ["class1", "class2"]
     assert action["text"] == "text"
@@ -309,7 +314,7 @@ def test_parse_replay_rage_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
-    assert action["is_dead"] == 0
+    assert action["is_dead"] == 1
     assert action["is_rage"] == 1
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 36

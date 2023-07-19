@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -13,9 +14,12 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.http import absolute_uri
+
+from .utils import logger
 
 DESCRIPTION = "Discord’s your place to collaborate, share, and just talk about your day – or commiserate about app errors. Connect Sentry to your Discord server and get [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via direct message when sh%t hits the fan."
 
@@ -39,7 +43,49 @@ metadata = IntegrationMetadata(
 
 
 class DiscordIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> DiscordClient:
+        org_integration_id = self.org_integration.id if self.org_integration else None
+
+        return DiscordClient(
+            integration_id=self.model.id,  # type:ignore
+            org_integration_id=org_integration_id,
+        )
+
+    def uninstall(self) -> None:
+        # If this is the only org using this Discord server, we should remove
+        # the bot from the server.
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        installations = integration_service.get_organization_integrations(
+            integration_id=self.model.id,
+            providers=["discord"],
+        )
+
+        # Remove any installations pending deletion
+        active_installations = [
+            i
+            for i in installations
+            if i.status not in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+        ]
+
+        if len(active_installations) > 1:
+            return
+
+        client = self.get_client()
+        try:
+            client.leave_guild(str(self.model.external_id))
+        except ApiError as e:
+            if e.code == 404:
+                # The bot has already been removed from the guild
+                return
+            # The bot failed to leave the guild for some other reason, but
+            # this doesn't need to interrupt the uninstall. Just means the
+            # bot will persist on the server until removed manually.
+            logger.error(
+                "discord.uninstall.failed_to_leave_guild",
+                extra={"discord_guild_id": self.model.external_id, "status": e.code},
+            )
+            return
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
@@ -71,7 +117,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def get_guild_name(self, guild_id: str) -> str:
         bot_token = options.get("discord.bot-token")
-        url = DiscordClient.get_guild_url.format(guild_id=guild_id)
+        url = DiscordClient.GUILD_URL.format(guild_id=guild_id)
         headers = {"Authorization": f"Bot {bot_token}"}
         try:
             response = DiscordClient().get(url, headers=headers)
@@ -85,6 +131,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         setup_url = absolute_uri("extensions/discord/setup/")
 
         return f"https://discord.com/api/oauth2/authorize?client_id={application_id}&permissions={self.bot_permissions}&redirect_uri={setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
+
+    def setup(self) -> None:
+        DiscordCommandManager().register_commands()
 
 
 class DiscordInstallPipeline(PipelineView):
