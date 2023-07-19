@@ -321,26 +321,6 @@ class OndemandMetricSpec:
 
         self._query = query.strip()
 
-    def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
-        """
-        Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
-        """
-
-        for token in tokens:
-            if not _is_standard_metrics_search_filter(token):
-                return False
-
-        return True
-
-    def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
-        if isinstance(token, SearchFilter):
-            return _is_standard_metrics_field(token.key.name)
-
-        if isinstance(token, ParenExpression):
-            return _is_standard_metrics_query(token.children)
-
-        return True
-
     def _init_aggregate(self, aggregate: str) -> None:
         """
         Extracts the field name, metric type and metric operation from a Discover
