@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -119,12 +119,13 @@ InstanceKey = Tuple[str, str, bool]
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances: Dict[InstanceKey, str] = {}
+    instances: Dict[InstanceKey, Match] = {}
+    field: Any = None
 
     @classmethod
-    def from_key(cls, key: str, pattern: str, negated: bool):
+    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
-        instance_key: InstanceKey = (key, pattern, negated)
+        instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
         else:
@@ -134,7 +135,7 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key, pattern, negated):
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         subclass = {
             "package": PackageMatch,
@@ -206,8 +207,7 @@ class PathLikeMatch(FrameMatch):
         super().__init__(key, pattern.lower(), negated)
 
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        # self.field is available in the subclasses
-        value = match_frame[self.field]  # type: ignore[attr-defined]
+        value = match_frame[self.field]
         if value is None:
             return False
 
@@ -248,8 +248,7 @@ class InAppMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        # self.field is available in the subclasses
-        field = match_frame[self.field]  # type: ignore[attr-defined]
+        field = match_frame[self.field]
         if field is None:
             return False
         if field == self._encoded_pattern:
@@ -274,6 +273,8 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    field_path: Any = None
+
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         match_frame = None
         rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
@@ -282,8 +283,7 @@ class ExceptionFieldMatch(FrameMatch):
         return rv
 
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        # self.field is available in the subclasses
-        field = get_path(exception_data, *self.field_path) or "<unknown>"  # type: ignore[attr-defined]
+        field = get_path(exception_data, *self.field_path) or "<unknown>"
         return cached(cache, glob_match, field, self._encoded_pattern)
 
 
