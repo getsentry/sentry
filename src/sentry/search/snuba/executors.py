@@ -926,6 +926,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 aggregate_kwargs=aggregate_kwargs,
             )
+            metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
             more_results = count >= limit and (offset + limit) < total
             offset += len(snuba_groups)
@@ -993,6 +994,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # cursor, then it's worth allowing them to go back a page to check for
             # more results.
             paginator_results.prev.has_results = True
+
+        metrics.timing("snuba.search.num_chunks", num_chunks)
 
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
