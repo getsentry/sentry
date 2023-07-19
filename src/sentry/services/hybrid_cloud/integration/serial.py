@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
@@ -20,7 +20,7 @@ def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrgani
     # if oi.integration
     # i for i in integrations if i.provider == ExternalProviders.PAGERDUTY.name
     # if
-    config: dict[str, Any] = dict(**oi.config)
+    config: Dict[str, Any] = dict(**oi.config)
     if oi.integration.provider == ExternalProviders.PAGERDUTY.name:
         config["pagerduty_services"] = [
             dict(

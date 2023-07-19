@@ -34,7 +34,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         oi = self.get_organization_integration()
         if not oi:
             return None
-        for pds in oi.config.get("pagerduty_services"):
+        for pds in oi.config.get("pagerduty_services", []):
             if pds["id"] == self.get_option("service"):
                 return pds
         return None
@@ -104,7 +104,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         return [
             (v["id"], v["service_name"])
             for oi in organization_integrations
-            for v in oi.config.get("pagerduty_services")
+            for v in oi.config.get("pagerduty_services", [])
         ]
 
     def render_label(self):
