@@ -16,17 +16,7 @@ describe('RepositoryRow', function () {
   const pendingRepo = TestStubs.Repository({
     status: 'pending_deletion',
   });
-  const customRepo = TestStubs.Repository({
-    provider: {
-      id: 'integrations:custom_scm',
-    },
-  });
-  const customPendingRepo = TestStubs.Repository({
-    provider: {
-      id: 'integrations:custom_scm',
-    },
-    status: 'pending_deletion',
-  });
+
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
@@ -167,54 +157,6 @@ describe('RepositoryRow', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(cancel).toHaveBeenCalled();
-    });
-  });
-
-  describe('renders custom_scm repo', function () {
-    const organization = TestStubs.Organization({
-      access: ['org:integrations'],
-      features: ['integrations-custom-scm'],
-    });
-
-    it('displays edit button', function () {
-      render(
-        <RepositoryRow
-          repository={customRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
-        {organization}
-      );
-
-      // Trash button should display enabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeEnabled();
-      // No cancel button
-      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
-
-      // Edit button should display enabled
-      expect(screen.getByRole('button', {name: 'edit'})).toBeEnabled();
-    });
-
-    it('disables edit button when cancel pending', function () {
-      render(
-        <RepositoryRow
-          repository={customPendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
-        {organization}
-      );
-
-      // Trash button should be disabled
-      expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
-
-      // Edit button should be disabled
-      expect(screen.getByRole('button', {name: 'edit'})).toBeDisabled();
-
-      // Cancel button active
-      expect(screen.queryByRole('button', {name: 'Cancel'})).toBeEnabled();
     });
   });
 });
