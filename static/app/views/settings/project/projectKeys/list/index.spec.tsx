@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -9,23 +10,19 @@ import {
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
-  let org, project;
-  let deleteMock;
-  let projectKeys;
+  const {organization, project, routerProps} = initializeOrg();
+  const projectKeys = TestStubs.ProjectKeys();
+  let deleteMock: jest.Mock;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: projectKeys,
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
   });
@@ -33,13 +30,18 @@ describe('ProjectKeys', function () {
   it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: [],
     });
 
     render(
-      <ProjectKeys routes={[]} params={{projectId: project.slug}} organization={org} />
+      <ProjectKeys
+        {...routerProps}
+        project={project}
+        params={{projectId: project.slug}}
+        organization={organization}
+      />
     );
 
     expect(
@@ -50,8 +52,8 @@ describe('ProjectKeys', function () {
   it('has clippable box', async function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
@@ -66,8 +68,8 @@ describe('ProjectKeys', function () {
   it('renders for default project', function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project({platform: 'other'})}
       />
@@ -99,8 +101,8 @@ describe('ProjectKeys', function () {
   it('renders for javascript project', function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project({platform: 'javascript'})}
       />
@@ -126,18 +128,19 @@ describe('ProjectKeys', function () {
 
     // Loader Script is rendered
     expect(screen.getByText('Loader Script')).toBeInTheDocument();
-    const loaderScript = screen.getByRole('textbox', {
+    const loaderScript = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'Loader Script',
     });
-    const loaderScriptValue = loaderScript.value;
-    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0].dsn.cdn));
+    expect(loaderScript).toHaveValue(
+      `<script src='${projectKeys[0].dsn.cdn}' crossorigin="anonymous"></script>`
+    );
   });
 
   it('renders for javascript-react project', function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project({platform: 'javascript-react'})}
       />
@@ -204,15 +207,15 @@ describe('ProjectKeys', function () {
     ]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: multipleProjectKeys,
     });
 
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project({platform: 'other'})}
       />
@@ -225,8 +228,8 @@ describe('ProjectKeys', function () {
   it('deletes key', async function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
@@ -242,15 +245,15 @@ describe('ProjectKeys', function () {
   it('disable and enables key', async function () {
     render(
       <ProjectKeys
-        routes={[]}
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
 
     const enableMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'PUT',
     });
 
