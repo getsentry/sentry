@@ -8,38 +8,41 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {OrgRole} from 'sentry/types';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
-const roles = [
+const roles: OrgRole[] = [
   {
     id: 'admin',
     name: 'Admin',
     desc: 'This is the admin role',
+    minimumTeamRole: '',
     allowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
+    minimumTeamRole: '',
     allowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
+    minimumTeamRole: '',
     allowed: false,
   },
 ];
 
 describe('InviteRequestRow', function () {
-  const orgId = 'org-slug';
   const orgWithoutAdminAccess = TestStubs.Organization({
     access: [],
   });
   const orgWithAdminAccess = TestStubs.Organization({
     access: ['member:admin'],
   });
-  const inviteRequestBusy = new Map();
+  const inviteRequestBusy: Record<string, boolean> = {};
 
   const inviteRequest = TestStubs.Member({
     user: null,
@@ -60,10 +63,12 @@ describe('InviteRequestRow', function () {
   it('renders request to be invited', function () {
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithoutAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onUpdate={() => {}}
         allRoles={roles}
       />
     );
@@ -77,10 +82,12 @@ describe('InviteRequestRow', function () {
   it('renders request to join', function () {
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithoutAdminAccess}
         inviteRequest={joinRequest}
         inviteRequestBusy={inviteRequestBusy}
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onUpdate={() => {}}
         allRoles={roles}
       />
     );
@@ -96,12 +103,12 @@ describe('InviteRequestRow', function () {
 
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
+        onUpdate={() => {}}
         allRoles={roles}
       />
     );
@@ -121,12 +128,12 @@ describe('InviteRequestRow', function () {
 
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
         onDeny={mockDeny}
+        onUpdate={() => {}}
         allRoles={roles}
       />
     );
@@ -140,12 +147,12 @@ describe('InviteRequestRow', function () {
   it('non-admin can not approve or deny invite request', function () {
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithoutAdminAccess}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         onApprove={() => {}}
         onDeny={() => {}}
+        onUpdate={() => {}}
         allRoles={roles}
       />
     );
@@ -165,19 +172,20 @@ describe('InviteRequestRow', function () {
     });
 
     void TeamStore.loadInitialData([
-      {id: '1', slug: 'one'},
-      {id: '2', slug: 'two'},
+      TestStubs.Team({id: '1', slug: 'one'}),
+      TestStubs.Team({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithAdminAccess}
         inviteRequest={adminInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allRoles={roles}
+        onApprove={() => {}}
+        onDeny={() => {}}
         onUpdate={mockUpdate}
+        allRoles={roles}
       />
     );
 
@@ -206,12 +214,13 @@ describe('InviteRequestRow', function () {
 
     render(
       <InviteRequestRow
-        orgId={orgId}
         organization={orgWithoutAdminAccess}
         inviteRequest={ownerInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allRoles={roles}
+        onApprove={() => {}}
+        onDeny={() => {}}
         onUpdate={mockUpdate}
+        allRoles={roles}
       />
     );
 
