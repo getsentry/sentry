@@ -86,7 +86,7 @@ export function isDeadClick(frame: SlowClickFrame) {
 }
 
 export function isRageClick(frame: MultiClickFrame) {
-  return (frame as MultiClickFrame).data.clickCount >= 3;
+  return (frame as MultiClickFrame).data.clickCount >= 5;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
