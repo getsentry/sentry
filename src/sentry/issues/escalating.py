@@ -21,7 +21,9 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from snuba_sdk.expressions import Granularity
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
@@ -33,11 +35,16 @@ from sentry.models import (
     GroupHistoryStatus,
     GroupInboxReason,
     GroupStatus,
+    Organization,
+    Project,
     add_group_to_inbox,
     record_group_history,
 )
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
+from sentry.snuba.metrics.naming_layer.mri import ErrorsMRI
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
@@ -54,6 +61,7 @@ BUCKETS_PER_GROUP = 7 * 24
 ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 GROUP_HOURLY_COUNT_TTL = 60
+HOUR = 3600  # 3600 seconds
 
 GroupsCountResponse = TypedDict(
     "GroupsCountResponse",
@@ -157,14 +165,22 @@ def _query_with_pagination(
     all_results = []
     offset = 0
     while True:
-        query = _generate_query(project_ids, group_ids, offset, start_date, end_date, category)
-        request = Request(
-            dataset=_issue_category_dataset(category),
-            app_id=REFERRER,
-            query=query,
-            tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+        query = _generate_query(
+            organization_id, project_ids, group_ids, offset, start_date, end_date, category
         )
-        results = raw_snql_query(request, referrer=REFERRER)["data"]
+        if isinstance(query, MetricsQuery):
+            projects = Project.objects.filter(id_in=project_ids)
+            results = get_series(
+                projects=projects, metrics_query=query, use_case_id=UseCaseID.ESCALATING_ISSUES
+            )
+        else:
+            request = Request(
+                dataset=_issue_category_dataset(category),
+                app_id=REFERRER,
+                query=query,
+                tenant_ids={"referrer": REFERRER, "organization_id": organization_id},
+            )
+            results = raw_snql_query(request, referrer=REFERRER)["data"]
         all_results += results
         offset += ELEMENTS_PER_SNUBA_PAGE
         if not results or len(results) < ELEMENTS_PER_SNUBA_PAGE:
@@ -174,6 +190,7 @@ def _query_with_pagination(
 
 
 def _generate_query(
+    organization_id: int,
     project_ids: Sequence[int],
     group_ids: Sequence[int],
     offset: int,
@@ -184,6 +201,30 @@ def _generate_query(
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
+    organization = Organization.objects.get(id=organization_id)
+    if features.has("organizations:escalating-issues-v2", organization):
+        select = [
+            MetricField(metric_mri=ErrorsMRI.EVENT_INGESTED.value, alias="event_ingested", op=None),
+        ]
+
+        groupby = [MetricGroupByField(field="project_id"), Column(name="tags[group_id]")]
+
+        where = Condition(
+            lhs=Column(name="tags[group_id]"),
+            op=Op.IN,
+            rhs=[str(group_id) for group_id in group_ids],
+        )
+        return MetricsQuery(
+            org_id=organization_id,
+            project_ids=project_ids,
+            select=select,
+            start=start_date,
+            end=end_date,
+            where=where,
+            granularity=Granularity(HOUR),
+            groupby=groupby,
+        )
+
     return Query(
         match=Entity(_issue_category_entity(category)),
         select=[

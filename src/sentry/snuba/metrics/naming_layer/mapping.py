@@ -98,12 +98,11 @@ def is_private_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> boo
 
 def extract_custom_measurement_alias(internal_name: str) -> Optional[str]:
     match = MRI_SCHEMA_REGEX.match(internal_name)
-    if (
-        match is not None
-        and match.group("entity") == "d"
-        and match.group("namespace") == "transactions"
-    ):
-        return match.group("name")
+    if match is not None:
+        if match.group("entity") == "d" and match.group("namespace") == "transactions":
+            return match.group("name")
+        if match.group("entity") == "c" and match.group("namespace") == "errors":
+            return match.group("name")
     else:
         return None
 

@@ -134,6 +134,10 @@ class TransactionMRI(Enum):
     SET_ON_DEMAND = "s:transactions/on_demand@none"
 
 
+class ErrorsMRI(Enum):
+    EVENT_INGESTED = "c:errors/event_ingested@none"
+
+
 @dataclass
 class ParsedMRI:
     entity: str
