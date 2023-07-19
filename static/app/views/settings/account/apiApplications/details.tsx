@@ -1,6 +1,10 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/actions/button';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -22,6 +26,30 @@ type State = {
 } & DeprecatedAsyncView['state'];
 
 class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
+  rotateClientSecret = async () => {
+    try {
+      const rotate_response = await this.api.requestPromise(
+        `/api-applications/${this.props.params.appId}/rotate-secret/`,
+        {
+          method: 'POST',
+          data: {},
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('New Client Secret (ONE TIME ONLY)')}</Header>
+          <Body>
+            <p>
+              <b>Your client secret is:</b> {rotate_response.client_secret}
+            </p>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
+  };
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
@@ -73,7 +101,14 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                       {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
-                    <em>hidden</em>
+                    <ClientSecretDiv>
+                      <StyledSpan>
+                        <em>hidden</em>
+                      </StyledSpan>
+                      <StyledButton onClick={this.rotateClientSecret}>
+                        Rotate client secret
+                      </StyledButton>
+                    </ClientSecretDiv>
                   )
                 }
               </FormField>
@@ -92,5 +127,19 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  width: 150px;
+`;
+
+const StyledSpan = styled('span')`
+  width: 100px;
+`;
+
+const ClientSecretDiv = styled('div')`
+  display: flex;
+  justify-content: right;
+  margin-right: 0;
+`;
 
 export default ApiApplicationsDetails;
