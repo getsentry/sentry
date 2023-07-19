@@ -1,16 +1,16 @@
+import pytest
 import responses
 from django.test import override_settings
 
-import pytest
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.shared_integrations.exceptions import ApiError
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
