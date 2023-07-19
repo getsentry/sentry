@@ -5,37 +5,28 @@ import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem
 import TextOverflow from 'sentry/components/textOverflow';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
+import {getDescription} from 'sentry/utils/replays/frame';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-type MaybeOnClickHandler = null | ((crumb: Crumb | ReplayFrame) => void);
-
-function getUrl(crumb: undefined | Crumb) {
-  if (crumb?.type === BreadcrumbType.NAVIGATION) {
-    return crumb.data?.to?.split('?')?.[0];
-  }
-  if (crumb?.type === BreadcrumbType.INIT) {
-    return crumb.data?.url;
-  }
-  return undefined;
-}
+type MaybeOnClickHandler = null | ((frame: Crumb | ReplayFrame) => void);
 
 function splitCrumbs({
-  crumbs,
+  frames,
   onClick,
   startTimestampMs,
 }: {
-  crumbs: Crumb[];
+  frames: ReplayFrame[];
   onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const firstCrumb = crumbs.slice(0, 1) as Crumb[];
-  const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
-  const lastCrumb = crumbs.slice(-1) as Crumb[];
+  const firstFrame = frames.slice(0, 1);
+  const summarizedFrames = frames.slice(1, -1);
+  const lastFrame = frames.slice(-1);
 
-  if (crumbs.length === 0) {
-    // This one shouldn't overflow, but by including the component css stays
+  if (frames.length === 0) {
+    // This one shouldn't overflow, but by including <TextOverflow> css stays
     // consistent with the other Segment types
     return [
       <Span key="summary">
@@ -44,33 +35,33 @@ function splitCrumbs({
     ];
   }
 
-  if (crumbs.length > 3) {
+  if (frames.length > 3) {
     return [
       <SummarySegment
         key="first"
-        crumbs={firstCrumb}
+        frames={firstFrame}
         startTimestampMs={startTimestampMs}
         handleOnClick={onClick}
       />,
       <SummarySegment
         key="summary"
-        crumbs={summarizedCrumbs}
+        frames={summarizedFrames}
         startTimestampMs={startTimestampMs}
         handleOnClick={onClick}
       />,
       <SummarySegment
         key="last"
-        crumbs={lastCrumb}
+        frames={lastFrame}
         startTimestampMs={startTimestampMs}
         handleOnClick={onClick}
       />,
     ];
   }
 
-  return crumbs.map((crumb, i) => (
+  return frames.map((frame, i) => (
     <SummarySegment
       key={i}
-      crumbs={[crumb] as Crumb[]}
+      frames={[frame]}
       startTimestampMs={startTimestampMs}
       handleOnClick={onClick}
     />
@@ -78,11 +69,11 @@ function splitCrumbs({
 }
 
 function SummarySegment({
-  crumbs,
+  frames,
   handleOnClick,
   startTimestampMs,
 }: {
-  crumbs: Crumb[];
+  frames: ReplayFrame[];
   handleOnClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
@@ -90,10 +81,10 @@ function SummarySegment({
 
   const summaryItems = (
     <ScrollingList>
-      {crumbs.map((crumb, i) => (
-        <li key={crumb.id || i}>
+      {frames.map((frame, i) => (
+        <li key={i}>
           <BreadcrumbItem
-            crumb={crumb}
+            crumb={frame}
             onClick={handleOnClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -105,7 +96,9 @@ function SummarySegment({
   );
 
   const label =
-    crumbs.length === 1 ? getUrl(crumbs[0]) : tn('%s Page', '%s Pages', crumbs.length);
+    frames.length === 1
+      ? getDescription(frames[0])
+      : tn('%s Page', '%s Pages', frames.length);
   return (
     <Span>
       <HalfPaddingHovercard body={summaryItems} position="right">

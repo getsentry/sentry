@@ -16,10 +16,13 @@ import {
   SpanFrame,
 } from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
+import stripOrigin from 'sentry/utils/url/stripOrigin';
 
 export function getColor(frame: ReplayFrame): Color {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return 'gray300';
       case 'navigation':
         return 'green300';
       case 'issue':
@@ -69,6 +72,8 @@ export function getColor(frame: ReplayFrame): Color {
 export function getBreadcrumbType(frame: ReplayFrame): BreadcrumbType {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return BreadcrumbType.DEFAULT;
       case 'navigation':
         return BreadcrumbType.NAVIGATION;
       case 'issue':
@@ -125,6 +130,8 @@ export function getTitle(frame: ReplayFrame): ReactNode {
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     switch (frame.category) {
+      case 'replay.init':
+        return 'Replay Init';
       case 'navigation':
         return 'Navigation';
       case 'ui.slowClickDetected':
@@ -177,9 +184,11 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
 export function getDescription(frame: ReplayFrame): ReactNode {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return stripOrigin(frame.message ?? '');
       case 'navigation':
         const navFrame = frame as NavFrame;
-        return navFrame.data.to;
+        return stripOrigin(navFrame.data.to);
       case 'issue':
       case 'ui.slowClickDetected': {
         const slowClickFrame = frame as SlowClickFrame;
@@ -233,7 +242,7 @@ export function getDescription(frame: ReplayFrame): ReactNode {
     case 'navigation.reload':
     case 'navigation.back_forward':
     case 'navigation.push':
-      return frame.description;
+      return stripOrigin(frame.description);
     case 'largest-contentful-paint': {
       const lcpFrame = frame as LargestContentfulPaintFrame;
       if (typeof lcpFrame.data.value === 'number') {
@@ -258,6 +267,8 @@ export function getDescription(frame: ReplayFrame): ReactNode {
 export function getTabKeyForFrame(frame: BreadcrumbFrame | SpanFrame): TabKey {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return TabKey.CONSOLE;
       case 'navigation':
         return TabKey.NETWORK;
       case 'issue':
