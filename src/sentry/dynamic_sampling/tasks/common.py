@@ -42,6 +42,10 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
+ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
+ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
+ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
+
 
 class TimeoutException(Exception):
     def __init__(self, task_context: TaskContext, *args):
@@ -189,8 +193,8 @@ class GetActiveOrgs:
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
         max_projects: Optional[int] = None,
-        time_interval: Optional[timedelta] = None,
-        granularity: Optional[Granularity] = None,
+        time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
+        granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ):
 
         self.metric_id = indexer.resolve_shared_org(
@@ -202,14 +206,8 @@ class GetActiveOrgs:
         self.max_orgs = max_orgs
         self.max_projects = max_projects
         self.log_state = DynamicSamplingLogState()
-        if time_interval is None:
-            self.time_interval = timedelta(hours=1)
-        else:
-            self.time_interval = time_interval
-        if granularity is None:
-            self.granularity = Granularity(3600)
-        else:
-            self.granularity = granularity
+        self.time_interval = time_interval
+        self.granularity = granularity
 
     def __iter__(self):
         return self
@@ -432,7 +430,7 @@ class GetActiveOrgsVolumes:
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
-        granularity: Optional[Granularity] = None,
+        granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
     ):
 
         self.metric_id = indexer.resolve_shared_org(
@@ -458,10 +456,7 @@ class GetActiveOrgsVolumes:
         self.has_more_results = True
         self.max_orgs = max_orgs
         self.log_state = DynamicSamplingLogState()
-        if granularity is None:
-            self.granularity = Granularity(60)
-        else:
-            self.granularity = granularity
+        self.granularity = granularity
         self.time_interval = time_interval
 
     def __iter__(self):
@@ -488,10 +483,7 @@ class GetActiveOrgsVolumes:
                     ],
                     where=[
                         Condition(
-                            # Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
-                            Column("timestamp"),
-                            Op.GTE,
-                            datetime.utcnow() - timedelta(hours=1),
+                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
                         ),
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
@@ -549,10 +541,7 @@ class GetActiveOrgsVolumes:
         """
         Return true if we have enough data to return a full batch in the cache (i.e. last_result)
         """
-        if len(self.last_result) >= self.max_orgs:
-            return True
-
-        return False
+        return len(self.last_result) >= self.max_orgs
 
     def _get_from_cache(self) -> List[OrganizationDataVolume]:
         """
