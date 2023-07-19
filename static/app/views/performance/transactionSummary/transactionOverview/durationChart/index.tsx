@@ -145,15 +145,14 @@ function DurationChart({
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {
-          // Function arguments are superflous and take up space in the chart
-          // labels, so remove them.
-          const series = results?.map(result => ({
-            ...result,
-            seriesName: `${parseFunction(result.seriesName)?.name}()`,
-          }));
+          const stripParamsForLegend = seriesResults =>
+            seriesResults?.map(series => ({
+              ...series,
+              seriesName: `${parseFunction(series.seriesName)?.name}()`,
+            }));
           return (
             <Content
-              series={series}
+              series={stripParamsForLegend(results)}
               errored={errored}
               loading={loading}
               reloading={reloading}
