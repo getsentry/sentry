@@ -194,18 +194,8 @@ const getColumnOrder = (
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps_percent_change()',
-    name: DataTitles.change,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
     name: DataTitles.p95,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
-    name: DataTitles.change,
     width: COL_WIDTH_UNDEFINED,
   },
   ...(span?.['span.op']?.startsWith('http')
@@ -213,11 +203,6 @@ const getColumnOrder = (
         {
           key: `http_error_count()`,
           name: DataTitles.errorCount,
-          width: COL_WIDTH_UNDEFINED,
-        },
-        {
-          key: `http_error_count_percent_change()`,
-          name: DataTitles.change,
           width: COL_WIDTH_UNDEFINED,
         },
       ] as TableColumnHeader[])
