@@ -468,7 +468,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         ]
         # Assert the cache is set
         for cache_key in auto_assignment_cache_keys:
-            assert cache.get(cache_key) is not False
+            assert cache.get(cache_key) is not None
 
         # Turn auto assignment off
         self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
