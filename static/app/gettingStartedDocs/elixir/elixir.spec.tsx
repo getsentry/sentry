@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithElixir, steps} from './elixir';
 
 describe('GettingStartedWithElixir', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithElixir dsn="test-dsn" />);
 
     // Steps
