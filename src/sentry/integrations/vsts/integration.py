@@ -29,7 +29,6 @@ from sentry.models import (
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
-    Repository,
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
