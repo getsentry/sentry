@@ -325,7 +325,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             grace_period_end=grace_period_end,
             set_grace_period_end_null=set_grace_period_end_null,
         )
-        return serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return ois[0] if len(ois) > 0 else None
 
     def send_incident_alert_notification(
         self,
