@@ -1569,6 +1569,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
+    # Enable rage click and dead click columns in replay list.
+    "organizations:replay-rage-click-dead-click-columns": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view

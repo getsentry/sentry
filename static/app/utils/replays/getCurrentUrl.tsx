@@ -6,6 +6,7 @@ import type {
   NavigationFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import parseUrl from 'sentry/utils/url/parseUrl';
 import stripOrigin from 'sentry/utils/url/stripOrigin';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -32,7 +33,7 @@ function getCurrentUrl(
   }
 
   if (
-    'op' in mostRecentFrame &&
+    isSpanFrame(mostRecentFrame) &&
     [
       'navigation.navigate',
       'navigation.reload',
