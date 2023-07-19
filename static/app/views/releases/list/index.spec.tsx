@@ -582,7 +582,7 @@ describe('ReleasesList', () => {
     expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });
 
-  it('renders if the version is using semver or not', async () => {
+  it('renders if the version is using semver or timestamp', async () => {
     const org = {...organization, features: ['issue-release-semver']};
     render(<ReleasesList {...props} organization={org} />, {
       context: routerContext,

@@ -136,7 +136,7 @@ class ReleaseCard extends Component<Props> {
                   {versionInfo.package}
                 </TextOverflow>
               )}
-              {!organization.features.includes('issue-release-semver')
+              {organization.features.includes('issue-release-semver')
                 ? isVersionInfoSemver(versionInfo.version)
                   ? t('(semver)')
                   : t('(timestamp)')
