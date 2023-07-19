@@ -75,7 +75,7 @@ class _SiloModeTestCase(TestCase):
     is_acceptance_test: bool
 
     def run(
-        self, result: unittest.result.TestResult | None = ...
+        self, result: unittest.result.TestResult | None = None
     ) -> unittest.result.TestResult | None:
         with override_settings(
             SILO_MODE=self.silo_mode,
