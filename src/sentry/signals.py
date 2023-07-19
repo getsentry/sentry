@@ -3,10 +3,11 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-import sys
 from typing import Any, Callable, List, Tuple, Union
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
+
+from sentry.utils.env import in_test_environment
 
 Receiver = Callable[[], Any]
 
@@ -91,7 +92,7 @@ class BetterSignal(Signal):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
-                if "pytest" in sys.argv[0]:
+                if in_test_environment():
                     if (
                         _receivers_that_raise is _AllReceivers.ALL
                         or receiver in _receivers_that_raise
