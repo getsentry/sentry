@@ -5,16 +5,17 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
 @control_silo_test(stable=True)
 class GetSettingMappingFromMappingTest(TestCase):
     def setUp(self):
-
-        self.user = RpcActor.from_orm_user(self.create_user())
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user = RpcActor.from_orm_user(self.create_user())
 
     def test_get_setting_mapping_from_mapping_issue_alerts(self):
         notification_settings = {

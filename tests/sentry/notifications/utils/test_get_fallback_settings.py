@@ -1,16 +1,17 @@
-from sentry.models import Project
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
 class GetFallbackSettingsTest(TestCase):
     def setUp(self) -> None:
-        self.user = RpcActor.from_orm_user(self.create_user())
-        self.project = Project(id=123)
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.user = RpcActor.from_orm_user(self.create_user())
+        self.project = self.create_project()
 
     def test_get_fallback_settings_minimal(self):
         assert get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}) == {}

@@ -20,7 +20,10 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user_id=self.user.id, organization=self.org, role="admin")
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMember.objects.create(
+                user_id=self.user.id, organization=self.org, role="admin"
+            )
 
         responses.reset()
         # need oauth mocks

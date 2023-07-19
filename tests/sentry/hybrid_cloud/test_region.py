@@ -19,15 +19,16 @@ from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
 
+_TEST_REGIONS = (
+    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+)
 
-@control_silo_test(stable=True)
+
+@control_silo_test(stable=True, regions=_TEST_REGIONS)
 class RegionResolutionTest(TestCase):
     def setUp(self):
-        self.regions = [
-            Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
-            Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
-        ]
-        self.target_region = self.regions[0]
+        self.target_region = _TEST_REGIONS[0]
         self.organization = self._create_org_in_region(self.target_region)
 
     def _create_org_in_region(self, target_region):
@@ -40,37 +41,33 @@ class RegionResolutionTest(TestCase):
         return organization
 
     def test_by_organization_object(self):
-        with override_regions(self.regions):
-            region_resolution = ByOrganizationObject()
-            arguments = {"organization": self.organization}
-            actual_region = region_resolution.resolve(arguments)
-            assert actual_region == self.target_region
+        region_resolution = ByOrganizationObject()
+        arguments = {"organization": self.organization}
+        actual_region = region_resolution.resolve(arguments)
+        assert actual_region == self.target_region
 
     def test_by_organization_id(self):
-        with override_regions(self.regions):
-            region_resolution = ByOrganizationId()
-            arguments = {"organization_id": self.organization.id}
-            actual_region = region_resolution.resolve(arguments)
-            assert actual_region == self.target_region
+        region_resolution = ByOrganizationId()
+        arguments = {"organization_id": self.organization.id}
+        actual_region = region_resolution.resolve(arguments)
+        assert actual_region == self.target_region
 
     def test_by_organization_slug(self):
-        with override_regions(self.regions):
-            region_resolution = ByOrganizationSlug()
-            arguments = {"slug": self.organization.slug}
-            actual_region = region_resolution.resolve(arguments)
-            assert actual_region == self.target_region
+        region_resolution = ByOrganizationSlug()
+        arguments = {"slug": self.organization.slug}
+        actual_region = region_resolution.resolve(arguments)
+        assert actual_region == self.target_region
 
     def test_by_organization_id_attribute(self):
-        with override_regions(self.regions):
-            region_resolution = ByOrganizationIdAttribute("organization_member")
-            with assume_test_silo_mode(SiloMode.REGION):
-                org_member = OrganizationMember.objects.create(
-                    organization_id=self.organization.id,
-                    user_id=self.user.id,
-                )
-            arguments = {"organization_member": org_member}
-            actual_region = region_resolution.resolve(arguments)
-            assert actual_region == self.target_region
+        region_resolution = ByOrganizationIdAttribute("organization_member")
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.create(
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+            )
+        arguments = {"organization_member": org_member}
+        actual_region = region_resolution.resolve(arguments)
+        assert actual_region == self.target_region
 
     def test_require_single_organization(self):
         region_resolution = RequireSingleOrganization()
@@ -87,14 +84,13 @@ class RegionResolutionTest(TestCase):
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
 
-        with override_regions(self.regions), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self._create_org_in_region(self.regions[1])
+        with override_regions(_TEST_REGIONS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
+            self._create_org_in_region(_TEST_REGIONS[1])
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
 
     def test_unimplemented_region_resolution(self):
-        with override_regions(self.regions):
-            region_resolution = UnimplementedRegionResolution()
-            with pytest.raises(RpcServiceUnimplementedException):
-                arguments = {"team_id": 1234}
-                region_resolution.resolve(arguments)
+        region_resolution = UnimplementedRegionResolution()
+        with pytest.raises(RpcServiceUnimplementedException):
+            arguments = {"team_id": 1234}
+            region_resolution.resolve(arguments)

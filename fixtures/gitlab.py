@@ -1,7 +1,9 @@
 from time import time
 
 from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
 WEBHOOK_SECRET = "secret-token-value"
@@ -13,28 +15,34 @@ class GitLabTestCase(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
-            provider=self.provider,
-            name="Example Gitlab",
-            external_id=EXTERNAL_ID,
-            metadata={
-                "instance": "example.gitlab.com",
-                "base_url": "https://example.gitlab.com",
-                "domain_name": "example.gitlab.com/group-x",
-                "verify_ssl": False,
-                "webhook_secret": WEBHOOK_SECRET,
-                "group_id": 1,
-            },
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type=self.provider, config={}),
-            user=self.user,
-            external_id="gitlab123",
-            data={"access_token": "123456789", "created_at": time(), "refresh_token": "0987654321"},
-        )
-        self.integration.add_organization(self.organization, self.user, identity.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider=self.provider,
+                name="Example Gitlab",
+                external_id=EXTERNAL_ID,
+                metadata={
+                    "instance": "example.gitlab.com",
+                    "base_url": "https://example.gitlab.com",
+                    "domain_name": "example.gitlab.com/group-x",
+                    "verify_ssl": False,
+                    "webhook_secret": WEBHOOK_SECRET,
+                    "group_id": 1,
+                },
+            )
+            identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(type=self.provider, config={}),
+                user=self.user,
+                external_id="gitlab123",
+                data={
+                    "access_token": "123456789",
+                    "created_at": time(),
+                    "refresh_token": "0987654321",
+                },
+            )
+            self.integration.add_organization(self.organization, self.user, identity.id)
         self.installation = self.integration.get_installation(self.organization.id)
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repo(self, name, external_id=15, url=None, organization_id=None):
         instance = self.integration.metadata["instance"]
         organization_id = organization_id or self.organization.id

@@ -4,8 +4,9 @@ from unittest.mock import patch
 import responses
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, Integration
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -14,12 +15,15 @@ class GroupNotesDetailsTest(APITestCase):
         super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
-        self.integration = Integration.objects.create(
-            provider="example", external_id="example12345", name="Example 12345"
-        )
-        org_integration = self.integration.add_organization(self.organization)
-        org_integration.config = {"sync_comments": True}
-        org_integration.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="example", external_id="example12345", name="Example 12345"
+            )
+            org_integration = self.integration.add_organization(self.organization)
+            org_integration.config = {"sync_comments": True}
+            org_integration.save()
+
         self.external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="123"
         )

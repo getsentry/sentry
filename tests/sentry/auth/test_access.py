@@ -477,10 +477,12 @@ class FromUserTest(AccessFactoryTestCase):
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=self.superuser, permission="test.permission")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization_id=self.org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])

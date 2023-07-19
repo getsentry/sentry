@@ -48,6 +48,7 @@ def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -
     return integration
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 def add_identity(
     integration: Integration, user: User, external_id: str = "UXXXXXXX1"
 ) -> IdentityProvider:

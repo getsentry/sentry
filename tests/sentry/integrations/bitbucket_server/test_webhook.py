@@ -22,24 +22,25 @@ class WebhookTestBase(APITestCase):
         self.subject = "connect:1234567"
         self.external_id = "{b128e0f6-196a-4dde-b72d-f42abc6dc239}"
 
-        self.integration = Integration.objects.create(
-            provider=PROVIDER,
-            external_id=self.subject,
-            name="sentryuser",
-            metadata={
-                "base_url": self.base_url,
-                "shared_secret": self.shared_secret,
-                "subject": self.subject,
-                "verify_ssl": False,
-            },
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider=PROVIDER,
+                external_id=self.subject,
+                name="sentryuser",
+                metadata={
+                    "base_url": self.base_url,
+                    "shared_secret": self.shared_secret,
+                    "subject": self.subject,
+                    "verify_ssl": False,
+                },
+            )
 
-        self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type=PROVIDER, config={}),
-            user=self.user,
-            external_id="user_identity",
-            data={"access_token": "vsts-access-token", "expires": time() + 50000},
-        )
+            self.identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(type=PROVIDER, config={}),
+                user=self.user,
+                external_id="user_identity",
+                data={"access_token": "vsts-access-token", "expires": time() + 50000},
+            )
 
     def create_repository(self, **kwargs: Any) -> Repository:
         return Repository.objects.create(
