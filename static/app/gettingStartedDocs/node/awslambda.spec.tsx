@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithAwsLambda, steps} from './awslambda';
 
 describe('GettingStartedWithAwsLambda', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithAwsLambda dsn="test-dsn" />);
 
     // Steps
