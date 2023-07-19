@@ -72,7 +72,7 @@ class SlackClient(IntegrationProxyClient):
         return super().is_response_error(resp, e)
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-
+        print("check")
         if e is not None:
             if "account_inactive" == e:
                 return True

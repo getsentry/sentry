@@ -106,11 +106,6 @@ class BaseApiClient(TrackResponseMixin):
                 return True
 
     def is_response_success(self, resp: Response) -> bool:
-        # print("is_response_success")
-        # print("resp")
-        # print(resp)
-        #  print("code")
-        # print(resp.status_code)
         if resp.status_code < 300:
             return True
 
@@ -379,7 +374,7 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration(self.integration_id)
 
-    def disable_integration(self, integration_id: int) -> None:
+    def disable_integration(self) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_context(
             integration_id=self.integration_id
         )
@@ -389,7 +384,7 @@ class BaseApiClient(TrackResponseMixin):
         self.logger.info(
             f"integration.disabled",
             extra={
-                "integration_id": integration_id,
+                "integration_id": self.integration_id,
                 "provider": rpc_integration.provider,
                 "organization_id": rpc_org_integration.organization_id,
             },
