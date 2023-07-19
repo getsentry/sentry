@@ -2094,10 +2094,45 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
+    def test_standard_metrics(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+            on_demand_metrics_enabled=True,
+        )
+
+        assert query.on_demand_metrics_enabled
+        assert not query._on_demand_spec
+
+    def test_run_on_demand_query(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+            on_demand_metrics_enabled=True,
+        )
+
+        result = query.run_query("test_query")
+
+        assert len(result["data"]) == 1
+
+        meta = result["meta"]
+
+        assert len(meta) == 2
+        assert meta[0]["name"] == "bucketed_time"
+        assert meta[1]["name"] == "d:transactions/on_demand@none"
+
     def test_get_snql_query(self):
         query = AlertMetricsQueryBuilder(
             self.params,
-            use_metrics_layer=True,
+            use_metrics_layer=False,
             granularity=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
