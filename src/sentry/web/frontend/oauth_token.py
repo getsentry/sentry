@@ -114,7 +114,6 @@ class OAuthTokenView(View):
 
         if not refresh_token_code:
             return {"error": "invalid_request"}
-        self.error(request, "invalid_request")
 
         # TODO(dcramer): support scope
         if scope:
