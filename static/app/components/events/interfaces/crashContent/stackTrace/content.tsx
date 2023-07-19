@@ -117,7 +117,7 @@ class Content extends Component<Props, State> {
     return countMap;
   }
 
-  getRepeatedFrameIndeces() {
+  getRepeatedFrameIndices() {
     const {data} = this.props;
     const repeats: number[] = [];
     (data.frames ?? []).forEach((frame, frameIdx) => {
