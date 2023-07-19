@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -95,7 +95,7 @@ export function OverviewTimeline({monitorList}: Props) {
       />
 
       {monitorList.map(monitor => (
-        <Fragment key={monitor.id}>
+        <TimelineRow key={monitor.id}>
           <MonitorDetails monitor={monitor} />
           {isLoading || !monitorStats ? (
             <Placeholder />
@@ -110,7 +110,7 @@ export function OverviewTimeline({monitorList}: Props) {
               />
             </div>
           )}
-        </Fragment>
+        </TimelineRow>
       ))}
     </MonitorListPanel>
   );
@@ -133,17 +133,21 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
 const MonitorListPanel = styled(Panel)`
   display: grid;
   grid-template-columns: 350px 1fr;
+`;
 
-  a,
-  a + div {
-    transition: background 50ms ease-in-out;
+const TimelineRow = styled('div')`
+  display: contents;
+
+  &:nth-child(odd) > * {
+    background: ${p => p.theme.backgroundSecondary};
   }
 
-  a:hover,
-  a:hover + div,
-  a:has(+ div:hover),
-  a + div:hover {
-    background: ${p => p.theme.backgroundSecondary};
+  &:hover > * {
+    background: ${p => p.theme.backgroundTertiary};
+  }
+
+  > * {
+    transition: background 50ms ease-in-out;
   }
 `;
 
