@@ -1,8 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import * as eventRequest from 'sentry/components/charts/eventsRequest';
-import * as worldMaps from 'sentry/components/charts/worldMapChart';
 import EventView from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/discover/miniGraph';
 
@@ -102,42 +101,6 @@ describe('Discover > MiniGraph', function () {
     expect(eventRequest.default).toHaveBeenCalledWith(
       expect.objectContaining({interval: '12h'}),
       expect.anything()
-    );
-  });
-
-  it('renders WorldMapChart', async function () {
-    const yAxis = ['count()', 'failure_count()'];
-    eventView.display = 'worldmap';
-
-    jest.spyOn(worldMaps, 'WorldMapChart');
-
-    render(
-      <MiniGraph
-        location={location}
-        eventView={eventView}
-        organization={organization}
-        yAxis={yAxis}
-      />,
-      {context: initialData.routerContext}
-    );
-
-    await waitFor(() =>
-      expect(worldMaps.WorldMapChart).toHaveBeenCalledWith(
-        {
-          height: 100,
-          fromDiscoverQueryList: true,
-          series: [
-            {
-              data: [
-                {name: 'PE', value: 9215},
-                {name: 'VI', value: 1},
-              ],
-              seriesName: 'Country',
-            },
-          ],
-        },
-        expect.anything()
-      )
     );
   });
 });

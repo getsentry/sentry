@@ -9,7 +9,6 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
-import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -20,11 +19,7 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  getAggregateArg,
-  isEquation,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
+import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -104,9 +99,7 @@ class ResultsChart extends Component<ResultsChartProps> {
         : null
       : null;
     const chartComponent =
-      display === DisplayModes.WORLDMAP
-        ? WorldMapChart
-        : display === DisplayModes.BAR
+      display === DisplayModes.BAR
         ? BarChart
         : customPerformanceMetricFieldType === 'size' && isTopEvents
         ? AreaChart
@@ -222,11 +215,11 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   getYAxisOptions(eventView) {
     const yAxisOptions = eventView.getYAxisOptions();
 
-    // Equations on World Map isn't supported on the events-geo endpoint
-    // Disabling equations as an option to prevent erroring out
-    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
-      return yAxisOptions.filter(({value}) => !isEquation(value));
-    }
+    // // Equations on World Map isn't supported on the events-geo endpoint
+    // // Disabling equations as an option to prevent erroring out
+    // if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+    //   return yAxisOptions.filter(({value}) => !isEquation(value));
+    // }
 
     return yAxisOptions;
   }

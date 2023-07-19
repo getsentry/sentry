@@ -125,15 +125,4 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
-
-  it('links user to the query in discover with additional field when a world map query is selected from the modal', function () {
-    mockWidget.queries[0].fields = ['count()'];
-    mockWidget.queries[0].aggregates = ['count()'];
-    mockWidget.displayType = DisplayType.WORLD_MAP;
-    renderModal({initialData, widget: mockWidget});
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/discover/results/?display=worldmap&field=geo.country_code&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
-    );
-  });
 });
