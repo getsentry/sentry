@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from random import random
-from typing import Any, Callable, Mapping, Sequence, Type, Union
+from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -113,6 +113,7 @@ class BaseApiClient(TrackResponseMixin):
         # print(resp.status_code)
         if resp.status_code < 300:
             return True
+
 
     def _request(
         self,

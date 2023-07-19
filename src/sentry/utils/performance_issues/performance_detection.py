@@ -504,10 +504,8 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
+        "is_dry_run": is_dry_run,
     }
-
-    if is_dry_run:
-        detected_tags["is_dry_run"] = True
 
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 

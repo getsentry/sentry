@@ -39,7 +39,11 @@ export const migratedDocs = [
   'python-aiohttp',
   'python-awslambda',
   'react-native',
+  'java',
   'java-spring-boot',
+  'java-logback',
+  'java-log4j2',
+  'java-spring',
   'php',
   'php-laravel',
   'php-symfony',
@@ -55,6 +59,7 @@ export const migratedDocs = [
   'node',
   'node-express',
   'electron',
+  'elixir',
 ];
 
 type SdkDocumentationProps = {

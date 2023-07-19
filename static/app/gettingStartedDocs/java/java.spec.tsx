@@ -2,11 +2,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithElectron, steps} from './electron';
+import {GettingStartedWithJava, steps} from './java';
 
-describe('GettingStartedWithElectron', function () {
+describe('GettingStartedWithJava', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithElectron dsn="test-dsn" />);
+    const {container} = render(<GettingStartedWithJava dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {
