@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithElectron, steps} from './electron';
 
 describe('GettingStartedWithElectron', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithElectron dsn="test-dsn" />);
 
     // Steps

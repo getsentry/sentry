@@ -14,6 +14,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.commands import DiscordCommandManager
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.http import absolute_uri
@@ -130,6 +131,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         setup_url = absolute_uri("extensions/discord/setup/")
 
         return f"https://discord.com/api/oauth2/authorize?client_id={application_id}&permissions={self.bot_permissions}&redirect_uri={setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
+
+    def setup(self) -> None:
+        DiscordCommandManager().register_commands()
 
 
 class DiscordInstallPipeline(PipelineView):

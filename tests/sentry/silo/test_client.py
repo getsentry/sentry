@@ -2,6 +2,7 @@ import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
 
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
 from sentry.silo.client import ControlSiloClient, RegionSiloClient, SiloClientError
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
@@ -34,13 +35,14 @@ class SiloClientTest(TestCase):
                 ControlSiloClient()
 
             with raises(SiloClientError):
-                RegionSiloClient("atlantis")
+                RegionSiloClient("atlantis")  # type: ignore[arg-type]
 
             with raises(RegionResolutionError):
                 region = Region("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
                 RegionSiloClient(region)
 
             client = RegionSiloClient(self.region)
+            assert client.base_url is not None
             assert self.region.address in client.base_url
 
     @override_settings(SILO_MODE=SiloMode.REGION)
@@ -50,6 +52,7 @@ class SiloClientTest(TestCase):
             RegionSiloClient(self.region)
 
         client = ControlSiloClient()
+        assert client.base_url is not None
         assert self.dummy_address in client.base_url
 
     @responses.activate
@@ -65,6 +68,7 @@ class SiloClientTest(TestCase):
             )
 
             response = client.request("GET", path)
+            assert isinstance(response, BaseApiResponse)
 
             assert response.status_code == 200
             assert response.body.get("ok")
