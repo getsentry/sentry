@@ -138,13 +138,16 @@ class DictType(Type[dict]):
             return None
 
 
-class SequenceType(Type[tuple]):
-    """Coerce a tuple out of a json/yaml string or a list"""
+class SequenceType(Type[list]):
+    """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
-    default = ()
-    expected_types = (tuple, list)
+    expected_types = (list,)
     compatible_types = (str, tuple, list)
+
+    def _default(self) -> typing.List[typing.Any]:
+        # make sure we create a fresh list each time
+        return []
 
     def convert(self, value):
         if isinstance(value, str):
@@ -152,8 +155,8 @@ class SequenceType(Type[tuple]):
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
                 return None
-        if isinstance(value, list):
-            value = tuple(value)
+        if isinstance(value, tuple):
+            value = list(value)
         return value
 
 
@@ -174,7 +177,6 @@ _type_mapping: dict[type[object], Type] = {
     bytes: String,
     str: String,
     dict: Dict,
-    tuple: Sequence,
     list: Sequence,
 }
 

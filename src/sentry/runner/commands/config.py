@@ -44,9 +44,9 @@ def get(option, silent):
     # TODO(mattrobenolt): Add help to option keys
     # if key.help:
     #     click.echo(key.help + '\n')
-    click.echo("        type: %s" % key.type.name.upper())
-    click.echo(" from config: %s" % settings.SENTRY_OPTIONS.get(key.name, "<not set>"))
-    click.echo("     current: %s" % value)
+    click.echo(f"        type: {key.type.name.upper()}")
+    click.echo(f" from config: {settings.SENTRY_OPTIONS.get(key.name, '<not set>')}")
+    click.echo(f"     current: {value}")
 
 
 @config.command()

@@ -226,7 +226,7 @@ register(
 )
 register(
     "u2f.facets",
-    default=(),
+    default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -310,7 +310,7 @@ register(
 register(
     "symbolicator.ignored_sources",
     type=Sequence,
-    default=(),
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
