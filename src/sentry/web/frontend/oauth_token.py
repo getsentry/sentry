@@ -49,12 +49,14 @@ class OAuthTokenView(View):
         client_secret = request.POST.get("client_secret")
 
         if not client_id:
-            return self.error(request, "invalid_client", "missing client_id")
+            return self.error(request=request, name="missing_client_id", reason="missing client_id")
         if not client_secret:
-            return self.error(request, "missing client_secret")
+            return self.error(
+                request=request, name="missing_client_secret", reason="missing client_secret"
+            )
 
         if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
-            return self.error(request, "unsupported_grant_type")
+            return self.error(request=request, name="unsupported_grant_type")
 
         try:
             application = ApiApplication.objects.get(
@@ -62,7 +64,10 @@ class OAuthTokenView(View):
             )
         except ApiApplication.DoesNotExist:
             return self.error(
-                request, "invalid_credentials", "invalid client_id or client_secret", status=401
+                request=request,
+                name="invalid_credentials",
+                reason="invalid client_id or client_secret",
+                status=401,
             )
 
         if grant_type == GrantTypes.AUTHORIZATION:

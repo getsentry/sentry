@@ -70,7 +70,7 @@ class OAuthTokenCodeTest(TestCase):
         )
 
         assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid_client"}
+        assert json.loads(resp.content) == {"error": "missing_client_id"}
 
     def test_invalid_client_id(self):
         self.login_as(self.user)
@@ -101,7 +101,7 @@ class OAuthTokenCodeTest(TestCase):
         )
 
         assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "missing client_secret"}
+        assert json.loads(resp.content) == {"error": "missing_client_secret"}
 
     def test_invalid_client_secret(self):
         self.login_as(self.user)
@@ -366,7 +366,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         )
 
         assert resp.status_code == 400
-        assert json.loads(resp.content) == {"error": "invalid_client"}
+        assert json.loads(resp.content) == {"error": "missing_client_id"}
 
     def test_invalid_client_id(self):
         self.login_as(self.user)
