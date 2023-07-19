@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
-    webhook_endpoint = GitHubIntegrationsWebhookEndpoint
+    webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
