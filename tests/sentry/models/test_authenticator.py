@@ -1,7 +1,7 @@
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models.authenticator import Authenticator, AuthenticatorConfig
