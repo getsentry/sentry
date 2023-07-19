@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 
 from django.apps import apps
 from django.db import connections
-from django.db.utils import ConnectionDoesNotExist
+from django.utils.connection import ConnectionDoesNotExist
 
 from sentry.db.models.base import Model, ModelSiloLimit
 from sentry.silo.base import SiloLimit, SiloMode
