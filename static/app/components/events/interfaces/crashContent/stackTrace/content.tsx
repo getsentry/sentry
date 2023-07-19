@@ -137,8 +137,8 @@ class Content extends Component<Props, State> {
     return repeats;
   }
 
-  getHiddenFrameIndeces(toggleFrameMap, frameCountMap) {
-    const repeatedIndeces = this.getRepeatedFrameIndeces();
+  getHiddenFrameIndices(toggleFrameMap, frameCountMap) {
+    const repeatedIndeces = this.getRepeatedFrameIndices();
     let keys: number[] = [];
     Object.keys(toggleFrameMap)
       .filter(frameIndex => toggleFrameMap[frameIndex] === true)
@@ -307,7 +307,7 @@ class Content extends Component<Props, State> {
     );
 
     const frameCountMap = this.getInitialFrameCounts();
-    const keys: number[] = this.getHiddenFrameIndeces(toggleFrameMap, frameCountMap);
+    const keys: number[] = this.getHiddenFrameIndices(toggleFrameMap, frameCountMap);
 
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
     const mechanism =
