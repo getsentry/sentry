@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
-import {IconBroadcast, IconClose} from 'sentry/icons';
+import {IconClose, IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -59,11 +59,11 @@ export default function SourceMapsWizard() {
         size="xs"
       />
       <EmptyMessage
-        size="large"
-        icon={<IconBroadcast size="xl" />}
+        size="medium"
+        icon={<IconFlag size="xl" />}
         title={t("Sentry isn't Sentry without source maps")}
         description={t(
-          'Source maps are crucial for Sentry to de-minify yoiur stack traces. Send them automatically with the Sentry Wizard:'
+          'Source maps are crucial for Sentry to de-minify your stack traces. Send them automatically with the Sentry Wizard:'
         )}
       >
         <StyledCodeSnipped

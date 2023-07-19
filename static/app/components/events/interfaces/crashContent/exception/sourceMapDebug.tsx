@@ -4,6 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -177,6 +178,9 @@ function getErrorMessage(
           docsLink: defaultDocsLink,
         },
       ];
+    // Need to return something but this does not need to follow the pattern since it uses a different alert
+    case SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP:
+      return [{title: 'Debug ID not set up'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -295,6 +299,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       type,
     });
   };
+
+  if (
+    errorMessages.filter(
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP
+    ).length > 0
+  ) {
+    return <SourceMapsWizard />;
+  }
 
   return (
     <Alert

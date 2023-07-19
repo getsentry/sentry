@@ -180,4 +180,32 @@ describe('SourceMapDebug', () => {
       'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
     );
   });
+
+  it('should show source maps wizard alert for DEBUG_ID_NOT_SET_UP', async () => {
+    const error: SourceMapDebugError = {
+      type: SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP,
+      message: '',
+    };
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {errors: [error]},
+    });
+
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText("Sentry isn't Sentry without source maps")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Source maps are crucial for Sentry to de-minify your stack traces. Send them automatically with the Sentry Wizard:'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('npx @sentry/wizard@latest -i sourcemaps'))
+    ).toBeInTheDocument();
+  });
 });
