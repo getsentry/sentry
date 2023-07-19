@@ -15,17 +15,9 @@ export type ReplayRecord = {
     version: null | string;
   };
   /**
-   * The number of dead clicks associated with the replay.
-   */
-  count_dead_clicks: number;
-  /**
    * The number of errors associated with the replay.
    */
   count_errors: number;
-  /**
-   * The number of rage clicks associated with the replay.
-   */
-  count_rage_clicks: number;
   /**
    * The number of segments that make up the replay.
    */
@@ -86,6 +78,14 @@ export type ReplayRecord = {
     ip: null | string;
     username: null | string;
   };
+  /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks?: number;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks?: number;
 };
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
@@ -111,14 +111,53 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
+// Sync with ReplayListRecord above
+export function getReplayListFields(hasDeadRageCols) {
+  return hasDeadRageCols
+    ? [
+        'activity',
+        'browser.name',
+        'browser.version',
+        'count_dead_clicks',
+        'count_errors',
+        'count_rage_clicks',
+        'duration',
+        'finished_at',
+        'id',
+        'is_archived',
+        'os.name',
+        'os.version',
+        'project_id',
+        'started_at',
+        'urls',
+        'user',
+      ]
+    : [
+        'activity',
+        'browser.name',
+        'browser.version',
+        'count_errors',
+        'duration',
+        'finished_at',
+        'id',
+        'is_archived',
+        'os.name',
+        'os.version',
+        'project_id',
+        'started_at',
+        'urls',
+        'user',
+      ];
+}
+
 // Sync with REPLAY_LIST_FIELDS below
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
   | 'browser'
-  // | 'count_dead_clicks'
+  | 'count_dead_clicks'
   | 'count_errors'
-  //  | 'count_rage_clicks'
+  | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
   | 'id'
@@ -129,26 +168,6 @@ export type ReplayListRecord = Pick<
   | 'urls'
   | 'user'
 >;
-
-// Sync with ReplayListRecord above
-export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
-  'activity',
-  'browser.name',
-  'browser.version',
-  //  'count_dead_clicks',
-  'count_errors',
-  // 'count_rage_clicks',
-  'duration',
-  'finished_at',
-  'id',
-  'is_archived',
-  'os.name',
-  'os.version',
-  'project_id',
-  'started_at',
-  'urls',
-  'user',
-];
 
 export type ReplaySegment = {
   dateAdded: string;

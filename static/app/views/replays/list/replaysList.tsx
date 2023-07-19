@@ -21,11 +21,14 @@ import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPan
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import {getReplayListFields} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
+  const hasDeadRageCols = organization.features.includes(
+    'replay-rage-click-dead-click-columns'
+  );
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -36,14 +39,14 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: REPLAY_LIST_FIELDS,
+        fields: getReplayListFields(hasDeadRageCols),
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location]);
+  }, [location, hasDeadRageCols]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
