@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.debug_files.artifact_bundles import FlatFileIndexingState
+from sentry.debug_files.artifact_bundle_indexing import FlatFileIndexingState
 from sentry.tasks.artifact_bundle_indexing import index_artifact_bundle
 from sentry.testutils import TestCase
 

@@ -453,48 +453,8 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.archive.close()
 
     def post_assemble(self):
-        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
-            with metrics.timer("tasks.assemble.artifact_bundle_new"):
-                self._create_artifact_bundle_new()
-        else:
-            with metrics.timer("tasks.assemble.artifact_bundle"):
-                self._create_artifact_bundle()
-
-    def _create_artifact_bundle_new(self):
-        if not self.projects_ids:
-            raise AssembleArtifactsError("uploading a bundle requires at least a project")
-
-        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
-        # contents.
-        self.release = self.release or self.archive.manifest.get("release")
-        self.dist = self.dist or self.archive.manifest.get("dist")
-
-        # We don't allow an upload without debug ids and release.
-        if not self.archive.has_debug_ids() and not self.release:
-            raise AssembleArtifactsError(
-                "uploading a bundle without debug ids or release is prohibited"
-            )
-
-        # We take a snapshot in time in order to have consistent values in the database.
-        date_snapshot = timezone.now()
-
-        bundle_id = self.archive.extract_bundle_id()
-
-        # We want to build all the required parameters for indexing.
-        artifact_bundle, created = self._bind_or_create_artifact_bundle(
-            bundle_id=bundle_id, date_added=date_snapshot
-        )
-
-        # We want to asynchronously compute the index, in order to speed up the process and have the possibility to
-        # reschedule the task in case of contention.
-        index_artifact_bundle.apply_async(
-            kwargs={
-                "artifact_bundle_id": artifact_bundle.id,
-                "project_id": self.projects_ids[0],
-                "release": self.release or NULL_STRING,
-                "dist": self.dist or NULL_STRING,
-            }
-        )
+        with metrics.timer("tasks.assemble.artifact_bundle"):
+            self._create_artifact_bundle()
 
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
@@ -594,6 +554,34 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 release=self.release,
                 dist=(self.dist or NULL_STRING),
                 date_snapshot=date_snapshot,
+            )
+
+        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
+            # We want to asynchronously compute the index, in order to speed up the process and have the possibility to
+            # reschedule the task in case of contention.
+
+            # FIXME: indexing really requires a project. or does it? should it?
+            projects = self.projects_ids or []
+            if len(projects) < 1:
+                return
+            project_id = projects[0]
+
+            # FIXME: the `apply_async` does not work in tests for some reason?
+            # also, why is this async in the first place?
+            index_artifact_bundle(
+                artifact_bundle.id,
+                project_id,
+                self.release or NULL_STRING,
+                self.dist or NULL_STRING,
+            )
+
+            index_artifact_bundle.apply_async(
+                kwargs={
+                    "artifact_bundle_id": artifact_bundle.id,
+                    "project_id": project_id,
+                    "release": self.release or NULL_STRING,
+                    "dist": self.dist or NULL_STRING,
+                }
             )
 
     def _bind_or_create_artifact_bundle(
