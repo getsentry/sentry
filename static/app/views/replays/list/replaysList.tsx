@@ -26,9 +26,6 @@ import {getReplayListFields} from 'sentry/views/replays/types';
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -39,14 +36,16 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: getReplayListFields(hasDeadRageCols),
+        fields: getReplayListFields(
+          organization.features.includes('replay-rage-click-dead-click-columns')
+        ),
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location, hasDeadRageCols]);
+  }, [location, organization.features]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();

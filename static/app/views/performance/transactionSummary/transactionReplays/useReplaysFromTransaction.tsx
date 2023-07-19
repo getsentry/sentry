@@ -48,10 +48,6 @@ function useReplaysFromTransaction({
 }: Options): Return {
   const api = useApi();
 
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-
   const [response, setResponse] = useState<{
     events: EventSpanData[];
     pageLinks: null | string;
@@ -91,12 +87,14 @@ function useReplaysFromTransaction({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(hasDeadRageCols),
+      fields: getReplayListFields(
+        organization.features.includes('replay-rage-click-dead-click-columns')
+      ),
       projects: [],
       query: `id:[${String(response.replayIds)}]`,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, response.replayIds, hasDeadRageCols]);
+  }, [location.query.sort, response.replayIds, organization.features]);
 
   useEffect(() => {
     fetchReplayIds();

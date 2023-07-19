@@ -20,9 +20,6 @@ function useReplayFromIssue({
   location: Location;
   organization: Organization;
 }) {
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
   const api = useApi();
 
   const [replayIds, setReplayIds] = useState<string[]>();
@@ -57,13 +54,15 @@ function useReplayFromIssue({
       id: '',
       name: '',
       version: 2,
-      fields: getReplayListFields(hasDeadRageCols),
+      fields: getReplayListFields(
+        organization.features.includes('replay-rage-click-dead-click-columns')
+      ),
       query: `id:[${String(replayIds)}]`,
       range: '14d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, replayIds, hasDeadRageCols]);
+  }, [location.query.sort, replayIds, organization.features]);
 
   useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
   useEffect(() => {
