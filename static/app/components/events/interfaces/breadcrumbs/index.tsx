@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -12,16 +12,14 @@ import {
 } from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import EventReplay from 'sentry/components/events/eventReplay';
 import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import SearchBarAction from '../searchBarAction';
@@ -39,9 +37,6 @@ type Props = {
   };
   event: Event;
   organization: Organization;
-  projectSlug: string;
-  group?: Group;
-  isShare?: boolean;
 };
 
 enum BreadcrumbSort {
@@ -56,14 +51,7 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({
-  data,
-  event,
-  organization,
-  projectSlug,
-  isShare,
-  group,
-}: Props) {
+function BreadcrumbsContainer({data, event, organization}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -296,11 +284,8 @@ function BreadcrumbsContainer({
     };
   }
 
-  const replayId = getReplayIdFromEvent(event);
-  const showReplay = !isShare && organization.features.includes('session-replay');
-
   const actions = (
-    <SearchAndSortWrapper isFullWidth={showReplay}>
+    <SearchAndSortWrapper>
       <SearchBarAction
         placeholder={t('Search breadcrumbs')}
         onChange={setSearchTerm}
@@ -327,20 +312,8 @@ function BreadcrumbsContainer({
     <EventDataSection
       type={EntryType.BREADCRUMBS}
       title={t('Breadcrumbs')}
-      actions={!showReplay ? actions : null}
+      actions={actions}
     >
-      {showReplay ? (
-        <Fragment>
-          <EventReplay
-            organization={organization}
-            replayId={replayId}
-            projectSlug={projectSlug}
-            event={event}
-            group={group}
-          />
-          {actions}
-        </Fragment>
-      ) : null}
       <ErrorBoundary>
         <GuideAnchor target="breadcrumbs" position="bottom">
           <Breadcrumbs
@@ -361,7 +334,7 @@ function BreadcrumbsContainer({
 
 export {BreadcrumbsContainer as Breadcrumbs};
 
-const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
+const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
@@ -369,8 +342,6 @@ const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }
-
-  margin-bottom: ${p => (p.isFullWidth ? space(1) : 0)};
 `;
 
 const LevelWrap = styled('span')`

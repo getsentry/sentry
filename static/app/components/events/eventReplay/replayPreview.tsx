@@ -33,8 +33,9 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
     replaySlug,
   });
 
-  const eventTimestamp = event.dateCreated
-    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
+  const timeOfEvent = event.dateCreated ?? event.dateReceived;
+  const eventTimestamp = timeOfEvent
+    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
     : 0;
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;

@@ -5,6 +5,7 @@ import replaysInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
@@ -42,42 +43,44 @@ export default function ReplayInlineOnboardingPanel() {
   }
 
   return (
-    <StyledOnboardingPanel>
-      <div>
-        <Heading>{t('Configure Session Replay')}</Heading>
-        <Content>
-          {t(
-            'Playback your app to identify the root cause of errors and latency issues.'
-          )}
-        </Content>
-        <ButtonList>
-          <Button onClick={activateSidebar} priority="primary" size="sm">
-            {t('Get Started')}
-          </Button>
-          <ButtonBar merged>
-            <Button
-              size="sm"
-              onClick={() => {
-                setHideUntilTime(SNOOZE_TIME);
-                setIsHidden(true);
-              }}
-            >
-              {t('Snooze')}
+    <EventReplaySection>
+      <StyledOnboardingPanel>
+        <div>
+          <Heading>{t('Configure Session Replay')}</Heading>
+          <Content>
+            {t(
+              'Playback your app to identify the root cause of errors and latency issues.'
+            )}
+          </Content>
+          <ButtonList>
+            <Button onClick={activateSidebar} priority="primary" size="sm">
+              {t('Get Started')}
             </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setHideUntilTime(DISMISS_TIME);
-                setIsHidden(true);
-              }}
-            >
-              {t('Dismiss')}
-            </Button>
-          </ButtonBar>
-        </ButtonList>
-      </div>
-      <Illustration src={replaysInlineOnboarding} width={220} height={112} alt="" />
-    </StyledOnboardingPanel>
+            <ButtonBar merged>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setHideUntilTime(SNOOZE_TIME);
+                  setIsHidden(true);
+                }}
+              >
+                {t('Snooze')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setHideUntilTime(DISMISS_TIME);
+                  setIsHidden(true);
+                }}
+              >
+                {t('Dismiss')}
+              </Button>
+            </ButtonBar>
+          </ButtonList>
+        </div>
+        <Illustration src={replaysInlineOnboarding} width={220} height={112} alt="" />
+      </StyledOnboardingPanel>
+    </EventReplaySection>
   );
 }
 
