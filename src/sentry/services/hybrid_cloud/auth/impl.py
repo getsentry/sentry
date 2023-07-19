@@ -193,7 +193,7 @@ class DatabaseBackedAuthService(AuthService):
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             with transaction.atomic(using=router.db_for_read(User)):
                 result.user = self._load_auth_user(fake_request.user)
-                transaction.set_rollback(True)
+                transaction.set_rollback(True, using=router.db_for_read(User))
             if SiloMode.single_process_silo_mode():
                 connections.close_all()
 

@@ -16,6 +16,10 @@ class MismatchedSiloTransactionError(Exception):
     pass
 
 
+class TransactionMissingDBException(Exception):
+    pass
+
+
 def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
     from sentry.db.router import SiloConnectionUnavailableError
 
@@ -28,36 +32,36 @@ def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
 def siloed_atomic(
     using: Optional[str] = None, savepoint: bool = True, durable: bool = False
 ) -> Atomic:
-    using = determine_using_by_silo_mode(using)
+    validate_transaction_using_for_silo_mode(using)
     return _default_atomic_impl(using=using, savepoint=savepoint, durable=durable)
 
 
 def siloed_get_connection(using: Optional[str] = None) -> BaseDatabaseWrapper:
-    using = determine_using_by_silo_mode(using)
+    validate_transaction_using_for_silo_mode(using)
     return _default_get_connection(using=using)
 
 
 def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> None:
-    using = determine_using_by_silo_mode(using)
+    validate_transaction_using_for_silo_mode(using)
     return _default_on_commit(func, using)
 
 
-def determine_using_by_silo_mode(using: Optional[str]) -> str:
+def validate_transaction_using_for_silo_mode(using: Optional[str]):
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
+
+    if using is None:
+        raise TransactionMissingDBException("'using' must be specified when creating a transaction")
 
     current_silo_mode = SiloMode.get_current_mode()
     control_db = _get_db_for_model_if_available(ControlOutbox)
     region_db = _get_db_for_model_if_available(RegionOutbox)
 
-    if not using:
-        using = region_db if current_silo_mode == SiloMode.REGION else control_db
-        assert using
-
     both_silos_route_to_same_db = control_db == region_db
 
     if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
-        pass
+        return
+
     elif using == control_db and current_silo_mode != SiloMode.CONTROL:
         raise MismatchedSiloTransactionError(
             f"Cannot use transaction.atomic({using}) except in Control Mode"
@@ -67,7 +71,6 @@ def determine_using_by_silo_mode(using: Optional[str]) -> str:
         raise MismatchedSiloTransactionError(
             f"Cannot use transaction.atomic({using}) except in Region Mode"
         )
-    return using
 
 
 def patch_silo_aware_atomic():
