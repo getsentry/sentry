@@ -42,7 +42,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
             repo.status = ObjectStatus.ACTIVE
-        repo.save()
+        repository_service.update_repository(organization_id=organization_id, update=repo)
         logger.info(
             "repo.migrated",
             extra={
