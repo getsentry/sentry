@@ -516,7 +516,7 @@ class ModelBackupTests(TransactionTestCase):
         updater.run(self.user)
         return self.import_export_then_validate()
 
-    @targets_models(PendingIncidentSnapshot, TimeSeriesSnapshot)
+    @targets_models(PendingIncidentSnapshot)
     def test_snapshot(self):
         incident = self.create_incident()
         PendingIncidentSnapshot.objects.create(
