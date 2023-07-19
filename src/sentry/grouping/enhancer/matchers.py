@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -113,15 +113,18 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
+InstanceKey = Tuple[str, str, bool]
+
+
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances = {}
+    instances: Dict[InstanceKey, str] = {}
 
     @classmethod
-    def from_key(cls, key, pattern, negated):
+    def from_key(cls, key: str, pattern: str, negated: bool):
 
-        instance_key = (key, pattern, negated)
+        instance_key: InstanceKey = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
         else:
@@ -203,7 +206,8 @@ class PathLikeMatch(FrameMatch):
         super().__init__(key, pattern.lower(), negated)
 
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        value = match_frame[self.field]
+        # self.field is available in the subclasses
+        value = match_frame[self.field]  # type: ignore[attr-defined]
         if value is None:
             return False
 
@@ -244,7 +248,8 @@ class InAppMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        field = match_frame[self.field]
+        # self.field is available in the subclasses
+        field = match_frame[self.field]  # type: ignore[attr-defined]
         if field is None:
             return False
         if field == self._encoded_pattern:
@@ -277,7 +282,8 @@ class ExceptionFieldMatch(FrameMatch):
         return rv
 
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        field = get_path(exception_data, *self.field_path) or "<unknown>"
+        # self.field is available in the subclasses
+        field = get_path(exception_data, *self.field_path) or "<unknown>"  # type: ignore[attr-defined]
         return cached(cache, glob_match, field, self._encoded_pattern)
 
 

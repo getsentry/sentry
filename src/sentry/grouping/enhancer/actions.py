@@ -35,12 +35,12 @@ class Action:
     @property
     def is_modifier(self):
         """Does this action modify the frame?"""
-        return self._is_modifier
+        return self._is_modifier  # type: ignore[attr-defined]
 
     @property
     def is_updater(self):
         """Does this action update grouping components?"""
-        return self._is_updater
+        return self._is_updater  # type: ignore[attr-defined]
 
     @classmethod
     def _from_config_structure(cls, val, version):
@@ -144,7 +144,8 @@ class VarAction(Action):
         self._is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
-            self.value = VarAction._VALUE_PARSERS[var](value)
+            # error: "object" not callable  [operator]
+            self.value = VarAction._VALUE_PARSERS[var](value)  # type: ignore[operator]
         except (ValueError, TypeError):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:
