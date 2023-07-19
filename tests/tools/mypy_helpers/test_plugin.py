@@ -3,7 +3,7 @@ import os
 import subprocess
 
 mypy_config = "./types_mypy.ini"
-test_file = "./src/sentry/mypy_testfile.py"
+test_file = "./mypy_plugin_test_subject.py"
 
 
 @contextlib.contextmanager
@@ -11,7 +11,7 @@ def create_mypy_config():
     contents = f"""
 [mypy]
 python_version = 3.8
-plugins = sentry.types.mypy
+plugins = tools.mypy_helpers.plugin
 files = {test_file}
 
 # minimal strictness settings
@@ -54,6 +54,7 @@ with get_connection() as cursor:
         process = subprocess.run(
             ["mypy", "--config", "./types_mypy.ini", test_file],
             capture_output=True,
+            env=os.environ,
         )
         output = process.stdout.decode("utf8")
         assert "Found 1 error" in output, output
