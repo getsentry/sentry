@@ -7,7 +7,7 @@ from snuba_sdk import AliasedExpression, Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
 from sentry.utils.numbers import format_grouped_length
@@ -83,3 +83,24 @@ def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> Sel
     )
     builder.meta_resolver_map[alias] = "string"
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)
+
+
+def resolve_span_module(builder, alias: str) -> SelectType:
+    return Function(
+        "transform",
+        [
+            builder.column("span.category"),
+            [
+                "cache",
+                "db",
+                "http",
+            ],
+            [
+                "cache",
+                "db",
+                "http",
+            ],
+            "other",
+        ],
+        alias,
+    )

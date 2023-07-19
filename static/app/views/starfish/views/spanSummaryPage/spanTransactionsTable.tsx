@@ -39,7 +39,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<IndexedSpan, 'group'>;
+  span: Pick<IndexedSpan, 'group' | 'span.op'>;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
@@ -180,7 +180,9 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] => [
+const getColumnOrder = (
+  span: Pick<IndexedSpan, 'group' | 'span.op'>
+): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
@@ -192,18 +194,8 @@ const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] =
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps_percent_change()',
-    name: DataTitles.change,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
     name: DataTitles.p95,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
-    name: DataTitles.change,
     width: COL_WIDTH_UNDEFINED,
   },
   ...(span?.['span.op']?.startsWith('http')
@@ -211,11 +203,6 @@ const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] =
         {
           key: `http_error_count()`,
           name: DataTitles.errorCount,
-          width: COL_WIDTH_UNDEFINED,
-        },
-        {
-          key: `http_error_count_percent_change()`,
-          name: DataTitles.change,
           width: COL_WIDTH_UNDEFINED,
         },
       ] as TableColumnHeader[])

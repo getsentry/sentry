@@ -1,3 +1,53 @@
+23.7.0
+------
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52360)
+
+### Search Shortcuts (ongoing)
+
+Make common searches more accessible and discoverable for users. [notion page](https://www.notion.so/sentry/Search-Shortcuts-fka-Assignee-Filter-on-Issue-Stream-648954e782d04805bc64f1983e5cbd16?pvs=4)
+
+By: @scttcper (#52414, #52348)
+
+### Various fixes & improvements
+
+- test(hybrid-cloud): Stabilizes sentry app install tests (#53004) by @GabeVillalobos
+- ref(saved search): Migrate betterPriority to priority (#52909) by @ceorourke
+- ref(sort): Change betterPriority to priority (#52910) by @ceorourke
+- feat(crons): Use timeout_at for timed out check-ins (#52570) by @rjo100
+- ref(event_manager): Fix typing issues for event_manager (#52974) by @armenzg
+- test(backup): Add more model tests (#52923) by @azaslavsky
+- fix(replays): fix bin/mock-replays script (#52927) by @michellewzhang
+- ref(crons): Change to uuid validator for trace (#52561) by @rjo100
+- fix(crons): Properly checks for environment name lengths (#52820) by @rjo100
+- feat(grouping): Add metrics for issue merging and unmerging (#52919) by @lobsterkatie
+- chore(starfish): Adding referrers to starfish (#52749) by @wmak
+- chore(starfish): Add starfish referrers to the backend (#52754) by @wmak
+- ref(tsc): usageChart utils to tsx (#52935) by @IanWoodard
+- chore(hybrid-cloud): Add tags to debug Identity service (#52997) by @dashed
+- feat(starfish): Add unit and types for rates (#52991) by @wmak
+- ref(replay): Refactor the "Next Breadcrumb" button to use *Frame types (#52931) by @ryan953
+- fix(group-attributes): log metric when post_save.send(update_fields=["status", "subs"]) is called for group (#52996) by @barkbarkimashark
+- fix(releases): Use query parameter when switching filters (#52937) by @scttcper
+- fix(discord): Change log level from error to info for unauthorized interactions (#52946) by @spalmurray
+- ref: fix typing for sentry.models.__init__ (#52992) by @asottile-sentry
+- feat(replay): Render the replay currentTime & hoverTime inside the performance waterfall (#52890) by @ryan953
+- feat(perf): Hide timing metrics on http (#52993) by @k-fish
+- fix(issue-details): Fix react warning (#52907) by @roggenkemper
+- fix(hybrid-cloud): Fixes tests for split DB mode app installs using transaction routing and silo annotations (#52932) by @GabeVillalobos
+
+_Plus 434 more_
+
 23.6.2
 ------
 

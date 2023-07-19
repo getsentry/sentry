@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.utils import json
+from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -112,6 +112,7 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -629,8 +630,18 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 # that is parsed.
 SENTRY_REGION_CONFIG: Any = tuple()
 
+# Shared secret used to sign cross-region RPC requests.
+RPC_SHARED_SECRET = None
+
+# The protocol, host and port for control silo
+# Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
+SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
+
+# The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
+SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 
 # Queue configuration
@@ -1298,8 +1309,6 @@ SENTRY_FEATURES = {
     "organizations:alert-allow-indexed": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
-    # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # Enables automatically linking repositories using commit webhook data
@@ -1354,8 +1363,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
-    # Enable escalating forecast threshold a/b experiment
-    "organizations:escalating-issues-experiment-group": False,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
@@ -1467,6 +1474,8 @@ SENTRY_FEATURES = {
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
+    # Enables inviting new members based on GitHub commit activity.
+    "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable inviting members to organizations.
@@ -1479,6 +1488,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Display if a release is using semver when resolving issues
+    "organizations:issue-resolve-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1623,6 +1634,8 @@ SENTRY_FEATURES = {
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
+    # Enable updates to the stacktrace ui
+    "organizations:issue-details-stacktrace-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -3445,7 +3458,6 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to SiloMode
 FAIL_ON_UNAVAILABLE_API_CALL = False
-DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
@@ -3478,14 +3490,12 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    # RPC authentication and address information
+    RPC_SHARED_SECRET = [
+        "a-long-value-that-is-shared-but-also-secret",
+    ]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
-    DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
-        {
-            "is_allowed": True,
-            "control_silo_api_token": "dev-control-silo-token",
-            "control_silo_address": f"http://127.0.0.1:{control_port}",
-        }
-    )
+    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
 
 
 # How long we should wait for a gateway proxy request to return before giving up

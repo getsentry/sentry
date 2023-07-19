@@ -28,15 +28,12 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
-  'sps_percent_change()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -92,7 +89,7 @@ export default function SpansTable({
     spanCategory,
     [sort],
     limit,
-    'use-span-list',
+    'api.starfish.use-span-list',
     spansCursor
   );
 
@@ -116,7 +113,7 @@ export default function SpansTable({
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -192,27 +189,50 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
-function getDescriptionHeader(moduleName: ModuleName) {
+function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return 'Database Query';
+  }
+  if (spanCategory === 'cache') {
+    return 'Cache Query';
+  }
+  if (spanCategory === 'serialize') {
+    return 'Serializer';
+  }
+  if (spanCategory === 'middleware') {
+    return 'Middleware';
+  }
+  if (spanCategory === 'app') {
+    return 'Application Task';
+  }
+  if (moduleName === 'other') {
+    return 'Requests';
   }
   return 'Description';
 }
 
-function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
-  const description = getDescriptionHeader(moduleName);
+function getColumns(
+  moduleName: ModuleName,
+  spanCategory?: string,
+  transaction?: string
+): Column[] {
+  const description = getDescriptionHeader(moduleName, spanCategory);
 
   const domain = getDomainHeader(moduleName);
 
-  const order: Column[] = [
-    {
-      key: SPAN_OP,
-      name: 'Operation',
-      width: 120,
-    },
+  const order = [
+    // We don't show the operation selector in specific modules, so there's no
+    // point having that column
+    [ModuleName.ALL, ModuleName.OTHER].includes(moduleName)
+      ? {
+          key: SPAN_OP,
+          name: 'Operation',
+          width: 120,
+        }
+      : undefined,
     {
       key: SPAN_DESCRIPTION,
       name: description,
@@ -233,18 +253,8 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: 'sps_percent_change()',
-      name: DataTitles.change,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
       key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-      name: DataTitles.change,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName === ModuleName.HTTP
@@ -252,11 +262,6 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
           {
             key: 'http_error_count()',
             name: DataTitles.errorCount,
-            width: COL_WIDTH_UNDEFINED,
-          } as Column,
-          {
-            key: 'http_error_count_percent_change()',
-            name: DataTitles.change,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
         ]
@@ -277,7 +282,7 @@ function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
     });
   }
 
-  return order;
+  return order.filter((item): item is NonNullable<Column> => Boolean(item));
 }
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

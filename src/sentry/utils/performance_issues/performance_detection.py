@@ -28,6 +28,7 @@ from .detectors import (
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
     FileIOMainThreadDetector,
+    HTTPOverheadDetector,
     LargeHTTPPayloadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
@@ -179,6 +180,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "consecutive_db_min_time_saved_threshold": options.get(
             "performance.issues.consecutive_db.min_time_saved_threshold"
         ),
+        "http_request_delay_threshold": options.get(
+            "performance.issues.http_overhead.http_request_delay_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -268,7 +272,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
-            "total_duration": 500,  # ms
+            "total_duration": 300,  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
@@ -296,14 +300,55 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
-            # time saved by running all queries in parallel
-            "min_time_saved": 2000,
+            "span_duration_threshold": 500,  # ms
+            "min_time_saved": 2000,  # time saved by running all queries in parallel
             "consecutive_count_threshold": 3,
             "max_duration_between_spans": 1000,  # ms
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
+        },
+        DetectorType.HTTP_OVERHEAD: {
+            "http_request_delay_threshold": settings["http_request_delay_threshold"],
+            "detection_enabled": settings["http_overhead_detection_enabled"],
+        },
+    }
+
+
+# Settings used to test out the effect of lowering default thresholds, on metrics.
+def get_dry_run_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+    settings = get_merged_settings(project_id)
+
+    return {
+        DetectorType.N_PLUS_ONE_DB_QUERIES: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": 50,  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
+        DetectorType.SLOW_DB_QUERY: [
+            {
+                "duration_threshold": 500,  # ms
+                "allowed_span_ops": ["db"],
+                "detection_enabled": settings["slow_db_queries_detection_enabled"],
+            },
+        ],
+        DetectorType.UNCOMPRESSED_ASSETS: {
+            "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
+            "duration_threshold": 300,  # ms
+            "allowed_span_ops": ["resource.css", "resource.script"],
+            "detection_enabled": settings["uncompressed_assets_detection_enabled"],
+        },
+        DetectorType.LARGE_HTTP_PAYLOAD: {
+            "payload_size_threshold": 300000,  # in bytes
+            "detection_enabled": settings["large_http_payload_detection_enabled"],
+        },
+        DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
+            "fcp_minimum_threshold": settings["render_blocking_fcp_min"],  # ms
+            "fcp_maximum_threshold": settings["render_blocking_fcp_max"],  # ms
+            "fcp_ratio_threshold": settings["render_blocking_fcp_ratio"],  # in the range [0, 1]
+            "minimum_size_bytes": 500000,  # in bytes
+            "detection_enabled": settings["large_render_blocking_asset_detection_enabled"],
         },
     }
 
@@ -330,6 +375,7 @@ def _detect_performance_problems(
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
+        HTTPOverheadDetector(detection_settings, data),
     ]
 
     for detector in detectors:
@@ -337,6 +383,23 @@ def _detect_performance_problems(
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
+
+    # TODO Abdullah Khan: Remove code after dry run evaluating changes in detection ---------------------
+    detection_dry_run_settings = get_dry_run_detection_settings(project_id)
+    dry_run_detectors: List[PerformanceDetector] = [
+        NPlusOneDBSpanDetector(detection_dry_run_settings, data),
+        UncompressedAssetSpanDetector(detection_dry_run_settings, data),
+        LargeHTTPPayloadDetector(detection_dry_run_settings, data),
+        SlowDBQueryDetector(detection_dry_run_settings, data),
+        RenderBlockingAssetSpanDetector(detection_dry_run_settings, data),
+    ]
+
+    for dry_run_detector in dry_run_detectors:
+        run_detector_on_data(dry_run_detector, data)
+
+    report_metrics_for_detectors(
+        data, event_id, dry_run_detectors, sdk_span, project.organization, True
+    )
 
     organization = cast(Organization, project.organization)
     if project is None or organization is None:
@@ -392,6 +455,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
+    is_dry_run: bool = False,
 ):
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -440,7 +504,9 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
+        "is_dry_run": is_dry_run,
     }
+
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:
