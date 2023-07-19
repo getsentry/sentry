@@ -73,7 +73,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
+def _get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same query.
     metrics: Dict[str, MetricSpec] = {}
 
