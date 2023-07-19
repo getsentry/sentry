@@ -6,7 +6,7 @@ import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 const group = TestStubs.Group();
 const tags = TestStubs.Tags();
 
-function init(tagKey) {
+function init(tagKey: string) {
   return initializeOrg({
     router: {
       location: {
@@ -31,15 +31,24 @@ describe('GroupTagValues', () => {
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    const {routerContext, router, project} = init('user');
+    const {routerContext, router, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: TestStubs.TagValues(),
     });
-    render(<GroupTagValues environments={[]} group={group} project={project} />, {
-      context: routerContext,
-    });
+    render(
+      <GroupTagValues
+        {...routerProps}
+        baseUrl=""
+        environments={[]}
+        group={group}
+        project={project}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'More'}));
     await userEvent.click(
@@ -55,14 +64,20 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if no tag values are returned because of environment selection', () => {
-    const {routerContext, project} = init('user');
+    const {routerContext, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
       body: [],
     });
     const {container} = render(
-      <GroupTagValues environments={['staging']} group={group} project={project} />,
+      <GroupTagValues
+        {...routerProps}
+        baseUrl=""
+        environments={['staging']}
+        group={group}
+        project={project}
+      />,
       {context: routerContext}
     );
 
