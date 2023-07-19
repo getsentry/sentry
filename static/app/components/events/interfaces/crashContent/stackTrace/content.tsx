@@ -220,7 +220,7 @@ class Content extends Component<Props, State> {
   };
 
   handleToggleFrames = (event: React.MouseEvent<SVGElement>, frameIndex: number) => {
-    event.stopPropagation(); // to prevent collapsing if collapsible
+    event.stopPropagation(); // to prevent toggling frame context
 
     this.setState(prevState => ({
       toggleFrameMap: {
