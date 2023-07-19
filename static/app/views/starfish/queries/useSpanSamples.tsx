@@ -5,6 +5,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
@@ -30,7 +31,8 @@ export type SpanSample = Pick<
 >;
 
 export const useSpanSamples = (options: Options) => {
-  const url = '/api/0/organizations/sentry/spans-samples/';
+  const organization = useOrganization();
+  const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
   const api = useApi();
   const pageFilter = usePageFilters();
   const {groupId, transactionName, transactionMethod} = options;
