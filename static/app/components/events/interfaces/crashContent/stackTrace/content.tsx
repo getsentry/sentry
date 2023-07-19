@@ -137,6 +137,28 @@ class Content extends Component<Props, State> {
     return repeats;
   }
 
+  getHiddenFrameIndeces(toggleFrameMap, frameCountMap) {
+    const repeatedIndeces = this.getRepeatedFrameIndeces();
+    let keys: number[] = [];
+    Object.keys(toggleFrameMap)
+      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
+      .forEach(indexString => {
+        const index = parseInt(indexString, 10);
+        const res: number[] = [];
+        let i = 1;
+        let numHidden = frameCountMap[index];
+        while (numHidden > 0) {
+          if (!repeatedIndeces.includes(index - i)) {
+            res.push(index - i);
+            numHidden -= 1;
+          }
+          i += 1;
+        }
+        keys = [...keys, ...res];
+      });
+    return keys;
+  }
+
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
       className: 'frame frames-omitted',
@@ -240,8 +262,6 @@ class Content extends Component<Props, State> {
 
     let firstFrameOmitted = null;
     let lastFrameOmitted = null;
-    const frameCountMap = this.getInitialFrameCounts();
-    const repeatedIndeces = this.getRepeatedFrameIndeces();
 
     if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
@@ -286,28 +306,13 @@ class Content extends Component<Props, State> {
       0
     );
 
+    const frameCountMap = this.getInitialFrameCounts();
+    const keys: number[] = this.getHiddenFrameIndeces(toggleFrameMap, frameCountMap);
+
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
     const mechanism =
       platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
     const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-
-    let keys: number[] = [];
-    Object.keys(toggleFrameMap)
-      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
-      .forEach(indexString => {
-        const index = parseInt(indexString, 10);
-        const res: number[] = [];
-        let i = 1;
-        let numHidden = frameCountMap[index];
-        while (numHidden > 0) {
-          if (!repeatedIndeces.includes(index - i)) {
-            res.push(index - i);
-            numHidden -= 1;
-          }
-          i += 1;
-        }
-        keys = [...keys, ...res];
-      });
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
