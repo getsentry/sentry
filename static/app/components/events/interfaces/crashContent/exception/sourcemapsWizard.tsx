@@ -50,7 +50,7 @@ export default function SourceMapsWizard() {
         onClick={() => {
           setIsHidden(true);
           setHideUntilTime(DISMISS_TIME);
-          trackAnalytics('issues.sourcemap_wizard_dismiss', {
+          trackAnalytics('issue_details.sourcemap_wizard_dismiss', {
             organization: organization.id,
           });
         }}
@@ -71,7 +71,7 @@ export default function SourceMapsWizard() {
           hideCopyButton={false}
           language="bash"
           onCopy={() => {
-            trackAnalytics('issues.sourcemap_wizard_copy', {
+            trackAnalytics('issue_details.sourcemap_wizard_copy', {
               organization: organization.id,
             });
           }}
