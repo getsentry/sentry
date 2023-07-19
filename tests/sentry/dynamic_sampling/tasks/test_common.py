@@ -4,8 +4,15 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
+from sentry.dynamic_sampling.tasks.common import (
+    GetActiveOrgs,
+    GetActiveOrgsVolumes,
+    TimedIterator,
+    TimeoutException,
+    timed_function,
+)
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
+from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
@@ -138,3 +145,140 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             total_orgs += num_orgs
             assert num_orgs == 2  # only 2 orgs since we limit the number of projects
         assert total_orgs == 10
+
+
+def test_timed_function_decorator_updates_state():
+    """
+    Tests that the decorator correctly extracts the state
+    and passes it to the inner function.
+
+    At the end the Context should be properly updated for the wrapped function
+    It works with the default function name and also with custom names
+
+    """
+    t = Timer()
+    context = TaskContext(name="TC", num_seconds=60.0)
+
+    @timed_function()
+    def f1(state: DynamicSamplingLogState, x: int, y: str):
+        state.num_iterations = 1
+
+    @timed_function("f2x")
+    def f2(state: DynamicSamplingLogState, x: int, y: str):
+        state.num_iterations = 2
+
+    f1(context, t, 1, "x")
+    f2(context, t, 1, "x")
+
+    f1_state = context.get_function_state("f1")
+    assert f1_state is not None
+    assert f1_state.num_iterations == 1
+
+    f2_state = context.get_function_state("f2x")
+    assert f2_state is not None
+    assert f2_state.num_iterations == 2
+
+
+def test_timed_function_correctly_times_inner_function():
+    with freeze_time("2023-07-14 10:00:00") as frozen_time:
+        t = Timer()
+        context = TaskContext(name="TC", num_seconds=60.0)
+
+        @timed_function()
+        def f1(state: DynamicSamplingLogState, x: int, y: str):
+            state.num_iterations = 1
+            frozen_time.tick()
+
+        f1(context, t, 1, "x")
+        frozen_time.tick()
+        f1(context, t, 1, "x")
+
+        # two seconds passed inside f1 ( one for each call)
+        assert t.current() == 2.0
+
+
+def test_timed_function_correctly_raises_when_task_expires():
+    with freeze_time("2023-07-14 10:00:00") as frozen_time:
+        t = Timer()
+        context = TaskContext(name="TC", num_seconds=2.0)
+
+        @timed_function()
+        def f1(state: DynamicSamplingLogState, x: int, y: str):
+            state.num_iterations = 1
+            frozen_time.tick()
+
+        f1(context, t, 1, "x")
+        assert t.current() == 1.0
+        frozen_time.tick()
+        assert t.current() == 1.0  # timer should not be moving ouside the function
+        f1(context, t, 1, "x")
+
+        # two seconds passed inside f1 ( one for each call)
+        assert t.current() == 2.0
+
+        with pytest.raises(TimeoutException):
+            f1(context, t, 1, "x")
+
+        # the tick should not advance ( the function should not have been called)
+        assert t.current() == 2.0
+
+
+NOW_ISH = timezone.now().replace(second=0, microsecond=0)
+
+
+@freeze_time(MOCK_DATETIME)
+class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    def setUp(self):
+        # create 12 orgs each and some transactions with a 2/1 drop/keep rate
+        for i in range(12):
+            org = self.create_organization(f"org-{i}")
+            project = self.create_project(organization=org)
+            for decision, value in [("drop", 2), ("keep", 1)]:
+                self.store_performance_metric(
+                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    tags={"transaction": "foo_transaction", "decision": decision},
+                    minutes_before_now=1,
+                    value=value,
+                    project_id=project.id,
+                    org_id=org.id,
+                )
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def test_get_active_orgs_volumes_exact_batch_match(self):
+        """
+        gets active org volumes, with a batch size multiple of
+        number of elements
+        """
+        total_orgs = 0
+        for orgs in GetActiveOrgsVolumes(max_orgs=3):
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            assert num_orgs == 3  # first batch should be full
+            for org in orgs:
+                assert org.total == 3
+                assert org.indexed == 1
+        assert total_orgs == 12
+
+    def test_get_active_orgs_volumes(self):
+        """
+        gets active org volumes, with a batch size that is not a multiple
+        of the number of elements in the DB
+        """
+        total_orgs = 0
+        for idx, orgs in enumerate(GetActiveOrgsVolumes(max_orgs=5)):
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            if idx in [0, 1]:
+                assert num_orgs == 5  # first two batches should be full
+            elif idx == 2:
+                assert num_orgs == 2  # last batch not full
+            else:
+                pytest.fail(f"Unexpected index {idx} only 3 iterations expected.")
+            for org in orgs:
+                assert org.total == 3
+                assert org.indexed == 1
+
+        assert total_orgs == 12
