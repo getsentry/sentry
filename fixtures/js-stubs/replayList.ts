@@ -15,8 +15,6 @@ export function ReplayList(
         name: 'Firefox',
         version: '111.0',
       },
-      count_dead_clicks: 0,
-      count_rage_clicks: 0,
       count_errors: 0,
       duration: duration(30000),
       finished_at: new Date('2022-09-15T06:54:00+00:00'),

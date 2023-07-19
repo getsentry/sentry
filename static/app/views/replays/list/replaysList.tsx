@@ -92,29 +92,6 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-  const visibleCols = hasDeadRageCols
-    ? [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.BROWSER,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.COUNT_DEAD_CLICKS,
-        ReplayColumn.COUNT_RAGE_CLICKS,
-        ReplayColumn.ACTIVITY,
-      ]
-    : [
-        ReplayColumn.REPLAY,
-        ReplayColumn.OS,
-        ReplayColumn.BROWSER,
-        ReplayColumn.DURATION,
-        ReplayColumn.COUNT_ERRORS,
-        ReplayColumn.ACTIVITY,
-      ];
-
   return (
     <Fragment>
       <ReplayTable
@@ -122,7 +99,14 @@ function ReplaysListTable({
         isFetching={isFetching}
         replays={replays}
         sort={eventView.sorts[0]}
-        visibleColumns={visibleCols}
+        visibleColumns={[
+          ReplayColumn.REPLAY,
+          ReplayColumn.OS,
+          ReplayColumn.BROWSER,
+          ReplayColumn.DURATION,
+          ReplayColumn.COUNT_ERRORS,
+          ReplayColumn.ACTIVITY,
+        ]}
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

@@ -120,9 +120,7 @@ describe('GroupReplays', () => {
               field: [
                 'activity',
                 'browser',
-                'count_dead_clicks',
                 'count_errors',
-                'count_rage_clicks',
                 'duration',
                 'finished_at',
                 'id',
