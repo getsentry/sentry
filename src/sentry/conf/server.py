@@ -1570,6 +1570,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable rage click and dead click columns in replay list.
     "organizations:replay-rage-click-dead-click-columns": False,
+    # Enable experimental error and rage/dead click cards in replay list.
+    "organizations:replay-error-click-cards": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
