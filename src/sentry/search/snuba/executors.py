@@ -822,12 +822,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")
             # When it's a simple django-only search, we count_hits like normal
-
-            # TODO: Add types to paginators and remove this
-            return cast(
-                CursorResult[Group],
-                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+            metrics.timing(
+                "snuba.search.query",
+                (timezone.now() - now).total_seconds(),
+                tags={"postgres_only": True},
             )
+            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
@@ -926,7 +926,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 aggregate_kwargs=aggregate_kwargs,
             )
-            metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
             more_results = count >= limit and (offset + limit) < total
             offset += len(snuba_groups)
@@ -995,11 +994,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # more results.
             paginator_results.prev.has_results = True
 
-        metrics.timing("snuba.search.num_chunks", num_chunks)
-
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
+        metrics.timing(
+            "snuba.search.query",
+            (timezone.now() - now).total_seconds(),
+            tags={"postgres_only": False},
+        )
         return paginator_results
 
     def calculate_hits(
