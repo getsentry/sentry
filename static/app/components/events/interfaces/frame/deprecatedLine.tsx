@@ -62,7 +62,7 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
-  isToggleable?: boolean;
+  isSubFrame?: boolean;
   isToggled?: boolean;
   lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
@@ -304,6 +304,7 @@ export class DeprecatedLine extends Component<Props, State> {
       threadId,
       lockAddress,
       onShowFramesToggle,
+      isSubFrame,
     } = this.props;
     const organization = this.props.organization;
     const anrCulprit =
@@ -316,7 +317,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title" data-test-id="title">
+        <DefaultLine className="title" data-test-id="title" isSubFrame={!!isSubFrame}>
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
@@ -361,6 +362,7 @@ export class DeprecatedLine extends Component<Props, State> {
       isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
+      isSubFrame,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
@@ -368,7 +370,11 @@ export class DeprecatedLine extends Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table" data-test-id="title">
+        <DefaultLine
+          className="title as-table"
+          data-test-id="title"
+          isSubFrame={!!isSubFrame}
+        >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
@@ -525,10 +531,11 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')`
+const DefaultLine = styled('div')<{isSubFrame: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto ${space(2)}; /* sm icon size */
   align-items: center;
+  background: ${p => (p.isSubFrame ? `${p.theme.gray100} !important` : '')};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`

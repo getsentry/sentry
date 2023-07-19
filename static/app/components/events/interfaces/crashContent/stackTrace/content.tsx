@@ -347,7 +347,7 @@ class Content extends Component<Props, State> {
             onShowFramesToggle={e => {
               this.handleToggleFrames(e, frameIdx);
             }}
-            isToggleable={frameIdx in toggleFrameMap}
+            isSubFrame={keys.includes(frameIdx)}
             isToggled={toggleFrameMap[frameIdx]}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
