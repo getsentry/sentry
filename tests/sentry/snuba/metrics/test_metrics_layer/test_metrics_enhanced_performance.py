@@ -2,7 +2,7 @@
 Metrics Service Layer Tests for Performance
 """
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest import mock
 
@@ -10,7 +10,6 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
@@ -1283,14 +1282,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data == {
-            "start": FakeDatetime(
+            "start": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
             ),
-            "end": FakeDatetime(
+            "end": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
             ),
             "intervals": [
-                FakeDatetime(
+                datetime(
                     day_ago.year,
                     day_ago.month,
                     day_ago.day,
