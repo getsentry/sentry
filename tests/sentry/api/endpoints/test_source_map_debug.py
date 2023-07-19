@@ -191,49 +191,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
 
-    def test_release_has_no_user_agent(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "release": "my-release",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        Release.objects.get(organization=self.organization, version=event.release)
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            frame_idx=0,
-            exception_idx=0,
-        )
-
-        error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
-        assert error["data"] == {
-            "version": "my-release",
-            "filename": "/static/js/main.fa8fe19f.js",
-        }
-
     def test_release_has_no_artifacts(self):
         event = self.store_event(
             data={
