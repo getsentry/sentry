@@ -11,10 +11,9 @@ describe('ProviderItem', function () {
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function () {
-    render(
-      <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
-      {context: routerContext}
-    );
+    render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
+      context: routerContext,
+    });
 
     expect(
       screen.getByText('Enable your organization to sign in with Dummy.')
@@ -23,7 +22,7 @@ describe('ProviderItem', function () {
 
   it('calls configure callback', async function () {
     const mock = jest.fn();
-    render(<ProviderItem organization={org} provider={provider} onConfigure={mock} />, {
+    render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
       context: routerContext,
     });
 
@@ -33,10 +32,9 @@ describe('ProviderItem', function () {
 
   it('renders a disabled Tag when disabled', function () {
     const noFeatureRouterContext = TestStubs.routerContext();
-    render(
-      <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
-      {context: noFeatureRouterContext}
-    );
+    render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
+      context: noFeatureRouterContext,
+    });
 
     expect(screen.getByRole('status')).toHaveTextContent('disabled');
   });
