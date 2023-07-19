@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
+    webhook_endpoint = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
@@ -40,7 +41,7 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
-        if self.view_class == GitHubIntegrationsWebhookEndpoint:
+        if self.view_class == self.webhook_endpoint:
             regions = self.get_regions_from_organizations()
             if len(regions) == 0:
                 logger.error("no_regions", extra={"path": self.request.path})
