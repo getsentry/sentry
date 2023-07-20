@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import router
 from django.db.models import F
 from django.test import override_settings
@@ -31,7 +32,8 @@ from sentry.types.region import Region, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
+        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+            self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
     def _get_paths(self, args):
