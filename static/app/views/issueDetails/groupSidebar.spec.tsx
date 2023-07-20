@@ -9,7 +9,7 @@ describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
   const {organization, project} = initializeOrg();
   const environment = 'production';
-  let tagsMock;
+  let tagsMock: jest.Mock;
 
   beforeEach(function () {
     MemberListStore.loadInitialData([]);
@@ -55,8 +55,7 @@ describe('GroupSidebar', function () {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/code-mappings/`,
-      query: {project: -1},
+      url: `/organizations/${organization.slug}/code-mappings/?project=-1`,
       method: 'GET',
       body: [],
     });
@@ -87,8 +86,7 @@ describe('GroupSidebar', function () {
           organization={organization}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
 
       expect(await screen.findByText('browser')).toBeInTheDocument();
@@ -105,8 +103,7 @@ describe('GroupSidebar', function () {
           organization={organization}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(screen.getByText('device')).toBeInTheDocument();
@@ -126,8 +123,7 @@ describe('GroupSidebar', function () {
           organization={organization}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(1);
@@ -138,8 +134,7 @@ describe('GroupSidebar', function () {
           organization={organization}
           event={TestStubs.Event()}
           environments={[stagingEnv]}
-        />,
-        {organization}
+        />
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(2);
@@ -176,8 +171,7 @@ describe('GroupSidebar', function () {
           organization={organization}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
       expect(
         await screen.findByText('No tags found in the selected environments')
@@ -209,8 +203,7 @@ describe('GroupSidebar', function () {
         organization={organization}
         event={TestStubs.Event()}
         environments={[]}
-      />,
-      {organization}
+      />
     );
 
     expect(await screen.findByText('Participants (2)')).toBeInTheDocument();
@@ -238,8 +231,7 @@ describe('GroupSidebar', function () {
           }}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
       await waitFor(() => expect(tagsMock).toHaveBeenCalled());
       expect(
@@ -258,8 +250,7 @@ describe('GroupSidebar', function () {
           }}
           event={TestStubs.Event()}
           environments={[environment]}
-        />,
-        {organization}
+        />
       );
       await waitFor(() => expect(tagsMock).toHaveBeenCalled());
       expect(
