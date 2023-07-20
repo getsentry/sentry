@@ -57,6 +57,7 @@ export const migratedDocs = [
   'ruby-rack',
   'kotlin',
   'node',
+  'node-connect',
   'node-gcpfunctions',
   'node-express',
   'electron',
