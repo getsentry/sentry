@@ -4,7 +4,7 @@ from typing import Any, Optional, Set
 import click
 from yaml import safe_dump, safe_load
 
-from sentry.runner.decorators import configuration
+from sentry.runner.decorators import configuration, log_options
 
 # These messages are produced more than once and referenced in tests.
 # This is the reason they are constants.
@@ -23,7 +23,11 @@ def _attempt_update(
     Updates the option if it is not drifted and if we are not in dry
     run mode.
     """
+    import logging
+
     from sentry import options
+
+    logger = logging.getLogger("sentry.options_automator")
 
     opt = options.lookup_key(key)
 
@@ -31,6 +35,7 @@ def _attempt_update(
     db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
         click.echo(DRIFT_MSG % key)
+        logger.error("Option %s drifted and cannot be updated.", key)
         if not hide_drift:
             click.echo(DB_VALUE % key)
             # This is yaml instead of the python representation as the
@@ -82,6 +87,7 @@ def _attempt_update(
     is_flag=True,
     help="Hide the actual value of the option on DB when detecting drift.",
 )
+@log_options()
 @click.pass_context
 @configuration
 def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> None:
