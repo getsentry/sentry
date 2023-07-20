@@ -2,8 +2,9 @@ import unittest
 
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.serializers import ListField
 
-from sentry.api.serializers.rest_framework import ActorField, ListField
+from sentry.api.fields.actor import ActorField
 from sentry.models import Team, User
 from sentry.testutils import TestCase
 
