@@ -1,15 +1,15 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project({options: {}});
-  const PROJECT_URL = `/projects/${org.slug}/${project.slug}/`;
+  const {organization, project, routerProps} = initializeOrg({project: {options: {}}});
+  const PROJECT_URL = `/projects/${organization.slug}/${project.slug}/`;
 
-  const getFilterEndpoint = filter => `${PROJECT_URL}filters/${filter}/`;
+  const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;
 
-  const createFilterMock = filter =>
+  const createFilterMock = (filter: string) =>
     MockApiClient.addMockResponse({
       url: getFilterEndpoint(filter),
       method: 'PUT',
@@ -18,12 +18,12 @@ describe('ProjectFilters', function () {
   function renderComponent() {
     return render(
       <ProjectFilters
-        params={{projectId: project.slug}}
-        location={{}}
+        {...routerProps}
+        params={{projectId: project.slug, filterType: ''}}
         project={project}
-        organization={org}
+        organization={organization}
       />,
-      {organization: org}
+      {organization}
     );
   }
 
@@ -213,9 +213,9 @@ describe('ProjectFilters', function () {
   it('has custom inbound filters with flag + can change', async function () {
     render(
       <ProjectFilters
-        organization={org}
-        params={{projectId: project.slug, orgId: org.slug}}
-        location={{}}
+        {...routerProps}
+        organization={organization}
+        params={{projectId: project.slug, filterType: ''}}
         project={{
           ...project,
           features: ['custom-inbound-filters'],
@@ -256,9 +256,9 @@ describe('ProjectFilters', function () {
   it('disables configuration for non project:write users', async function () {
     render(
       <ProjectFilters
-        organization={org}
-        location={{}}
-        params={{projectId: project.slug, orgId: org.slug}}
+        {...routerProps}
+        organization={organization}
+        params={{projectId: project.slug, filterType: ''}}
         project={project}
       />,
       {organization: TestStubs.Organization({access: []})}
@@ -273,8 +273,9 @@ describe('ProjectFilters', function () {
   it('shows disclaimer if error message filter is populated', async function () {
     render(
       <ProjectFilters
-        organization={org}
-        params={{projectId: project.slug, orgId: org.slug}}
+        {...routerProps}
+        organization={organization}
+        params={{projectId: project.slug, filterType: ''}}
         project={{
           ...project,
           features: ['custom-inbound-filters'],
@@ -289,7 +290,7 @@ describe('ProjectFilters', function () {
       await screen.findByText(
         "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
       )
-    ).toBeInTheDocument(0);
+    ).toBeInTheDocument();
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
@@ -301,13 +302,12 @@ describe('ProjectFilters', function () {
 
     render(
       <ProjectFilters
-        organization={org}
+        {...routerProps}
+        organization={organization}
         params={{
           projectId: discardProject.slug,
-          orgId: discardOrg.slug,
           filterType: 'discarded-groups',
         }}
-        location={{}}
         project={discardProject}
       />,
       {organization: discardOrg}
