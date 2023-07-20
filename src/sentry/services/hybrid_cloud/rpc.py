@@ -9,7 +9,19 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    Mapping,
+    NoReturn,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 
 import django.urls
 import pydantic
@@ -322,7 +334,7 @@ class RpcService(abc.ABC):
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
                 raise RpcServiceSetupException(
-                    f"Error on parameter model for {cls.__name__}.{base_method.__name__}: {e}"
+                    f"Error on parameter model for {cls.__name__}.{base_method.__name__}"
                 ) from e
             else:
                 model_table[base_method.__name__] = signature
@@ -500,9 +512,9 @@ class _RemoteSiloCall:
                 "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
             )
 
+            if response.status_code == 200:
+                return response.json()
             self._raise_from_response_status_error(response)
-            serial_response = response.json()
-        return serial_response
 
     @contextmanager
     def _open_request_context(self):
@@ -517,15 +529,13 @@ class _RemoteSiloCall:
         with span, timer:
             yield
 
-    def _raise_from_response_status_error(self, response: requests.Response) -> None:
-        if response.status_code == 200:
-            return
+    def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         if in_test_environment():
             if response.status_code == 500:
                 raise Exception(
-                    f"Error invoking rpc at {self.path}: check error logs for more details"
+                    f"Error invoking rpc at {self.path!r}: check error logs for more details"
                 )
-            raise Exception(f"Error invoking rpc at {self.path}: {response.json()['detail']}")
+            raise Exception(f"Error invoking rpc at {self.path!r}: {response.json()['detail']}")
         # Careful not to reveal too much information in production
         if response.status_code == 403:
             raise Exception("Unauthorized service access")
