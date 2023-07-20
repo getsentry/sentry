@@ -35,8 +35,6 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
         )
         self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.service.id,
@@ -116,8 +114,6 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
         )
         self.run_fire_test()
 

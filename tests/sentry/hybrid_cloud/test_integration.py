@@ -7,7 +7,6 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.models import PagerDutyService
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -22,46 +21,45 @@ from sentry.services.hybrid_cloud.integration.serial import (
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.types.integrations import ExternalProviders
 
 
 class BaseIntegrationServiceTest(TestCase):
+    # TODO(hybrid-cloud): Refactor this to use individual assume_test_silos
+    #  for each colocated model init.
+    @assume_test_silo_mode(SiloMode.MONOLITH)
     def setUp(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.user = self.create_user()
-        with assume_test_silo_mode(SiloMode.REGION):
-            self.organization = self.create_organization(owner=self.user)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration1 = self.create_integration(
-                organization=self.organization,
-                name="Example",
-                provider="example",
-                external_id="example:1",
-                status=ObjectStatus.ACTIVE,
-                metadata={"meta": "data"},
-            )
-            self.org_integration1 = OrganizationIntegration.objects.get(
-                organization_id=self.organization.id, integration_id=self.integration1.id
-            )
-            self.integration2 = self.create_integration(
-                organization=self.organization,
-                name="Github",
-                provider="github",
-                external_id="github:1",
-                oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
-            )
-            self.org_integration2 = OrganizationIntegration.objects.get(
-                organization_id=self.organization.id, integration_id=self.integration2.id
-            )
-            self.integration3 = self.create_integration(
-                organization=self.organization,
-                name="Example",
-                provider="example",
-                external_id="example:2",
-            )
-            self.org_integration3 = OrganizationIntegration.objects.get(
-                organization_id=self.organization.id, integration_id=self.integration3.id
-            )
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        self.integration1 = self.create_integration(
+            organization=self.organization,
+            name="Example",
+            provider="example",
+            external_id="example:1",
+            status=ObjectStatus.ACTIVE,
+            metadata={"meta": "data"},
+        )
+        self.org_integration1 = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=self.integration1.id
+        )
+        self.integration2 = self.create_integration(
+            organization=self.organization,
+            name="Github",
+            provider="github",
+            external_id="github:1",
+            oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
+        )
+        self.org_integration2 = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=self.integration2.id
+        )
+        self.integration3 = self.create_integration(
+            organization=self.organization,
+            name="Example",
+            provider="example",
+            external_id="example:2",
+        )
+        self.org_integration3 = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=self.integration3.id
+        )
         self.integrations = [self.integration1, self.integration2, self.integration3]
         self.org_integrations = [
             self.org_integration1,
@@ -245,53 +243,6 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             integration_id=-1, organization_id=-1
         )
         assert result is None
-
-    def test_get_organization_integration__pd(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                organization=self.organization,
-                name=ExternalProviders.PAGERDUTY.name,
-                provider=ExternalProviders.PAGERDUTY.name,
-                external_id="pd:1",
-                oi_params={"config": {}},
-            )
-            org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization.id, integration_id=integration.id
-            )
-            id1 = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-                integration_key="key1",
-                service_name="service1",
-            ).id
-            id2 = PagerDutyService.objects.create(
-                organization_integration_id=org_integration.id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-                integration_key="key2",
-                service_name="service2",
-            ).id
-
-        result = integration_service.get_organization_integration(
-            integration_id=integration.id,
-            organization_id=self.organization.id,
-        )
-        assert result
-        assert result.config["pagerduty_services"] == [
-            dict(
-                integration_key="key1",
-                service_name="service1",
-                id=id1,
-                integration_id=integration.id,
-            ),
-            dict(
-                integration_key="key2",
-                service_name="service2",
-                id=id2,
-                integration_id=integration.id,
-            ),
-        ]
 
     def test_get_organization_context(self):
         new_org = self.create_organization()
