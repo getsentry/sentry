@@ -131,6 +131,7 @@ def _update_escalating_metrics(event: Event) -> None:
         tags={"group": str(event.group_id)},
         unit=None,
     )
+    metrics_backend.close()
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
