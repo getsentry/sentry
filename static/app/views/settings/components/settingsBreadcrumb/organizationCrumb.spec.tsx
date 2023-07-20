@@ -4,13 +4,16 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {Config} from 'sentry/types';
 import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
+
+import {RouteWithName} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
-  let initialData;
-  const {organization, project, routerContext} = initializeOrg();
+  let initialData: Config;
+  const {organization, project, routerContext, routerProps} = initializeOrg();
   const organizations = [
     organization,
     TestStubs.Organization({
@@ -29,30 +32,34 @@ describe('OrganizationCrumb', function () {
     await userEvent.click(screen.getAllByRole('option')[1]);
   };
 
-  const renderComponent = props =>
-    render(<OrganizationCrumb params={{orgId: organization.slug}} {...props} />, {
+  const renderComponent = (
+    props: Partial<
+      Pick<React.ComponentProps<typeof OrganizationCrumb>, 'route' | 'routes' | 'params'>
+    >
+  ) =>
+    render(<OrganizationCrumb {...routerProps} params={{}} {...props} />, {
       context: routerContext,
       organization,
     });
 
   beforeEach(function () {
     initialData = window.__initialData;
-    browserHistory.push.mockReset();
-    window.location.assign.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(window.location.assign).mockReset();
   });
   afterEach(function () {
-    window.__initalData = initialData;
+    window.__initialData = initialData;
   });
 
   it('switches organizations on settings index', async function () {
-    const routes = [
-      {path: '/', childRoutes: []},
-      {childRoutes: []},
-      {path: '/foo/', childRoutes: []},
-      {childRoutes: []},
-      {path: ':bar', childRoutes: []},
+    const routes: RouteWithName[] = [
+      {path: '/'},
+      {},
+      {path: '/foo/'},
+      {},
+      {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/', childRoutes: []},
+      {name: 'Organizations', path: ':orgId/'},
     ];
     const route = routes[6];
 
@@ -63,15 +70,15 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations while on API Keys Details route', async function () {
-    const routes = [
-      {path: '/', childRoutes: []},
-      {childRoutes: []},
-      {path: '/foo/', childRoutes: []},
-      {childRoutes: []},
-      {path: ':bar', childRoutes: []},
+    const routes: RouteWithName[] = [
+      {path: '/'},
+      {},
+      {path: '/foo/'},
+      {},
+      {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/', childRoutes: []},
-      {childRoutes: []},
+      {name: 'Organizations', path: ':orgId/'},
+      {},
       {path: 'api-keys/', name: 'API Key'},
       {path: ':apiKey/', name: 'API Key Details'},
     ];
@@ -84,15 +91,15 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations while on API Keys List route', async function () {
-    const routes = [
-      {path: '/', childRoutes: []},
-      {childRoutes: []},
-      {path: '/foo/', childRoutes: []},
-      {childRoutes: []},
-      {path: ':bar', childRoutes: []},
+    const routes: RouteWithName[] = [
+      {path: '/'},
+      {},
+      {path: '/foo/'},
+      {},
+      {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/', childRoutes: []},
-      {childRoutes: []},
+      {name: 'Organizations', path: ':orgId/'},
+      {},
       {path: 'api-keys/', name: 'API Key'},
     ];
     const route = routes[6];
@@ -104,11 +111,11 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations while in Project Client Keys Details route', async function () {
-    const routes = [
-      {path: '/', childRoutes: []},
-      {path: '/settings/', name: 'Settings', childRoutes: []},
-      {name: 'Organization', path: ':orgId/', childRoutes: []},
-      {name: 'Project', path: 'projects/:projectId/', childRoutes: []},
+    const routes: RouteWithName[] = [
+      {path: '/'},
+      {path: '/settings/', name: 'Settings'},
+      {name: 'Organization', path: ':orgId/'},
+      {name: 'Project', path: 'projects/:projectId/'},
       {path: 'keys/', name: 'Client Keys'},
       {path: ':keyId/', name: 'Details'},
     ];
@@ -116,10 +123,7 @@ describe('OrganizationCrumb', function () {
     const route = routes[2];
 
     renderComponent({
-      params: {
-        orgId: organization.slug,
-        projectId: project.slug,
-      },
+      params: {projectId: project.slug},
       routes,
       route,
     });
@@ -135,17 +139,17 @@ describe('OrganizationCrumb', function () {
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    } as Config;
 
-    const routes = [
-      {path: '/', childRoutes: []},
-      {childRoutes: []},
-      {path: '/foo/', childRoutes: []},
-      {childRoutes: []},
-      {path: ':bar', childRoutes: []},
+    const routes: RouteWithName[] = [
+      {path: '/'},
+      {},
+      {path: '/foo/'},
+      {},
+      {path: ':bar'},
       {path: '/settings/', name: 'Settings'},
-      {name: 'Organizations', path: ':orgId/', childRoutes: []},
-      {childRoutes: []},
+      {name: 'Organizations', path: ':orgId/'},
+      {},
       {path: 'api-keys/', name: 'API Key'},
     ];
     const route = routes[6];
