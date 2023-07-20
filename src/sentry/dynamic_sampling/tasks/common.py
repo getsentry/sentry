@@ -553,6 +553,7 @@ class GetActiveOrgsVolumes:
         else:
             ret_val = self.last_result
             self.last_result = []
+        self.log_state.num_orgs += len(ret_val)
         return ret_val
 
 
