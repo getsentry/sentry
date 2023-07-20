@@ -3,12 +3,14 @@ from __future__ import annotations
 import sentry_sdk
 from django.db import IntegrityError
 
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.models import AuditLogEntry, OutboxCategory, OutboxScope, RegionOutbox, UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.utils import metrics
 
 
 class DatabaseBackedLogService(LogService):
+    @django_test_transaction_water_mark()
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         entry = AuditLogEntry.from_event(event)
         try:
@@ -35,6 +37,7 @@ class DatabaseBackedLogService(LogService):
             else:
                 raise
 
+    @django_test_transaction_water_mark()
     def record_user_ip(self, *, event: UserIpEvent) -> None:
         updated, created = UserIP.objects.create_or_update(
             user_id=event.user_id,
