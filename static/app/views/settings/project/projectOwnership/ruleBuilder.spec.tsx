@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -11,12 +12,14 @@ import {
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Project} from 'sentry/types';
 import RuleBuilder from 'sentry/views/settings/project/projectOwnership/ruleBuilder';
 
 describe('RuleBuilder', function () {
-  const organization = TestStubs.Organization();
-  let project;
-  let handleAdd;
+  const {organization} = initializeOrg();
+  let project: Project;
+  let handleAdd: jest.Mock;
+
   const USER_1 = TestStubs.User({
     id: '1',
     name: 'Jane Bloggs',
@@ -72,7 +75,14 @@ describe('RuleBuilder', function () {
 
   it('renders', async function () {
     const {container} = render(
-      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
+      <RuleBuilder
+        project={project}
+        organization={organization}
+        onAddRule={handleAdd}
+        paths={[]}
+        urls={[]}
+        disabled={false}
+      />
     );
 
     const addButton = screen.getByRole('button', {name: 'Add rule'});
@@ -107,6 +117,7 @@ describe('RuleBuilder', function () {
         onAddRule={handleAdd}
         urls={['example.com/a', 'example.com/a/foo']}
         paths={['a/bar', 'a/foo']}
+        disabled={false}
       />
     );
 
@@ -142,7 +153,14 @@ describe('RuleBuilder', function () {
 
   it('builds a tag rule', async function () {
     render(
-      <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
+      <RuleBuilder
+        project={project}
+        organization={organization}
+        onAddRule={handleAdd}
+        paths={[]}
+        urls={[]}
+        disabled={false}
+      />
     );
 
     await selectEvent.select(screen.getByText('Path'), 'Tag');
