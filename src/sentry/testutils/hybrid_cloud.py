@@ -4,20 +4,7 @@ import contextlib
 import functools
 import threading
 from types import TracebackType
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypedDict,
-)
+from typing import Any, Callable, Generator, Iterator, List, Optional, Set, Type, TypedDict
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -25,7 +12,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
+from sentry.services.hybrid_cloud import DelegatedBySiloMode
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -89,23 +76,6 @@ def service_stubbed(
             yield
     else:
         raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
-
-
-@contextlib.contextmanager
-def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
-    call_sites: List[Tuple[Any, str, Sequence[Any], Mapping[str, Any]]] = []
-
-    def cb(service: Any, method_name: str, *args: Sequence[Any], **kwds: Mapping[str, Any]):
-        call_sites.append((service, method_name, args, kwds))
-        assert (
-            len(call_sites) < max_calls
-        ), "Too many inter silo calls (through stubs) found!  Consider consolidating total calls."
-
-    hc_test_stub.cb = cb
-    try:
-        yield
-    finally:
-        hc_test_stub.cb = None
 
 
 class HybridCloudTestMixin:

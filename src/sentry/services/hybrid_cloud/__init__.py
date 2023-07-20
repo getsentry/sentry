@@ -226,9 +226,6 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         raise KeyError(f"No implementation found for {cur_mode}.")
 
 
-hc_test_stub: Any = threading.local()
-
-
 def CreateStubFromBase(
     base: Type[ServiceInterface], target_mode: SiloMode
 ) -> Type[ServiceInterface]:
@@ -253,8 +250,6 @@ def CreateStubFromBase(
             from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
             with SiloMode.exit_single_process_silo_context():
-                if cb := getattr(hc_test_stub, "cb", None):
-                    cb(self.backing_service, method_name, *args, **kwds)
                 method = getattr(self.backing_service, method_name)
                 call_args = inspect.getcallargs(method, *args, **kwds)
 

@@ -16,7 +16,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 
-from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
+from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -342,8 +342,7 @@ class RpcService(abc.ABC):
         """
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
-            signature = cls._signatures.get(method_name)
-            fallback = stubbed(cls.get_local_implementation, cls.local_mode)
+            signature = cls._signatures[method_name]
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if signature is None:
@@ -359,31 +358,10 @@ class RpcService(abc.ABC):
                 else:
                     region = None
 
-                try:
-                    serial_arguments = signature.serialize_arguments(kwargs)
-                except Exception as e:
-                    raise RpcServiceUnimplementedException(
-                        f"Could not serialize arguments for {cls.__name__}.{method_name}"
-                    ) from e
-
+                serial_arguments = signature.serialize_arguments(kwargs)
                 return dispatch_remote_call(region, cls.key, method_name, serial_arguments)
 
-            def remote_method_with_fallback(service_obj: RpcService, **kwargs: Any) -> Any:
-                # See RpcServiceUnimplementedException documentation
-                # TODO: Remove this when RPC services are production-ready
-                try:
-                    return remote_method(service_obj, **kwargs)
-                except RpcServiceUnimplementedException as e:
-                    logger.info(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
-                    # Drop out of the except block, so that we don't get a spurious
-                    #     "During handling of the above exception, another exception occurred"
-                    # message in case the fallback method raises an unrelated exception.
-
-                service = fallback()
-                method = getattr(service, method_name)
-                return method(**kwargs)
-
-            return remote_method_with_fallback
+            return remote_method
 
         overrides = {
             service_method.__name__: create_remote_method(service_method.__name__)
@@ -496,7 +474,13 @@ def dispatch_remote_call(
         op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
     )
     with span, timer:
-        response = _fire_request(url, path, request_body)
+        data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
+        signature = generate_request_signature(path, data)
+        headers = {
+            "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
+            "Authorization": f"Rpcsignature {signature}",
+        }
+        response = _fire_request(url, headers, data)
         metrics.incr(
             "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
         )
@@ -510,15 +494,44 @@ def dispatch_remote_call(
     )
 
 
-def _fire_request(url: str, path: str, body: Any) -> requests.Response:
-    # TODO: Performance considerations (persistent connections, pooling, etc.)?
-    data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
+def _fire_test_request(
+    path: str, headers: Mapping[str, str], data: bytes, region: Region | None
+) -> Any:
+    from django.test import Client, override_settings
 
-    signature = generate_request_signature(path, data)
-    headers = {
-        "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
-        "Authorization": f"Rpcsignature {signature}",
-    }
+    from sentry.db.postgres.transactions import in_test_assert_no_transaction
+
+    in_test_assert_no_transaction(
+        f"remote service method to {path} called inside transaction!  Move service calls to outside of transactions."
+    )
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
+
+    with SiloMode.exit_single_process_silo_context():
+        auth_context: AuthenticationContext = AuthenticationContext()
+        # TODO: Add this to rpc endpoint.
+        # if "auth_context" in call_args:
+        #     auth_context = call_args["auth_context"] or auth_context
+
+        if region:
+            target_mode = SiloMode.REGION
+            settings = dict(SENTRY_REGION=region.name)
+        else:
+            target_mode = SiloMode.CONTROL
+            settings = dict()
+
+        with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+            target_mode
+        ), override_settings(**settings):
+            return Client().post(
+                path,
+                data,
+                content_type=f"application/json; charset={_RPC_CONTENT_CHARSET}",
+                **headers,
+            )
+
+
+def _fire_request(url: str, headers: Mapping[str, str], data: bytes) -> requests.Response:
+    # TODO: Performance considerations (persistent connections, pooling, etc.)?
     return requests.post(url, headers=headers, data=data)
 
 
