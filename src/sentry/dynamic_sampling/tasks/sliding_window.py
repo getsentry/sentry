@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
+    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
@@ -64,7 +65,7 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def sliding_window() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_SECONDS)
+    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_TASK_SECONDS)
     adjust_base_sample_rate_of_projects_timer = Timer()
 
     window_size = get_sliding_window_size()
