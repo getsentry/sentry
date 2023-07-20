@@ -2,14 +2,12 @@ import time
 
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.testutils.factories import Factories
-from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)
-@all_silo_test
-@use_real_service(user_option_service, None)
+@all_silo_test(stable=True)
 def test_user_option_service():
     objects = [1, dict(a=dict(b=3)), "asdf", 9873, [1, 2, 3], 511]
 

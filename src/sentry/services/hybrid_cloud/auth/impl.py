@@ -97,7 +97,9 @@ def _can_override_sso_as_owner(
     other owners with SSO enabled.
     """
 
-    org_roles = organization_service.get_all_org_roles(member_id=member.id)
+    org_roles = organization_service.get_all_org_roles(
+        member_id=member.id, organization_id=member.organization_id
+    )
     if roles.get_top_dog().id not in org_roles:
         return False
 

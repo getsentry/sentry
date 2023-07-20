@@ -3,8 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import threading
-from types import TracebackType
-from typing import Any, Callable, Generator, Iterator, List, Optional, Set, Type, TypedDict
+from typing import Any, Callable, Iterator, List, Set, TypedDict
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -12,70 +11,8 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud import DelegatedBySiloMode
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
-
-
-class use_real_service:
-    service: object
-    silo_mode: SiloMode | None
-    context: contextlib.ExitStack
-
-    def __init__(self, service: object, silo_mode: SiloMode | None):
-        self.silo_mode = silo_mode
-        self.service = service
-        self.context = contextlib.ExitStack()
-
-    def __enter__(self) -> None:
-        from django.test import override_settings
-
-        if isinstance(self.service, DelegatedBySiloMode):
-            if self.silo_mode is not None:
-                self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
-                self.context.enter_context(self.service.with_replacement(None, self.silo_mode))
-            else:
-                self.context.enter_context(
-                    self.service.with_replacement(None, SiloMode.get_current_mode())
-                )
-        else:
-            raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
-
-    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(f)
-        def wrapped(*args: Any, **kwds: Any) -> Any:
-            with use_real_service(self.service, self.silo_mode):
-                return f(*args, **kwds)
-
-        return wrapped
-
-    def __exit__(
-        self,
-        __exc_type: Type[BaseException] | None,
-        __exc_value: BaseException | None,
-        __traceback: TracebackType | None,
-    ) -> bool | None:
-        return self.context.__exit__(__exc_type, __exc_value, __traceback)
-
-
-@contextlib.contextmanager
-def service_stubbed(
-    service: object,
-    stub: Optional[object],
-    silo_mode: Optional[SiloMode] = None,
-) -> Generator[None, None, None]:
-    """
-    Replaces a service created with silo_mode_delegation with a replacement implementation while inside of the scope,
-    closing the existing implementation on enter and closing the given implementation on exit.
-    """
-    if silo_mode is None:
-        silo_mode = SiloMode.get_current_mode()
-
-    if isinstance(service, DelegatedBySiloMode):
-        with service.with_replacement(stub, silo_mode):
-            yield
-    else:
-        raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
 class HybridCloudTestMixin:

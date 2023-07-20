@@ -333,7 +333,7 @@ class RpcService(abc.ABC):
         return model_table
 
     @classmethod
-    def _create_remote_implementation(cls) -> RpcService:
+    def _create_remote_implementation(cls, use_test_client: bool | None = None) -> RpcService:
         """Create a service object that makes remote calls to another silo.
 
         The service object will implement each abstract method with an RPC method
@@ -341,6 +341,8 @@ class RpcService(abc.ABC):
         an RPC method decorator are not overridden and are executed locally as normal
         (but are still available as part of the RPC interface for external clients).
         """
+        if use_test_client is None:
+            use_test_client = in_test_environment()
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
             signature = cls._signatures[method_name]
@@ -360,7 +362,9 @@ class RpcService(abc.ABC):
                     region = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
-                return dispatch_remote_call(region, cls.key, method_name, serial_arguments)
+                return dispatch_remote_call(
+                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
+                )
 
             return remote_method
 
@@ -373,13 +377,13 @@ class RpcService(abc.ABC):
         return cast(RpcService, remote_service_class())
 
     @classmethod
-    def create_delegation(cls) -> DelegatingRpcService:
+    def create_delegation(cls, use_test_client: bool | None = None) -> DelegatingRpcService:
         """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
                 cls.get_local_implementation
                 if mode == SiloMode.MONOLITH or mode == cls.local_mode
-                else cls._create_remote_implementation
+                else lambda: cls._create_remote_implementation(use_test_client=use_test_client)
             )
             for mode in SiloMode
         }
@@ -445,29 +449,55 @@ _RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
-    region: Region | None, service_name: str, method_name: str, serial_arguments: ArgumentDict
+    region: Region | None,
+    service_name: str,
+    method_name: str,
+    serial_arguments: ArgumentDict,
+    use_test_client: bool = False,
 ) -> Any:
     service, _ = _look_up_service_method(service_name, method_name)
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        # Pass the response through json.loads and json.dumps to force testing the serialization of services
+        # in monolith mode -- if this throws an exception, it means the types of an rpc service have an issue.
+        # do not remove!
+        serial_response = json.loads(
+            json.dumps(dispatch_to_local_service(service_name, method_name, serial_arguments))
+        )
+    else:
+        serial_response = _dispatch_to_silo_service(
+            method_name, region, serial_arguments, service_name, use_test_client
+        )
 
+    return_value = serial_response["value"]
+    return (
+        None
+        if return_value is None
+        else service.deserialize_rpc_response(method_name, return_value)
+    )
+
+
+def _dispatch_to_silo_service(method_name, region, serial_arguments, service_name, use_test_client):
     if region is None:
         address = settings.SENTRY_CONTROL_ADDRESS
     else:
         address = region.address
-
     if not (address and settings.RPC_SHARED_SECRET):
         raise RpcSendException("Not configured for RPC network requests")
-
     path = django.urls.reverse(
         "sentry-api-0-rpc-service",
         kwargs={"service_name": service_name, "method_name": method_name},
     )
-    # url = address + path
-
+    url = address + path
     request_body = {
         "meta": {},  # reserved for future use
         "args": serial_arguments,
     }
-
+    data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
+    signature = generate_request_signature(path, data)
+    headers = {
+        "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
+        "Authorization": f"Rpcsignature {signature}",
+    }
     timer = metrics.timer(
         "hybrid_cloud.dispatch_rpc.duration", tags={"service": service_name, "method": method_name}
     )
@@ -475,37 +505,29 @@ def dispatch_remote_call(
         op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
     )
     with span, timer:
-        data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
-        signature = generate_request_signature(path, data)
-        headers = {
-            "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
-            "Authorization": f"Rpcsignature {signature}",
-        }
-        # response = _fire_request(url, headers, data)
-        response = _fire_test_request(path, headers, data, region)
+        if use_test_client:
+            response = _fire_test_request(path, headers, data, region)
+        else:
+            response = _fire_request(url, headers, data)
         metrics.incr(
             "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
         )
 
-    if response.status_code != 200:
-        if in_test_environment():
-            if response.status_code == 500:
-                raise Exception("Error invoking rpc at {path}: check error logs for more details")
-            raise Exception("Error invoking rpc at {path}: {response.json()['detail']}")
-        # Careful not to reveal too much information in production
-        if response.status_code == 403:
-            raise Exception("Unauthorized service access")
-        if response.status_code == 400:
-            raise Exception("Invalid service request")
-        raise Exception("Service unavailable")
-
-    serial_response = response.json()
-    return_value = serial_response["value"]
-    return (
-        None
-        if return_value is None
-        else service.deserialize_rpc_response(method_name, return_value)
-    )
+        if response.status_code != 200:
+            if in_test_environment():
+                if response.status_code == 500:
+                    raise Exception(
+                        "Error invoking rpc at {path}: check error logs for more details"
+                    )
+                raise Exception("Error invoking rpc at {path}: {response.json()['detail']}")
+            # Careful not to reveal too much information in production
+            if response.status_code == 403:
+                raise Exception("Unauthorized service access")
+            if response.status_code == 400:
+                raise Exception("Invalid service request")
+            raise Exception("Service unavailable")
+        serial_response = response.json()
+    return serial_response
 
 
 def _fire_test_request(

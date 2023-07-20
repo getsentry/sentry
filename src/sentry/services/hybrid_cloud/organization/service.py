@@ -61,7 +61,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+    @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
@@ -231,13 +231,13 @@ class OrganizationService(RpcService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_all_org_roles(
         self,
         *,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
+        organization_id: int,
+        member_id: int,
     ) -> List[str]:
         pass
 

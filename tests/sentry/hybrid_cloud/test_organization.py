@@ -24,7 +24,6 @@ from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.pytest.fixtures import django_db_all
 
@@ -208,7 +207,6 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
 @django_db_all(transaction=True)
 @all_silo_test(stable=True)
 @parameterize_with_orgs
-@use_real_service(organization_service, None)
 def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
 
@@ -219,7 +217,6 @@ def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[
 @django_db_all(transaction=True)
 @all_silo_test(stable=True)
 @parameterize_with_orgs
-@use_real_service(organization_service, None)
 def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
     new_user = Factories.create_user()
@@ -241,27 +238,27 @@ def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]])
 
 
 @django_db_all(transaction=True)
-@all_silo_test
+@all_silo_test(stable=True)
 @parameterize_with_orgs_with_owner_team
-@use_real_service(organization_service, None)
 def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     _, orm_users = org_factory()
-    member = OrganizationMember.objects.get(user_id=orm_users[1].id)
+    with assume_test_silo_mode(SiloMode.REGION):
+        member = OrganizationMember.objects.get(user_id=orm_users[1].id)
 
     all_org_roles = ["owner", "member", "manager"]
     service_org_roles = organization_service.get_all_org_roles(
-        organization_member=None, member_id=member.id
+        organization_id=member.organization_id, member_id=member.id
     )
     assert set(all_org_roles) == set(service_org_roles)
 
 
 @django_db_all(transaction=True)
-@all_silo_test
+@all_silo_test(stable=True)
 @parameterize_with_orgs_with_owner_team
-@use_real_service(organization_service, None)
 def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
-    members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
+    with assume_test_silo_mode(SiloMode.REGION):
+        members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
     all_top_dogs = [members[1].id, members[2].id]
     service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
