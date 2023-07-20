@@ -1365,8 +1365,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1581,8 +1579,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC

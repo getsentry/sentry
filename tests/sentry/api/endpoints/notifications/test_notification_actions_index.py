@@ -13,10 +13,9 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -324,14 +323,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
-                service_name=service_name,
-                integration_key="abc",
-                organization_integration_id=second_integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=second_integration.id,
-            )
+        service = PagerDutyService.objects.create(
+            service_name=service_name,
+            integration_key="abc",
+            organization_integration_id=second_integration.organizationintegration_set.first().id,
+        )
         data["targetIdentifier"] = service.id
         response = self.get_error_response(
             self.organization.slug,
@@ -340,14 +336,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
-                service_name=service_name,
-                integration_key="def",
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-            )
+        service = PagerDutyService.objects.create(
+            service_name=service_name,
+            integration_key="def",
+            organization_integration_id=integration.organizationintegration_set.first().id,
+        )
         data["targetIdentifier"] = service.id
         response = self.get_success_response(
             self.organization.slug,

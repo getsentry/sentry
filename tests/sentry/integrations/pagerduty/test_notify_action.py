@@ -3,11 +3,9 @@ import responses
 
 from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
-from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
@@ -23,25 +21,21 @@ SERVICES = [
 ]
 
 
-@region_silo_test(stable=True)
 class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
     def setUp(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="pagerduty",
-                name="Example",
-                external_id=EXTERNAL_ID,
-                metadata={"services": SERVICES},
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example",
+            external_id=EXTERNAL_ID,
+            metadata={"services": SERVICES},
+        )
+        self.integration.add_organization(self.organization, self.user)
         self.service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
@@ -145,13 +139,12 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     def test_render_label_without_integration(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.delete()
+        self.integration.delete()
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
 
         label = rule.render_label()
-        assert label == "Send a notification to PagerDuty account [removed] and service [removed]"
+        assert label == "Send a notification to PagerDuty account [removed] and service Critical"
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added
@@ -163,16 +156,13 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         new_project = self.create_project(name="new proj", organization=new_org)
         self.project = new_project
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.add_organization(new_org, self.user)
-            oi = OrganizationIntegration.objects.get(organization_id=new_org.id)
-            new_service = PagerDutyService.objects.create(
-                service_name="New Service",
-                integration_key="new_service_key",
-                organization_integration_id=oi.id,
-                integration_id=oi.integration_id,
-                organization_id=oi.organization_id,
-            )
+        self.integration.add_organization(new_org, self.user)
+        oi = OrganizationIntegration.objects.get(organization_id=new_org.id)
+        new_service = PagerDutyService.objects.create(
+            service_name="New Service",
+            integration_key="new_service_key",
+            organization_integration_id=oi.id,
+        )
 
         rule = self.get_rule(data={"account": self.integration.id})
 
@@ -197,21 +187,18 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_id": "346",
             "service_name": "Informational",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="pagerduty",
-                name="Example 3",
-                external_id="example-3",
-                metadata={"services": [service_info]},
-            )
-            integration.add_organization(self.organization, self.user)
-            service = PagerDutyService.objects.create(
-                service_name=service_info["service_name"],
-                integration_key=service_info["integration_key"],
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                integration_id=integration.id,
-                organization_id=self.organization.id,
-            )
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example 3",
+            external_id="example-3",
+            metadata={"services": [service_info]},
+        )
+        integration.add_organization(self.organization, self.user)
+        service = PagerDutyService.objects.create(
+            service_name=service_info["service_name"],
+            integration_key=service_info["integration_key"],
+            organization_integration_id=integration.organizationintegration_set.first().id,
+        )
         self.installation = integration.get_installation(self.organization.id)
 
         event = self.get_event()
@@ -244,21 +231,18 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_id": "345",
             "service_name": "Informational",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="pagerduty",
-                name="Example 2",
-                external_id="example-2",
-                metadata={"services": [service_info]},
-            )
-            integration.add_organization(self.organization, self.user)
-            service = PagerDutyService.objects.create(
-                service_name=service_info["service_name"],
-                integration_key=service_info["integration_key"],
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
-            )
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example 2",
+            external_id="example-2",
+            metadata={"services": [service_info]},
+        )
+        integration.add_organization(self.organization, self.user)
+        service = PagerDutyService.objects.create(
+            service_name=service_info["service_name"],
+            integration_key=service_info["integration_key"],
+            organization_integration_id=integration.organizationintegration_set.first().id,
+        )
         self.installation = integration.get_installation(self.organization.id)
 
         rule = self.get_rule(data={"account": self.integration.id, "service": service.id})

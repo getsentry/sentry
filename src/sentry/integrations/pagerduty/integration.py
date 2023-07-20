@@ -122,8 +122,6 @@ class PagerDutyIntegration(IntegrationInstallation):
                         organization_integration_id=self.org_integration.id,
                         service_name=service_name,
                         integration_key=key,
-                        integration_id=self.model.id,
-                        organization_id=self.organization_id,
                     )
 
     def get_config_data(self):
@@ -176,8 +174,6 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
                     organization_integration_id=org_integration.id,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
-                    organization_id=organization.id,
-                    integration_id=integration.id,
                 )
 
     def build_integration(self, state):
