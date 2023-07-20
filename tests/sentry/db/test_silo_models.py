@@ -1,4 +1,5 @@
 from sentry.api.serializers.base import registry
+from sentry.models import OrganizationIntegration, PagerDutyService
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -6,7 +7,8 @@ from sentry.testutils.silo import (
 )
 
 decorator_exemptions = set()
-fk_exemptions = set()
+# Temporary, remove after finishing changes on getsentry side
+fk_exemptions = {(PagerDutyService, OrganizationIntegration)}
 
 
 def test_models_have_silos():
