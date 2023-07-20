@@ -180,7 +180,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # Must format the url ourselves since `check_file` is a head request
-        # "https://github.com/octokit/octokit.rb/blob/master/README.md"
+        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
         return f"{repo.url}/blob/{branch}/{filepath}"
 
 
