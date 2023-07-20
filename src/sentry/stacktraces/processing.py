@@ -199,7 +199,7 @@ def find_stacktraces_in_data(
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        frames = extract_structure_from_json_structure(stacktrace, "frames")
+        frames = get_path(stacktrace, "frames", filter=True, default=())
         if frames:
             platforms = {frame.get("platform", _platform) for frame in frames}
             rv.append(
@@ -212,14 +212,14 @@ def find_stacktraces_in_data(
             )
 
     # Look for stacktraces under the key `exception`
-    for exc in extract_structure_from_json_structure(data, "exception", "values"):
+    for exc in get_path(data, "exception", "values", filter=True, default=()):
         _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
 
     # Look for stacktraces under the key `stacktrace`
     _append_stacktrace(data.get("stacktrace"), None)
 
     # The native family includes stacktraces under threads
-    for thread in extract_structure_from_json_structure(data, "threads", "values"):
+    for thread in get_path(data, "threads", "values", filter=True, default=()):
         _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
@@ -227,15 +227,6 @@ def find_stacktraces_in_data(
             if info.container is not None:
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
-    return rv
-
-
-def extract_structure_from_json_structure(data: Any, *path: str) -> list[Any]:
-    """Helper method to extract a data structure from a JSON object"""
-    rv = []
-    # filter=True filters out any None element
-    for item in get_path(data, path, filter=True, default=()):
-        rv.append(item)
     return rv
 
 
@@ -275,7 +266,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True, platform=platform):
             # XXX: We already do this within find_stacktraces_in_data
-            frames = extract_structure_from_json_structure(stacktrace_info.stacktrace, "frames")
+            frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
             if frames:
                 stacktrace_frames.append(frames)
                 stacktrace_exceptions.append(
