@@ -8,10 +8,8 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_releases import (
-    ReleaseHeadCommitSerializer,
-    ReleaseSerializerWithProjects,
-)
+from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.locks import locks

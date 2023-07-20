@@ -15,7 +15,10 @@ import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/f
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  DataTitles,
+  getThroughputChartTitle,
+} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
@@ -60,7 +63,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: DataTitles.throughput, Comp: ThroughputChart},
+      {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
       {title: DataTitles.p95, Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
