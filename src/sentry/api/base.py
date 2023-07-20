@@ -156,11 +156,6 @@ class Endpoint(APIView):
         Aggregates together authenticators that should be called cross silo, while
         leaving methods that should be run locally.
         """
-
-        # TODO: Increase test coverage and get this working for monolith mode.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return super().get_authenticators()
-
         last_api_authenticator = RpcAuthentication([])
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
