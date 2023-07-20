@@ -38,6 +38,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
   headers: Record<string, string>;
   match: MatchCallable[];
   method: string;
+  query: Record<string, any>;
   statusCode: number;
   url: string;
   /**
