@@ -104,6 +104,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
+    def __init__(self) -> None:
+        self.application_id = options.get("discord.application-id")
+        self.public_key = options.get("discord.public-key")
+        self.bot_token = options.get("discord.bot-token")
+        super().__init__()
+
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [DiscordInstallPipeline(self.get_bot_install_url())]
 
@@ -116,9 +122,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         }
 
     def get_guild_name(self, guild_id: str) -> str:
-        bot_token = options.get("discord.bot-token")
         url = DiscordClient.GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {bot_token}"}
+        headers = {"Authorization": f"Bot {self.bot_token}"}
         try:
             response = DiscordClient().get(url, headers=headers)
             guild_name = response["name"]  # type:ignore
@@ -127,13 +132,16 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return guild_name
 
     def get_bot_install_url(self):
-        application_id = options.get("discord.application-id")
         setup_url = absolute_uri("extensions/discord/setup/")
 
-        return f"https://discord.com/api/oauth2/authorize?client_id={application_id}&permissions={self.bot_permissions}&redirect_uri={setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
+        return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
 
     def setup(self) -> None:
-        DiscordCommandManager().register_commands()
+        if self._credentials_exist():
+            DiscordCommandManager().register_commands()
+
+    def _credentials_exist(self) -> bool:
+        return self.application_id and self.public_key and self.bot_token
 
 
 class DiscordInstallPipeline(PipelineView):

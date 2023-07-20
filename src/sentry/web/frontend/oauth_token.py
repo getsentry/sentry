@@ -1,11 +1,13 @@
 import logging
 import secrets
+from typing import Optional
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
+from rest_framework.request import Request
 
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
@@ -44,83 +46,99 @@ class OAuthTokenView(View):
     def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
-        if not client_id:
-            return self.error(request, "invalid_client", "missing client_id")
-        if grant_type == GrantTypes.AUTHORIZATION:
-            return self._get_access_tokens(request, client_id)
-        elif grant_type == GrantTypes.REFRESH:
-            return self._get_refresh_token(request, client_id)
-        else:
-            return self.error(request, "unsupported_grant_type")
+        client_secret = request.POST.get("client_secret")
 
-    def _get_access_tokens(self, request, client_id):
-        redirect_uri = request.POST.get("redirect_uri")
-        code = request.POST.get("code")
+        if not client_id:
+            return self.error(request=request, name="missing_client_id", reason="missing client_id")
+        if not client_secret:
+            return self.error(
+                request=request, name="missing_client_secret", reason="missing client_secret"
+            )
+
+        if grant_type not in [GrantTypes.AUTHORIZATION, GrantTypes.REFRESH]:
+            return self.error(request=request, name="unsupported_grant_type")
 
         try:
             application = ApiApplication.objects.get(
-                client_id=client_id, status=ApiApplicationStatus.active
+                client_id=client_id, client_secret=client_secret, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
-            return self.error(request, "invalid_client", "invalid client_id")
+            return self.error(
+                request=request,
+                name="invalid_credentials",
+                reason="invalid client_id or client_secret",
+                status=401,
+            )
 
+        if grant_type == GrantTypes.AUTHORIZATION:
+            token_data = self.get_access_tokens(request=request, application=application)
+        else:
+            token_data = self.get_refresh_token(request=request, application=application)
+        if "error" in token_data:
+            return self.error(
+                request=request,
+                name=token_data["error"],
+                reason=token_data["reason"] if "reason" in token_data else None,
+            )
+        return self.process_token_details(
+            token=token_data["token"],
+            id_token=token_data["id_token"] if "id_token" in token_data else None,
+        )
+
+    def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
+        code = request.POST.get("code")
         try:
             grant = ApiGrant.objects.get(application=application, code=code)
         except ApiGrant.DoesNotExist:
-            return self.error(request, "invalid_grant", "invalid grant")
+            return {"error": "invalid_grant", "reason": "invalid grant"}
 
         if grant.is_expired():
-            return self.error(request, "invalid_grant", "grant expired")
+            return {"error": "invalid_grant", "reason": "grant expired"}
 
+        redirect_uri = request.POST.get("redirect_uri")
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif grant.redirect_uri != redirect_uri:
-            return self.error(request, "invalid_grant", "invalid redirect_uri")
+            return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
-        access_token = ApiToken.from_grant(grant)
-        id_token = self._get_open_id_token(grant, request)
-        return self._process_token_details(access_token, id_token)
-
-    def _get_open_id_token(self, grant, request):
+        token_data = {"token": ApiToken.from_grant(grant=grant)}
+        id_token = None
         if grant.has_scope("openid"):
-            open_id_token = OpenIDToken(
+            id_token = OpenIDToken(
                 request.POST.get("client_id"),
                 grant.user_id,
                 # Encrypt with a random secret until we implement secure shared secrets in prod
                 secrets.token_urlsafe(),
                 nonce=request.POST.get("nonce"),
             )
-            return open_id_token.get_encrypted_id_token(grant=grant)
-        return None
+            token_data["id_token"] = id_token.get_encrypted_id_token(grant=grant)
 
-    def _get_refresh_token(self, request, client_id):
-        refresh_token = request.POST.get("refresh_token")
+        return token_data
+
+    def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
+        refresh_token_code = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
 
-        if not refresh_token:
-            return self.error(request, "invalid_request")
+        if not refresh_token_code:
+            return {"error": "invalid_request"}
 
         # TODO(dcramer): support scope
         if scope:
-            return self.error(request, "invalid_request")
+            return {"error": "invalid_request"}
 
         try:
-            application = ApiApplication.objects.get(
-                client_id=client_id, status=ApiApplicationStatus.active
+            refresh_token = ApiToken.objects.get(
+                application=application, refresh_token=refresh_token_code
             )
-        except ApiApplication.DoesNotExist:
-            return self.error(request, "invalid_client", "invalid client_id")
-
-        try:
-            token = ApiToken.objects.get(application=application, refresh_token=refresh_token)
         except ApiToken.DoesNotExist:
-            return self.error(request, "invalid_grant", "invalid refresh token")
+            return {"error": "invalid_grant", "reason": "invalid request"}
+        refresh_token.refresh()
 
-        token.refresh()
+        return {"token": refresh_token}
 
-        return self._process_token_details(token)
-
-    def _process_token_details(self, token, id_token=None):
+    def process_token_details(
+        self, token: ApiToken, id_token: Optional[OpenIDToken] = None
+    ) -> HttpResponse:
         token_information = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
