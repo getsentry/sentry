@@ -392,8 +392,9 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
         <SdkDocumentation
           platform={currentPlatform}
-          orgSlug={organization.slug}
+          organization={organization}
           projectSlug={project.slug}
+          projectId={project.id}
           activeProductSelection={products}
         />
       ) : (

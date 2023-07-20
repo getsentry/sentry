@@ -2,7 +2,17 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+
+type StepProps = {
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 const performanceOtherConfig = `
 // Performance Monitoring
@@ -10,9 +20,8 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 export const steps = ({
   sentryInitContent,
-}: {
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
@@ -54,7 +63,10 @@ npm install --save @sentry/node
       },
     ],
   },
-  getUploadSourceMapsStep('https://docs.sentry.io/platforms/node/sourcemaps/'),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/node/sourcemaps/',
+    ...props,
+  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -84,11 +96,27 @@ npm install --save @sentry/node
   },
 ];
 
-export function GettingStartedWithNode({dsn, ...props}: ModuleProps) {
+export function GettingStartedWithNode({
+  dsn,
+  organization,
+  newOrg,
+  platformKey,
+  projectId,
+}: ModuleProps) {
   const sentryInitContent: string[] = [`dsn: "${dsn}",`, performanceOtherConfig];
 
   return (
-    <Layout steps={steps({sentryInitContent: sentryInitContent.join('\n')})} {...props} />
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
+      newOrg={newOrg}
+      platformKey={platformKey}
+    />
   );
 }
 
