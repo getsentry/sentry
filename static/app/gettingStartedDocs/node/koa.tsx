@@ -150,7 +150,7 @@ npm install --save @sentry/node @sentry/utils
       {
         language: 'javascript',
         code: `
-        app.get("/debug-sentry", function mainHandler(req, res) {
+        app.use(async function () {
           throw new Error("My first Sentry error!");
         });
         `,
