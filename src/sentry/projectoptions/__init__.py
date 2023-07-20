@@ -1,6 +1,6 @@
 from .manager import ProjectOptionsManager
 
-__all__ = ("get", "set", "delete", "register", "isset")
+__all__ = ("get", "set", "delete", "register", "isset", "LATEST_EPOCH")
 
 default_manager = ProjectOptionsManager()
 

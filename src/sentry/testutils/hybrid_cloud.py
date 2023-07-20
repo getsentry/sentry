@@ -69,7 +69,7 @@ class SimulatedTransactionWatermarks(threading.local):
         self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
     ) -> int:
         if connection is None:
-            connection = transaction.get_connection(using)
+            connection = transaction.get_connection(using or "default")
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
 
     def connections_above_watermark(self) -> Set[str]:
