@@ -906,6 +906,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "urls": None,
                     "started_at": None,
                     "count_errors": None,
+                    "count_dead_clicks": None,
+                    "count_rage_clicks": None,
                     "activity": None,
                     "finished_at": None,
                     "duration": None,
