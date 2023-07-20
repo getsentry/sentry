@@ -78,7 +78,6 @@ type Props = {
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
-  showStackedFrames?: boolean;
   showingAbsoluteAddress?: boolean;
   threadId?: number;
   timesRepeated?: number;
