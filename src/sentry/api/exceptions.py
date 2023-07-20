@@ -85,6 +85,11 @@ class SuperuserRequired(SentryAPIException):
     message = "You need to re-authenticate for superuser."
 
 
+class DataSecrecy(SentryAPIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    code = "data-secrecy"
+
+
 class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sudo-required"

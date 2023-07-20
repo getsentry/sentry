@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence
 
+from django.conf import settings
 from rest_framework import permissions
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
+    DataSecrecy,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -121,6 +123,12 @@ class SentryPermission(ScopedPermission):
 
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
+
+        if (
+            request.user.is_superuser
+            and org_context.organization.slug in settings.SENTRY_DATA_SECRECY_ORGS
+        ):
+            raise DataSecrecy()
 
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
