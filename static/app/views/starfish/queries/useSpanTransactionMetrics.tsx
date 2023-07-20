@@ -40,6 +40,7 @@ export const useSpanTransactionMetrics = (
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    limit: 25,
     referrer: _referrer,
   });
 };

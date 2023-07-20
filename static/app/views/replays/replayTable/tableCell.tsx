@@ -6,7 +6,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {formatTime} from 'sentry/components/replays/utils';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -190,6 +190,7 @@ export function OSCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -208,6 +209,7 @@ export function BrowserCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -220,6 +222,36 @@ export function DurationCell({replay}: Props) {
   return (
     <Item>
       <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+    </Item>
+  );
+}
+
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      {replay.count_rage_clicks ? (
+        <Count>{replay.count_rage_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      {replay.count_dead_clicks ? (
+        <Count>{replay.count_dead_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }

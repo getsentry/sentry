@@ -1,23 +1,17 @@
-from contextlib import contextmanager
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
 from sentry_relay import generate_key_pair
 
+from sentry.auth import system
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
 
-@contextmanager
 def disable_internal_networks():
-    from sentry.auth import system
-
-    old_internal_networks = system.INTERNAL_NETWORKS
-    system.INTERNAL_NETWORKS = ()
-    yield
-    # restore INTERNAL NETWORKS
-    system.INTERNAL_NETWORKS = old_internal_networks
+    return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
 class RelayPublicKeysConfigTest(APITestCase):

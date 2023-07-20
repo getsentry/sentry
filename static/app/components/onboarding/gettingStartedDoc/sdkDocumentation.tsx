@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
+import type {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // Documents already migrated from sentry-docs to main sentry repository
@@ -38,8 +38,22 @@ export const migratedDocs = [
   'python-asgi',
   'python-aiohttp',
   'python-awslambda',
+  'dotnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'dotnet-xamarin',
+  'dotnet-aspnet',
   'react-native',
+  'java',
   'java-spring-boot',
+  'java-logback',
+  'java-log4j2',
+  'java-spring',
   'php',
   'php-laravel',
   'php-symfony',
@@ -53,32 +67,38 @@ export const migratedDocs = [
   'ruby-rack',
   'kotlin',
   'node',
+  'node-gcpfunctions',
   'node-express',
   'electron',
+  'elixir',
 ];
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
-  orgSlug: Organization['slug'];
+  organization: Organization;
   platform: PlatformIntegration | null;
   projectSlug: Project['slug'];
   newOrg?: boolean;
+  projectId?: Project['id'];
 };
 
 export type ModuleProps = {
   dsn: string;
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  organization?: Organization;
   platformKey?: PlatformKey;
+  projectId?: Project['id'];
 };
 
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({
   platform,
-  orgSlug,
   projectSlug,
   activeProductSelection,
   newOrg,
+  organization,
+  projectId,
 }: SdkDocumentationProps) {
   const [module, setModule] = useState<null | {
     default: React.ComponentType<ModuleProps>;
@@ -97,7 +117,7 @@ export function SdkDocumentation({
     data: projectKeys = [],
     isError: projectKeysIsError,
     isLoading: projectKeysIsLoading,
-  } = useApiQuery<ProjectKey[]>([`/projects/${orgSlug}/${projectSlug}/keys/`], {
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
@@ -127,6 +147,8 @@ export function SdkDocumentation({
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform?.id}
+      organization={organization}
+      projectId={projectId}
     />
   );
 }
