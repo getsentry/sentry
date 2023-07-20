@@ -2,6 +2,13 @@ import pytest
 import responses
 from django.test import override_settings
 
+from datetime import datetime, timedelta
+
+from freezegun import freeze_time
+
+
+from sentry.constants import ObjectStatus
+from sentry.testutils import APITestCase
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
@@ -13,6 +20,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.silo import region_silo_test
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -60,7 +68,7 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is True
         assert integration_service.get_integration(
             integration_id=self.integration.id
-        ).status == 1 # DISABLED
+        ).status == ObjectStatus.DISABLED
 
     # test with flag off
     @responses.activate
@@ -80,8 +88,7 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is True
         assert integration_service.get_integration(
             integration_id=self.integration.id
-        ).status == 0 # ENABLED
-
+        ).status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_error_integration(self):
@@ -100,5 +107,52 @@ class SlackClientDisable(TestCase):
         assert (buffer._get()[0]["error_count"]) >= 1
         assert buffer.is_integration_broken() is False
 
-        #fake slow test w disable on
-        #fake slow test w disable off
+    #fake slow test w disable off
+    @responses.activate
+    def test_integration_is_broken(self):
+        bodydict = {"ok": False, "error": "The requested resource does not exist"}
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=404,
+            content_type="application/json",
+            body=json.dumps(bodydict),
+        )
+        client = SlackClient(integration_id=self.integration.id)
+        buffer = IntegrationRequestBuffer(client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+
+        with pytest.raises(ApiError):
+            client.post("/chat.postMessage", data=self.payload)
+        assert buffer.is_integration_broken() is True
+        assert integration_service.get_integration(
+            integration_id=self.integration.id
+        ).status == ObjectStatus.ACTIVE
+
+    #fake slow test w disable on
+    @responses.activate
+    @with_feature("organizations:disable-on-broken")
+    def test_integration_is_broken_and_disabled(self):
+        bodydict = {"ok": False, "error": "The requested resource does not exist"}
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=404,
+            content_type="application/json",
+            body=json.dumps(bodydict),
+        )
+        client = SlackClient(integration_id=self.integration.id)
+        buffer = IntegrationRequestBuffer(client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+        with pytest.raises(ApiError):
+            client.post("/chat.postMessage", data=self.payload)
+        assert buffer.is_integration_broken() is True
+        assert integration_service.get_integration(
+            integration_id=self.integration.id
+        ).status == ObjectStatus.DISABLED
