@@ -313,7 +313,8 @@ class OndemandMetricSpec:
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filters from the query that can't be translated to a RuleCondition.
         query = re.sub(r"event\.type:transaction\s*", "", query)
-        query = re.sub(r"project:\w+\s*", "", query)
+        # extend the following to also support project:"some-project"
+        query = re.sub(r"project:[\w\"]+\s*", "", query)
 
         self._query = query.strip()
 
