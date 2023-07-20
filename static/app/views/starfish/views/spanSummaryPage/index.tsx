@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -25,6 +24,7 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -140,7 +140,7 @@ function SpanSummaryPage({params, location}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageFiltersContainer skipLoadLastUsedEnvironment>
+        <StarfishPageFiltersContainer>
           <PageErrorProvider>
             <Layout.Header>
               <Layout.HeaderContent>
@@ -297,7 +297,7 @@ function SpanSummaryPage({params, location}: Props) {
               </Layout.Main>
             </Layout.Body>
           </PageErrorProvider>
-        </PageFiltersContainer>
+        </StarfishPageFiltersContainer>
       </Layout.Page>
     </SentryDocumentTitle>
   );

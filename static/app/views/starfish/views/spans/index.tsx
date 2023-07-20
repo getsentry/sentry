@@ -1,11 +1,11 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import SpansView from './spansView';
@@ -40,9 +40,9 @@ export default function Spans() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <PageFiltersContainer skipLoadLastUsedEnvironment>
+            <StarfishPageFiltersContainer>
               <SpansView moduleName={moduleName} spanCategory={spanCategory} />
-            </PageFiltersContainer>
+            </StarfishPageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
