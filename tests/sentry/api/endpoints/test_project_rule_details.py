@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Mapping
 from unittest import mock
@@ -74,10 +76,11 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
-        self.jira_integration = Integration.objects.create(
-            provider="jira", name="Jira", external_id="jira:1"
-        )
-        self.jira_integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.jira_integration = Integration.objects.create(
+                provider="jira", name="Jira", external_id="jira:1"
+            )
+            self.jira_integration.add_organization(self.organization, self.user)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -114,11 +117,13 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] == self.environment.name
 
     def test_with_filters(self):
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         data = {
             "conditions": conditions,
             "actions": actions,

@@ -151,6 +151,7 @@ ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 DEFAULT_COMPARATORS: ComparatorMap = {
     "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
     "sentry.userrole": [DateUpdatedComparator("date_updated")],
     "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
@@ -228,7 +229,8 @@ def import_(src):
     """CLI command wrapping the `exec_import` functionality."""
 
     try:
-        with transaction.atomic():
+        # Import / export only works in monolith mode with a consolidated db.
+        with transaction.atomic("default"):
             for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
                 if obj.object._meta.app_label not in EXCLUDED_APPS:
                     obj.save()

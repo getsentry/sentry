@@ -7,10 +7,8 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_releases import (
-    ReleaseHeadCommitSerializer,
-    ReleaseSerializerWithProjects,
-)
+from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.locks import locks
@@ -20,7 +18,6 @@ from sentry.models import (
     ApiToken,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -30,6 +27,7 @@ from sentry.models import (
     ReleaseStages,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (

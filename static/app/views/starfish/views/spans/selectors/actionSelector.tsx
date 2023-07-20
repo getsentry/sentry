@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -11,6 +11,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {
+  EMPTY_OPTION_VALUE,
+  EmptyOption,
+} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_ACTION} = SpanMetricsFields;
 
@@ -36,25 +40,30 @@ export function ActionSelector({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
+    referrer: 'api.starfish.get-span-actions',
   });
 
   const options = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
+        {
+          value: EMPTY_OPTION_VALUE,
+          label: <EmptyOption />,
+        },
         ...(actions ?? [])
-          .filter(datum => datum[SPAN_ACTION])
-          .map(datum => ({
-            value: datum[SPAN_ACTION],
-            label: datum[SPAN_ACTION],
-          })),
+          .filter(datum => Boolean(datum[SPAN_ACTION]))
+          .map(datum => {
+            return {
+              value: datum[SPAN_ACTION],
+              label: datum[SPAN_ACTION],
+            };
+          }),
       ];
 
   return (
-    <CompactSelect
-      triggerProps={{
-        prefix: LABEL_FOR_MODULE_NAME[moduleName],
-      }}
+    <SelectControl
+      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -81,7 +90,7 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
-  none: t('Action'),
+  other: t('Action'),
   '': t('Action'),
 };
 

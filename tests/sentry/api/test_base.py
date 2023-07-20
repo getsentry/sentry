@@ -15,8 +15,8 @@ from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.region import override_region_config
 from sentry.types.region import RegionCategory, clear_global_regions
-from sentry.utils import json
 from sentry.utils.cursors import Cursor
 
 
@@ -449,7 +449,7 @@ class CustomerDomainTest(APITestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             },
         ]
-        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
+        with override_region_config(region_config):
             assert request_with_subdomain("na") == "na"
             assert request_with_subdomain("eu") == "eu"
             assert request_with_subdomain("sentry") is None
