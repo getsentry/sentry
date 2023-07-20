@@ -47,8 +47,9 @@ describe('EventDetails', () => {
     render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails
+          {...TestStubs.routeComponentProps()}
           organization={organization}
-          params={{orgId: organization.slug, eventSlug: 'latest'}}
+          params={{eventSlug: 'latest'}}
           location={routerContext.context.location}
         />
       </OrganizationContext.Provider>
@@ -79,8 +80,9 @@ describe('EventDetails', () => {
 
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={organization}
-        params={{orgId: organization.slug, eventSlug: 'latest'}}
+        params={{eventSlug: 'latest'}}
         location={routerContext.context.location}
       />
     );
