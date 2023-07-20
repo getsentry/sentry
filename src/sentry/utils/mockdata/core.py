@@ -16,7 +16,7 @@ from django.db.models import F
 from django.utils import timezone
 from pytz import utc
 
-from sentry import roles, tsdb
+from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.event_manager import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
@@ -57,6 +57,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
+from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -115,7 +116,7 @@ def create_sample_event(*args, **kwargs):
             return event
 
 
-def generate_commits(user):
+def generate_commit_data(user):
     commits = []
     for i in range(random.randint(1, 20)):
         if i == 1:
@@ -361,14 +362,14 @@ def get_organization() -> Organization:
 
 
 def create_owner(organization: Organization, user: User, role: Optional[str] = None) -> None:
-    OrganizationMember.objects.get_or_create(
-        user_id=user.id, organization=organization, role=roles.get_top_dog().id
-    )
+    create_member(organization, user, roles.get_top_dog().id)
 
 
-def create_member(organization: Organization, user: User) -> OrganizationMember:
+def create_member(
+    organization: Organization, user: User, role: Optional[str] = None
+) -> OrganizationMember:
     member, _ = OrganizationMember.objects.get_or_create(
-        user_id=user.id, organization=organization, defaults={"role": roles.get_default().id}
+        user_id=user.id, organization=organization, defaults={"role": role}
     )
 
     return member
@@ -1228,3 +1229,60 @@ def create_mock_transactions(
             load_m_n_plus_one_issue()
 
         generate_performance_issues()
+
+
+def main(
+    skip_default_setup=False,
+    num_events=1,
+    extra_events=False,
+    load_trends=False,
+    load_performance_issues=False,
+    slow=False,
+):
+    owner = get_superuser()
+    user = create_user()
+    create_broadcast()
+
+    organization = get_organization()
+    create_owner(organization, owner)
+    member = create_member(organization, user, role=roles.get_default().id)
+
+    project_map = generate_projects(organization)
+    if not skip_default_setup:
+        for project in project_map.values():
+            environment = create_environment(project)
+            create_monitor(project, environment)
+            create_access_request(member, project.teams.first())
+
+            generate_tombstones(project, user)
+            release = create_release(project)
+            repo = create_repository(organization)
+            raw_commits = generate_commit_data(user)
+            populate_release(
+                project=project,
+                environment=environment,
+                repository=repo,
+                release=release,
+                user=user,
+                commits=raw_commits,
+            )
+            create_metric_alert_rule(organization, project)
+            events = generate_events(
+                project=project,
+                release=release,
+                repository=repo,
+                user=user,
+                num_events=num_events,
+                extra_events=extra_events,
+            )
+            for event in events:
+                create_sample_time_series(event, release=release)
+
+            if hasattr(buffer, "process_pending"):
+                click.echo("    > Processing pending buffers")  # NOQA
+                buffer.process_pending()
+
+            mocks_loaded.send(project=project, sender=__name__)
+
+    create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
+    create_system_time_series()
