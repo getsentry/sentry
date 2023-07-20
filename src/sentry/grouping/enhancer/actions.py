@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable, Dict
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
@@ -25,8 +25,8 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
-    _is_modifier: Any = None
-    _is_updater: Any = None
+    _is_modifier: bool
+    _is_updater: bool
 
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
@@ -134,7 +134,7 @@ class FlagAction(Action):
 class VarAction(Action):
     range = None
 
-    _VALUE_PARSERS = {
+    _VALUE_PARSERS: Dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,
         "invert-stacktrace": get_rule_bool,
@@ -149,8 +149,7 @@ class VarAction(Action):
         self._is_updater = self.var not in VarAction._FRAME_VARIABLES
 
         try:
-            # error: "object" not callable  [operator]
-            self.value = VarAction._VALUE_PARSERS[var](value)  # type: ignore[operator]
+            self.value = VarAction._VALUE_PARSERS[var](value)
         except (ValueError, TypeError):
             raise InvalidEnhancerConfig(f"Invalid value '{value}' for '{var}'")
         except KeyError:
