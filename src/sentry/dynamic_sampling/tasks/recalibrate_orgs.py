@@ -1,3 +1,5 @@
+import time
+
 from sentry_sdk import capture_message, set_extra
 from snuba_sdk import Granularity
 
@@ -11,7 +13,7 @@ from sentry.dynamic_sampling.tasks.common import (
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     MAX_REBALANCE_FACTOR,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
     MIN_REBALANCE_FACTOR,
     RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
@@ -59,7 +61,7 @@ def orgs_to_check(org_volume: OrganizationDataVolume):
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.recalibrate_orgs", MAX_SECONDS)
+    context = TaskContext("sentry.dynamic_sampling.tasks.recalibrate_orgs", MAX_TASK_SECONDS)
     recalibrate_org_timer = Timer()
 
     try:
@@ -88,11 +90,15 @@ def recalibrate_orgs() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_projects")
+        capture_message("timing for sentry.dynamic_sampling.tasks.recalibrate_orgs")
         log_task_execution(context)
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, timer: Timer) -> None:
+
+    if time.monotonic() > context.expiration_time:
+        raise TimeoutException(context)
+
     with timer:
         # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
         # recalibration.
@@ -158,7 +164,7 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, ti
             "set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
         )
 
-    name = recalibrate_orgs.__name__
+    name = recalibrate_org.__name__
     state = context.get_function_state(name)
     state.num_orgs += 1
     state.num_iterations += 1

@@ -114,7 +114,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsAuthentication"]
+            assert resp.json()["needsAuthentication"]
 
     def test_not_needs_authentication(self):
         self.login_as(self.user)
@@ -125,7 +125,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needsAuthentication"]
+            assert not resp.json()["needsAuthentication"]
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
@@ -140,7 +140,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needs2fa"]
+            assert resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_in_session(om)
 
@@ -186,7 +186,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
                 assert resp.status_code == 200
-                assert resp.data["needs2fa"]
+                assert resp.json()["needs2fa"]
 
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
@@ -224,7 +224,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needs2fa"]
+            assert not resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_not_in_session(resp)
 
@@ -238,9 +238,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsSso"]
-            assert resp.data["hasAuthProvider"]
-            assert resp.data["ssoProvider"] == "Google"
+            assert resp.json()["needsSso"]
+            assert resp.json()["hasAuthProvider"]
+            assert resp.json()["ssoProvider"] == "Google"
 
     def test_can_accept_while_authenticated(self):
         urls = self._get_urls()
