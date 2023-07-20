@@ -92,10 +92,13 @@ def recalibrate_orgs() -> None:
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
+
     # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
     # recalibration.
     if not org_volume.is_valid_for_recalibration():
         raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
+
+    assert org_volume.indexed is not None
 
     log_action_if(
         "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
