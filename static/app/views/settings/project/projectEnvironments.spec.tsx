@@ -59,8 +59,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        // @ts-expect-error Should be fixed when we properly type the test stub
-        body: TestStubs.Environments(false),
+        body: TestStubs.Environments(),
       });
       renderComponent(false);
 
@@ -88,8 +87,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        // @ts-expect-error Should be fixed when we properly type the test stub
-        body: TestStubs.Environments(true),
+        body: TestStubs.HiddenEnvironments(),
       });
       const {container} = renderComponent(true);
 
@@ -121,8 +119,7 @@ describe('ProjectEnvironments', function () {
     it('hides', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        // @ts-expect-error Should be fixed when we properly type the test stub
-        body: TestStubs.Environments(false),
+        body: TestStubs.Environments(),
       });
 
       renderComponent(false);
@@ -168,8 +165,7 @@ describe('ProjectEnvironments', function () {
     it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        // @ts-expect-error Should be fixed when we properly type the test stub
-        body: TestStubs.Environments(true),
+        body: TestStubs.HiddenEnvironments(),
       });
 
       renderComponent(true);
@@ -187,8 +183,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        // @ts-expect-error Should be fixed when we properly type the test stub
-        body: TestStubs.Environments(true),
+        body: TestStubs.HiddenEnvironments(),
       });
 
       renderComponent(true);
