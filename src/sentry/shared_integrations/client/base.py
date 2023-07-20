@@ -237,7 +237,7 @@ class BaseApiClient(TrackResponseMixin):
                     self.record_request_error(error=e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
-                self.record_request_error(resp=resp,error=e)
+                self.record_request_error(resp=resp, error=e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -371,12 +371,12 @@ class BaseApiClient(TrackResponseMixin):
         print("fatal recorded")
 
         if buffer.is_integration_broken():
-           self.disable_integration()
+            self.disable_integration()
 
     def disable_integration(self) -> None:
-        rpc_integration, rpc_org_integration =(integration_service.get_organization_contexts(
+        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
-        ))
+        )
         integration_service.update_integration(
             integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
         )
@@ -385,6 +385,6 @@ class BaseApiClient(TrackResponseMixin):
             extra={
                 "integration_id": self.integration_id,
                 "provider": rpc_integration.provider,
-                "organization_id": rpc_org_integration[0].organization_id
+                "organization_id": rpc_org_integration[0].organization_id,
             },
         )
