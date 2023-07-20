@@ -32,6 +32,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.silo import unguarded_write
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -1004,7 +1005,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": True}):
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1022,7 +1023,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_feature(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": False}):
+        with override_options({"processing.recap-server.enabled-projects": []}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1040,7 +1041,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1060,7 +1061,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
             resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
 
             assert resp.status_code == 200

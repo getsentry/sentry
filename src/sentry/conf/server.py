@@ -1678,8 +1678,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for recap server polling.
-    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature

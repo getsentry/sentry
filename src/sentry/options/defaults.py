@@ -754,6 +754,14 @@ register(
     "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )  # unused
 
+# Controls the recap server feature availability for given projects.
+register(
+    "processing.recap-server.enabled-projects",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 

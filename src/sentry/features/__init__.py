@@ -266,7 +266,6 @@ default_manager.add("projects:discard-groups", ProjectFeature, FeatureHandlerStr
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:rate-limits", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:recap-server", ProjectFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("projects:servicehooks", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

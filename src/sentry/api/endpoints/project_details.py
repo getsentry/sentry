@@ -11,7 +11,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -332,27 +332,19 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return value
 
     def validate_recapServerUrl(self, value):
-        from sentry import features
-
-        project = self.context["project"]
-
         # Adding recapServerUrl is only allowed if recap server polling is enabled.
-        has_recap_server_enabled = features.has("projects:recap-server", project)
-
-        if not has_recap_server_enabled:
+        if self.context["project"].id not in options.get(
+            "processing.recap-server.enabled-projects", []
+        ):
             raise serializers.ValidationError("Project is not allowed to set recap server url")
 
         return value
 
     def validate_recapServerToken(self, value):
-        from sentry import features
-
-        project = self.context["project"]
-
         # Adding recapServerToken is only allowed if recap server polling is enabled.
-        has_recap_server_enabled = features.has("projects:recap-server", project)
-
-        if not has_recap_server_enabled:
+        if self.context["project"].id not in options.get(
+            "processing.recap-server.enabled-projects", []
+        ):
             raise serializers.ValidationError("Project is not allowed to set recap server token")
 
         return value

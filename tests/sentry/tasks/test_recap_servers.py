@@ -12,7 +12,7 @@ from sentry.tasks.recap_servers import (
     poll_recap_servers,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 crash_payload = {
@@ -94,11 +94,6 @@ class PollRecapServersTest(TestCase):
 
 @pytest.mark.django_db
 class PollProjectRecapServerTest(TestCase):
-    @pytest.fixture(autouse=True)
-    def initialize(self):
-        with Feature({"projects:recap-server": True}):
-            yield  # Run test case
-
     def setUp(self):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org, name="foo")
@@ -109,13 +104,15 @@ class PollProjectRecapServerTest(TestCase):
         return crash
 
     def test_poll_project_recap_server_incorrect_project(self):
-        poll_project_recap_server(1337)  # should not error
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(1337)  # should not error
 
     def test_poll_project_recap_server_missing_recap_url(self):
-        poll_project_recap_server(self.project.id)  # should not error
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(self.project.id)  # should not error
 
     def test_poll_project_recap_server_disabled_feature(self):
-        with Feature({"projects:recap-server": False}):
+        with override_options({"processing.recap-server.enabled-projects": []}):
             self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
             poll_project_recap_server(self.project.id)  # should not error
 
@@ -141,7 +138,8 @@ class PollProjectRecapServerTest(TestCase):
         self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
         assert self.project.get_option(RECAP_SERVER_LATEST_ID) is None
 
-        poll_project_recap_server(self.project.id)
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
         assert store_crash.call_count == 3
@@ -168,7 +166,8 @@ class PollProjectRecapServerTest(TestCase):
         self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
         self.project.update_option(RECAP_SERVER_LATEST_ID, 8)
 
-        poll_project_recap_server(self.project.id)
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
         assert store_crash.call_count == 2
@@ -187,7 +186,8 @@ class PollProjectRecapServerTest(TestCase):
         self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
         self.project.update_option(RECAP_SERVER_TOKEN_OPTION, "mkey")
 
-        poll_project_recap_server(self.project.id)
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
 
@@ -205,7 +205,8 @@ class PollProjectRecapServerTest(TestCase):
         )
         self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
 
-        poll_project_recap_server(self.project.id)
+        with override_options({"processing.recap-server.enabled-projects": [self.project.id]}):
+            poll_project_recap_server(self.project.id)
 
         events = eventstore.backend.get_events(
             eventstore.Filter(project_ids=[self.project.id]),
