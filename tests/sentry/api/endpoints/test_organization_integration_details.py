@@ -6,9 +6,10 @@ from sentry.models import (
     Repository,
     ScheduledDeletion,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -31,12 +32,13 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
 
-        self.repo = Repository.objects.create(
-            provider="gitlab",
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="gitlab",
+                name="getsentry/sentry",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
 
 
 @control_silo_test(stable=True)

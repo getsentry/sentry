@@ -27,11 +27,12 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
-  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
+  SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
 import type {
   NetworkSpan,
   RecordingEvent,
@@ -250,15 +251,13 @@ export default class ReplayReader {
     [
       ...this._sortedBreadcrumbFrames.filter(
         frame =>
-          [
-            'replay.init',
-            'ui.click',
-            'replay.mutations',
-            'ui.slowClickDetected',
-            'navigation',
-          ].includes(frame.category) ||
-          (frame.category === 'ui.multiClick' &&
-            (frame as MultiClickFrame).data.clickCount >= 3)
+          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+            frame.category
+          ) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+        // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(

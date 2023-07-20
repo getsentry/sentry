@@ -1,3 +1,4 @@
+from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
@@ -16,9 +17,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
     def setUp(self):
         super().setUp()
         self.application_id = "application-id"
+        self.public_key = "public-key"
         self.bot_token = "bot-token"
         options.set("discord.application-id", self.application_id)
         options.set("discord.bot-token", self.bot_token)
+        options.set("discord.public-key", self.public_key)
 
     def assert_setup_flow(
         self,
@@ -126,3 +129,53 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+
+    @responses.activate
+    def test_setup(self):
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+
+        assert responses.assert_call_count(count=1, url=url)
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.commands.logger.error")
+    def test_setup_failure(self, mock_log_error):
+        mock_log_error.return_value = None
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+
+        assert responses.assert_call_count(count=1, url=url)
+        assert mock_log_error.call_count == 1
+
+    @responses.activate
+    def test_setup_cache(self):
+        provider = self.provider()
+
+        url = f"{DiscordClient.base_url}{DiscordClient.APPLICATION_COMMANDS.format(application_id=self.application_id)}"
+        responses.add(
+            responses.PUT,
+            url=url,
+            status=200,
+        )
+
+        provider.setup()
+        provider.setup()
+
+        # Second provider.setup() should not update commands -> 1 call to API
+        assert responses.assert_call_count(count=1, url=url)

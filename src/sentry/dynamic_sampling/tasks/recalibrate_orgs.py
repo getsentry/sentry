@@ -30,7 +30,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
 
 # Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
@@ -60,6 +60,7 @@ def orgs_to_check(org_volume: OrganizationDataVolume):
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
     context = TaskContext("sentry.dynamic_sampling.tasks.recalibrate_orgs", MAX_SECONDS)
+    recalibrate_org_timer = Timer()
 
     try:
         for org_volumes in TimedIterator(
@@ -77,7 +78,7 @@ def recalibrate_orgs() -> None:
                         {"org_id": org_volume.org_id},
                         orgs_to_check(org_volume),
                     )
-                    recalibrate_org(org_volume)
+                    recalibrate_org(org_volume, context, recalibrate_org_timer)
                 except RecalibrationError as e:
                     set_extra("context-data", context.to_dict())
                     log_recalibrate_org_error(org_volume.org_id, str(e))
@@ -91,61 +92,73 @@ def recalibrate_orgs() -> None:
         log_task_execution(context)
 
 
-def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
+def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, timer: Timer) -> None:
+    with timer:
+        # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
+        # recalibration.
+        if not org_volume.is_valid_for_recalibration():
+            raise RecalibrationError(
+                org_id=org_volume.org_id, message="invalid data for recalibration"
+            )
 
-    # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
-    # recalibration.
-    if not org_volume.is_valid_for_recalibration():
-        raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
-
-    assert org_volume.indexed is not None
-
-    log_action_if(
-        "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
-    )
-
-    target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
-    log_sample_rate_source(
-        org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
-    )
-    if target_sample_rate is None:
-        raise RecalibrationError(
-            org_id=org_volume.org_id, message="couldn't get target sample rate for recalibration"
+        log_action_if(
+            "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
         )
 
-    log_action_if(
-        "target_sample_rate_determined", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
-    )
+        target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
+        log_sample_rate_source(
+            org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
+        )
+        if target_sample_rate is None:
+            raise RecalibrationError(
+                org_id=org_volume.org_id,
+                message="couldn't get target sample rate for recalibration",
+            )
 
-    # We compute the effective sample rate that we had in the last considered time window.
-    effective_sample_rate = org_volume.indexed / org_volume.total
-    # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_factor(org_volume.org_id)
-
-    log_recalibrate_org_state(
-        org_volume.org_id, previous_factor, effective_sample_rate, target_sample_rate
-    )
-
-    # We want to compute the new adjusted factor.
-    adjusted_factor = compute_adjusted_factor(
-        previous_factor, effective_sample_rate, target_sample_rate
-    )
-    if adjusted_factor is None:
-        raise RecalibrationError(
-            org_id=org_volume.org_id, message="adjusted factor can't be computed"
+        log_action_if(
+            "target_sample_rate_determined",
+            {"org_id": org_volume.org_id},
+            orgs_to_check(org_volume),
         )
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-        # In case the new factor would result into too much recalibration, we want to remove it from cache, effectively
-        # removing the generated rule.
-        delete_adjusted_factor(org_volume.org_id)
-        raise RecalibrationError(
-            org_id=org_volume.org_id,
-            message=f"factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
-            f"{MAX_REBALANCE_FACTOR}]",
+        # We compute the effective sample rate that we had in the last considered time window.
+        effective_sample_rate = org_volume.indexed / org_volume.total
+        # We get the previous factor that was used for the recalibration.
+        previous_factor = get_adjusted_factor(org_volume.org_id)
+
+        log_recalibrate_org_state(
+            org_volume.org_id, previous_factor, effective_sample_rate, target_sample_rate
         )
 
-    # At the end we set the adjusted factor.
-    set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
+        # We want to compute the new adjusted factor.
+        adjusted_factor = compute_adjusted_factor(
+            previous_factor, effective_sample_rate, target_sample_rate
+        )
+        if adjusted_factor is None:
+            raise RecalibrationError(
+                org_id=org_volume.org_id, message="adjusted factor can't be computed"
+            )
 
-    log_action_if("set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume))
+        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+            # In case the new factor would result into too much recalibration, we want to remove it from cache, effectively
+            # removing the generated rule.
+            delete_adjusted_factor(org_volume.org_id)
+            raise RecalibrationError(
+                org_id=org_volume.org_id,
+                message=f"factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
+                f"{MAX_REBALANCE_FACTOR}]",
+            )
+
+        # At the end we set the adjusted factor.
+        set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
+
+        log_action_if(
+            "set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+        )
+
+    name = recalibrate_orgs.__name__
+    state = context.get_function_state(name)
+    state.num_orgs += 1
+    state.num_iterations += 1
+    state.execution_time = timer.current()
+    context.set_function_state(name, state)
