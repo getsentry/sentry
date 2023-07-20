@@ -21,8 +21,8 @@ op = "stacktrace_processing"
 class StacktraceInfo(NamedTuple):
     stacktrace: Any
     container: Any
-    platforms: Any
-    is_exception: Any
+    platforms: set[str]
+    is_exception: bool
 
     def __hash__(self) -> int:
         return id(self)
@@ -178,41 +178,48 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData, include_raw: bool = False, with_exceptions: bool = False
+    data: NodeData,
+    include_raw: bool = False,
+    with_exceptions: bool = False,
+    platform: str = "unknown",
 ) -> list[StacktraceInfo]:
     """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
 
-    If `include_raw` is True, then also raw stacktraces are included.  If
-    `with_exceptions` is set to `True` then stacktraces of the exception
+    If `include_raw` is True, then also raw stacktraces are included.
+
+    If `with_exceptions` is set to `True` then stacktraces of the exception
     are always included and the `is_exception` flag is set on that stack
     info object.
     """
     rv = []
+    _platform = data.get("platform", platform)
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = {
-            frame.get("platform") or data.get("platform")
-            for frame in get_path(stacktrace, "frames", filter=True, default=())
-        }
-        rv.append(
-            StacktraceInfo(
-                stacktrace=stacktrace,
-                container=container,
-                platforms=platforms,
-                is_exception=is_exception,
+        frames = extract_structure_from_json_structure(stacktrace, "frames")
+        if frames:
+            platforms = {frame.get("platform", _platform) for frame in frames}
+            rv.append(
+                StacktraceInfo(
+                    stacktrace=stacktrace,
+                    container=container,
+                    platforms=platforms,
+                    is_exception=is_exception,
+                )
             )
-        )
 
-    for exc in get_path(data, "exception", "values", filter=True, default=()):
+    # Look for stacktraces under the key `exception`
+    for exc in extract_structure_from_json_structure(data, "exception", "values"):
         _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
 
+    # Look for stacktraces under the key `stacktrace`
     _append_stacktrace(data.get("stacktrace"), None)
 
-    for thread in get_path(data, "threads", "values", filter=True, default=()):
+    # The native family includes stacktraces under threads
+    for thread in extract_structure_from_json_structure(data, "threads", "values"):
         _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
@@ -220,6 +227,15 @@ def find_stacktraces_in_data(
             if info.container is not None:
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
+    return rv
+
+
+def extract_structure_from_json_structure(data: Any, *path: str) -> list[Any]:
+    """Helper method to extract a data structure from a JSON object"""
+    rv = []
+    # filter=True filters out any None element
+    for item in get_path(data, path, filter=True, default=()):
+        rv.append(item)
     return rv
 
 
@@ -251,46 +267,45 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
-
-    stacktraces = []
+    platform = data.get("platform", "unknown")
+    sentry_sdk.set_tag("platform", platform)
+    stacktrace_frames = []
     stacktrace_exceptions = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
-        for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-            frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+        for stacktrace_info in find_stacktraces_in_data(data, include_raw=True, platform=platform):
+            # XXX: We already do this within find_stacktraces_in_data
+            frames = extract_structure_from_json_structure(stacktrace_info.stacktrace, "frames")
             if frames:
-                stacktraces.append(frames)
+                stacktrace_frames.append(frames)
                 stacktrace_exceptions.append(
                     stacktrace_info.container if stacktrace_info.is_exception else None
                 )
 
-    if not stacktraces:
+    if not stacktrace_frames:
         return
-
-    platform = data.get("platform")
-    sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
     with sentry_sdk.start_span(op=op, description="iterate_frames"):
-        for frames in stacktraces:
+        for frames in stacktrace_frames:
             for frame in frames:
                 _update_frame(frame, platform)
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
+            for frames, exception_data in zip(stacktrace_frames, stacktrace_exceptions):
                 grouping_config.enhancements.apply_modifications_to_frame(
                     frames, platform, exception_data
                 )
 
     # normalize in-app
     with sentry_sdk.start_span(op=op, description="normalize_in_app_stacktraces"):
-        for stacktrace in stacktraces:
-            _normalize_in_app(stacktrace)
+        for frames in stacktrace_frames:
+            _normalize_in_app(frames)
 
 
 def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
