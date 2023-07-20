@@ -14,7 +14,7 @@ from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import TIMEOUT
+from .tasks import MAX_TIMEOUT, TIMEOUT
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -42,7 +42,7 @@ def get_timeout_at(
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
         return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
         )
 
     return None
