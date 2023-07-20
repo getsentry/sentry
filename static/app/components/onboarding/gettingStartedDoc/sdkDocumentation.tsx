@@ -69,6 +69,7 @@ export const migratedDocs = [
   'node',
   'node-gcpfunctions',
   'node-express',
+  'node-serverlesscloud',
   'electron',
   'elixir',
 ];
