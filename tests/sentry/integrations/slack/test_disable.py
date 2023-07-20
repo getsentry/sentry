@@ -56,9 +56,9 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert integration_service.get_integration(
-            integration_id=self.integration.id
-        ).status == 1 # DISABLED
+        assert (
+            integration_service.get_integration(integration_id=self.integration.id).status == 1
+        )  # DISABLED
 
     @responses.activate
     def test_error_integration(self):
