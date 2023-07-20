@@ -201,7 +201,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Source maps are crucial for Sentry to de-minify your stack traces. Send them automatically with the Sentry Wizard:'
+        'Automatically upload your source maps to enable readable stack traces and better error grouping.'
       )
     ).toBeInTheDocument();
     expect(
