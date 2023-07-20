@@ -14,8 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Integration, OrganizationIntegration, Organization
-from sentry.models.integrations.integration import Integration
+from sentry.models import Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -96,14 +95,6 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         return f"sentry-integration-error:{self.integration_id}"
 
-    def is_response_fatal(self, resp: BaseApiResponse) -> bool:
-        return False
-
-    def is_response_error(self, resp: Response) -> bool:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
-        return False
-
     def is_error(self, e: Exception) -> bool:
         if type(e) is ConnectionError:
             return True
@@ -114,10 +105,56 @@ class BaseApiClient(TrackResponseMixin):
 
         return False
 
+    def is_response_fatal(self, resp: BaseApiResponse) -> bool:
+        return False
+
+    def is_response_error(self, resp: Response) -> bool:
+        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+            return True
+        return False
+
     def is_response_success(self, resp: Response) -> bool:
         if resp.status_code < 300:
             return True
         return False
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: Literal[True] = ...,
+    ) -> Response:
+        ...
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: bool = ...,
+    ) -> BaseApiResponseX:
+        ...
 
     def _request(
         self,
@@ -267,9 +304,11 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-            self.record_response(BaseApiResponse.from_response(
-                resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
-            ))
+            self.record_response(
+                BaseApiResponse.from_response(
+                    resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
+                )
+            )
 
             if resp.status_code == 204:
                 return {}
@@ -343,7 +382,6 @@ class BaseApiClient(TrackResponseMixin):
         return output
 
     def record_response(self, response: BaseApiResponse):
-        print("record_response")
         if self.is_response_fatal(response):
             self.record_request_fatal(response)
         elif self.is_response_error(response):
@@ -359,20 +397,15 @@ class BaseApiClient(TrackResponseMixin):
             return False
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_error()
-        print("error recorded")
         if buffer.is_integration_broken():
             self.disable_integration()
-
 
     def record_request_error(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_response_error(resp):
-            return
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_error()
-        print("error recorded")
         if buffer.is_integration_broken():
             self.disable_integration()
 
@@ -380,21 +413,15 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_response_success(resp):
-            return
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_success()
-        print("success recorded")
 
     def record_request_fatal(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_response_fatal(resp):
-            return
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_fatal()
-        print("fatal recorded")
         if buffer.is_integration_broken():
             self.disable_integration()
 
@@ -409,7 +436,7 @@ class BaseApiClient(TrackResponseMixin):
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
         self.logger.info(
-            f"integration.disabled",
+            "integration.disabled",
             extra={
                 "integration_id": self.integration_id,
                 "provider": rpc_integration.provider,
