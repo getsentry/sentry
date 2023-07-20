@@ -1,26 +1,23 @@
 import selectEvent from 'react-select-event';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 describe('Project Ownership Input', function () {
-  let org;
-  let project;
-  let put;
+  const {organization, project} = initializeOrg();
+  let put: jest.Mock;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
+      url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: TestStubs.Members(),
     });
     put = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/ownership/`,
+      url: `/projects/${organization.slug}/${project.slug}/ownership/`,
       method: 'PUT',
       body: {raw: 'url:src @dummy@example.com'},
     });
@@ -33,7 +30,10 @@ describe('Project Ownership Input', function () {
   it('renders', async function () {
     const {container} = render(
       <OwnerInput
-        organization={org}
+        page="issue_details"
+        onCancel={() => {}}
+        dateUpdated={null}
+        organization={organization}
         initialText="url:src @dummy@example.com"
         project={project}
       />
@@ -60,7 +60,10 @@ describe('Project Ownership Input', function () {
   it('updates on add preserving existing text', async function () {
     render(
       <OwnerInput
-        organization={org}
+        page="issue_details"
+        onCancel={() => {}}
+        dateUpdated={null}
+        organization={organization}
         initialText="url:src @dummy@example.com"
         project={project}
       />
@@ -79,7 +82,7 @@ describe('Project Ownership Input', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
 
     expect(put).toHaveBeenCalledWith(
-      '/projects/org-slug/project-slug/ownership/',
+      `/projects/${organization.slug}/${project.slug}/ownership/`,
       expect.objectContaining({
         data: {
           raw: 'url:src @dummy@example.com' + '\n' + 'path:file.js bob@example.com',
