@@ -75,6 +75,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project) -> Response:
         """
-        Create an alert rule - deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
+        Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
         return create_metric_alert(self, request, project.organization)
