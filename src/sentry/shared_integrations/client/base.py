@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.models import Integration, OrganizationIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
@@ -400,10 +401,12 @@ class BaseApiClient(TrackResponseMixin):
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-      #  if features.has("organizations:disable-on-broken",):
-        integration_service.update_integration(
-            integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-        )
+        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)
+        org = oi.organization
+        if features.has("organizations:disable-on-broken",org):
+            integration_service.update_integration(
+                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+            )
         self.logger.info(
             f"integration.disabled",
             extra={

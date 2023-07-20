@@ -57,7 +57,6 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        print(buffer._get())
         assert buffer.is_integration_broken() is True
         assert integration_service.get_integration(
             integration_id=self.integration.id
@@ -79,8 +78,9 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        assert buffer.is_integration_broken() is False
+        print(buffer._get())
         assert (buffer._get()[0]["error_count"]) >= 1
+        assert buffer.is_integration_broken() is False
 
         #fake slow test w disable on
         #fake slow test w disable off
