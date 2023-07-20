@@ -348,7 +348,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             help: t(
               'Allow Sentry to comment on pull requests about issues impacting your app.'
             ),
-            disabled: !hasIntegration || !hasOrgWrite,
+            disabled: !hasIntegration,
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
@@ -370,7 +370,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         initialData={initialData}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <JsonForm features={organization.features} forms={forms} />
+        <JsonForm
+          disabled={!hasOrgWrite}
+          features={organization.features}
+          forms={forms}
+        />
       </Form>
     );
   }
