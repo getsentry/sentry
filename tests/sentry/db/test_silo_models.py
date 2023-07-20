@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from django.db.models import Model
+
 from sentry.api.serializers.base import registry
 from sentry.models import OrganizationIntegration, PagerDutyService
 from sentry.testutils.silo import (
@@ -6,9 +10,9 @@ from sentry.testutils.silo import (
     validate_no_cross_silo_foreign_keys,
 )
 
-decorator_exemptions = set()
+decorator_exemptions: set[type[Model]] = set()
 # Temporary, remove after finishing changes on getsentry side
-fk_exemptions = {(PagerDutyService, OrganizationIntegration)}
+fk_exemptions: set[tuple[type[Model], type[Model]]] = {(PagerDutyService, OrganizationIntegration)}
 
 
 def test_models_have_silos():

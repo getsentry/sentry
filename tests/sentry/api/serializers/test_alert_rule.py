@@ -41,6 +41,7 @@ class BaseAlertRuleSerializerTest:
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by_id:
             created_by = user_service.get_user(user_id=alert_rule.created_by_id)
+            assert created_by is not None
             assert result["createdBy"] == {
                 "id": alert_rule.created_by_id,
                 "name": created_by.get_display_name(),
