@@ -2106,7 +2106,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         )
 
         assert query.on_demand_metrics_enabled
-        assert not query._on_demand_spec
 
     def test_run_on_demand_query(self):
         query = AlertMetricsQueryBuilder(

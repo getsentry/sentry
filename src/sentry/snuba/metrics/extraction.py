@@ -226,7 +226,7 @@ def is_on_demand_query(
         if not _is_standard_metrics_field(field):
             return True
     try:
-        return not is_standard_metrics_query(query)
+        return not _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -250,10 +250,6 @@ def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
 
     return []
-
-
-def is_standard_metrics_query(query: Optional[str] = "") -> bool:
-    return _is_standard_metrics_query(event_search.parse_search_query(query))
 
 
 def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
