@@ -7,6 +7,7 @@ import inspect
 import logging
 from abc import abstractmethod
 from collections.abc import Iterable
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 
@@ -357,9 +358,8 @@ class RpcService(abc.ABC):
                     region = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
-                return dispatch_remote_call(
-                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
-                )
+                remote_call = _RemoteSiloCall(region, cls.key, method_name, serial_arguments)
+                return remote_call.dispatch(use_test_client)
 
             return remote_method
 
@@ -443,109 +443,123 @@ def dispatch_to_local_service(
 _RPC_CONTENT_CHARSET = "utf-8"
 
 
-def dispatch_remote_call(
-    region: Region | None,
-    service_name: str,
-    method_name: str,
-    serial_arguments: ArgumentDict,
-    use_test_client: bool = False,
-) -> Any:
-    service, _ = _look_up_service_method(service_name, method_name)
-    serial_response = _dispatch_to_silo_service(
-        method_name, region, serial_arguments, service_name, use_test_client
-    )
+@dataclass(frozen=True)
+class _RemoteSiloCall:
+    region: Region | None
+    method_name: str
+    service_name: str
+    serial_arguments: ArgumentDict
 
-    return_value = serial_response["value"]
-    return (
-        None
-        if return_value is None
-        else service.deserialize_rpc_response(method_name, return_value)
-    )
+    def __post_init__(self) -> None:
+        if not (self.address and settings.RPC_SHARED_SECRET):
+            raise RpcSendException("Not configured for RPC network requests")
 
-
-def _dispatch_to_silo_service(method_name, region, serial_arguments, service_name, use_test_client):
-    if region is None:
-        address = settings.SENTRY_CONTROL_ADDRESS
-    else:
-        address = region.address
-    if not (address and settings.RPC_SHARED_SECRET):
-        raise RpcSendException("Not configured for RPC network requests")
-    path = django.urls.reverse(
-        "sentry-api-0-rpc-service",
-        kwargs={"service_name": service_name, "method_name": method_name},
-    )
-    url = address + path
-    request_body = {
-        "meta": {},  # reserved for future use
-        "args": serial_arguments,
-    }
-    data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
-    signature = generate_request_signature(path, data)
-    headers = {
-        "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
-        "Authorization": f"Rpcsignature {signature}",
-    }
-    timer = metrics.timer(
-        "hybrid_cloud.dispatch_rpc.duration", tags={"service": service_name, "method": method_name}
-    )
-    span = sentry_sdk.start_span(
-        op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
-    )
-    with span, timer:
-        if use_test_client:
-            response = _fire_test_request(path, headers, data, region)
+    @property
+    def address(self) -> str:
+        if self.region is None:
+            return settings.SENTRY_CONTROL_ADDRESS
         else:
-            response = _fire_request(url, headers, data)
-        metrics.incr(
-            "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
+            return self.region.address
+
+    @property
+    def path(self) -> str:
+        return django.urls.reverse(
+            "sentry-api-0-rpc-service",
+            kwargs={"service_name": self.service_name, "method_name": self.method_name},
         )
 
-        if response.status_code != 200:
-            if in_test_environment():
-                if response.status_code == 500:
-                    raise Exception(
-                        "Error invoking rpc at {path}: check error logs for more details"
-                    )
-                raise Exception("Error invoking rpc at {path}: {response.json()['detail']}")
-            # Careful not to reveal too much information in production
-            if response.status_code == 403:
-                raise Exception("Unauthorized service access")
-            if response.status_code == 400:
-                raise Exception("Invalid service request")
-            raise Exception("Service unavailable")
-        serial_response = response.json()
-    return serial_response
+    def dispatch(self, use_test_client: bool = False) -> Any:
+        serial_response = self._send_to_remote_silo(use_test_client)
 
+        return_value = serial_response["value"]
+        service, _ = _look_up_service_method(self.service_name, self.method_name)
+        return (
+            None
+            if return_value is None
+            else service.deserialize_rpc_response(self.method_name, return_value)
+        )
 
-def _fire_test_request(
-    path: str, headers: Mapping[str, str], data: bytes, region: Region | None
-) -> Any:
-    from django.test import Client
+    def _send_to_remote_silo(self, use_test_client: bool) -> Any:
+        request_body = {
+            "meta": {},  # reserved for future use
+            "args": self.serial_arguments,
+        }
+        data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
+        signature = generate_request_signature(self.path, data)
+        headers = {
+            "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
+            "Authorization": f"Rpcsignature {signature}",
+        }
 
-    from sentry.db.postgres.transactions import in_test_assert_no_transaction
-
-    in_test_assert_no_transaction(
-        f"remote service method to {path} called inside transaction!  Move service calls to outside of transactions."
-    )
-
-    with SiloMode.exit_single_process_silo_context():
-        if region:
-            target_mode = SiloMode.REGION
-        else:
-            target_mode = SiloMode.CONTROL
-
-        with SiloMode.enter_single_process_silo_context(target_mode, region):
-            return Client().post(
-                path,
-                data,
-                content_type=f"application/json; charset={_RPC_CONTENT_CHARSET}",
-                **{f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()},
+        with self._open_request_context():
+            if use_test_client:
+                response = self._fire_test_request(headers, data)
+            else:
+                response = self._fire_request(headers, data)
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
             )
 
+            self._raise_from_response_status_error(response)
+            serial_response = response.json()
+        return serial_response
 
-def _fire_request(url: str, headers: Mapping[str, str], data: bytes) -> requests.Response:
-    # TODO: Performance considerations (persistent connections, pooling, etc.)?
-    return requests.post(url, headers=headers, data=data)
+    @contextmanager
+    def _open_request_context(self):
+        timer = metrics.timer(
+            "hybrid_cloud.dispatch_rpc.duration",
+            tags={"service": self.service_name, "method": self.method_name},
+        )
+        span = sentry_sdk.start_span(
+            op="hybrid_cloud.dispatch_rpc",
+            description=f"rpc to {self.service_name}.{self.method_name}",
+        )
+        with span, timer:
+            yield
+
+    def _raise_from_response_status_error(self, response: requests.Response) -> None:
+        if response.status_code == 200:
+            return
+        if in_test_environment():
+            if response.status_code == 500:
+                raise Exception(
+                    f"Error invoking rpc at {self.path}: check error logs for more details"
+                )
+            raise Exception(f"Error invoking rpc at {self.path}: {response.json()['detail']}")
+        # Careful not to reveal too much information in production
+        if response.status_code == 403:
+            raise Exception("Unauthorized service access")
+        if response.status_code == 400:
+            raise Exception("Invalid service request")
+        raise Exception("Service unavailable")
+
+    def _fire_test_request(self, headers: Mapping[str, str], data: bytes) -> Any:
+        from django.test import Client
+
+        from sentry.db.postgres.transactions import in_test_assert_no_transaction
+
+        in_test_assert_no_transaction(
+            f"remote service method to {self.path} called inside transaction!  Move service calls to outside of transactions."
+        )
+
+        with SiloMode.exit_single_process_silo_context():
+            if self.region:
+                target_mode = SiloMode.REGION
+            else:
+                target_mode = SiloMode.CONTROL
+
+            with SiloMode.enter_single_process_silo_context(target_mode, self.region):
+                return Client().post(
+                    self.path,
+                    data,
+                    content_type=f"application/json; charset={_RPC_CONTENT_CHARSET}",
+                    **{f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()},
+                )
+
+    def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
+        # TODO: Performance considerations (persistent connections, pooling, etc.)?
+        url = self.address + self.path
+        return requests.post(url, headers=headers, data=data)
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
