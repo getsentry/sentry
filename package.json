@@ -208,7 +208,8 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
-    "**/ua-parser-js": "<=0.7.28"
+    "**/ua-parser-js": "<=0.7.28",
+    "**/loader-utils": ">=1.4.2"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
