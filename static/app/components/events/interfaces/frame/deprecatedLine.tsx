@@ -285,8 +285,8 @@ export class DeprecatedLine extends Component<Props, State> {
     const hiddenFrameCount = this.props.hiddenFrameCount;
     if (hiddenFrameCount) {
       return (
-        <button
-          className="btn-link"
+        <Button
+          priority="link"
           onClick={e => {
             onShowFramesToggle(e);
           }}
@@ -294,7 +294,7 @@ export class DeprecatedLine extends Component<Props, State> {
           {this.props.isShowFramesToggleExpanded
             ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
             : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-        </button>
+        </Button>
       );
     }
     return null;
