@@ -23,16 +23,14 @@ const EXAMPLE_INTEGRATION = {
 };
 
 describe('TeamNotificationSettings', () => {
-  let team;
+  const {organization, routerContext, routerProps} = initializeOrg();
+  const team = TestStubs.Team();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    team = TestStubs.Team();
   });
 
   it('should render empty message when there are no integrations', () => {
-    const {organization, routerContext} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/`,
       body: {
@@ -45,9 +43,15 @@ describe('TeamNotificationSettings', () => {
       body: [],
     });
 
-    render(<TeamNotificationSettings team={team} organization={organization} />, {
-      context: routerContext,
-    });
+    render(
+      <TeamNotificationSettings
+        {...routerProps}
+        team={team}
+        params={{teamId: team.id}}
+        organization={organization}
+      />,
+      {context: routerContext}
+    );
 
     expect(
       screen.getByText('No Notification Integrations have been installed yet.')
@@ -55,8 +59,6 @@ describe('TeamNotificationSettings', () => {
   });
 
   it('should render empty message when there are no externalTeams', () => {
-    const {organization, routerContext} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/`,
       body: {
@@ -69,16 +71,22 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings team={team} organization={organization} />, {
-      context: routerContext,
-    });
+    render(
+      <TeamNotificationSettings
+        {...routerProps}
+        team={team}
+        params={{teamId: team.id}}
+        organization={organization}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     expect(screen.getByText('No teams have been linked yet.')).toBeInTheDocument();
   });
 
   it('should render each externalTeam', () => {
-    const {organization, routerContext} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/`,
       body: {
@@ -91,9 +99,17 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings team={team} organization={organization} />, {
-      context: routerContext,
-    });
+    render(
+      <TeamNotificationSettings
+        {...routerProps}
+        team={team}
+        params={{teamId: team.id}}
+        organization={organization}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     const input = screen.getByRole('textbox', {
       name: 'Unlink this channel in slack with `/slack unlink team`',
@@ -105,8 +121,6 @@ describe('TeamNotificationSettings', () => {
   });
 
   it('should delete be able to delete the externalTeam', async () => {
-    const {organization, routerContext} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/`,
       body: {
@@ -125,9 +139,17 @@ describe('TeamNotificationSettings', () => {
       method: 'DELETE',
     });
 
-    render(<TeamNotificationSettings team={team} organization={organization} />, {
-      context: routerContext,
-    });
+    render(
+      <TeamNotificationSettings
+        {...routerProps}
+        team={team}
+        params={{teamId: team.id}}
+        organization={organization}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
