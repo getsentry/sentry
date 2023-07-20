@@ -1,7 +1,9 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Project, Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
@@ -47,7 +49,7 @@ describe('TeamStatsIssues', () => {
     projects: [],
     isMember: false,
   });
-  const mockRouter = {push: jest.fn()};
+  const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -123,7 +125,7 @@ describe('TeamStatsIssues', () => {
     jest.resetAllMocks();
   });
 
-  function createWrapper({projects, teams} = {}) {
+  function createWrapper({projects, teams}: {projects?: Project[]; teams?: Team[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
@@ -134,7 +136,7 @@ describe('TeamStatsIssues', () => {
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return render(<TeamStatsIssues router={mockRouter} location={{}} />, {
+    return render(<TeamStatsIssues {...routerProps} />, {
       context,
       organization,
     });
@@ -156,7 +158,9 @@ describe('TeamStatsIssues', () => {
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText('#frontend'));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {team: team1.id}})
+    );
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
@@ -171,11 +175,13 @@ describe('TeamStatsIssues', () => {
     await userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
     await userEvent.click(screen.getByText(env1));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {environment: 'prod'}});
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {environment: 'prod'}})
+    );
   });
 
   it('superusers can switch to any team', async () => {
-    isActiveSuperuser.mockReturnValue(true);
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
