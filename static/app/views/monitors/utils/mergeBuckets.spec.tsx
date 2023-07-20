@@ -37,7 +37,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.OK)],
       [8, generateJobRun('prod', CheckInStatus.OK)],
     ];
-    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
+    const mergedData = mergeBuckets(bucketData, 'prod');
     const expectedMerged = [
       {
         startTs: 1,
@@ -63,7 +63,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.MISSED)],
       [8, generateJobRun('prod', CheckInStatus.MISSED)],
     ];
-    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
+    const mergedData = mergeBuckets(bucketData, 'prod');
     const expectedMerged = [
       {
         startTs: 1,
@@ -97,7 +97,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.MISSED)],
       [8, generateJobRun('prod', CheckInStatus.TIMEOUT)],
     ];
-    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
+    const mergedData = mergeBuckets(bucketData, 'prod');
     const expectedMerged = [
       {
         startTs: 1,
@@ -142,7 +142,7 @@ describe('mergeBuckets', function () {
       [8, generateJobRun('prod', CheckInStatus.TIMEOUT)],
     ];
 
-    const mergedData = mergeBuckets(bucketData, new Set(['dev']));
+    const mergedData = mergeBuckets(bucketData, 'dev');
     const expectedMerged = [
       {
         startTs: 1,
