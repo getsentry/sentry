@@ -6,7 +6,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import OrganizationTeams from 'sentry/views/settings/organizationTeams/organizationTeams';
 
-recreateRoute.mockReturnValue('');
+jest.mocked(recreateRoute).mockReturnValue('');
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openCreateTeamModal: jest.fn(),
@@ -14,17 +14,21 @@ jest.mock('sentry/actionCreators/modal', () => ({
 
 describe('OrganizationTeams', function () {
   describe('Open Membership', function () {
-    const {organization, project} = initializeOrg({
+    const {organization, project, routerProps} = initializeOrg({
       organization: {
         openMembership: true,
       },
     });
 
-    const createWrapper = props =>
+    const createWrapper = (
+      props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
+    ) =>
       render(
         <OrganizationTeams
+          {...routerProps}
+          onRemoveAccessRequest={() => {}}
+          requestList={[]}
           params={{projectId: project.slug}}
-          routes={[]}
           features={new Set(['open-membership'])}
           access={new Set(['project:admin'])}
           organization={organization}
@@ -115,20 +119,22 @@ describe('OrganizationTeams', function () {
   });
 
   describe('Closed Membership', function () {
-    const {organization, project} = initializeOrg({
+    const {organization, project, routerProps} = initializeOrg({
       organization: {
         openMembership: false,
       },
     });
-    const createWrapper = props =>
+    const createWrapper = (
+      props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
+    ) =>
       render(
         <OrganizationTeams
+          {...routerProps}
+          onRemoveAccessRequest={() => {}}
+          requestList={[]}
           params={{projectId: project.slug}}
-          routes={[]}
           features={new Set([])}
           access={new Set([])}
-          allTeams={[]}
-          activeTeams={[]}
           organization={organization}
           {...props}
         />
@@ -191,7 +197,7 @@ describe('OrganizationTeams', function () {
   });
 
   describe('Team Requests', function () {
-    const {organization, project} = initializeOrg({
+    const {organization, project, routerProps} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -208,15 +214,16 @@ describe('OrganizationTeams', function () {
     });
     const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
-    const createWrapper = props =>
+    const createWrapper = (
+      props?: Partial<React.ComponentProps<typeof OrganizationTeams>>
+    ) =>
       render(
         <OrganizationTeams
+          {...routerProps}
+          onRemoveAccessRequest={() => {}}
           params={{projectId: project.slug}}
-          routes={[]}
           features={new Set([])}
           access={new Set([])}
-          allTeams={[]}
-          activeTeams={[]}
           organization={organization}
           requestList={requestList}
           {...props}
@@ -287,14 +294,18 @@ describe('OrganizationTeams', function () {
 
   describe('Team Roles', function () {
     const features = new Set(['team-roles']);
-    const access = new Set();
+    const access = new Set<string>();
 
     it('does not render alert without feature flag', function () {
-      const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
+      const {organization, project, routerProps} = initializeOrg({
+        organization: {orgRole: 'admin'},
+      });
       render(
         <OrganizationTeams
+          {...routerProps}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           params={{projectId: project.slug}}
-          routes={[]}
           features={new Set()}
           access={access}
           organization={organization}
@@ -305,11 +316,15 @@ describe('OrganizationTeams', function () {
     });
 
     it('renders alert with elevated org role', function () {
-      const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
+      const {organization, project, routerProps} = initializeOrg({
+        organization: {orgRole: 'admin'},
+      });
       render(
         <OrganizationTeams
+          {...routerProps}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           params={{projectId: project.slug}}
-          routes={[]}
           features={features}
           access={access}
           organization={organization}
@@ -325,11 +340,15 @@ describe('OrganizationTeams', function () {
     });
 
     it('does not render alert with lowest org role', function () {
-      const {organization, project} = initializeOrg({organization: {orgRole: 'member'}});
+      const {organization, project, routerProps} = initializeOrg({
+        organization: {orgRole: 'member'},
+      });
       render(
         <OrganizationTeams
+          {...routerProps}
+          requestList={[]}
+          onRemoveAccessRequest={() => {}}
           params={{projectId: project.slug}}
-          routes={[]}
           features={features}
           access={access}
           organization={organization}
