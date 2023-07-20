@@ -1,5 +1,4 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {
@@ -7,6 +6,7 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import SpansView from 'sentry/views/starfish/views/spans/spansView';
@@ -27,9 +27,9 @@ export default function DBModule() {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
-              <PageFiltersContainer>
+              <StarfishPageFiltersContainer>
                 <SpansView moduleName={ModuleName.DB} />
-              </PageFiltersContainer>
+              </StarfishPageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

@@ -11,9 +11,21 @@ class ApiApplicationRotateSecretTest(APITestCase):
         self.app = ApiApplication.objects.create(owner=self.user, name="a")
         self.path = reverse("sentry-api-0-api-application-rotate-secret", args=[self.app.client_id])
 
-    def test_unauthorized_call(self):
+    def test_unauthenticated_call(self):
         response = self.client.post(self.path)
         assert response.status_code == 403
+
+    def test_non_owner_call(self):
+        """
+        Tests that an authenticated user cannot rotate the secret for an ApiApplication they don't own.
+        """
+        self.login_as(self.user)
+        other_user = self.create_user()
+        other_app = ApiApplication.objects.create(owner=other_user, name="b")
+        response = self.client.post(
+            reverse("sentry-api-0-api-application-rotate-secret", args=[other_app.client_id])
+        )
+        assert response.status_code == 404
 
     def test_invalid_app_id(self):
         self.login_as(self.user)

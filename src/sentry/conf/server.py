@@ -1070,18 +1070,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1119,8 +1119,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
     },
 }
 
@@ -1489,7 +1489,7 @@ SENTRY_FEATURES = {
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
     # Display if a release is using semver when resolving issues
-    "organizations:issue-resolve-semver": False,
+    "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1568,6 +1568,10 @@ SENTRY_FEATURES = {
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
+    # Enable rage click and dead click columns in replay list.
+    "organizations:replay-rage-click-dead-click-columns": False,
+    # Enable experimental error and rage/dead click cards in replay list.
+    "organizations:replay-error-click-cards": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
