@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -15,12 +16,10 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectReleaseTracking', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const {organization: org, project, routerProps} = initializeOrg();
   const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
   beforeEach(function () {
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -36,13 +35,18 @@ describe('ProjectReleaseTracking', function () {
     });
   });
 
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders with token', function () {
     render(
       <ProjectReleaseTracking
         organization={org}
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
-        params={{projectId: project.slug}}
+        {...routerProps}
       />
     );
 
@@ -55,7 +59,7 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: TestStubs.Plugins()}}
-        params={{projectId: project.slug}}
+        {...routerProps}
       />
     );
 
@@ -90,22 +94,33 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('fetches new plugins when project changes', function () {
+    const newProject = TestStubs.Project({slug: 'new-project'});
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${newProject.slug}/releases/token/`,
+      method: 'GET',
+      body: {
+        webhookUrl: 'webhook-url',
+        token: 'token token token',
+      },
+    });
+
     const {rerender} = render(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}
-        params={{projectId: project.slug}}
+        {...routerProps}
       />
     );
     expect(fetchPlugins).toHaveBeenCalled();
 
-    fetchPlugins.mockClear();
+    jest.mocked(fetchPlugins).mockClear();
 
     // For example, this happens when we switch to a new project using settings breadcrumb
     rerender(
       <ProjectReleaseTrackingContainer
         organization={org}
-        project={{...project, slug: 'new-project'}}
+        project={newProject}
+        {...routerProps}
         params={{projectId: 'new-project'}}
       />
     );
@@ -116,13 +131,14 @@ describe('ProjectReleaseTracking', function () {
       })
     );
 
-    fetchPlugins.mockClear();
+    jest.mocked(fetchPlugins).mockClear();
 
     // Does not call fetchPlugins if slug is the same
     rerender(
       <ProjectReleaseTrackingContainer
         organization={org}
-        project={{...project, slug: 'new-project'}}
+        project={newProject}
+        {...routerProps}
         params={{projectId: 'new-project'}}
       />
     );
