@@ -1,10 +1,11 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
 jest.mock('scroll-to-element', () => 'scroll-to-element');
 
-const mockUserDetails = params => {
+function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();
 
   MockApiClient.addMockResponse({
@@ -12,15 +13,17 @@ const mockUserDetails = params => {
     method: 'GET',
     body: TestStubs.UserDetails(params),
   });
-};
+}
 
 describe('AccountDetails', function () {
+  const {routerProps} = initializeOrg();
+
   beforeEach(function () {
     mockUserDetails();
   });
 
   it('renders', function () {
-    render(<AccountDetails location={{}} />);
+    render(<AccountDetails {...routerProps} />);
 
     expect(screen.getByRole('textbox', {name: 'Name'})).toBeEnabled();
 
@@ -30,7 +33,7 @@ describe('AccountDetails', function () {
 
   it('has username field if it is different than email', function () {
     mockUserDetails({username: 'different@example.com'});
-    render(<AccountDetails location={{}} />);
+    render(<AccountDetails {...routerProps} />);
 
     expect(screen.getByRole('textbox', {name: 'Username'})).toBeEnabled();
   });
@@ -38,7 +41,7 @@ describe('AccountDetails', function () {
   describe('Managed User', function () {
     it('does not have password fields', function () {
       mockUserDetails({isManaged: true});
-      render(<AccountDetails location={{}} />);
+      render(<AccountDetails {...routerProps} />);
 
       expect(screen.getByRole('textbox', {name: 'Name'})).toBeEnabled();
       expect(screen.queryByRole('textbox', {name: 'Password'})).not.toBeInTheDocument();
@@ -46,7 +49,7 @@ describe('AccountDetails', function () {
 
     it('has disabled username field if it is different than email', function () {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
-      render(<AccountDetails location={{}} />);
+      render(<AccountDetails {...routerProps} />);
 
       expect(screen.getByRole('textbox', {name: 'Username'})).toBeDisabled();
     });
