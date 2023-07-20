@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
@@ -37,7 +38,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import QueryMemoryLimitExceeded, raw_snql_query
 
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
@@ -45,6 +46,8 @@ DEFAULT_OFFSET = 0
 MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+logger = logging.getLogger()
 
 
 def query_replays_collection(
@@ -195,7 +198,12 @@ def query_replays_dataset(
         ),
         tenant_ids=tenant_ids,
     )
-    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+
+    try:
+        return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+    except QueryMemoryLimitExceeded:
+        logger.error("Replay query exceeded memory limit.")
+        return ParseError(detail="Query memory limit exceeded. Try reducing the date range.")
 
 
 def query_replays_dataset_with_subquery(
