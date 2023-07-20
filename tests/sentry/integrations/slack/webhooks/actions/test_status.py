@@ -2,6 +2,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs
 
 import responses
+from django.db import router
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -639,7 +640,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_validation_error(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="manager")
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
@@ -685,7 +686,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")
 
         other_user = self.create_user()

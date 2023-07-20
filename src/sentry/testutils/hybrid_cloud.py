@@ -4,11 +4,25 @@ import contextlib
 import functools
 import threading
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypedDict,
+)
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 
+from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
@@ -144,15 +158,105 @@ class SimulatedTransactionWatermarks(threading.local):
             total += 1
         return total
 
-    def connection_above_watermark(
+    def connection_transaction_depth_above_watermark(
         self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
-    ) -> bool:
+    ) -> int:
         if connection is None:
             connection = transaction.get_connection(using)
-        return self.get_transaction_depth(connection) > self.state.get(connection.alias, 0)
+        return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
+
+    def connections_above_watermark(self) -> Set[str]:
+        result = set()
+        for connection in connections.all():
+            if self.connection_transaction_depth_above_watermark(connection=connection):
+                result.add(connection.alias)
+        return result
 
 
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
+
+
+class EnforceNoCrossTransactionWrapper:
+    alias: str
+
+    def __init__(self, alias: str):
+        self.alias = alias
+
+    def __call__(self, execute: Callable[..., Any], *params: Any) -> Any:
+        if not in_test_transaction_enforcement.enabled:
+            return execute(*params)
+
+        open_transactions = simulated_transaction_watermarks.connections_above_watermark()
+        # If you are hitting this, it means you have two open transactions working in differing databases at the same
+        # time.  This is problematic in general for a variety of reasons -- it will never be possible to atomically
+        # transact in both databases (one may succeed and the other fail), but more likely, it means a bug in attempting
+        # to transact with resources that may not even co-exist in production (split silo db is a good example).
+        # Ideally, restructure transactions that span different databases into separate discrete blocks.
+        # It is fine to nest transactions so long as they are operating on the same database.
+        # Alternatively, it may be possible you are hitting this due to limitations in the test environment, such as
+        # when celery tasks fire synchronously, or other work is done in a test that would normally be separated by
+        # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
+        # for assistance.
+        assert (
+            len(open_transactions) < 2
+        ), f"Found mixed open transactions between dbs {open_transactions}"
+        if open_transactions:
+            assert (
+                self.alias in open_transactions
+            ), f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+
+        return execute(*params)
+
+
+@contextlib.contextmanager
+def enforce_no_cross_transaction_interactions():
+    with contextlib.ExitStack() as stack:
+        for conn in connections.all():
+            stack.enter_context(conn.execute_wrapper(EnforceNoCrossTransactionWrapper(conn.alias)))
+        yield
+
+
+class TransactionDetails(TypedDict):
+    transaction: str | None
+    queries: List[str]
+
+
+class TransactionDetailsWrapper:
+    result: List[TransactionDetails]
+    alias: str
+
+    def __init__(self, alias: str, result: List[TransactionDetails]):
+        self.result = result
+        self.alias = alias
+
+    def __call__(self, execute: Callable[..., Any], query: str, *args: Any) -> Any:
+        release = query.startswith("RELEASE")
+        savepoint = query.startswith("SAVEPOINT")
+        depth = simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            using=self.alias
+        )
+        active_transaction = self.alias if release or savepoint or depth else None
+        if (
+            (savepoint and depth == 0)
+            or not self.result
+            or self.result[-1]["transaction"] != active_transaction
+        ):
+            cur: TransactionDetails = {"transaction": active_transaction, "queries": []}
+            self.result.append(cur)
+        else:
+            cur = self.result[-1]
+        cur["queries"].append(query)
+        return execute(query, *args)
+
+
+@contextlib.contextmanager
+def collect_transaction_queries() -> Iterator[List[TransactionDetails]]:
+    result: List[TransactionDetails] = []
+
+    with contextlib.ExitStack() as stack:
+        for conn in connections.all():
+            stack.enter_context(conn.execute_wrapper(TransactionDetailsWrapper(conn.alias, result)))
+        yield result
 
 
 @contextlib.contextmanager
@@ -180,7 +284,9 @@ def simulate_on_commit(request: Any):
         if connection.closed_in_transaction or connection.needs_rollback:
             return
 
-        if simulated_transaction_watermarks.connection_above_watermark(connection=connection):
+        if simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            connection=connection
+        ):
             return
 
         old_validate = connection.validate_no_atomic_block

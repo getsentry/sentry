@@ -54,7 +54,7 @@ class NotificationSettings extends DeprecatedAsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
-      ['notificationSettings', `/users/me/notification-settings/`],
+      ['notificationSettings', `/users/me/notification-settings/`, {v2: 'serializer'}],
       ['legacyData', '/users/me/notifications/'],
     ];
   }

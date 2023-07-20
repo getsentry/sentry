@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -75,7 +75,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         elif result.get("isActive") is False:
             updates["status"] = ObjectStatus.DISABLED
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.update(**updates)
 
             self.create_audit_entry(
@@ -108,7 +108,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             hook.delete()
 
             self.create_audit_entry(

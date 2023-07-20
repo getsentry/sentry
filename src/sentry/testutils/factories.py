@@ -15,13 +15,12 @@ import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -48,7 +47,6 @@ from sentry.models import (
     ArtifactBundle,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     DocIntegration,
     DocIntegrationAvatar,
     Environment,
@@ -93,6 +91,7 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
     ActionService,
@@ -109,6 +108,7 @@ from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -371,16 +371,15 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(organization=organization, **kwargs)
             if teams:
                 for team in teams:
                     project.add_team(team)
             if fire_project_created:
-                with in_test_hide_transaction_boundary():
-                    project_created.send(
-                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                    )
+                project_created.send(
+                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                )
         return project
 
     @staticmethod
@@ -1103,7 +1102,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -1302,11 +1301,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
+    def create_alert_rule_trigger(
+        alert_rule, label=None, alert_threshold=100, excluded_projects=None
+    ):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1391,7 +1392,8 @@ class Factories:
         **integration_params: Any,
     ) -> Integration:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
+        with outbox_runner():
+            organization_integration = integration.add_organization(organization)
         organization_integration.update(**(oi_params or {}))
 
         return integration

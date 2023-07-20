@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.conf import settings
+from django.db import router
 from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
@@ -30,7 +32,8 @@ from sentry.types.region import Region, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
+        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+            self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
     def _get_paths(self, args):
@@ -155,7 +158,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
                     slug="abcslug",
@@ -172,7 +175,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
                 OrganizationMemberMapping.objects.create(
                     organization_id=101010, organizationmember_id=om.id
                 )
@@ -198,7 +201,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
             OrganizationMemberMapping.objects.create(
                 organization_id=self.organization.id, organizationmember_id=om.id
             )
@@ -276,7 +279,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )

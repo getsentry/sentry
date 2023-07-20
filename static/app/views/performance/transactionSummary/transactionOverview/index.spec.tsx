@@ -1089,7 +1089,14 @@ describe('Performance > TransactionSummary', function () {
               'transaction.op:pageload event.type:transaction transaction:/performance',
             referrer: 'api.performance.transaction-summary.duration-chart',
             statsPeriod: '14d',
-            yAxis: ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'],
+            yAxis: [
+              'p50(transaction.duration)',
+              'p75(transaction.duration)',
+              'p95(transaction.duration)',
+              'p99(transaction.duration)',
+              'p100(transaction.duration)',
+              'avg(transaction.duration)',
+            ],
           }),
         })
       );
