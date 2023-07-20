@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
+from django.urls import reverse
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
@@ -72,7 +73,7 @@ class GitlabRequestParserTest(TestCase):
         assert response.reason_phrase == "The customer's Secret Token is malformed."
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_properly(self):
+    def test_routing_webhook_properly(self):
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -102,6 +103,26 @@ class GitlabRequestParserTest(TestCase):
         ):
             parser.get_response()
             assert get_response_from_outbox_creation.called
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_search_properly(self):
+        path = reverse(
+            "sentry-extensions-gitlab-search",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "integration_id": self.integration.id,
+            },
+        )
+        request = self.factory.post(path, data={}, content_type="application/json")
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):

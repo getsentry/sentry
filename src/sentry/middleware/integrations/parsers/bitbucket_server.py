@@ -16,7 +16,6 @@ class BitbucketServerRequestParser(BitbucketRequestParser):
     webhook_identifier = WebhookProviderIdentifier.BITBUCKET_SERVER
 
     def get_response(self) -> HttpResponse:
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class == BitbucketServerWebhookEndpoint:
+        if self.view_class == BitbucketServerWebhookEndpoint:
             return self.get_bitbucket_webhook_response()
         return self.get_response_from_control_silo()
