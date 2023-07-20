@@ -109,7 +109,7 @@ npm install --save @sentry/node @sentry/utils
           ctx.res.on("finish", () => {
             // Push \`transaction.finish\` to the next event loop so open spans have a chance to finish before the transaction closes
             setImmediate(() => {
-              // if using koa router, a nicer way to capture transaction using the matched route
+              // if you're using koa router, set the matched route as transaction name
               if (ctx._matchedRoute) {
                 const mountPath = ctx.mountPath || "";
                 transaction.setName(\`\${reqMethod} \${mountPath}\${ctx._matchedRoute}\`);
