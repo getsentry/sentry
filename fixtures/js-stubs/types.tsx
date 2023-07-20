@@ -56,7 +56,7 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
-  Environments: OverridableStub;
+  Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
@@ -81,6 +81,7 @@ type TestStubFixtures = {
   GroupingConfigs: SimpleStub;
   GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
+  HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
   IncidentStats: OverridableStub;

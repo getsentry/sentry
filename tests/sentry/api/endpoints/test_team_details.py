@@ -16,7 +16,7 @@ class TeamDetailsTestBase(APITestCase):
     def assert_team_status(
         self,
         team_id: int,
-        status: TeamStatus,
+        status: int,
     ) -> None:
         team = Team.objects.get(id=team_id)
 
