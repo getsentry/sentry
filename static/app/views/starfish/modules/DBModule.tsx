@@ -27,7 +27,7 @@ export default function DBModule() {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageErrorAlert />
-              <PageFiltersContainer>
+              <PageFiltersContainer skipLoadLastUsedEnvironment>
                 <SpansView moduleName={ModuleName.DB} />
               </PageFiltersContainer>
             </Layout.Main>

@@ -290,7 +290,7 @@ export default function EndpointOverview() {
   useSynchronizeCharts();
 
   return (
-    <PageFiltersContainer>
+    <PageFiltersContainer skipLoadLastUsedEnvironment>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>

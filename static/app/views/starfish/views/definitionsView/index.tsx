@@ -8,7 +8,7 @@ import {
 function DefinitionsView() {
   return (
     <Layout.Page>
-      <PageFiltersContainer>
+      <PageFiltersContainer skipLoadLastUsedEnvironment>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>

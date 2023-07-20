@@ -40,7 +40,7 @@ export default function Spans() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <PageFiltersContainer>
+            <PageFiltersContainer skipLoadLastUsedEnvironment>
               <SpansView moduleName={moduleName} spanCategory={spanCategory} />
             </PageFiltersContainer>
           </Layout.Main>

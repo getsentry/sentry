@@ -52,7 +52,7 @@ function WebServiceView({selection, location, router}: Props) {
 
   return (
     <SentryDocumentTitle title={t('Service Overview')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer skipLoadLastUsedEnvironment>
         <StarfishLanding
           router={router}
           eventView={eventView}

@@ -140,7 +140,7 @@ function SpanSummaryPage({params, location}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageFiltersContainer>
+        <PageFiltersContainer skipLoadLastUsedEnvironment>
           <PageErrorProvider>
             <Layout.Header>
               <Layout.HeaderContent>
