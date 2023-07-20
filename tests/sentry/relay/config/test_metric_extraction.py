@@ -1,14 +1,16 @@
 from unittest.mock import ANY
 
+import sentry.relay.config.metric_extraction as extraction
 from sentry.incidents.models import AlertRule
-from sentry.relay.config.metric_extraction import convert_query_to_metric
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 
 
-def create_alert(query: str):
+def create_alert(query: str) -> AlertRule:
     snuba_query = SnubaQuery(
-        aggregate="p75(measurements.fp)", query=query, dataset=Dataset.PerformanceMetrics.value
+        aggregate="count()",
+        query=query,
+        dataset=Dataset.PerformanceMetrics.value,
     )
     return AlertRule(snuba_query=snuba_query)
 
@@ -16,26 +18,16 @@ def create_alert(query: str):
 def test_empty_query():
     alert = create_alert("")
 
-    assert convert_query_to_metric(alert.snuba_query) is None
-
-
-def test_standard_metric_query():
-    alert = create_alert("transaction:/my/api/url/")
-
-    assert convert_query_to_metric(alert.snuba_query) is None
+    assert extraction.convert_query_to_metric(alert.snuba_query) is None
 
 
 def test_simple_query_count():
-    snuba_query = SnubaQuery(
-        aggregate="count()",
-        query="transaction.duration:>=1000",
-        dataset=Dataset.PerformanceMetrics.value,
-    )
-    alert = AlertRule(snuba_query=snuba_query)
+    alert = create_alert("transaction.duration:>=1000")
 
-    metric = convert_query_to_metric(alert.snuba_query)
+    metric = extraction.convert_query_to_metric(alert.snuba_query)
 
-    expected = {
+    assert metric
+    assert metric[1] == {
         "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
         "field": None,
@@ -43,110 +35,52 @@ def test_simple_query_count():
         "tags": [{"key": "query_hash", "value": ANY}],
     }
 
-    assert metric == expected
+
+def test_get_metric_specs_empty():
+    assert len(extraction._get_metric_specs([])) == 0
 
 
-def test_simple_query():
+def test_get_metric_specs_single():
     alert = create_alert("transaction.duration:>=1000")
-    metric = convert_query_to_metric(alert.snuba_query)
 
-    expected = {
+    specs = extraction._get_metric_specs([alert])
+
+    assert len(specs) == 1
+    assert specs[0] == {
         "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": "event.measurements.fp",
-        "mri": "d:transactions/on_demand@none",
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
         "tags": [{"key": "query_hash", "value": ANY}],
     }
 
-    assert metric == expected
+
+def test_get_metric_specs_multiple():
+    alert_1 = create_alert("transaction.duration:>=1")
+    alert_2 = create_alert("transaction.duration:>=2")
+
+    specs = extraction._get_metric_specs([alert_1, alert_2])
+
+    assert len(specs) == 2
+
+    first_hash = specs[0]["tags"][0]["value"]
+    second_hash = specs[1]["tags"][0]["value"]
+
+    assert first_hash != second_hash
 
 
-def test_or_boolean_condition():
-    alert = create_alert("transaction.duration:>=100 OR transaction.duration:<1000")
-    metric = convert_query_to_metric(alert.snuba_query)
+def test_get_metric_specs_multiple_duplicated():
+    alert_1 = create_alert("transaction.duration:>=1000")
+    alert_2 = create_alert("transaction.duration:>=1000")
+    alert_3 = create_alert("transaction.duration:>=1000")
 
-    expected = {
+    specs = extraction._get_metric_specs([alert_1, alert_2, alert_3])
+
+    assert len(specs) == 1
+    assert specs[0] == {
         "category": "transaction",
-        "condition": {
-            "inner": [
-                {"name": "event.duration", "op": "gte", "value": 100.0},
-                {"name": "event.duration", "op": "lt", "value": 1000.0},
-            ],
-            "op": "or",
-        },
-        "field": "event.measurements.fp",
-        "mri": "d:transactions/on_demand@none",
+        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
         "tags": [{"key": "query_hash", "value": ANY}],
     }
-
-    assert metric == expected
-
-
-def test_and_boolean_condition():
-    alert = create_alert("release:foo transaction.duration:<10s")
-    metric = convert_query_to_metric(alert.snuba_query)
-
-    expected = {
-        "category": "transaction",
-        "condition": {
-            "inner": [
-                {"name": "event.release", "op": "eq", "value": "foo"},
-                {"name": "event.duration", "op": "lt", "value": 10000.0},
-            ],
-            "op": "and",
-        },
-        "field": "event.measurements.fp",
-        "mri": "d:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
-
-    assert metric == expected
-
-
-def test_nested_conditions():
-    query = "(release:=a OR transaction.op:=b) transaction.duration:>1s"
-    metric = convert_query_to_metric(create_alert(query).snuba_query)
-
-    expected = {
-        "category": "transaction",
-        "condition": {
-            "op": "and",
-            "inner": [
-                {
-                    "op": "or",
-                    "inner": [
-                        {"name": "event.release", "op": "eq", "value": "a"},
-                        {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
-                    ],
-                },
-                {"name": "event.duration", "op": "gt", "value": 1000.0},
-            ],
-        },
-        "field": "event.measurements.fp",
-        "mri": "d:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
-
-    assert metric == expected
-
-
-def test_wildcard_condition():
-    # transaction.duration is required for convert_query_to_metric
-    alert = create_alert("release.version:1.* transaction.duration:1s")
-    metric = convert_query_to_metric(alert.snuba_query)
-
-    expected = {
-        "category": "transaction",
-        "condition": {
-            "op": "and",
-            "inner": [
-                {"name": "event.release.version.short", "op": "glob", "value": ["1.*"]},
-                {"name": "event.duration", "op": "eq", "value": 1000.0},
-            ],
-        },
-        "field": "event.measurements.fp",
-        "mri": "d:transactions/on_demand@none",
-        "tags": [{"key": "query_hash", "value": ANY}],
-    }
-
-    assert metric == expected

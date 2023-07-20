@@ -2,8 +2,9 @@ from unittest.mock import MagicMock, patch
 
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -17,24 +18,24 @@ class AbstractServerlessTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
-        self.integration = Integration.objects.create(
-            provider="aws_lambda",
-            metadata={
-                "region": "us-east-2",
-                "account_number": "599817902985",
-                "aws_external_id": "599817902985",
-            },
-        )
-        self.org_integration = self.integration.add_organization(self.organization)
-        self.org_integration.config = {"default_project_id": self.project.id}
-        self.org_integration.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="aws_lambda",
+                metadata={
+                    "region": "us-east-2",
+                    "account_number": "599817902985",
+                    "aws_external_id": "599817902985",
+                },
+            )
+            self.org_integration = self.integration.add_organization(self.organization)
+            self.org_integration.config = {"default_project_id": self.project.id}
+            self.org_integration.save()
         self.login_as(self.user)
 
     def get_response(self, **kwargs):
         return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
-    @exempt_from_silo_limits()
     def sentry_dsn(self):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 

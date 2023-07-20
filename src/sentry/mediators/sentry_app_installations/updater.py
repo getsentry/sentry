@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.mediator import Mediator
@@ -9,6 +11,7 @@ from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 class Updater(Mediator):
     sentry_app_installation = Param(RpcSentryAppInstallation)
     status = Param(str, required=False)
+    using = router.db_for_write(SentryAppInstallation)
 
     def call(self):
         self._update_status()

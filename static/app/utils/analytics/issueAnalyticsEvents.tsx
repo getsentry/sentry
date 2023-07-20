@@ -56,6 +56,7 @@ export type IssueEventParameters = {
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.sourcemap_wizard_copy': {};
@@ -285,4 +286,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.high.end.android.device': 'Event from high end Android device',
   'issue_details.sourcemap_wizard_dismiss': 'Issue Details: Sourcemap Wizard Dismiss',
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
+  'issue_details.open_replay_details_clicked':
+    'Issue Details: Open Replay Details Clicked',
 };

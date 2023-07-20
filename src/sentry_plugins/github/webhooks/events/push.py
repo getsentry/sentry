@@ -1,11 +1,12 @@
 import logging
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import Http404
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Integration, Repository
+from sentry.models import Commit, CommitAuthor, Integration, Repository
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -89,7 +90,9 @@ class PushEventWebhook(Webhook):
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
-                                            with transaction.atomic():
+                                            with transaction.atomic(
+                                                router.db_for_write(CommitAuthor)
+                                            ):
                                                 commit_author.update(
                                                     email=author_email, external_id=external_id
                                                 )
@@ -123,7 +126,7 @@ class PushEventWebhook(Webhook):
 
                 if update_kwargs:
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(CommitAuthor)):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
@@ -131,7 +134,7 @@ class PushEventWebhook(Webhook):
                 author = authors[author_email]
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization_id,

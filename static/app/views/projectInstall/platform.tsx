@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {
   migratedDocs,
@@ -45,11 +44,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
-
-// in this case, the default is rendered inside the hook
-const SetUpSdkDocHook = HookOrDefault({
-  hookName: 'component:set-up-sdk-doc',
-});
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
@@ -398,33 +392,17 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
         <SdkDocumentation
           platform={currentPlatform}
-          orgSlug={organization.slug}
+          organization={organization}
           projectSlug={project.slug}
+          projectId={project.id}
           activeProductSelection={products}
         />
       ) : (
-        <Fragment>
-          {isSelfHosted ? (
-            <SetUpGeneralSdkDoc
-              organization={organization}
-              projectSlug={project.slug}
-              platform={platform}
-            />
-          ) : showDocsWithProductSelection ? (
-            <DocWithProductSelection
-              project={project}
-              location={location}
-              currentPlatform={platform.key}
-            />
-          ) : (
-            <SetUpSdkDocHook
-              organization={organization}
-              project={project}
-              location={location}
-              platform={platform}
-            />
-          )}
-        </Fragment>
+        <SetUpGeneralSdkDoc
+          organization={organization}
+          projectSlug={project.slug}
+          platform={platform}
+        />
       )}
       <div>
         {isGettingStarted && showPerformancePrompt && (

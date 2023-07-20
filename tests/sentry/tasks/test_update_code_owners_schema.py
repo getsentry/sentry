@@ -1,9 +1,12 @@
-from unittest.mock import MagicMock
+from unittest import mock
+
+import pytest
 
 from sentry.models import Integration, ProjectCodeOwners
+from sentry.silo import SiloMode
 from sentry.tasks.codeowners import update_code_owners_schema
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -12,10 +15,13 @@ class UpdateCodeOwnersSchemaTest(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.project_codeowner = self.create_codeowners(project=self.project)
-        self.integration = Integration.objects.get()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.get()
 
-        self.mock_update = MagicMock()
-        ProjectCodeOwners.update_schema = self.mock_update
+    @pytest.fixture(autouse=True)
+    def patch_update_schema(self):
+        with mock.patch.object(ProjectCodeOwners, "update_schema") as self.mock_update:
+            yield
 
     def test_no_op(self):
         with self.feature("organizations:integrations-codeowners"):

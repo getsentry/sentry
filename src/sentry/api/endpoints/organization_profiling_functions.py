@@ -16,11 +16,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
+from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.snuba import functions
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
+from sentry.utils.snuba import bulk_snql_query
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -90,48 +93,68 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        top_functions = {}
+        top_functions = functions.query(
+            selected_columns=[
+                "project.id",
+                "fingerprint",
+                "package",
+                "function",
+                "count()",
+                "examples()",
+            ],
+            query=data.get("query"),
+            params=params,
+            orderby=["-count()"],
+            limit=TOP_FUNCTIONS_LIMIT,
+            referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            transform_alias_to_input_format=True,
+        )
 
-        def get_event_stats(columns, query, params, _rollup, zerofill_results, comparison_delta):
-            nonlocal top_functions
-
+        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
-            top_functions = functions.query(
-                selected_columns=[
-                    "project.id",
-                    "fingerprint",
-                    "package",
-                    "function",
-                    "count()",
-                    "examples()",
-                ],
-                query=query,
-                params=params,
-                orderby=["-count()"],
-                limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
-                transform_alias_to_input_format=True,
+            chunks = [
+                top_functions["data"][i : i + FUNCTIONS_PER_QUERY]
+                for i in range(0, len(top_functions["data"]), FUNCTIONS_PER_QUERY)
+            ]
+
+            builders = [
+                ProfileTopFunctionsTimeseriesQueryBuilder(
+                    dataset=Dataset.Functions,
+                    params=params,
+                    interval=rollup,
+                    top_events=chunk,
+                    other=False,
+                    query=query,
+                    selected_columns=["project.id", "fingerprint"],
+                    # It's possible to override the columns via
+                    # the `yAxis` qs. So we explicitly ignore the
+                    # columns, and hard code in the columns we want.
+                    timeseries_columns=[data["function"], "worst()"],
+                    skip_tag_resolution=True,
+                )
+                for chunk in chunks
+            ]
+            bulk_results = bulk_snql_query(
+                [builder.get_snql_query() for builder in builders],
+                Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )
 
-            results = functions.top_events_timeseries(
-                timeseries_columns=columns,
-                selected_columns=["project.id", "fingerprint"],
-                query=query,
-                params=params,
-                orderby=None,
-                rollup=rollup,
-                limit=TOP_FUNCTIONS_LIMIT,
-                top_events=top_functions,
-                organization=organization,
-                zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
-                # this ensures the result key is formatted as `{project.id},{fingerprint}`
-                # in order to be compatible with the trends service
-                result_key_order=["project.id", "fingerprint"],
-            )
+            results = {}
+
+            for chunk, builder, result in zip(chunks, builders, bulk_results):
+                formatted_results = functions.format_top_events_timeseries_results(
+                    result,
+                    builder,
+                    params,
+                    rollup,
+                    top_events={"data": chunk},
+                    result_key_order=["project.id", "fingerprint"],
+                )
+
+                results.update(formatted_results)
 
             return results
 
@@ -142,13 +165,17 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             trends_request = {
                 "data": {
                     k: {
-                        "data": v["data"],
-                        # set data_* to the same as request_* for now
-                        # as we dont pass more historical data for context
-                        "data_start": v["start"],
-                        "data_end": v["end"],
-                        "request_start": v["start"],
-                        "request_end": v["end"],
+                        "data": v[data["function"]]["data"],
+                        "data_start": v[data["function"]]["start"],
+                        "data_end": v[data["function"]]["end"],
+                        # We want to use the first 20% of the data as historical data
+                        # to help filter out false positives.
+                        # This means if there is a change in the first 20%, it will
+                        # not be detected as a breakpoint.
+                        "request_start": v[data["function"]]["data"][
+                            len(v[data["function"]]["data"]) // 5
+                        ][0],
+                        "request_end": v[data["function"]]["end"],
                     }
                     for k, v in stats_data.items()
                 },
@@ -164,6 +191,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
+            additional_query_column="worst()",
             params=params,
             query=data.get("query"),
         )
@@ -209,7 +237,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 # hence the name of the key, but it can be adapted to work
                 # for functions as well.
                 key = f"{result['project']},{result['transaction']}"
-                formatted_result = {"stats": stats_data[key]}
+                formatted_result = {
+                    "stats": stats_data[key][data["function"]],
+                    "worst": [
+                        (ts, data[0]["count"])
+                        for (ts, data) in stats_data[key]["worst()"]["data"]
+                        if data[0]["count"]  # filter out entries without an example
+                    ],
+                }
                 formatted_result.update(
                     {
                         k: result[k]

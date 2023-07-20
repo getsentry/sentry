@@ -19,6 +19,15 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   return displayName;
 }
 
+export const isSemverRelease = (rawVersion: string): boolean => {
+  try {
+    const parsedVersion = new Release(rawVersion);
+    return !!parsedVersion.versionParsed;
+  } catch {
+    return false;
+  }
+};
+
 export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
     const parsedVersion = new Release(rawVersion);

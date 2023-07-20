@@ -7,10 +7,11 @@ from django.urls import reverse
 from sentry.constants import ObjectStatus
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -18,7 +19,8 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.project = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-artifactbundle-assemble",
@@ -343,7 +345,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
         # right org, wrong permission level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=self.organization.id,
@@ -365,7 +367,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 403
 
         # wrong org, right permission level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_org_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
@@ -387,7 +389,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 403
 
         # right org, right permission level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(self.organization.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=self.organization.id,
@@ -411,7 +413,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.status_code == 200
 
         # Make sure org token usage was updated
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
         assert org_token.date_last_used is not None
         assert org_token.project_last_used_id == self.project.id

@@ -3,9 +3,9 @@ from datetime import datetime
 import pytest
 from django.db import router
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.silo import unguarded_write
 from sentry.tasks.organization_mapping import ORGANIZATION_MAPPING_EXPIRY, repair_mappings
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
@@ -13,7 +13,7 @@ from sentry.testutils.factories import Factories
 
 @pytest.fixture(autouse=True)
 def role_override():
-    with in_test_psql_role_override("postgres"):
+    with unguarded_write(using=router.db_for_write(OrganizationMapping)):
         yield
 
 
@@ -22,7 +22,7 @@ class OrganizationMappingRepairTest(TestCase):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
 
-        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
             mapping.verified = False
             mapping.date_created = expired_time
@@ -43,7 +43,7 @@ class OrganizationMappingRepairTest(TestCase):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
 
-        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
             mapping.verified = False
             mapping.date_created = expired_time
