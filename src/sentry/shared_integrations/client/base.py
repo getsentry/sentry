@@ -112,7 +112,6 @@ class BaseApiClient(TrackResponseMixin):
 
         return False
 
-
     def is_response_success(self, resp: Response) -> bool:
         if resp.status_code < 300:
             return True
