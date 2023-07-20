@@ -22,9 +22,9 @@ export function addOrUpdateRule(
   query?: object | any
 ) {
   const isExisting = isSavedRule(rule);
-  const endpoint = isExisting
-    ? `/projects/${orgId}/${projectId}/alert-rules/${rule.id}/`
-    : `/organizations/${orgId}/alert-rules/`;
+  const endpoint = `/projects/${orgId}/${projectId}/alert-rules/${
+    isSavedRule(rule) ? `${rule.id}/` : ''
+  }`;
   const method = isExisting ? 'PUT' : 'POST';
 
   return api.requestPromise(endpoint, {
