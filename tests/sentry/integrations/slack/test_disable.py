@@ -12,6 +12,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.testutils.helpers import install_slack, with_feature
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -42,6 +43,7 @@ class SlackClientDisable(TestCase):
         self.resp.__exit__(None, None, None)
 
     @responses.activate
+    @with_feature("organizations:disable-on-broken")
     def test_fatal_and_disable_integration(self):
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
@@ -55,10 +57,11 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
+        print(buffer._get())
         assert buffer.is_integration_broken() is True
-        assert (
-            integration_service.get_integration(integration_id=self.integration.id).status == 1
-        )  # DISABLED
+        assert integration_service.get_integration(
+            integration_id=self.integration.id
+        ).status == 1 # DISABLED
 
     @responses.activate
     def test_error_integration(self):

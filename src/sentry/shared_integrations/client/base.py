@@ -9,6 +9,7 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
@@ -115,7 +116,6 @@ class BaseApiClient(TrackResponseMixin):
     def is_response_success(self, resp: Response) -> bool:
         if resp.status_code < 300:
             return True
-
         return False
 
     def _request(
@@ -239,9 +239,11 @@ class BaseApiClient(TrackResponseMixin):
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
                     self.record_request_error(error=e)
+                    self.record_request_fatal(error=e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
-                self.record_request_error(resp=resp, error=e)
+                self.record_request_error(error=e)
+                self.record_request_fatal(error=e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -381,10 +383,12 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration()
 
+
     def disable_integration(self) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
+      #  if features.has("organizations:disable-on-broken",):
         integration_service.update_integration(
             integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
         )

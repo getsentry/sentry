@@ -72,14 +72,7 @@ class SlackClient(IntegrationProxyClient):
         return super().is_response_error(resp, e)
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-
-        # if not resp.json.get("ok"):
-        #      if e is None:
-        #          e = resp.get("error", None)
-        print(resp)
-        print(e)
         if e is not None:
-            print("here")
             if "account_inactive" == e:
                 return True
 
@@ -150,7 +143,7 @@ class SlackClient(IntegrationProxyClient):
             method, path, headers=headers, data=data, params=params, json=json
         )
         if not response.json.get("ok"):
-            self.record_request_error(resp=response, error=response.get("error", None))
-            self.record_request_fatal(resp=response, error=response.get("error", None))
+            self.record_request_error(resp=response,error=response.get("error", None))
+            self.record_request_fatal(resp=response,error=response.get("error", None))
             raise ApiError(response.get("error", ""))  # type: ignore
         return response
