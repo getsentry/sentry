@@ -26,6 +26,22 @@ class DiscordWebhookTest(APITestCase):
         assert mock_verify_signature.call_count == 1
 
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
+    def test_command_interaction(self, mock_verify_signature):
+        mock_verify_signature.return_value = True
+        resp = self.client.post(
+            path=WEBHOOK_URL,
+            data={
+                "type": 2,
+            },
+            format="json",
+            HTTP_X_SIGNATURE_ED25519="signature",
+            HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
+        )
+
+        assert resp.status_code == 200
+        assert resp.json()["type"] == 4
+
+    @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_unknown_interaction(self, mock_verify_signature):
         mock_verify_signature.return_value = True
         resp = self.client.post(

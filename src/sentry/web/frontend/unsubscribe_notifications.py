@@ -19,7 +19,7 @@ class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     @never_cache
     @signed_auth_required_m
     def handle(self, request: Request, **kwargs) -> HttpResponse:
-        with transaction.atomic(router.db_for_write(OrganizationMember)):
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
             if not getattr(request, "user_from_signed_request", False):
                 raise Http404
 
