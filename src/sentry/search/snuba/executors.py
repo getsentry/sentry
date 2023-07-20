@@ -750,11 +750,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
-            allow_postgres_only_search = True
-        else:
-            allow_postgres_only_search = features.has(
-                "organizations:issue-search-allow-postgres-only-search", projects[0].organization
-            )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -787,8 +782,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
         if (
-            allow_postgres_only_search
-            and cursor is None
+            cursor is None
             and sort_by == "date"
             and
             # This handles tags and date parameters for search filters.

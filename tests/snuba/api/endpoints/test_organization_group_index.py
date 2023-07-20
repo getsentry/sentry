@@ -497,12 +497,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_perf_issue(self):
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
-        with self.feature(
-            [
-                "organizations:issue-search-allow-postgres-only-search",
-            ]
-        ):
-            response = self.get_success_response(query="issue.category:performance")
+        response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
 

@@ -1401,8 +1401,6 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue platform
     "organizations:issue-platform": False,
-    # Whether to allow issue only search on the issue list
-    "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
