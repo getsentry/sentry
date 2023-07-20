@@ -41,7 +41,11 @@ import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/f
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  DataTitles,
+  getThroughputChartTitle,
+  getThroughputTitle,
+} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {
   isAValidSort,
@@ -162,7 +166,7 @@ function SpanSummaryPage({params, location}: Props) {
                   <BlockContainer>
                     <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                     <Block
-                      title={t('Throughput')}
+                      title={getThroughputTitle(span?.[SPAN_OP])}
                       description={tct('Throughput of this [spanType] per second', {
                         spanType: spanDescriptionCardTitle,
                       })}
@@ -222,7 +226,7 @@ function SpanSummaryPage({params, location}: Props) {
                     </Block>
 
                     <Block>
-                      <ChartPanel title={DataTitles.throughput}>
+                      <ChartPanel title={getThroughputChartTitle(span?.[SPAN_OP])}>
                         <Chart
                           statsPeriod="24h"
                           height={140}

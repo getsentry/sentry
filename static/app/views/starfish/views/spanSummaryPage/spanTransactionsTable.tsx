@@ -29,7 +29,9 @@ import {
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_OP} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -190,7 +192,7 @@ const getColumnOrder = (
   },
   {
     key: 'sps()',
-    name: DataTitles.throughput,
+    name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
