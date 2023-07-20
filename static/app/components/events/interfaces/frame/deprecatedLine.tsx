@@ -283,15 +283,22 @@ export class DeprecatedLine extends Component<Props, State> {
 
   renderShowHideToggle(onShowFramesToggle) {
     const hiddenFrameCount = this.props.hiddenFrameCount;
+    const isShowFramesToggleExpanded = this.props.isShowFramesToggleExpanded;
     if (hiddenFrameCount) {
       return (
         <Button
+          analyticsEventName="Stacktrace Frames: toggled"
+          analyticsEventKey="stacktrace_frames.toggled"
+          analyticsParams={{
+            frame_count: hiddenFrameCount,
+            is_frame_expanded: isShowFramesToggleExpanded,
+          }}
           priority="link"
           onClick={e => {
             onShowFramesToggle(e);
           }}
         >
-          {this.props.isShowFramesToggleExpanded
+          {isShowFramesToggleExpanded
             ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
             : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
         </Button>
