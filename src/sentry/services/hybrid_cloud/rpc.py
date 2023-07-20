@@ -370,8 +370,9 @@ class RpcService(abc.ABC):
                     region = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
-                remote_call = _RemoteSiloCall(region, cls.key, method_name, serial_arguments)
-                return remote_call.dispatch(use_test_client)
+                return dispatch_remote_call(
+                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
+                )
 
             return remote_method
 
@@ -453,6 +454,17 @@ def dispatch_to_local_service(
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
+
+
+def dispatch_remote_call(
+    region: Region | None,
+    service_name: str,
+    method_name: str,
+    serial_arguments: ArgumentDict,
+    use_test_client: bool = False,
+) -> Any:
+    remote_silo_call = _RemoteSiloCall(region, service_name, method_name, serial_arguments)
+    return remote_silo_call.dispatch(use_test_client)
 
 
 @dataclass(frozen=True)
