@@ -109,8 +109,9 @@ class BaseApiClient(TrackResponseMixin):
         return False
 
     def is_response_error(self, resp: Response) -> bool:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
+        if resp.status_code:
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                return True
         return False
 
     def is_response_success(self, resp: Response) -> bool:
