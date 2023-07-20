@@ -9,7 +9,8 @@ import {
 import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
-  let endpointMock, endpointOlderReleasesMock;
+  let endpointMock: jest.Mock;
+  let endpointOlderReleasesMock: jest.Mock;
   const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {
@@ -112,9 +113,9 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={{
+        location={TestStubs.location({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
-        }}
+        })}
         projectId={project.slug}
         isProjectStabilized
       />
@@ -134,9 +135,9 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={{
+        location={TestStubs.location({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
-        }}
+        })}
         projectId={project.slug}
         isProjectStabilized={false}
       />
