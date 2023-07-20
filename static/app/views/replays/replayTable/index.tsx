@@ -15,6 +15,7 @@ import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
   ActivityCell,
   BrowserCell,
+  CardReplayCell,
   DeadClickCountCell,
   DurationCell,
   ErrorCountCell,
@@ -33,9 +34,10 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  headersSortable?: boolean;
 };
 
-function ReplayTable({
+export function ReplayTable({
   fetchError,
   isFetching,
   replays,
@@ -49,7 +51,9 @@ function ReplayTable({
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
-    .map(column => <HeaderCell key={column} column={column} sort={sort} />);
+    .map(column => (
+      <HeaderCell key={column} column={column} sort={sort} headersSortable />
+    ));
 
   if (fetchError && !isFetching) {
     return (
@@ -140,6 +144,113 @@ function ReplayTable({
   );
 }
 
+export function ReplayCardTable({
+  fetchError,
+  isFetching,
+  replays,
+  sort,
+  visibleColumns,
+  headersSortable,
+}: Props) {
+  const routes = useRoutes();
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const tableHeaders = visibleColumns
+    .filter(Boolean)
+    .map(column => (
+      <HeaderCell
+        key={column}
+        column={column}
+        sort={sort}
+        headersSortable={headersSortable}
+      />
+    ));
+
+  if (fetchError && !isFetching) {
+    return (
+      <StyledPanelTable
+        headers={tableHeaders}
+        isLoading={false}
+        visibleColumns={visibleColumns}
+        data-test-id="replay-card-table"
+      >
+        <StyledAlert type="error" showIcon>
+          {typeof fetchError === 'string'
+            ? fetchError
+            : t(
+                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+              )}
+        </StyledAlert>
+      </StyledPanelTable>
+    );
+  }
+
+  const referrer = getRouteStringFromRoutes(routes);
+  const eventView = EventView.fromLocation(location);
+
+  return (
+    <StyledPanelTable
+      headers={tableHeaders}
+      isEmpty={replays?.length === 0}
+      isLoading={isFetching}
+      visibleColumns={visibleColumns}
+      disablePadding
+      data-test-id="replay-card-table"
+    >
+      {replays?.map(replay => {
+        return (
+          <Fragment key={replay.id}>
+            {visibleColumns.map(column => {
+              switch (column) {
+                case ReplayColumn.ACTIVITY:
+                  return <ActivityCell key="activity" replay={replay} />;
+
+                case ReplayColumn.COUNT_DEAD_CLICKS:
+                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+
+                case ReplayColumn.COUNT_ERRORS:
+                  return <ErrorCountCell key="countErrors" replay={replay} />;
+
+                case ReplayColumn.COUNT_RAGE_CLICKS:
+                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
+
+                case ReplayColumn.DURATION:
+                  return <DurationCell key="duration" replay={replay} />;
+
+                case ReplayColumn.MOST_DEAD_CLICKS:
+                  return (
+                    <CardReplayCell
+                      key="mostDeadClicks"
+                      replay={replay}
+                      eventView={eventView}
+                      organization={organization}
+                      referrer={referrer}
+                    />
+                  );
+
+                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+                  return (
+                    <CardReplayCell
+                      key="mostErroneousReplays"
+                      replay={replay}
+                      eventView={eventView}
+                      organization={organization}
+                      referrer={referrer}
+                    />
+                  );
+
+                default:
+                  return null;
+              }
+            })}
+          </Fragment>
+        );
+      })}
+    </StyledPanelTable>
+  );
+}
+
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
 }>`
@@ -156,5 +267,3 @@ const StyledAlert = styled(Alert)`
   grid-column: 1/-1;
   margin-bottom: 0;
 `;
-
-export default ReplayTable;

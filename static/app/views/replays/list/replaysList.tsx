@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
-import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayTable} from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {getReplayListFields} from 'sentry/views/replays/types';
@@ -101,9 +101,9 @@ function ReplaysListTable({
         ReplayColumn.OS,
         ReplayColumn.BROWSER,
         ReplayColumn.DURATION,
-        ReplayColumn.COUNT_ERRORS,
         ReplayColumn.COUNT_DEAD_CLICKS,
         ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
         ReplayColumn.ACTIVITY,
       ]
     : [

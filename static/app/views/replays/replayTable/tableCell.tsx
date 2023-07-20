@@ -127,6 +127,86 @@ export function ReplayCell({
   );
 }
 
+export function CardReplayCell({
+  eventView,
+  organization,
+  referrer,
+  replay,
+}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replay.project_id);
+
+  const replayDetails = {
+    pathname: `/replays/${replay.id}/`,
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+    },
+  };
+
+  const trackNavigationEvent = () =>
+    trackAnalytics('replay.list-navigate-to-details', {
+      project_id: project?.id,
+      platform: project?.platform,
+      organization,
+      referrer,
+    });
+
+  if (replay.is_archived) {
+    return (
+      <Item isArchived={replay.is_archived}>
+        <Row gap={1}>
+          <StyledIconDelete color="gray500" size="md" />
+          <div>
+            <Row gap={0.5}>{t('Deleted Replay')}</Row>
+            <Row gap={0.5}>
+              {project ? <Avatar size={12} project={project} /> : null}
+              {getShortEventId(replay.id)}
+            </Row>
+          </div>
+        </Row>
+      </Item>
+    );
+  }
+
+  const subText = (
+    <Cols>
+      <Row gap={1}>
+        <Row gap={0.5}>
+          {project ? <Avatar size={12} project={project} /> : null}
+          <Link to={replayDetails} onClick={trackNavigationEvent}>
+            {getShortEventId(replay.id)}
+          </Link>
+        </Row>
+        <Row gap={0.5}>
+          <IconCalendar color="gray300" size="xs" />
+          <TimeSince date={replay.started_at} />
+        </Row>
+      </Row>
+    </Cols>
+  );
+
+  return (
+    <Item>
+      <UserBadgeFullWidth
+        avatarSize={24}
+        displayName={
+          replay.is_archived ? (
+            replay.user.display_name || t('Unknown User')
+          ) : (
+            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+              {replay.user.display_name || t('Unknown User')}
+            </MainLink>
+          )
+        }
+        user={getUserBadgeUser(replay)}
+        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+        displayEmail={subText}
+      />
+    </Item>
+  );
+}
+
 const StyledIconDelete = styled(IconDelete)`
   margin: ${space(0.25)};
 `;
