@@ -107,7 +107,7 @@ def sliding_window() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.sliding_window")
+        capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
         log_task_execution(context)
 
 
@@ -122,6 +122,9 @@ def adjust_base_sample_rates_of_projects(
     Adjusts the base sample rate per project by computing the sliding window sample rate, considering the total
     volume of root transactions started from each project in the org.
     """
+    if time.monotonic() > context.expiration_time:
+        raise TimeoutException(context)
+
     with timer:
         projects_with_rebalanced_sample_rate = []
 
