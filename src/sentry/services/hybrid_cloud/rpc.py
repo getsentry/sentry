@@ -358,9 +358,8 @@ class RpcService(abc.ABC):
                     region = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
-                return dispatch_remote_call(
-                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
-                )
+                remote_call = _RemoteSiloCall(region, cls.key, method_name, serial_arguments)
+                return remote_call.dispatch(use_test_client)
 
             return remote_method
 
@@ -444,31 +443,11 @@ def dispatch_to_local_service(
 _RPC_CONTENT_CHARSET = "utf-8"
 
 
-def dispatch_remote_call(
-    region: Region | None,
-    service_name: str,
-    method_name: str,
-    serial_arguments: ArgumentDict,
-    use_test_client: bool = False,
-) -> Any:
-    service, _ = _look_up_service_method(service_name, method_name)
-    serial_response = _SiloServiceDispatch(
-        method_name, service_name, region, serial_arguments
-    ).dispatch(use_test_client)
-
-    return_value = serial_response["value"]
-    return (
-        None
-        if return_value is None
-        else service.deserialize_rpc_response(method_name, return_value)
-    )
-
-
 @dataclass(frozen=True)
-class _SiloServiceDispatch:
+class _RemoteSiloCall:
+    region: Region | None
     method_name: str
     service_name: str
-    region: Region | None
     serial_arguments: ArgumentDict
 
     def __post_init__(self) -> None:
@@ -489,7 +468,18 @@ class _SiloServiceDispatch:
             kwargs={"service_name": self.service_name, "method_name": self.method_name},
         )
 
-    def dispatch(self, use_test_client: bool) -> Any:
+    def dispatch(self, use_test_client: bool = False) -> Any:
+        serial_response = self._send_to_remote_silo(use_test_client)
+
+        return_value = serial_response["value"]
+        service, _ = _look_up_service_method(self.service_name, self.method_name)
+        return (
+            None
+            if return_value is None
+            else service.deserialize_rpc_response(self.method_name, return_value)
+        )
+
+    def _send_to_remote_silo(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
             "args": self.serial_arguments,
