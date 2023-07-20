@@ -270,8 +270,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
                   : t('(timestamp)')
                 : '',
             })
-          : // Fallback to a generic message if the version is not available
-            tct('[author] marked this issue as resolved in the upcoming release', {
+          : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
