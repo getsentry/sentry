@@ -459,7 +459,9 @@ const RowHeader = styled('span')<{
   stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(3, auto) ${space(2)};
+  grid-template-columns:
+    repeat(2, auto) 1fr repeat(${p => (p.stacktraceChangesEnabled ? 3 : 2)}, auto)
+    ${space(2)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
@@ -474,7 +476,9 @@ const RowHeader = styled('span')<{
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)};
+    grid-template-columns:
+      auto 150px 120px 4fr repeat(${p => (p.stacktraceChangesEnabled ? 3 : 2)}, auto)
+      ${space(2)};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
