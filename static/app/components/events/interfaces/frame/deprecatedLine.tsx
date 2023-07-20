@@ -585,7 +585,7 @@ const DefaultLine = styled('div')<{
   align-items: center;
   column-gap: ${space(1)};
   background: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.gray100} !important` : ''};
+    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
