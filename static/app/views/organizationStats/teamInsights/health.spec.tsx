@@ -1,7 +1,9 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Project, Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
@@ -35,7 +37,7 @@ describe('TeamStatsHealth', () => {
     projects: [],
     isMember: false,
   });
-  const mockRouter = {push: jest.fn()};
+  const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -155,7 +157,7 @@ describe('TeamStatsHealth', () => {
     jest.resetAllMocks();
   });
 
-  function createWrapper({projects, teams} = {}) {
+  function createWrapper({projects, teams}: {projects?: Project[]; teams?: Team[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
@@ -171,7 +173,7 @@ describe('TeamStatsHealth', () => {
       body: [],
     });
 
-    return render(<TeamStatsHealth router={mockRouter} location={{}} />, {
+    return render(<TeamStatsHealth {...routerProps} />, {
       context,
       organization,
     });
@@ -193,7 +195,9 @@ describe('TeamStatsHealth', () => {
     // Teams user is not a member of are hidden
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText('#frontend'));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team1.id}});
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {team: team1.id}})
+    );
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
@@ -201,7 +205,7 @@ describe('TeamStatsHealth', () => {
   });
 
   it('superusers can switch to any team', async () => {
-    isActiveSuperuser.mockReturnValue(true);
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
