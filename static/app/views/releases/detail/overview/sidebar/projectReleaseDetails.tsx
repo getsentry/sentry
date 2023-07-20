@@ -9,16 +9,19 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
-import {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {
-  orgSlug: string;
   projectSlug: string;
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
 };
 
-function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Props) {
+function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+  const organization = useOrganization();
+  const orgSlug = organization.slug;
   const {version, versionInfo, dateCreated, firstEvent, lastEvent} = release;
   const {releaseFileCount, isArtifactBundle} = releaseMeta;
 
@@ -35,6 +38,12 @@ function ProjectReleaseDetails({release, releaseMeta, orgSlug, projectSlug}: Pro
             keyName={t('Version')}
             value={<Version version={version} anchor={false} />}
           />
+          {organization.features.includes('issue-release-semver') ? (
+            <KeyValueTableRow
+              keyName={t('Semver')}
+              value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
+            />
+          ) : null}
           <KeyValueTableRow
             keyName={t('Package')}
             value={
