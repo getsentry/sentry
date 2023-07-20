@@ -27,7 +27,7 @@ class StreamGroupSerializerTestCase(
 
         environment = Environment.get_or_create(group.project, "production")
 
-        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
@@ -43,7 +43,7 @@ class StreamGroupSerializerTestCase(
 
         with mock.patch(
             "sentry.tsdb.make_series",
-            side_effect=tsdb.make_series,
+            side_effect=tsdb.backend.make_series,
         ) as make_series:
             serialize(
                 [group],
