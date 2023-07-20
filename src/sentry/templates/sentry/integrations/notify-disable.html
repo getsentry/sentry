@@ -1,0 +1,24 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <p>
+    Hi there,
+</p><p>
+    We’ve encountered an issue with the {{ integration_name }} integration that you’ve set up.</p><p>
+    To restore the connection and prevent data loss, please re-authenticate or fix the integration as quickly as possible.</p><p>
+    Please follow the link below to view the {{ integration_name }} integration in Sentry. If you need additional assistance, you can reach out to our support team at [support alias].
+  </p>
+  <p>
+    <a href="{{ integration_link }}" class="btn"> View {{ integration_name }} integration </a>
+  </p>
+  <p>Let’s get integrated.</p>
+  <p>Thanks,</p><p>
+    Sentry
+  </p>
+  <p class="via">
+    You are receiving this email because you’re listed as an organization Owner or Manager.
+    Requests to join your organization can be disabled in <a href="{{ settings_link }}">Organization Settings</a>.
+  </p>
+{% endblock %}

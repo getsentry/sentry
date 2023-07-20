@@ -14,6 +14,8 @@ from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
 )
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
+from sentry.web.frontend.debug.debug_notify_disable import DebugNotifyDisableView
+
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
@@ -149,4 +151,6 @@ urlpatterns = [
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view())
+
 ]
