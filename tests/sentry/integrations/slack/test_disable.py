@@ -79,6 +79,7 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         print(buffer._get())
+        print(buffer.is_integration_broken())
         assert (buffer._get()[0]["error_count"]) >= 1
         assert buffer.is_integration_broken() is False
 

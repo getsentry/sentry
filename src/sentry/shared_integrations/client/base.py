@@ -14,7 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration, Organization
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
@@ -105,11 +105,11 @@ class BaseApiClient(TrackResponseMixin):
         return False
 
     def is_error(self, e: Exception) -> bool:
-        if e is ConnectionError:
+        if type(e) is ConnectionError:
             return True
-        if e is Timeout:
+        if type(e) is Timeout:
             return True
-        if e is HTTPError:
+        if type(e) is HTTPError:
             return True
 
         return False
@@ -220,6 +220,7 @@ class BaseApiClient(TrackResponseMixin):
                     resp.raise_for_status()
             except RestrictedIPAddress as e:
                 self.track_response_data("restricted_ip_address", span, e)
+                self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
@@ -239,8 +240,7 @@ class BaseApiClient(TrackResponseMixin):
                     if self.integration_type:
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
-                    self.record_request_error(e)
-                    self.record_request_fatal(e)
+                    self.record_error(e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
                 self.record_error(e)
@@ -401,8 +401,8 @@ class BaseApiClient(TrackResponseMixin):
             integration_id=self.integration_id
         )
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
-        org = oi.organization
-        if features.has("organizations:disable-on-broken",org):
+        org = Organization.objects.get(id=oi.organization_id)
+        if features.has("organizations:disable-on-broken", org):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
