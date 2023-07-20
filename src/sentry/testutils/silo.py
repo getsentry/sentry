@@ -82,6 +82,7 @@ class _SiloModeTestCase(TestCase):
             SINGLE_SERVER_SILO_MODE=self.is_acceptance_test,
             SENTRY_SUBNET_SECRET="secret",
             SENTRY_CONTROL_ADDRESS="http://controlserver/",
+            RPC_SHARED_SECRET=["abcdef"],
         ):
             with override_regions(self.regions):
                 if self.silo_mode == SiloMode.REGION:
