@@ -99,3 +99,14 @@ class SystemOptionsTest(APITestCase):
         response = self.client.put(self.url, {"mail.host": "lolcalhost"})
         assert response.status_code == 200
         assert options.get("mail.host") == "lolcalhost"
+
+    def test_update_channel(self):
+        assert options.get_last_update_channel("auth.allow-registration") is None
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        response = self.client.put(self.url, {"auth.allow-registration": 1})
+        assert response.status_code == 200
+        assert (
+            options.get_last_update_channel("auth.allow-registration")
+            == options.UpdateChannel.APPLICATION
+        )
