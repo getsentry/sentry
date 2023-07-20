@@ -261,7 +261,7 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organizatio
         members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
     all_top_dogs = [members[1].id, members[2].id]
-    service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
+    service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org.id)
     assert set(all_top_dogs) == set(service_top_dogs)
 
 
