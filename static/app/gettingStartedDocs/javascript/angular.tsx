@@ -13,12 +13,12 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 
 type StepProps = {
+  errorHandlerProviders: string;
+  newOrg: boolean;
   organization: Organization;
+  platformKey: PlatformKey;
   projectId: string;
-  errorHandlerProviders?: string;
-  newOrg?: boolean;
-  platformKey?: PlatformKey;
-  sentryInitContent?: string;
+  sentryInitContent: string;
 };
 
 // Configuration Start

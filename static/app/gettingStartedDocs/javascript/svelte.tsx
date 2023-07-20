@@ -8,11 +8,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 type StepProps = {
+  newOrg: boolean;
   organization: Organization;
+  platformKey: PlatformKey;
   projectId: string;
-  newOrg?: boolean;
-  platformKey?: PlatformKey;
-  sentryInitContent?: string;
+  sentryInitContent: string;
 };
 
 // Configuration Start

@@ -7,11 +7,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 type StepProps = {
+  newOrg: boolean;
   organization: Organization;
+  platformKey: PlatformKey;
   projectId: string;
-  newOrg?: boolean;
-  platformKey?: PlatformKey;
-  sentryInitContent?: string;
+  sentryInitContent: string;
 };
 
 const performanceOtherConfig = `
@@ -21,7 +21,7 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 export const steps = ({
   sentryInitContent,
   ...props
-}: Partial<StepProps>): LayoutProps['steps'] => [
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),

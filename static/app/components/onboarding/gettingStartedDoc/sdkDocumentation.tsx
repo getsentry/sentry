@@ -73,9 +73,9 @@ type SdkDocumentationProps = {
 
 export type ModuleProps = {
   dsn: string;
-  organization: Organization;
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  organization?: Organization;
   platformKey?: PlatformKey;
   projectId?: Project['id'];
 };
