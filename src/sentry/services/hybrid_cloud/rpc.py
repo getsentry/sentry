@@ -502,7 +502,7 @@ class _SiloServiceDispatch:
         }
 
         with self._open_request_context():
-            if self.use_test_client:
+            if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
                 response = self._fire_request(headers, data)
