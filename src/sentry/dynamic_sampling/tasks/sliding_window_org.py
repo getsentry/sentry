@@ -12,7 +12,7 @@ from sentry.dynamic_sampling.tasks.common import (
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
@@ -35,7 +35,7 @@ from sentry.tasks.base import instrumented_task
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window_org", MAX_SECONDS)
+    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window_org", MAX_TASK_SECONDS)
     adjust_base_sample_rate_of_org_timer = Timer()
 
     window_size = get_sliding_window_size()

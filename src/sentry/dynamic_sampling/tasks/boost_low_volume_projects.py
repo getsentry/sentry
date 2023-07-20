@@ -43,7 +43,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -76,7 +76,9 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_SECONDS)
+    context = TaskContext(
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_TASK_SECONDS
+    )
     fetch_projects_timer = Timer()
 
     try:
