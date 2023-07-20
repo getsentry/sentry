@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 import abc
+import hashlib
+import hmac
 import inspect
 import logging
-import urllib.response
 from abc import abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
-from urllib.request import Request, urlopen
 
 import django.urls
 import pydantic
+import requests
 import sentry_sdk
 from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
-from sentry.types.region import Region
+from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.region import RegionResolution
+    from sentry.services.hybrid_cloud.region import RegionResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 _REGION_RESOLUTION_ATTR = "__region_resolution"
+_REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
 
 
 class RpcServiceSetupException(Exception):
@@ -123,7 +125,7 @@ class RpcMethodSignature:
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
-    def _extract_region_resolution(self) -> RegionResolution | None:
+    def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
 
         is_region_service = self._base_service_cls.local_mode == SiloMode.REGION
@@ -162,14 +164,31 @@ class RpcMethodSignature:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> Region:
+    def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
         if self._region_resolution is None:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
         try:
-            return self._region_resolution.resolve(arguments)
+            try:
+                region = self._region_resolution.resolve(arguments)
+                return _RegionResolutionResult(region)
+            except RegionMappingNotFound:
+                if getattr(self._base_method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                    return _RegionResolutionResult(None, is_early_halt=True)
+                else:
+                    raise
         except Exception as e:
             raise RpcServiceUnimplementedException("Error while resolving region") from e
+
+
+@dataclass(frozen=True)
+class _RegionResolutionResult:
+    region: Region | None
+    is_early_halt: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.region is None) != self.is_early_halt:
+            raise ValueError("region must be supplied if and only if not halting early")
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -209,17 +228,23 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
 
 
 def regional_rpc_method(
-    resolve: RegionResolution,
+    resolve: RegionResolutionStrategy,
+    return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.
 
     In addition, resolves the region based on the resolve callback function.
-
     Should be applied only to methods of an RpcService subclass.
+
+    The `return_none_if_mapping_not_found` option indicates that, if we fail to find
+    a region in which to look for the queried object, the decorated method should
+    return `None` indicating that the queried object does not exist. This should be
+    set only on methods with an `Optional[...]` return type.
     """
 
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
         setattr(method, _REGION_RESOLUTION_ATTR, resolve)
+        setattr(method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
         return rpc_method(method)
 
     return decorator
@@ -327,7 +352,10 @@ class RpcService(abc.ABC):
                     )
 
                 if cls.local_mode == SiloMode.REGION:
-                    region = signature.resolve_to_region(kwargs)
+                    result = signature.resolve_to_region(kwargs)
+                    if result.is_early_halt:
+                        return None
+                    region = result.region
                 else:
                     region = None
 
@@ -442,20 +470,13 @@ def dispatch_remote_call(
 ) -> Any:
     service, _ = _look_up_service_method(service_name, method_name)
 
-    creds = RpcSenderCredentials.read_from_settings()
-    if not creds.is_allowed:
-        raise RpcSendException("RPC calls are not globally enabled")
-
     if region is None:
-        address = creds.control_silo_address
-        api_token = creds.control_silo_api_token
-        if not (address and api_token):
-            raise RpcSendException("Not configured to remotely access control silo")
+        address = settings.SENTRY_CONTROL_ADDRESS
     else:
         address = region.address
-        api_token = region.api_token
-        if not (address and api_token):
-            raise RpcSendException(f"Not configured to remotely access region: {region.name}")
+
+    if not (address and settings.RPC_SHARED_SECRET):
+        raise RpcSendException("Not configured for RPC network requests")
 
     path = django.urls.reverse(
         "sentry-api-0-rpc-service",
@@ -474,12 +495,13 @@ def dispatch_remote_call(
     span = sentry_sdk.start_span(
         op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
     )
-    with span, timer, _fire_request(url, request_body, api_token) as response:
-        charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
-        metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
-        response_body = response.read().decode(charset)
+    with span, timer:
+        response = _fire_request(url, path, request_body)
+        metrics.incr(
+            "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
+        )
 
-    serial_response = json.loads(response_body)
+    serial_response = response.json()
     return_value = serial_response["value"]
     return (
         None
@@ -488,16 +510,67 @@ def dispatch_remote_call(
     )
 
 
-def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
+def _fire_request(url: str, path: str, body: Any) -> requests.Response:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
-    request = Request(url)
-    request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
-    request.add_header("Content-Length", str(len(data)))
-    # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
-    # request.add_header("Authorization", f"Bearer {api_token}")
-    return urlopen(request, data)
+    signature = generate_request_signature(path, data)
+    headers = {
+        "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
+        "Authorization": f"Rpcsignature {signature}",
+    }
+    return requests.post(url, headers=headers, data=data)
+
+
+def compare_signature(url: str, body: bytes, signature: str) -> bool:
+    """
+    Compare request data + signature signed by one of the shared secrets.
+
+    Once a key has been able to validate the signature other keys will
+    not be attempted. We should only have multiple keys during key rotations.
+    """
+    if not settings.RPC_SHARED_SECRET:
+        raise RpcServiceSetupException(
+            "Cannot validate RPC request signatures without RPC_SHARED_SECRET"
+        )
+
+    if not signature.startswith("rpc0:"):
+        return False
+
+    # We aren't using the version bits currently, but might use them in the future.
+    _, signature_data = signature.split(":", 2)
+    signature_input = b"%s:%s" % (
+        url.encode("utf8"),
+        body,
+    )
+
+    for key in settings.RPC_SHARED_SECRET:
+        computed = hmac.new(key.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+
+        is_valid = hmac.compare_digest(computed.encode("utf-8"), signature_data.encode("utf-8"))
+        if is_valid:
+            return True
+
+    return False
+
+
+def generate_request_signature(url_path: str, body: bytes) -> str:
+    """
+    Generate a signature for the request body
+    with the first shared secret. If there are other
+    shared secrets in the list they are only to be used
+    by control silo for verfication during key rotation.
+    """
+    if not settings.RPC_SHARED_SECRET:
+        raise RpcServiceSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
+
+    signature_input = b"%s:%s" % (
+        url_path.encode("utf8"),
+        body,
+    )
+    secret = settings.RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
 
 
 @dataclass(frozen=True)

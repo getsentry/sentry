@@ -100,6 +100,11 @@ def assemble_file(
 
     # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
+        # Most likely a previous check to `find_missing_chunks` or similar
+        # reported a chunk exists by its checksum, but now it does not
+        # exist anymore
+        logger.error("`FileBlob` disappeared during async `assemble_XXX` task")
+
         set_assemble_status(
             task,
             org_or_project.id,
@@ -127,6 +132,7 @@ def assemble_file(
             ChunkFileState.ERROR,
             detail="Reported checksum mismatch",
         )
+        return None
     else:
         file.save()
 
@@ -184,6 +190,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
+    from sentry.lang.native.sources import record_last_upload
     from sentry.models import BadDif, Project, debugfile
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -238,6 +245,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # and might resolve processing issues. If the file was not
                 # created, someone else has created it and will bump the
                 # revision instead.
+                record_last_upload(project)
                 bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(

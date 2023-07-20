@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -46,6 +46,13 @@ def multiprocessing_options(
             help="Maximum time (in milliseconds) to wait before flushing a batch.",
         ),
     ]
+
+
+def ingest_replay_recordings_options() -> List[click.Option]:
+    """Return a list of ingest-replay-recordings options."""
+    options = multiprocessing_options(default_max_batch_size=10)
+    options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
+    return options
 
 
 _METRICS_INDEXER_OPTIONS = [
@@ -105,6 +112,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-replay-recordings": {
         "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
+        "click_options": ingest_replay_recordings_options(),
     },
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,

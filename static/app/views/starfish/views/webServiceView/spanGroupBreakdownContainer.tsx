@@ -1,14 +1,13 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import {EventsStats, PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -66,28 +65,28 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      location,
+      selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
       ['span.category']
     ),
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.span-category-breakdown',
+    referrer: 'api.starfish-web-service.span-category-breakdown',
     location,
     limit: 4,
   });
 
   const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      location,
+      selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
       []
     ),
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.total-time',
+    referrer: 'api.starfish-web-service.total-time',
     location,
   });
 
@@ -97,7 +96,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     isError,
   } = useEventsStatsQuery({
     eventView: getEventView(
-      location,
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
@@ -107,8 +105,8 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       true
     ),
     enabled: true,
-    referrer: 'starfish-web-service.span-category-breakdown-timeseries',
-    initialData: [],
+    referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
+    initialData: {},
   });
 
   const totalValues = cumulativeTime?.data[0]?.[`sum(${SPAN_SELF_TIME})`]
@@ -136,7 +134,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       });
     }
 
-    if (otherValue > 0) {
+    if (otherValue > 0 && topData && OTHER_SPAN_GROUP_MODULE in topData) {
       transformedData.push({
         cumulativeTime: otherValue,
         group: {
@@ -162,7 +160,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       });
 
       Object.keys(topData).forEach(key => {
-        const seriesData = topData?.[key];
+        const seriesData: EventsStats = topData?.[key];
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
         seriesByDomain[label].data =
           seriesData?.data.map(datum => {
@@ -188,7 +186,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         errored={isError}
         options={options}
         dataDisplayType={dataDisplayType}
-        setDataDisplayType={setDataDisplayType}
+        onDisplayTypeChange={setDataDisplayType}
       />
     </StyledPanel>
   );
@@ -200,7 +198,6 @@ const StyledPanel = styled(Panel)`
 `;
 
 const getEventView = (
-  location: Location,
   pageFilters: PageFilters,
   query: string,
   groups: string[],
@@ -212,7 +209,7 @@ const getEventView = (
       ? `p95(${SPAN_SELF_TIME})`
       : `sum(${SPAN_SELF_TIME})`;
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
@@ -226,16 +223,16 @@ const getEventView = (
         ? getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY)
         : undefined,
     },
-    location
+    pageFilters
   );
 };
 
 const getCumulativeTimeEventView = (
-  location: Location,
+  pageFilters: PageFilters,
   query: string,
   groups: string[]
 ) => {
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
@@ -245,6 +242,6 @@ const getCumulativeTimeEventView = (
       version: 2,
       topEvents: groups.length > 0 ? '4' : undefined,
     },
-    location
+    pageFilters
   );
 };

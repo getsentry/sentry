@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -15,6 +16,8 @@ from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
+from sentry.sentry_metrics.kafka import KafkaMetricsBackend
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -112,6 +115,23 @@ def _capture_event_stats(event: Event) -> None:
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
+
+
+def _update_escalating_metrics(event: Event) -> None:
+    """
+    Update metrics for escalating issues when an event is processed.
+    """
+    metrics_backend = KafkaMetricsBackend()
+    metrics_backend.counter(
+        UseCaseID.ESCALATING_ISSUES,
+        org_id=event.project.organization_id,
+        project_id=event.project.id,
+        metric_name="event_ingested",
+        value=1,
+        tags={"group": str(event.group_id)},
+        unit=None,
+    )
+    metrics_backend.close()
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
@@ -368,6 +388,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -564,6 +590,7 @@ def post_process_group(
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
+        _update_escalating_metrics(event)
 
         group_events: Mapping[int, GroupEvent] = {
             ge.group_id: ge for ge in list(event.build_group_events())

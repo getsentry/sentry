@@ -23,17 +23,19 @@ type Props = {
   event: Event;
   orgSlug: string;
   replaySlug: string;
+  onClickOpenReplay?: () => void;
 };
 
-function ReplayPreview({orgSlug, replaySlug, event}: Props) {
+function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
 
-  const eventTimestamp = event.dateCreated
-    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
+  const timeOfEvent = event.dateCreated ?? event.dateReceived;
+  const eventTimestamp = timeOfEvent
+    ? Math.floor(new Date(timeOfEvent).getTime() / 1000) * 1000
     : 0;
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
@@ -98,7 +100,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/organizations/${orgSlug}/replays/${replayId}/`,
+    pathname: `/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
@@ -117,7 +119,12 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
           <ReplayPlayer isPreview />
         </StaticPanel>
         <CTAOverlay>
-          <Button icon={<IconPlay />} priority="primary" to={fullReplayUrl}>
+          <Button
+            onClick={onClickOpenReplay}
+            icon={<IconPlay />}
+            priority="primary"
+            to={fullReplayUrl}
+          >
             {t('Open Replay')}
           </Button>
         </CTAOverlay>

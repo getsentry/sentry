@@ -2,6 +2,7 @@ import {Fragment, ReactNode, useCallback, useEffect, useMemo, useState} from 're
 import {browserHistory} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -19,6 +20,7 @@ import {IconArrow, IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {TrendType} from 'sentry/utils/profiling/hooks/types';
 import {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
@@ -128,6 +130,7 @@ export function FunctionTrendsWidget({
                 <FunctionTrendsEntry
                   key={`${f.project}-${f.function}-${f.package}`}
                   trendFunction={trendFunction}
+                  trendType={trendType}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => setExpandedIndex(i)}
                   func={f}
@@ -185,6 +188,7 @@ interface FunctionTrendsEntryProps {
   isExpanded: boolean;
   setExpanded: () => void;
   trendFunction: string;
+  trendType: TrendType;
 }
 
 function FunctionTrendsEntry({
@@ -192,32 +196,75 @@ function FunctionTrendsEntry({
   isExpanded,
   setExpanded,
   trendFunction,
+  trendType,
 }: FunctionTrendsEntryProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === func.project);
 
-  let functionName = <Fragment>{func.function}</Fragment>;
+  const [beforeExamples, afterExamples] = useMemo(() => {
+    return partition(func.worst, ([ts, _example]) => ts <= func.breakpoint);
+  }, [func]);
 
-  if (project && func['examples()'].length > 0) {
-    const target = generateProfileFlamechartRouteWithQuery({
+  let before = <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />;
+  let after = <PerformanceDuration nanoseconds={func.aggregate_range_2} abbreviation />;
+
+  function handleGoToProfile() {
+    switch (trendType) {
+      case 'improvement':
+        trackAnalytics('profiling_views.go_to_flamegraph', {
+          organization,
+          source: 'profiling.function_trends.improvement',
+        });
+        break;
+      case 'regression':
+        trackAnalytics('profiling_views.go_to_flamegraph', {
+          organization,
+          source: 'profiling.function_trends.regression',
+        });
+        break;
+      default:
+        throw new Error('Unknown trend type');
+    }
+  }
+
+  if (project && beforeExamples.length >= 2 && afterExamples.length >= 2) {
+    // By choosing the 2nd most recent example in each period, we guarantee the example
+    // occurred within the period and eliminate confusion with picking an example in
+    // the same bucket as the breakpoint.
+
+    const beforeTarget = generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: func['examples()'][0],
+      profileId: beforeExamples[beforeExamples.length - 2][1],
       query: {
         frameName: func.function as string,
         framePackage: func.package as string,
       },
     });
 
-    functionName = <Link to={target}>{functionName}</Link>;
-  }
+    before = (
+      <Link to={beforeTarget} onClick={handleGoToProfile}>
+        {before}
+      </Link>
+    );
 
-  functionName = (
-    <FunctionName>
-      <Tooltip title={func.package}>{functionName}</Tooltip>
-    </FunctionName>
-  );
+    const afterTarget = generateProfileFlamechartRouteWithQuery({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      profileId: afterExamples[afterExamples.length - 2][1],
+      query: {
+        frameName: func.function as string,
+        framePackage: func.package as string,
+      },
+    });
+
+    after = (
+      <Link to={afterTarget} onClick={handleGoToProfile}>
+        {after}
+      </Link>
+    );
+  }
 
   return (
     <Fragment>
@@ -227,16 +274,18 @@ function FunctionTrendsEntry({
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
-        {functionName}
+        <FunctionName>
+          <Tooltip title={func.package}>{func.function}</Tooltip>
+        </FunctionName>
         <Tooltip
           title={tct('Appeared [count] times.', {
             count: <Count value={func['count()']} />,
           })}
         >
           <DurationChange>
-            <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />
+            {before}
             <IconArrow direction="right" size="xs" />
-            <PerformanceDuration nanoseconds={func.aggregate_range_2} abbreviation />
+            {after}
           </DurationChange>
         </Tooltip>
         <Button

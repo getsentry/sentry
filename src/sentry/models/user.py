@@ -5,7 +5,7 @@ from typing import List
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
@@ -43,14 +43,14 @@ class UserManager(BaseManager, DjangoUserManager):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models import OrganizationMemberMapping
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 
-        org_user_ids = OrganizationMember.objects.filter(organization_id=organization_id).values(
-            "user_id"
-        )
+        org_user_ids = OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id
+        ).values("user_id")
         org_members_with_provider = (
-            OrganizationMember.objects.values("user_id")
+            OrganizationMemberMapping.objects.values("user_id")
             .annotate(org_counts=Count("organization_id"))
             .filter(
                 user_id__in=Subquery(org_user_ids),
@@ -162,7 +162,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -171,13 +171,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
@@ -323,7 +323,7 @@ class User(BaseModel, AbstractBaseUser):
         for model in model_list:
             for obj in model.objects.filter(user_id=from_user.id):
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(User)):
                         obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass

@@ -1,4 +1,4 @@
-import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
+import {MultiSeriesEventsStats} from 'sentry/types';
 import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
@@ -14,20 +14,17 @@ import {
 export function useEventsStatsQuery({
   eventView,
   enabled,
-  initialData,
   referrer,
+  initialData,
 }: {
   eventView: EventView;
   enabled?: boolean;
-  initialData?: any;
+  initialData?: MultiSeriesEventsStats;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data, isError} = useGenericDiscoverQuery<
-    EventsStats | MultiSeriesEventsStats,
-    DiscoverQueryProps
-  >({
+  const result = useGenericDiscoverQuery<MultiSeriesEventsStats, DiscoverQueryProps>({
     route: 'events-stats',
     eventView,
     location,
@@ -50,9 +47,6 @@ export function useEventsStatsQuery({
     },
     referrer,
   });
-  return {
-    isLoading,
-    data: isLoading && initialData ? initialData : data,
-    isError,
-  };
+
+  return {...result, data: result.isLoading ? initialData : result.data};
 }

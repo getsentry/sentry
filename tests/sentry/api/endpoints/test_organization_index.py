@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
@@ -181,7 +184,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
-        data = {"name": "hello world"}
+        data: dict[str, Any] = {"name": "hello world"}
         with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
             self.get_success_response(**data)
 
@@ -207,7 +210,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
 
         # TODO(HC) Re-enable this check once organization mapping stabilizes
-        # with exempt_from_silo_limits():
+        # with assume_test_silo_mode(SiloMode.CONTROL):
         #     assert OrganizationMapping.objects.filter(
         #         organization_id=organization_id,
         #         slug=data["slug"],

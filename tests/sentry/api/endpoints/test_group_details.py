@@ -26,8 +26,9 @@ from sentry.models import (
     Release,
 )
 from sentry.plugins.base import plugins
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -125,7 +126,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
             response = self.client.get(url, {"environment": "production"}, format="json")
             assert response.status_code == 200
             assert get_range.call_count == 2
@@ -240,7 +241,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             datetime=timezone.now(),
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.delete()
 
         url = f"/api/0/issues/{group.id}/"
@@ -424,7 +425,7 @@ class GroupUpdateTest(APITestCase):
         # hitting an endpoint that uses `client.{get,put,post}` to redirect to
         # another endpoint. This catches a regression that happened when
         # migrating to DRF 3.x.
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             api_key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["event:write"]
             )

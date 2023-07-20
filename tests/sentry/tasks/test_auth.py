@@ -1,9 +1,10 @@
 from django.core import mail
 
 from sentry.models import AuthProvider, OrganizationMember
+from sentry.silo import SiloMode
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -12,9 +13,10 @@ class TasksAuthTest(TestCase):
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
-        self.provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.provider = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy"
+            )
         om = OrganizationMember.objects.create(
             user_id=self.user.id,
             organization=self.organization,

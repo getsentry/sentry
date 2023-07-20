@@ -67,7 +67,7 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
-  unselectedSeries = 'p100()',
+  unselectedSeries = ['p100()', 'avg()'],
   display,
   trendFunction,
   trendColumn,
@@ -175,7 +175,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (
-    organization: Organization,
+    _: Organization,
     tableRow: TableDataRow,
     _query: Query | undefined
   ): LocationDescriptor => {
@@ -186,7 +186,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+        pathname: `/replays/${replayId}/`,
         query: {
           referrer,
         },
@@ -199,7 +199,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
+      pathname: `/replays/${replayId}/`,
       query: {
         event_t: transactionStartTimestamp,
         referrer,

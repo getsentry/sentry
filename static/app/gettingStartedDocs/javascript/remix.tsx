@@ -53,11 +53,11 @@ export const steps = ({
       {
         language: 'bash',
         code: `
-        # Using yarn
-        yarn add @sentry/remix
+# Using yarn
+yarn add @sentry/remix
 
-        # Using npm
-        npm install --save @sentry/remix
+# Using npm
+npm install --save @sentry/remix
         `,
       },
     ],
@@ -83,7 +83,7 @@ export const steps = ({
       {
         language: 'javascript',
         description: (
-          <div>
+          <p>
             {tct(
               `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
               {
@@ -95,10 +95,9 @@ export const steps = ({
                 ),
               }
             )}
-          </div>
+          </p>
         ),
         code: `
-
         ${
           (sentryInitContentServer ?? []).length > 1
             ? `import { prisma } from "~/db.server";`

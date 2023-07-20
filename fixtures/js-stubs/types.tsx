@@ -1,4 +1,4 @@
-import {EntryException} from 'sentry/types';
+import {EntryException, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayListRecord,
   ReplayRecord,
@@ -6,6 +6,7 @@ import type {
 } from 'sentry/views/replays/types';
 
 import type {Replay} from './replay';
+import {MOCK_RESP_VERBOSE} from './ruleConditions';
 
 type SimpleStub<T = any> = () => T;
 
@@ -55,7 +56,7 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
-  Environments: OverridableStub;
+  Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
@@ -80,6 +81,7 @@ type TestStubFixtures = {
   GroupingConfigs: SimpleStub;
   GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
+  HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
   IncidentStats: OverridableStub;
@@ -87,6 +89,7 @@ type TestStubFixtures = {
   InstallWizard: OverridableStub;
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
+  MOCK_RESP_VERBOSE: typeof MOCK_RESP_VERBOSE;
   Member: OverridableStub;
   Members: OverridableStubList;
   MetricRule: OverridableStub;
@@ -104,6 +107,7 @@ type TestStubFixtures = {
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
   OutcomesWithoutClientDiscarded: SimpleStub;
+  PageFilters: OverridableStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -120,6 +124,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;
@@ -177,6 +182,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;
@@ -200,8 +206,6 @@ type TestStubFixtures = {
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)
   // RoleList(params = [], fullAccess = false)
-
-  // const MOCK_RESP_VERBOSE
   // const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID
   // const MOCK_RESP_INCONSISTENT_PLACEHOLDERS
   // const MOCK_RESP_INCONSISTENT_INTERVALS
