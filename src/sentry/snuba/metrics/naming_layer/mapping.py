@@ -103,8 +103,7 @@ def extract_custom_measurement_alias(internal_name: str) -> Optional[str]:
             return match.group("name")
         if match.group("entity") == "c" and match.group("namespace") == "errors":
             return match.group("name")
-    else:
-        return None
+    return None
 
 
 def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
