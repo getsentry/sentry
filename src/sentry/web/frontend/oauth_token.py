@@ -11,7 +11,7 @@ from rest_framework.request import Request
 
 from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api")
@@ -47,6 +47,15 @@ class OAuthTokenView(View):
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
+
+        metrics.incr(
+            "oauth_token.post",
+            sample_rate=1.0,
+            extra={
+                "client_id_exists": bool(client_id),
+                "client_secret_exists": bool(client_secret),
+            },
+        )
 
         if not client_id:
             return self.error(request=request, name="missing_client_id", reason="missing client_id")
