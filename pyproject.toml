@@ -50,7 +50,7 @@ looponfailroots = ["src", "tests"]
 [tool.mypy]
 python_version = "3.8"
 mypy_path = ["fixtures/stubs-for-mypy"]
-plugins = ["pydantic.mypy", "mypy_django_plugin.main"]
+plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
 exclude = ["^.venv/", "^self-hosted/"]
 
