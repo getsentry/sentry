@@ -22,6 +22,11 @@ class DiscordRequestError(Exception):
     status: int
 
 
+class DiscordRequestTypes:
+    PING = 1
+    COMMAND = 2
+
+
 class DiscordRequest:
     """
     A Request from Discord to our interactions endpoint.
@@ -85,7 +90,6 @@ class DiscordRequest:
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
 
-        self._info("discord.interactions.auth")
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
     def _validate_data(self) -> None:
@@ -110,7 +114,12 @@ class DiscordRequest:
 
     def is_ping(self) -> bool:
         # TODO: Make these constants an enum like DISCORD_REQUEST_TYPE.PING
-        return self._data.get("type", 0) == 1
+        return self._data.get("type", 0) == DiscordRequestTypes.PING
 
     def is_command(self) -> bool:
-        return self._data.get("type", 0) == 2
+        return self._data.get("type", 0) == DiscordRequestTypes.COMMAND
+
+    def get_command_name(self) -> str:
+        if not self.is_command():
+            return ""
+        return self._data.get("data")["name"]  # type: ignore
