@@ -579,13 +579,9 @@ const DefaultLine = styled('div')<{
 }>`
   display: grid;
   grid-template-columns: ${p =>
-    p.stacktraceChangesEnabled
-      ? p.isNotInApp
-        ? p.hasToggle
-          ? `1fr auto ${space(2)}`
-          : `1fr ${space(2)}`
-        : `1fr auto ${space(2)}`
-      : `1fr auto auto`};
+    p.stacktraceChangesEnabled && p.isNotInApp && !p.hasToggle
+      ? `1fr ${space(2)}`
+      : `1fr auto ${space(2)}`};
   align-items: center;
   column-gap: ${space(1)};
   background: ${p =>
