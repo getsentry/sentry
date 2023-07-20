@@ -205,6 +205,7 @@ def timeseries_query(
                 allow_metric_aggregates=allow_metric_aggregates,
                 use_metrics_layer=use_metrics_layer,
                 groupby=groupby,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)

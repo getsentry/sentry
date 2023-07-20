@@ -97,6 +97,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:mep-rollout-flag",
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
         ]
         batch_features = features.batch_has(
             feature_names,
