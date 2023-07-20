@@ -1,5 +1,6 @@
 from copy import deepcopy
 from functools import cached_property
+from unittest.mock import patch
 
 from django.db import router
 from freezegun import freeze_time
@@ -7,12 +8,15 @@ from freezegun import freeze_time
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
-from sentry.models import AuditLogEntry
+from sentry.models import AuditLogEntry, Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode, unguarded_write
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class AlertRuleBase:
@@ -31,32 +35,33 @@ class AlertRuleBase:
     @cached_property
     def alert_rule_dict(self):
         return {
-            "aggregate": "count()",
+            "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             "query": "",
-            "timeWindow": "300",
-            "projects": [self.project.slug],
-            "name": "JustAValidTestRule",
-            "owner": self.user.id,
-            "resolveThreshold": 100,
-            "thresholdType": 0,
+            "timeWindow": "60",
+            "resolveThreshold": 90,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "label": "critical",
-                    "alertThreshold": 200,
+                    "alertThreshold": 70,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
                 },
                 {
                     "label": "warning",
-                    "alertThreshold": 150,
+                    "alertThreshold": 80,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
                     ],
                 },
             ],
-            "event_types": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+            "projects": [self.project.slug],
+            "owner": self.user.id,
+            "name": "JustAValidTestRule",
+            "dataset": "sessions",
+            "eventTypes": [],
         }
 
 
@@ -351,3 +356,136 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+
+
+@region_silo_test(stable=True)
+@freeze_time()
+class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase):
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+    def test_simple_crash_rate_alerts_for_sessions(self):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **self.alert_rule_dict
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_simple_crash_rate_alerts_for_users(self):
+        self.alert_rule_dict.update(
+            {
+                "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            }
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **self.alert_rule_dict
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self):
+        self.alert_rule_dict["eventTypes"] = ["error"]
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **self.alert_rule_dict
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self):
+        self.alert_rule_dict["timeWindow"] = "90"
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **self.alert_rule_dict
+            )
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Invalid Time Window: Allowed time windows for crash rate alerts are: "
+            "30min, 1h, 2h, 4h, 12h and 24h"
+        )
+
+    def test_simple_crash_rate_alerts_for_non_supported_aggregate(self):
+        self.alert_rule_dict.update({"aggregate": "count(sessions)"})
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **self.alert_rule_dict
+            )
+        assert (
+            resp.data["nonFieldErrors"][0]
+            == "Only crash free percentage queries are supported for crash rate alerts"
+        )
+
+    @patch(
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
+        return_value=("#", None, True),
+    )
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
+    def test_crash_rate_alerts_kicks_off_slack_async_job(
+        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+    ):
+        mock_uuid4.return_value = self.get_mock_uuid()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
+        self.alert_rule_dict["triggers"] = [
+            {
+                "label": "critical",
+                "alertThreshold": 50,
+                "actions": [
+                    {
+                        "type": "slack",
+                        "targetIdentifier": "my-channel",
+                        "targetType": "specific",
+                        "integration": self.integration.id,
+                    }
+                ],
+            },
+        ]
+        with self.feature(["organizations:incidents"]):
+            resp = self.get_success_response(
+                self.organization.slug, status_code=202, **self.alert_rule_dict
+            )
+        resp.data["uuid"] = "abc123"
+        assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
+        kwargs = {
+            "organization_id": self.organization.id,
+            "uuid": "abc123",
+            "data": self.alert_rule_dict,
+            "user_id": self.user.id,
+        }
+        mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
+
+
+@region_silo_test(stable=True)
+@freeze_time()
+class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.alert_rule_dict["dataset"] = Dataset.Metrics.value
+        for tag in [
+            SessionMRI.SESSION.value,
+            SessionMRI.USER.value,
+            "session.status",
+            "init",
+            "crashed",
+        ]:
+            indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=self.organization.id, string=tag)
