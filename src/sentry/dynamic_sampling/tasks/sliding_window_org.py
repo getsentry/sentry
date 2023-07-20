@@ -1,16 +1,27 @@
+from datetime import timedelta
+
+from sentry_sdk import capture_message, set_extra
+
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
+    GetActiveOrgsVolumes,
+    TimedIterator,
+    TimeoutException,
     compute_guarded_sliding_window_sample_rate,
-    fetch_orgs_with_total_root_transactions_count,
-    get_active_orgs_with_projects_counts,
 )
-from sentry.dynamic_sampling.tasks.constants import DEFAULT_REDIS_CACHE_KEY_TTL
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_SECONDS,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
     get_sliding_window_size,
     mark_sliding_window_org_executed,
 )
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
 
 
@@ -24,35 +35,71 @@ from sentry.tasks.base import instrumented_task
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:
+    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window_org", MAX_SECONDS)
+    adjust_base_sample_rate_of_org_timer = Timer()
+
     window_size = get_sliding_window_size()
-    # In case the size is None it means that we disabled the sliding window entirely.
-    if window_size is not None:
-        for orgs in get_active_orgs_with_projects_counts():
-            for (org_id, total_root_count,) in fetch_orgs_with_total_root_transactions_count(
-                org_ids=orgs, window_size=window_size
-            ).items():
-                adjust_base_sample_rate_of_org(org_id, total_root_count, window_size)
 
-        # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
-        # that the execution of the sliding window org was successful. We will keep this state for 1 hour.
-        mark_sliding_window_org_executed()
+    try:
+        # In case the size is None it means that we disabled the sliding window entirely.
+        if window_size is not None:
+            orgs_volumes_iterator = TimedIterator(
+                context,
+                GetActiveOrgsVolumes(
+                    max_orgs=CHUNK_SIZE,
+                    time_interval=timedelta(hours=window_size),
+                    include_keep=False,
+                ),
+            )
+
+            for orgs_volume in orgs_volumes_iterator:
+                for org_volume in orgs_volume:
+                    adjust_base_sample_rate_of_org(
+                        org_id=org_volume.org_id,
+                        total_root_count=org_volume.total,
+                        window_size=window_size,
+                        context=context,
+                        timer=adjust_base_sample_rate_of_org_timer,
+                    )
+
+            # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
+            # that the execution of the sliding window org was successful. We will keep this state for 1 hour.
+            mark_sliding_window_org_executed()
+    except TimeoutException:
+        set_extra("context-data", context.to_dict())
+        log_task_timeout(context)
+        raise
+    else:
+        set_extra("context-data", context.to_dict())
+        capture_message("sentry.dynamic_sampling.tasks.sliding_window_org")
+        log_task_execution(context)
 
 
-def adjust_base_sample_rate_of_org(org_id: int, total_root_count: int, window_size: int) -> None:
+def adjust_base_sample_rate_of_org(
+    org_id: int, total_root_count: int, window_size: int, context: TaskContext, timer: Timer
+) -> None:
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
-    sample_rate = compute_guarded_sliding_window_sample_rate(
-        org_id, None, total_root_count, window_size
-    )
-    # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
-    # with the old value.
-    if sample_rate is None:
-        return
+    with timer:
+        sample_rate = compute_guarded_sliding_window_sample_rate(
+            org_id, None, total_root_count, window_size
+        )
+        # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
+        # with the old value.
+        if sample_rate is None:
+            return
 
-    redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
-        pipeline.set(cache_key, sample_rate)
-        pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
-        pipeline.execute()
+        redis_client = get_redis_client_for_ds()
+        with redis_client.pipeline(transaction=False) as pipeline:
+            cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+            pipeline.set(cache_key, sample_rate)
+            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
+            pipeline.execute()
+
+    name = adjust_base_sample_rate_of_org.__name__
+    state = context.get_function_state(name)
+    state.num_orgs += 1
+    state.num_iterations += 1
+    state.execution_time = timer.current()
+    context.set_function_state(name, state)

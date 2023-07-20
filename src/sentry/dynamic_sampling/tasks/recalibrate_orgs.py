@@ -101,6 +101,8 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, ti
                 org_id=org_volume.org_id, message="invalid data for recalibration"
             )
 
+        assert org_volume.indexed is not None
+
         log_action_if(
             "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
         )
