@@ -57,7 +57,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": str(self.service.id)})
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
@@ -261,7 +261,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
         self.installation = integration.get_installation(self.organization.id)
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": service.id})
+        rule = self.get_rule(data={"account": self.integration.id, "service": str(service.id)})
 
         form = rule.get_form_instance()
         assert not form.is_valid()

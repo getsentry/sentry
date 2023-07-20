@@ -35,7 +35,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         if not oi:
             return None
         for pds in oi.config.get("pagerduty_services", []):
-            if pds["id"] == self.get_option("service"):
+            if str(pds["id"]) == str(self.get_option("service")):
                 return pds
         return None
 
