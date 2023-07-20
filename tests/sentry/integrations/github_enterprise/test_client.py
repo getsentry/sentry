@@ -18,11 +18,21 @@ GITHUB_CODEOWNERS = {
 class GitHubAppsClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 
-    @mock.patch(
-        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
-    )
-    @mock.patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def setUp(self, get_jwt, _):
+    def setUp(self):
+        super().setUp()
+
+        patcher_1 = mock.patch(
+            "sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1"
+        )
+        patcher_1.start()
+        self.addCleanup(patcher_1.stop)
+
+        patcher_2 = mock.patch(
+            "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
+        )
+        patcher_2.start()
+        self.addCleanup(patcher_2.stop)
+
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",
@@ -65,12 +75,8 @@ class GitHubAppsClientTest(TestCase):
             content_type="application/json",
         )
 
-    @mock.patch(
-        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
-    )
-    @mock.patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_file(self, get_jwt, _):
+    def test_check_file(self):
         path = "src/sentry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -84,12 +90,8 @@ class GitHubAppsClientTest(TestCase):
         resp = self.client.check_file(self.repo, path, version)
         assert resp.status_code == 200
 
-    @mock.patch(
-        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
-    )
-    @mock.patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_no_file(self, get_jwt, _):
+    def test_check_no_file(self):
         path = "src/santry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -100,12 +102,8 @@ class GitHubAppsClientTest(TestCase):
             self.client.check_file(self.repo, path, version)
         assert responses.calls[1].response.status_code == 404
 
-    @mock.patch(
-        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
-    )
-    @mock.patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_stacktrace_link(self, get_jwt, _):
+    def test_get_stacktrace_link(self):
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = f"{self.base_url}/repos/{self.repo.name}/contents/{path.lstrip('/')}?ref={version}"
@@ -126,12 +124,8 @@ class GitHubAppsClientTest(TestCase):
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
         return_value=GITHUB_CODEOWNERS["html_url"],
     )
-    @mock.patch(
-        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
-    )
-    @mock.patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_codeowner_file(self, mock_jwt, _, mock_check_file):
+    def test_get_codeowner_file(self, mock_check_file):
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
