@@ -21,7 +21,7 @@ op = "stacktrace_processing"
 class StacktraceInfo(NamedTuple):
     stacktrace: Any
     container: Any
-    platforms: set[str]
+    platforms: Any
     is_exception: bool
 
     def __hash__(self) -> int:
