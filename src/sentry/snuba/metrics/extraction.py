@@ -295,7 +295,7 @@ class OndemandMetricSpec:
     op: MetricOperationType
 
     # The original query used to construct the metric spec.
-    query: Sequence[SearchFilter]
+    _query: str
     # Rule condition parsed from the aggregate field expression.
     _field_condition: Optional[RuleCondition]
 
