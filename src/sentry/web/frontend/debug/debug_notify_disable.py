@@ -2,7 +2,6 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.models import Organization, OrganizationMember, User
-
 from sentry.tasks.integrations.disabled_notif import IntegrationBrokenNotification
 
 from .mail import render_preview_email_for_notification
@@ -24,5 +23,5 @@ class DebugNotifyDisableView(View):
         )
 
         # hack to avoid a query
-     #   notification.role_based_recipient_strategy.set_member_in_cache(recipient_member)
+        #   notification.role_based_recipient_strategy.set_member_in_cache(recipient_member)
         return render_preview_email_for_notification(notification, recipient)
