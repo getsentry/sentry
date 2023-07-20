@@ -60,7 +60,7 @@ exclude_paths=my.package.crud
         description: (
           <p>
             {tct(
-              'Add the following lines to your project’s [initCode:.init] file to setup [sentryHandlerCode:SentryHandler]:',
+              'Add the following lines to your project’s [initCode:.ini] file to setup [sentryHandlerCode:SentryHandler]:',
               {
                 initCode: <code />,
                 sentryHandlerCode: <code />,
