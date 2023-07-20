@@ -118,3 +118,28 @@ Found 1 error in 1 file (checked 1 source file)
     ret, out = call_mypy(code)
     assert ret
     assert out == expected
+
+
+def test_invalid_transaction_set_rollback(call_mypy):
+    code = """
+from django.db import transaction
+
+transaction.set_rollback(True)
+"""
+    expected = """\
+<string>:4: error: Missing positional argument "using" in call to "set_rollback"  [call-arg]
+Found 1 error in 1 file (checked 1 source file)
+"""
+    ret, out = call_mypy(code)
+    assert ret
+    assert out == expected
+
+
+def test_ok_transaction_set_rollback(call_mypy):
+    code = """
+from django.db import transaction
+
+transaction.set_rollback(True, "default")
+"""
+    ret, _ = call_mypy(code)
+    assert ret == 0

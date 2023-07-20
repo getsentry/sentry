@@ -43,7 +43,7 @@ def replace_get_connection_sig_callback(ctx: FunctionSigContext) -> CallableType
     return signature.copy_modified(arg_kinds=[ARG_POS], arg_types=[str_type])
 
 
-def replace_on_commit_sig_callback(ctx: FunctionSigContext) -> CallableType:
+def replace_trailing_using_sig_callback(ctx: FunctionSigContext) -> CallableType:
     signature = ctx.default_signature
     using_arg = signature.argument_by_name("using")
     if not using_arg:
@@ -68,7 +68,9 @@ class SentryMypyPlugin(Plugin):
         if fullname == "django.db.transaction.get_connection":
             return replace_get_connection_sig_callback
         if fullname == "django.db.transaction.on_commit":
-            return replace_on_commit_sig_callback
+            return replace_trailing_using_sig_callback
+        if fullname == "django.db.transaction.set_rollback":
+            return replace_trailing_using_sig_callback
         return None
 
 
