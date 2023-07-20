@@ -50,7 +50,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
-    is_timeseries_query = False
+
     organization_column: str = "organization_id"
 
     def __init__(
@@ -119,7 +119,7 @@ class MetricsQueryBuilder(QueryBuilder):
         spec = self._on_demand_spec
 
         # TimeseriesQueryBuilder specific parameters
-        if self.is_timeseries_query:
+        if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = None
             alias = "count"
         else:
@@ -1073,7 +1073,6 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
-    is_timeseries_query = True
 
     def __init__(
         self,
