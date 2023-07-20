@@ -61,7 +61,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None

@@ -11,7 +11,7 @@ from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, single_process_silo_mode_state
 from sentry.utils import json
 
 
@@ -202,6 +202,13 @@ def get_local_region() -> Region:
 
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
+
+    # In our threaded acceptance tests, we need to override the region of the current
+    # context when passing through test rpc calls, but we can't rely on settings because
+    # django settings are not thread safe :'(
+    # We use this thread local instead which is managed by the SiloMode context managers
+    if single_process_silo_mode_state.region:
+        return single_process_silo_mode_state.region
 
     if not settings.SENTRY_REGION:
         raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")

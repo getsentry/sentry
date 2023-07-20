@@ -20,6 +20,7 @@ from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcM
 from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
+from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.region import RegionResolutionStrategy
@@ -460,7 +461,7 @@ def dispatch_remote_call(
         "sentry-api-0-rpc-service",
         kwargs={"service_name": service_name, "method_name": method_name},
     )
-    url = address + path
+    # url = address + path
 
     request_body = {
         "meta": {},  # reserved for future use
@@ -480,10 +481,23 @@ def dispatch_remote_call(
             "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
             "Authorization": f"Rpcsignature {signature}",
         }
-        response = _fire_request(url, headers, data)
+        # response = _fire_request(url, headers, data)
+        response = _fire_test_request(path, headers, data, region)
         metrics.incr(
             "hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status_code}
         )
+
+    if response.status_code != 200:
+        if in_test_environment():
+            if response.status_code == 500:
+                raise Exception("Error invoking rpc at {path}: check error logs for more details")
+            raise Exception("Error invoking rpc at {path}: {response.json()['detail']}")
+        # Careful not to reveal too much information in production
+        if response.status_code == 403:
+            raise Exception("Unauthorized service access")
+        if response.status_code == 400:
+            raise Exception("Invalid service request")
+        raise Exception("Service unavailable")
 
     serial_response = response.json()
     return_value = serial_response["value"]
@@ -497,36 +511,26 @@ def dispatch_remote_call(
 def _fire_test_request(
     path: str, headers: Mapping[str, str], data: bytes, region: Region | None
 ) -> Any:
-    from django.test import Client, override_settings
+    from django.test import Client
 
     from sentry.db.postgres.transactions import in_test_assert_no_transaction
 
     in_test_assert_no_transaction(
         f"remote service method to {path} called inside transaction!  Move service calls to outside of transactions."
     )
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
     with SiloMode.exit_single_process_silo_context():
-        auth_context: AuthenticationContext = AuthenticationContext()
-        # TODO: Add this to rpc endpoint.
-        # if "auth_context" in call_args:
-        #     auth_context = call_args["auth_context"] or auth_context
-
         if region:
             target_mode = SiloMode.REGION
-            settings = dict(SENTRY_REGION=region.name)
         else:
             target_mode = SiloMode.CONTROL
-            settings = dict()
 
-        with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-            target_mode
-        ), override_settings(**settings):
+        with SiloMode.enter_single_process_silo_context(target_mode, region):
             return Client().post(
                 path,
                 data,
                 content_type=f"application/json; charset={_RPC_CONTENT_CHARSET}",
-                **headers,
+                **{f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()},
             )
 
 

@@ -176,7 +176,11 @@ class SiloModeTestDecorator:
 
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
             silo_mode = kwargs.pop("silo_mode")
-            with override_settings(SILO_MODE=silo_mode):
+            with override_settings(
+                SILO_MODE=silo_mode,
+                RPC_SHARED_SECRET=["abcdef"],
+                SENTRY_CONTROL_ADDRESS="http://test.control",
+            ):
                 with override_regions(regions):
                     if silo_mode == SiloMode.REGION:
                         with override_settings(SENTRY_REGION=regions[0].name):

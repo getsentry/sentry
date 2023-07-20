@@ -1,14 +1,17 @@
+import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.rpc import (
     RpcArgumentException,
     RpcResolutionException,
     dispatch_to_local_service,
 )
+from sentry.utils.env import in_test_environment
 
 
 @all_silo_endpoint
@@ -30,12 +33,30 @@ class RpcServiceEndpoint(Endpoint):
         metadata = request.data.get("meta")  # noqa
         arguments = request.data.get("args")
 
+        auth_context: AuthenticationContext = AuthenticationContext()
+        if auth_context_json := arguments.get("auth_context"):
+            try:
+                # Note -- generally, this is NOT set, but only in cases where an RPC needs to invoke code
+                # that depends on the `env.request.user` object.  In that case, the authentication context
+                # includes an authenticated user that will be injected into the global request context
+                # for compatibility.  Notably, this authentication context is *trusted* as the request comes
+                # from within the privileged RPC channel.
+                auth_context = AuthenticationContext.parse_obj(auth_context_json)
+            except pydantic.ValidationError as e:
+                raise ParseError from e
+
         try:
-            result = dispatch_to_local_service(service_name, method_name, arguments)
+            with auth_context.applied_to_request(request):
+                result = dispatch_to_local_service(service_name, method_name, arguments)
         except RpcResolutionException as e:
             raise NotFound from e
         except RpcArgumentException as e:
             raise ParseError from e
         except Exception as e:
+            # Produce more detailed log
+            if in_test_environment():
+                raise Exception(
+                    f"Problem processing rpc service endpoint {service_name}/{method_name}"
+                ) from e
             raise ValidationError from e
         return Response(data=result)

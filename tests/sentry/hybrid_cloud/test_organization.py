@@ -21,10 +21,11 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
 from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.pytest.fixtures import django_db_all
 
 
@@ -53,7 +54,8 @@ def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
     Factories.create_team_membership(team=team_3, user=owner)
     inactive_team_membership = Factories.create_team_membership(team=team_3, user=other_user)
     inactive_team_membership.is_active = False
-    inactive_team_membership.save()
+    with assume_test_silo_mode(SiloMode.REGION):
+        inactive_team_membership.save()
 
     return org, [owner, other_user]
 
@@ -95,6 +97,7 @@ def assert_for_list(a: List[Any], b: List[Any], assertion: Callable) -> None:
         assertion(a_thing, b_thing)
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.id == orm_team.id
     assert team.slug == orm_team.slug
@@ -103,6 +106,7 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.org_role == orm_team.org_role
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_project_equals(orm_project: Project, project: RpcProject):
     assert project.id == orm_project.id
     assert project.status == orm_project.status
@@ -111,6 +115,7 @@ def assert_project_equals(orm_project: Project, project: RpcProject):
     assert project.name == orm_project.name
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember):
     assert team_member.id == orm_team_member.id
     assert team_member.team_id == orm_team_member.team_id
@@ -122,6 +127,7 @@ def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_memb
     }
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_organization_member_equals(
     orm_organization_member: OrganizationMember, organization_member: RpcOrganizationMember
 ):
@@ -154,6 +160,7 @@ def assert_organization_member_equals(
         )
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.id == orm_org.id
     assert org.name == orm_org.name
@@ -164,14 +171,18 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
         org_flag = getattr(org.flags, field_name)
         assert orm_flag == org_flag
 
-    assert_for_list(
-        list(Team.objects.filter(organization_id=org.id)), org.teams, assert_team_equals
-    )
-    assert_for_list(
-        list(Project.objects.filter(organization_id=org.id)), org.projects, assert_project_equals
-    )
+    with assume_test_silo_mode(SiloMode.REGION):
+        assert_for_list(
+            list(Team.objects.filter(organization_id=org.id)), org.teams, assert_team_equals
+        )
+        assert_for_list(
+            list(Project.objects.filter(organization_id=org.id)),
+            org.projects,
+            assert_project_equals,
+        )
 
 
+@assume_test_silo_mode(SiloMode.REGION)
 def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: Organization):
     assert (
         organization_service.get_organization_by_id(
@@ -195,7 +206,7 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
 
 
 @django_db_all(transaction=True)
-@all_silo_test
+@all_silo_test(stable=True)
 @parameterize_with_orgs
 @use_real_service(organization_service, None)
 def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
@@ -206,7 +217,7 @@ def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[
 
 
 @django_db_all(transaction=True)
-@all_silo_test
+@all_silo_test(stable=True)
 @parameterize_with_orgs
 @use_real_service(organization_service, None)
 def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
@@ -217,14 +228,16 @@ def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]])
         member = organization_service.add_organization_member(
             organization_id=orm_org.id, default_org_role=orm_org.default_role, user_id=new_user.id
         )
-        assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
 
         member = organization_service.add_organization_member(
             organization_id=orm_org.id,
             default_org_role=orm_org.default_role,
             email="me@thing.com",
         )
-        assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
 
 
 @django_db_all(transaction=True)
