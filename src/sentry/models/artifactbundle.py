@@ -161,7 +161,7 @@ class ArtifactBundleFlatFileIndex(Model):
             current_file.delete()
 
     def load_flat_file_index(self) -> str:
-        return self.flat_file_index.getfile().read()
+        return self.flat_file_index.getfile().read().decode()
 
     @classmethod
     def _create_flat_file_index_object(
