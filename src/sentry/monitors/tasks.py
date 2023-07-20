@@ -22,7 +22,7 @@ TIMEOUT = 30
 
 # hard maximum runtime for a monitor, in minutes
 # current limit is 14 days
-MAX_TIMEOUT = 20_160
+MAX_TIMEOUT = 40_320
 
 # This is the MAXIMUM number of MONITOR this job will check.
 #
