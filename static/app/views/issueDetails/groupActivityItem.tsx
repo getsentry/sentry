@@ -234,22 +234,30 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        const {current_release_version, version} = activity.data;
-        if (current_release_version) {
+        // Resolved in the next release
+        if ('current_release_version' in activity.data) {
+          const currentVersion = activity.data.current_release_version;
           return tct(
-            '[author] marked this issue as resolved in releases greater than [version]',
+            '[author] marked this issue as resolved in releases greater than [version] [semver]',
             {
               author,
               version: (
                 <Version
-                  version={current_release_version}
+                  version={currentVersion}
                   projectId={projectId}
                   tooltipRawVersion
                 />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(currentVersion)
+                  ? t('(semver)')
+                  : t('(timestamp)')
+                : '',
             }
           );
         }
+
+        const version = activity.data.version;
         return version
           ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
@@ -260,9 +268,10 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
                 ? isSemverRelease(version)
                   ? t('(semver)')
                   : t('(timestamp)')
-                : null,
+                : '',
             })
-          : tct('[author] marked this issue as resolved in the upcoming release', {
+          : // Fallback to a generic message if the version is not available
+            tct('[author] marked this issue as resolved in the upcoming release', {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
