@@ -38,6 +38,7 @@ import {
 import {
   getDurationDisplay,
   getHumanDuration,
+  lightenBarColor,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -82,10 +83,12 @@ import {
   getMeasurements,
   getSpanID,
   getSpanOperation,
+  getSpanSubTimings,
   isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
+  shouldLimitAffectedToTiming,
   SpanBoundsType,
   SpanGeneratedBoundsType,
   spanTargetHash,
@@ -313,10 +316,10 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  getBounds(): SpanViewBoundsType {
+  getBounds(bounds?: SpanGeneratedBoundsType): SpanViewBoundsType {
     const {event, span, generateBounds} = this.props;
 
-    const bounds = generateBounds({
+    bounds ??= generateBounds({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
@@ -971,15 +974,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColor, spanBarType, spanNumber} = this.props;
-    const startTimestamp: number = span.start_timestamp;
-    const endTimestamp: number = span.timestamp;
-    const duration = Math.abs(endTimestamp - startTimestamp);
-    const durationString = getHumanDuration(duration);
-    const bounds = this.getBounds();
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
-    const durationDisplay = getDurationDisplay(bounds);
 
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
@@ -1006,7 +1001,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         <RowCell
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
-          showStriping={spanNumber % 2 !== 0}
+          showStriping={this.props.spanNumber % 2 !== 0}
           style={{
             width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
           }}
@@ -1014,25 +1009,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {displaySpanBar && (
-            <RowRectangle
-              spanBarType={spanBarType}
-              style={{
-                backgroundColor: spanBarColor,
-                left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                width: toPercent(bounds.width || 0),
-              }}
-            >
-              <DurationPill
-                durationDisplay={durationDisplay}
-                showDetail={this.state.showDetail}
-                spanBarType={spanBarType}
-              >
-                {durationString}
-                {this.renderWarningText()}
-              </DurationPill>
-            </RowRectangle>
-          )}
+          {this.renderSpanBarRectangles()}
           {this.renderMeasurements()}
           <SpanBarCursorGuide />
         </RowCell>
@@ -1059,6 +1036,69 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           </DividerLineGhostContainer>
         )}
       </RowCellContainer>
+    );
+  }
+
+  renderSpanBarRectangles() {
+    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const startTimestamp: number = span.start_timestamp;
+    const endTimestamp: number = span.timestamp;
+    const duration = Math.abs(endTimestamp - startTimestamp);
+    const durationString = getHumanDuration(duration);
+    const bounds = this.getBounds();
+    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
+    if (!displaySpanBar) {
+      return null;
+    }
+
+    const subTimings = getSpanSubTimings(span);
+    const hasSubTimings = !!subTimings;
+
+    const subSpans = hasSubTimings
+      ? subTimings.map(timing => {
+          const timingGeneratedBounds = generateBounds(timing);
+          const timingBounds = this.getBounds(timingGeneratedBounds);
+          const isAffectedSubTiming = shouldLimitAffectedToTiming(timing);
+          return (
+            <RowRectangle
+              key={timing.name}
+              spanBarType={isAffectedSubTiming ? spanBarType : undefined}
+              style={{
+                backgroundColor: lightenBarColor(
+                  getSpanOperation(span),
+                  timing.colorLighten
+                ),
+                left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
+                width: toPercent(timingBounds.width || 0),
+              }}
+            />
+          );
+        })
+      : null;
+
+    const durationDisplay = getDurationDisplay(bounds);
+    return (
+      <Fragment>
+        <RowRectangle
+          spanBarType={spanBarType}
+          style={{
+            backgroundColor: hasSubTimings ? 'rgba(0,0,0,0.0)' : spanBarColor,
+            left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+            width: toPercent(bounds.width || 0),
+          }}
+          isHidden={hasSubTimings}
+        >
+          <DurationPill
+            durationDisplay={durationDisplay}
+            showDetail={this.state.showDetail}
+            spanBarType={spanBarType}
+          >
+            {durationString}
+            {this.renderWarningText()}
+          </DurationPill>
+        </RowRectangle>
+        {subSpans}
+      </Fragment>
     );
   }
 
