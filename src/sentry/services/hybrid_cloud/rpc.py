@@ -320,14 +320,9 @@ class RpcService(abc.ABC):
             try:
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
-                # While remote services are under development, swallow these errors
-                # and leave empty spots in the parameter model table. This will cause
-                # an RpcServiceUnimplementedException when the method is called.
-                # TODO: Make this a hard failure when all parameter models are stable
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    logger.warning(
-                        f"Error on parameter model for {cls.__name__}.{base_method.__name__}: {e}"
-                    )
+                raise RpcServiceSetupException(
+                    f"Error on parameter model for {cls.__name__}.{base_method.__name__}: {e}"
+                ) from e
             else:
                 model_table[base_method.__name__] = signature
         return model_table
