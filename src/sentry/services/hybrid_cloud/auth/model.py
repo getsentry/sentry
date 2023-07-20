@@ -304,28 +304,6 @@ class MiddlewareAuthenticationResponse(AuthenticationContext):
     user_from_signed_request: bool = False
     accessed: Set[str] = Field(default_factory=set)
 
-    @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
-        with contextlib.ExitStack() as stack:
-            request = stack.enter_context(super().applied_to_request(request))
-            orig_accessed = request.session.accessed
-            has_signed_request = hasattr(request, "user_from_signed_request")
-            orig_signed_request = getattr(request, "user_from_signed_request", "None")
-
-            # Simulate accessing each attribute of session that was touched -- this can have side effects on
-            # the accessed attribute that is dependent on third party code :(
-            for attr in self.accessed:
-                request.session[attr]
-            setattr(request, "user_from_signed_request", self.user_from_signed_request)
-
-            yield request
-
-            request.session.accessed = orig_accessed
-            if has_signed_request:
-                request.user_from_signed_request = orig_signed_request
-            else:
-                delattr(request, "user_from_signed_request")
-
 
 class RpcAuthProviderFlags(RpcModel):
     allow_unlinked: bool = False
