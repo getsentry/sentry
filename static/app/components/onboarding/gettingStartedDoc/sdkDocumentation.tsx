@@ -71,6 +71,7 @@ export const migratedDocs = [
   'node-azurefunctions',
   'node-gcpfunctions',
   'node-express',
+  'node-koa',
   'electron',
   'elixir',
 ];
