@@ -100,6 +100,11 @@ def assemble_file(
 
     # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
+        # Most likely a previous check to `find_missing_chunks` or similar
+        # reported a chunk exists by its checksum, but now it does not
+        # exist anymore
+        logger.error("`FileBlob` disappeared during async `assemble_XXX` task")
+
         set_assemble_status(
             task,
             org_or_project.id,
