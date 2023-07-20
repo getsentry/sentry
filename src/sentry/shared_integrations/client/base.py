@@ -89,9 +89,9 @@ class BaseApiClient(TrackResponseMixin):
         Returns the redis key for the integration or False if cannot make key
         """
         if not hasattr(self, "integration_id"):
-            return False
+            return ""
         if not self.integration_id:
-            return False
+            return ""
         return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
@@ -110,9 +110,14 @@ class BaseApiClient(TrackResponseMixin):
             if e is HTTPError:
                 return True
 
+        return False
+
+
     def is_response_success(self, resp: Response) -> bool:
         if resp.status_code < 300:
             return True
+
+        return False
 
     def _request(
         self,
@@ -344,32 +349,36 @@ class BaseApiClient(TrackResponseMixin):
             self.record_request_success(response)
 
     def record_request_error(self, resp: Response | None = None, error: Exception | None = None):
-        if not self._get_redis_key():
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
             return
-        if not self.is_response_error(resp, error):
+        if not self.is_response_error(resp):
             return
-        buffer = IntegrationRequestBuffer(self._get_redis_key())
+        buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_error()
         print("error recorded")
         if buffer.is_integration_broken():
             self.disable_integration()
 
     def record_request_success(self, resp: Response):
-        if not self._get_redis_key():
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
             return
         if not self.is_response_success(resp):
             return
-        buffer = IntegrationRequestBuffer(self._get_redis_key())
+        buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_success()
         print("success recorded")
 
     def record_request_fatal(self, resp: Response | None = None, error: Exception | None = None):
-        if not self._get_redis_key():
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(self._get_redis_key())
+        if not self.is_response_fatal(resp, error):
+            return
+        buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_fatal()
         print("fatal recorded")
-
         if buffer.is_integration_broken():
             self.disable_integration()
 
