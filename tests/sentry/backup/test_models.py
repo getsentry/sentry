@@ -19,6 +19,11 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+    Incident,
+    IncidentActivity,
+    IncidentSnapshot,
+    IncidentSubscription,
+    IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
@@ -308,6 +313,53 @@ class ModelBackupTests(TransactionTestCase):
         self.create_organization(owner=user)
         return self.import_export_then_validate()
 
+    @targets_models(Incident, Organization, AlertRule)
+    def test_incident(self):
+        self.create_incident()
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentActivity)
+    def test_incident_activity(self):
+        IncidentActivity.objects.create(
+            incident=self.create_incident(),
+            type=1,
+            comment="hello",
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentSnapshot, TimeSeriesSnapshot)
+    def test_incident_snapshot(self):
+        IncidentSnapshot.objects.create(
+            incident=self.create_incident(),
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=datetime.utcnow() - timedelta(hours=24),
+                end=datetime.utcnow(),
+                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
+                period=1,
+            ),
+            unique_users=1,
+            total_events=1,
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentSubscription)
+    def test_incident_subscription(self):
+        user_id = self.create_user().id
+        IncidentSubscription.objects.create(incident=self.create_incident(), user_id=user_id)
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentTrigger)
+    def test_incident_trigger(self):
+        excluded = self.create_project()
+        rule = self.create_alert_rule(include_all_projects=True)
+        trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        IncidentTrigger.objects.create(
+            incident=self.create_incident(),
+            alert_rule_trigger=trigger,
+            status=1,
+        )
+
     @targets_models(Actor)
     def test_actor(self):
         self.create_user(email="test@example.com")
@@ -464,7 +516,7 @@ class ModelBackupTests(TransactionTestCase):
         updater.run(self.user)
         return self.import_export_then_validate()
 
-    @targets_models(PendingIncidentSnapshot, TimeSeriesSnapshot)
+    @targets_models(PendingIncidentSnapshot)
     def test_snapshot(self):
         incident = self.create_incident()
         PendingIncidentSnapshot.objects.create(
