@@ -237,7 +237,7 @@ class BaseApiClient(TrackResponseMixin):
                     self.record_request_error(error=e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
-                self.record_request_error(error=e)
+                self.record_request_error(resp=resp,error=e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -352,7 +352,7 @@ class BaseApiClient(TrackResponseMixin):
         buffer.record_error()
         print("error recorded")
         if buffer.is_integration_broken():
-            self.uninstall_integration(self.integration_id)
+            self.disable_integration()
 
     def record_request_success(self, resp: Response):
         if not self._get_redis_key():
@@ -369,15 +369,14 @@ class BaseApiClient(TrackResponseMixin):
         buffer = IntegrationRequestBuffer(self._get_redis_key())
         buffer.record_fatal()
         print("fatal recorded")
-        print(buffer.is_integration_broken())
 
-    #     if buffer.is_integration_broken():
-    #         self.disable_integration()
+        if buffer.is_integration_broken():
+           self.disable_integration()
 
     def disable_integration(self) -> None:
-        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
+        rpc_integration, rpc_org_integration =(integration_service.get_organization_contexts(
             integration_id=self.integration_id
-        )[0]
+        ))
         integration_service.update_integration(
             integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
         )
@@ -386,6 +385,6 @@ class BaseApiClient(TrackResponseMixin):
             extra={
                 "integration_id": self.integration_id,
                 "provider": rpc_integration.provider,
-                "organization_id": rpc_org_integration.organization_id,
+                "organization_id": rpc_org_integration[0].organization_id
             },
         )

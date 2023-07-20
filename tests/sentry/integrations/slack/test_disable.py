@@ -6,6 +6,7 @@ from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -41,7 +42,7 @@ class SlackClientDisable(TestCase):
         self.resp.__exit__(None, None, None)
 
     @responses.activate
-    def test_disabled_integration(self):
+    def test_fatal_and_disable_integration(self):
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
             method=responses.POST,
@@ -54,6 +55,24 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        print(buffer._get_all_from_buffer(client._get_redis_key()))
-        print(buffer.is_integration_broken())
         assert buffer.is_integration_broken() is True
+        assert integration_service.get_integration(
+            integration_id=self.integration.id
+        ).status == 1 # DISABLED
+
+    @responses.activate
+    def test_error_integration(self):
+        bodydict = {"ok": False, "error": "The requested resource does not exist"}
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=404,
+            content_type="application/json",
+            body=json.dumps(bodydict),
+        )
+        client = SlackClient(integration_id=self.integration.id)
+        with pytest.raises(ApiError):
+            client.post("/chat.postMessage", data=self.payload)
+        buffer = IntegrationRequestBuffer(client._get_redis_key())
+        assert buffer.is_integration_broken() is False
+        assert (buffer._get()[0]["error_count"]) >= 1

@@ -58,10 +58,11 @@ class IntegrationRequestBuffer:
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in self._get()
-            if item.get("fatal_count", 0) > 0
+            if item.get("fatal_count", 0) != 0
+            and item.get("date")
         ][0 : IS_BROKEN_RANGE - 1]
 
-        if len(data):
+        if len(data) > 0:
             return True
 
         data = [
@@ -73,6 +74,9 @@ class IntegrationRequestBuffer:
         ][0 : IS_BROKEN_RANGE - 1]
 
         if not len(data):
+            return False
+
+        if len(data) < IS_BROKEN_RANGE - 1:
             return False
 
         date_set = {data[0] - timedelta(x) for x in range((data[0] - data[-1]).days)}
