@@ -396,12 +396,11 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration()
 
-
     def disable_integration(self) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)
+        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = oi.organization
         if features.has("organizations:disable-on-broken",org):
             integration_service.update_integration(
