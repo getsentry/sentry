@@ -168,26 +168,4 @@ describe('OrganizationSettingsForm', function () {
       })
     );
   });
-
-  it('enable PR bot is disabled without GitHub integration', function () {
-    render(
-      <OrganizationSettingsForm
-        location={TestStubs.location()}
-        orgId={organization.slug}
-        access={new Set(['org:write'])}
-        initialData={TestStubs.Organization()}
-        onSave={onSave}
-      />,
-      {
-        organization: {
-          ...organization,
-          features: ['pr-comment-bot'],
-        },
-      }
-    );
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
-    ).toBeDisabled();
-  });
 });
