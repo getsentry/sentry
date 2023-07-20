@@ -68,9 +68,11 @@ class SlackClientDisable(TestCase):
             == ObjectStatus.DISABLED
         )
 
-    # test with flag off
     @responses.activate
     def test_fatal_integration(self):
+        """
+        fatal fast shut off with flag off
+        """
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
             method=responses.POST,
@@ -106,9 +108,11 @@ class SlackClientDisable(TestCase):
         assert (buffer._get()[0]["error_count"]) >= 1
         assert buffer.is_integration_broken() is False
 
-    # fake slow test w disable off
     @responses.activate
     def test_integration_is_broken(self):
+        """
+        slow shut off with disable flag off
+        """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
             method=responses.POST,

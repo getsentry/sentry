@@ -87,7 +87,7 @@ class BaseApiClient(TrackResponseMixin):
 
     def _get_redis_key(self):
         """
-        Returns the redis key for the integration or False if cannot make key
+        Returns the redis key for the integration or empty str if cannot make key
         """
         if not hasattr(self, "integration_id"):
             return ""
@@ -105,7 +105,7 @@ class BaseApiClient(TrackResponseMixin):
 
         return False
 
-    def is_response_fatal(self, resp: BaseApiResponse) -> bool:
+    def is_response_fatal(self, resp: Response) -> bool:
         return False
 
     def is_response_error(self, resp: Response) -> bool:
@@ -395,7 +395,7 @@ class BaseApiClient(TrackResponseMixin):
         if not len(redis_key):
             return
         if not self.is_error(error):
-            return False
+            return
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_error()
         if buffer.is_integration_broken():
