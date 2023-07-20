@@ -695,7 +695,8 @@ export function getAutoCompleteGroupForInvalidWildcard(searchText: string) {
 
 export function escapeTagValue(value: string): string {
   // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
+  const isArrayTag = value.startsWith('[') && value.endsWith(']') && value.includes(',');
+  return (value.includes(' ') || value.includes('"')) && !isArrayTag
     ? `"${value.replace(/"/g, '\\"')}"`
     : value;
 }
