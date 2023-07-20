@@ -1,7 +1,7 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 import OrganizationMembersWrapper from 'sentry/views/settings/organizationMembers/organizationMembersWrapper';
 
@@ -11,6 +11,8 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('OrganizationMembersWrapper', function () {
+  const {routerProps} = initializeOrg();
+
   const member = TestStubs.Member();
   const organization = TestStubs.Organization({
     features: ['invite-members'],
@@ -20,13 +22,8 @@ describe('OrganizationMembersWrapper', function () {
     },
   });
 
-  const defaultProps = {
-    location: {query: {}},
-    params: {},
-  };
-
   beforeEach(function () {
-    trackAnalytics.mockClear();
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',
@@ -56,7 +53,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite member', async function () {
-    render(<OrganizationMembersWrapper organization={organization} {...defaultProps} />);
+    render(<OrganizationMembersWrapper organization={organization} {...routerProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -70,7 +67,7 @@ describe('OrganizationMembersWrapper', function () {
         id: 'active',
       },
     });
-    render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
+    render(<OrganizationMembersWrapper organization={org} {...routerProps} />);
 
     expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
@@ -84,7 +81,7 @@ describe('OrganizationMembersWrapper', function () {
       },
     });
 
-    render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
+    render(<OrganizationMembersWrapper organization={org} {...routerProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -97,8 +94,8 @@ describe('OrganizationMembersWrapper', function () {
       body: [member],
     });
     render(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps}>
-        <OrganizationMembersList {...defaultProps} router={{routes: []}} />
+      <OrganizationMembersWrapper organization={organization} {...routerProps}>
+        <OrganizationMembersList {...routerProps} />
       </OrganizationMembersWrapper>
     );
 

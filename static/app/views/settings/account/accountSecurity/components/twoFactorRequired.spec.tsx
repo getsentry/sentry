@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/';
@@ -29,7 +30,18 @@ describe('TwoFactorRequired', function () {
     });
   });
 
-  const routerContext = TestStubs.routerContext();
+  const {routerContext, routerProps} = initializeOrg();
+
+  const baseProps = {
+    authenticators: null,
+    countEnrolled: 0,
+    deleteDisabled: false,
+    handleRefresh: () => {},
+    hasVerifiedEmail: false,
+    onDisable: () => {},
+    orgsRequire2fa: [],
+    ...routerProps,
+  };
 
   it('renders empty', function () {
     MockApiClient.addMockResponse({
@@ -38,8 +50,8 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
+      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+        <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {context: routerContext}
     );
@@ -49,8 +61,8 @@ describe('TwoFactorRequired', function () {
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', function () {
     render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
+      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+        <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {context: routerContext}
     );
@@ -65,8 +77,8 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
+      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+        <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {context: routerContext}
     );
@@ -91,8 +103,8 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
+      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+        <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {context: routerContext}
     );
@@ -109,8 +121,8 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired />
+      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+        <TwoFactorRequired {...baseProps} />
       </AccountSecurityWrapper>,
       {context: routerContext}
     );
