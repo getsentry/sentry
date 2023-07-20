@@ -158,7 +158,7 @@ def boost_low_volume_transactions() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
+        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
         log_task_execution(context)
 
 
