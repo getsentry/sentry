@@ -208,8 +208,9 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
-    "**/ua-parser-js": "<=0.7.28",
-    "**/loader-utils": ">=1.4.2"
+    "pegjs-loader/**/loader-utils": ">=1.4.1",
+    "po-catalog-loader/**/loader-utils": ">=1.4.1",
+    "**/ua-parser-js": "<=0.7.28"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
