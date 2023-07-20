@@ -89,7 +89,8 @@ class _SiloModeTestCase(TestCase):
                     with override_settings(SENTRY_REGION=self.regions[0].name):
                         return super().run(result)
                 else:
-                    return super().run(result)
+                    with override_settings(SENTRY_MONOLITH_REGION=self.regions[0].name):
+                        return super().run(result)
 
 
 class SiloModeTestDecorator:

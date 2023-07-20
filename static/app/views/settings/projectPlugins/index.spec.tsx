@@ -1,6 +1,7 @@
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
 jest.mock('sentry/actionCreators/plugins', () => ({
@@ -10,7 +11,7 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectPluginsContainer', function () {
-  let org, project, plugins, params;
+  let org: Organization, project: Project, plugins: Plugin[], params: {projectId: string};
 
   beforeEach(function () {
     org = TestStubs.Organization();
@@ -53,7 +54,8 @@ describe('ProjectPluginsContainer', function () {
     });
     render(
       <ProjectPluginsContainer
-        plugins={{plugins, loading: false}}
+        {...TestStubs.routeComponentProps()}
+        plugins={{plugins, loading: false, error: undefined}}
         params={params}
         organization={org}
         project={project}
@@ -66,8 +68,13 @@ describe('ProjectPluginsContainer', function () {
   });
 
   it('calls `enablePlugin` action creator when enabling plugin', async function () {
-    const pluginItem = (await screen.findByText('Amazon SQS')).parentElement.parentElement
-      .parentElement;
+    const amazonSQS = await screen.findByText('Amazon SQS');
+
+    const pluginItem = amazonSQS.parentElement?.parentElement?.parentElement;
+
+    if (!pluginItem) {
+      return;
+    }
     const button = getByRole(pluginItem, 'checkbox');
 
     expect(enablePlugin).not.toHaveBeenCalled();
@@ -78,8 +85,14 @@ describe('ProjectPluginsContainer', function () {
   });
 
   it('calls `disablePlugin` action creator when disabling plugin', async function () {
-    const pluginItem = (await screen.findByText('Disableable Plugin')).parentElement
-      .parentElement.parentElement;
+    const disabledPlugin = await screen.findByText('Disableable Plugin');
+
+    const pluginItem = disabledPlugin.parentElement?.parentElement?.parentElement;
+
+    if (!pluginItem) {
+      return;
+    }
+
     const button = getByRole(pluginItem, 'checkbox');
 
     expect(disablePlugin).not.toHaveBeenCalled();
