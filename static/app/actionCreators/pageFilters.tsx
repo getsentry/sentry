@@ -139,6 +139,12 @@ export type InitializeUrlStateParams = {
    * lead to very confusing behavior.
    */
   skipLoadLastUsed?: boolean;
+
+  /**
+   * Skip loading last used environment from local storage
+   * An example is Starfish, which doesn't support environments.
+   */
+  skipLoadLastUsedEnvironment?: boolean;
 };
 
 export function initializeUrlState({
@@ -147,6 +153,7 @@ export function initializeUrlState({
   router,
   memberProjects,
   skipLoadLastUsed,
+  skipLoadLastUsedEnvironment,
   shouldPersist = true,
   shouldForceProject,
   shouldEnforceSingleProject,
@@ -201,7 +208,11 @@ export function initializeUrlState({
       pageFilters.projects = storedState.project ?? [];
     }
 
-    if (!hasProjectOrEnvironmentInUrl && pinnedFilters.has('environments')) {
+    if (
+      !skipLoadLastUsedEnvironment &&
+      !hasProjectOrEnvironmentInUrl &&
+      pinnedFilters.has('environments')
+    ) {
       pageFilters.environments = storedState.environment ?? [];
     }
 
