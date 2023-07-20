@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, NamedTuple, Optional, Set
+from hashlib import md5
+from typing import Any, Callable, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
@@ -10,8 +11,9 @@ from django.utils import timezone
 from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
+from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.hashlib import hash_values
+from sentry.utils.hashlib import hash_value, hash_values
 from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger(__name__)
@@ -21,8 +23,9 @@ op = "stacktrace_processing"
 class StacktraceInfo(NamedTuple):
     stacktrace: Any
     container: Any
-    platforms: Any
+    platforms: set[str]
     is_exception: bool
+    frames_hash: str  # This can be used as a key for a cache
 
     def __hash__(self) -> int:
         return id(self)
@@ -195,16 +198,15 @@ def find_stacktraces_in_data(
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = {
-            frame.get("platform") or data.get("platform")
-            for frame in get_path(stacktrace, "frames", filter=True, default=())
-        }
+        frames = get_path(stacktrace, "frames", filter=True, default=())
+        platforms, frames_hash = _get_frames_metadata(frames, data.get("platform", "unknown"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
                 container=container,
                 platforms=platforms,
                 is_exception=is_exception,
+                frames_hash=frames_hash,
             )
         )
 
@@ -225,6 +227,24 @@ def find_stacktraces_in_data(
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
+
+
+def _get_frames_metadata(frames: Sequence[Any], fallback_platform: str) -> tuple[set[str], str]:
+    """Create a set of platforms involved and the hash representing the stacktrace"""
+    platforms = set()
+
+    failed_to_hash = False
+    _frames_hash = md5()
+    for frame in frames:
+        platforms.add(frame.get("platform", fallback_platform))
+        try:
+            hash_value(_frames_hash, frame)
+        except TypeError:
+            failed_to_hash = True
+            logger.exception("We failed to hash a frame.")
+            metrics.incr("processing.frame_failed_to_hash", tags={"platform": fallback_platform})
+
+    return platforms, "" if failed_to_hash else _frames_hash.hexdigest()
 
 
 def _has_system_frames(frames):
@@ -322,7 +342,7 @@ def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
     infos = find_stacktraces_in_data(data, with_exceptions=True)
-    platforms: Set[str] = set()
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
@@ -341,7 +361,7 @@ def should_process_for_stacktraces(data):
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins.base import plugins
 
-    platforms: Set[str] = set()
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
 
