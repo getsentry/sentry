@@ -145,7 +145,7 @@ class AuthenticationRequest(RpcModel):
     authorization_b64: Optional[str] = None
 
     @classmethod
-    def get_attributes_of_session_keys(cls) -> Mapping[str, any]:
+    def get_attributes_of_session_keys(cls) -> Mapping[str, Any]:
         return dict(
             backend="_auth_user_backend",
             user_id="_auth_user_id",

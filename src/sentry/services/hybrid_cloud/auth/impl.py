@@ -239,7 +239,6 @@ class DatabaseBackedAuthService(AuthService):
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]
     _accessed: set[str]
-    accessed: bool
 
     def __init__(self, **d: Any):
         self.d = d
