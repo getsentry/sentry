@@ -1,9 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', function () {
-  const organization = TestStubs.Organization();
+  const {routerProps, organization} = initializeOrg();
   const doc = TestStubs.DocIntegration();
 
   beforeEach(function () {});
@@ -15,9 +16,9 @@ describe('DocIntegrationDetailedView', function () {
     });
     render(
       <DocIntegrationDetailedView
+        {...routerProps}
         organization={organization}
-        params={{integrationSlug: doc.slug, orgId: organization.slug}}
-        location={{query: {}}}
+        params={{integrationSlug: doc.slug}}
       />
     );
     await tick();
