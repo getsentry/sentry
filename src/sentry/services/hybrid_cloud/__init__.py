@@ -27,6 +27,7 @@ import sentry_sdk
 from typing_extensions import Self
 
 from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        logger.warning("Pydantic type validation error", exc_info=True)
+        sentry_sdk.capture_message("Pydantic type validation error")
 
 
 def _hack_pydantic_type_validation() -> None:
@@ -82,6 +83,9 @@ def _hack_pydantic_type_validation() -> None:
     TODO: Remove this kludge when we are reasonably confident it is no longer
           producing any warnings
     """
+
+    if in_test_environment():
+        return
 
     builtin_validate = pydantic.fields.ModelField.validate
 
