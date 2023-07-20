@@ -1,34 +1,35 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
 
 jest.mock('sentry/utils/recreateRoute');
-recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
+jest
+  .mocked(recreateRoute)
+  .mockReturnValue('/org-slug/project-slug/settings/environments/');
 
-function renderComponent(isHidden) {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+function renderComponent(isHidden: boolean) {
+  const {organization, project, routerProps} = initializeOrg();
   const pathname = isHidden ? 'environments/hidden/' : 'environments/';
+
   return render(
     <ProjectEnvironments
-      params={{
-        projectId: project.slug,
-      }}
-      location={{pathname}}
-      organization={org}
-      routes={[]}
+      {...routerProps}
+      params={{projectId: project.slug}}
+      location={TestStubs.location({pathname})}
+      organization={organization}
+      project={project}
     />
   );
 }
 
 describe('ProjectEnvironments', function () {
-  let project;
+  const project = TestStubs.Project({
+    defaultEnvironment: 'production',
+  });
 
   beforeEach(function () {
-    project = TestStubs.Project({
-      defaultEnvironment: 'production',
-    });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: project,
@@ -58,6 +59,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
+        // @ts-expect-error Should be fixed when we properly type the test stub
         body: TestStubs.Environments(false),
       });
       renderComponent(false);
@@ -86,6 +88,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
+        // @ts-expect-error Should be fixed when we properly type the test stub
         body: TestStubs.Environments(true),
       });
       const {container} = renderComponent(true);
@@ -97,7 +100,8 @@ describe('ProjectEnvironments', function () {
   });
 
   describe('toggle', function () {
-    let hideMock, showMock;
+    let hideMock: jest.Mock;
+    let showMock: jest.Mock;
     const baseUrl = '/projects/org-slug/project-slug/environments/';
     beforeEach(function () {
       hideMock = MockApiClient.addMockResponse({
@@ -117,6 +121,7 @@ describe('ProjectEnvironments', function () {
     it('hides', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
+        // @ts-expect-error Should be fixed when we properly type the test stub
         body: TestStubs.Environments(false),
       });
 
@@ -163,6 +168,7 @@ describe('ProjectEnvironments', function () {
     it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
+        // @ts-expect-error Should be fixed when we properly type the test stub
         body: TestStubs.Environments(true),
       });
 
@@ -181,6 +187,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
+        // @ts-expect-error Should be fixed when we properly type the test stub
         body: TestStubs.Environments(true),
       });
 
