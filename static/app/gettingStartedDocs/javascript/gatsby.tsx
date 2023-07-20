@@ -67,9 +67,10 @@ npm install --save @sentry/gatsby
         description: (
           <p>
             {tct(
-              'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
+              'Register the [sentryGatsbyCode:@sentry/gatsby] plugin in your Gatsby configuration file (typically [gatsbyConfigCode:gatsby-config.js]).',
               {
-                code: <code />,
+                sentryGatsbyCode: <code />,
+                gatsbyConfigCode: <code />,
               }
             )}
           </p>
