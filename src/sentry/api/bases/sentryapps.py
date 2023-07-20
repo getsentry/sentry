@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import wraps
+from typing import Any
 
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
@@ -16,10 +19,9 @@ from sentry.middleware.stats import add_request_metric_tags
 from sentry.models import Organization
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.app import RpcSentryApp, app_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo.base import SiloMode
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
 
@@ -178,7 +180,7 @@ class SentryAppPermission(SentryPermission):
     def scope_map(self):
         return self.published_scope_map
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -220,16 +222,26 @@ class SentryAppPermission(SentryPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug, *args, **kwargs):
-        if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
-            try:
-                sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
-            except SentryApp.DoesNotExist:
-                raise Http404
-        else:
-            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
-            if sentry_app is None:
-                raise Http404
+    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
+        try:
+            sentry_app = SentryApp.objects.get(slug=sentry_app_slug)
+        except SentryApp.DoesNotExist:
+            raise Http404
+
+        self.check_object_permissions(request, sentry_app)
+
+        with configure_scope() as scope:
+            scope.set_tag("sentry_app", sentry_app.slug)
+
+        kwargs["sentry_app"] = sentry_app
+        return (args, kwargs)
+
+
+class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
+    def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
+        sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_slug)
+        if sentry_app is None:
+            raise Http404
 
         self.check_object_permissions(request, sentry_app)
 
@@ -418,7 +430,7 @@ class SentryAppStatsPermission(SentryPermission):
         "POST": (),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
         if not hasattr(request, "user") or not request.user:
             return False
 
