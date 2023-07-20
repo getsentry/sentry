@@ -11,7 +11,7 @@ from sentry import nodestore
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
-from sentry.eventstream.kafka import KafkaEventStream
+from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.receivers import create_default_projects
@@ -156,7 +156,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             selected_columns=["event_id"],
@@ -189,7 +189,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_ids"],
@@ -252,10 +252,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert version == 2
         assert type_ == "insert"
         occurrence_data = group_event.occurrence.to_dict()
-        del occurrence_data["evidence_data"]
-        del occurrence_data["evidence_display"]
-        assert payload1["occurrence_id"] == occurrence_data.get("id")
-        assert payload1["occurrence_data"] == occurrence_data
+        occurrence_data_no_evidence = {
+            k: v
+            for k, v in occurrence_data.items()
+            if k not in {"evidence_data", "evidence_display"}
+        }
+        assert payload1["occurrence_id"] == occurrence_data["id"]
+        assert payload1["occurrence_data"] == occurrence_data_no_evidence
         assert payload1["group_id"] == self.group.id
 
         query = Query(
@@ -385,11 +388,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
             event_data,
         )
+        assert group_info is not None
 
         event = Event(
             event_id=occurrence.event_id,
             project_id=project_id,
-            data=nodestore.get(Event.generate_node_id(project_id, occurrence.event_id)),
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
         )
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
