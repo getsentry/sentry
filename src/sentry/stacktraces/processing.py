@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Set
+from typing import Any, Callable, NamedTuple, Optional, Set
 
 import sentry_sdk
 from django.utils import timezone
 
+from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
@@ -174,7 +177,9 @@ class StacktraceProcessor:
         return False
 
 
-def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
+def find_stacktraces_in_data(
+    data: NodeData, include_raw: bool = False, with_exceptions: bool = False
+) -> list[StacktraceInfo]:
     """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
 
@@ -185,11 +190,11 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
     """
     rv = []
 
-    def _report_stack(stacktrace, container, is_exception=False):
+    def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms: Set[str] = {
+        platforms = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         }
@@ -203,17 +208,17 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         )
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _report_stack(exc.get("stacktrace"), exc, is_exception=with_exceptions)
+        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
 
-    _report_stack(data.get("stacktrace"), None)
+    _append_stacktrace(data.get("stacktrace"), None)
 
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _report_stack(thread.get("stacktrace"), thread)
+        _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
         for info in rv[:]:
             if info.container is not None:
-                _report_stack(info.container.get("raw_stacktrace"), info.container)
+                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
 
@@ -230,7 +235,7 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: List[Dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: list[dict[str, str]]) -> None:
     """
     Ensures consistent values of in_app across a stacktrace.
     """
@@ -241,9 +246,7 @@ def _normalize_in_app(stacktrace: List[Dict[str, str]]) -> None:
             set_in_app(frame, False)
 
 
-def normalize_stacktraces_for_grouping(
-    data: Mapping[str, Any], grouping_config: Any = None
-) -> None:
+def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
@@ -290,7 +293,7 @@ def normalize_stacktraces_for_grouping(
             _normalize_in_app(stacktrace)
 
 
-def _update_frame(frame: Dict[str, Any], platform: Optional[str]) -> None:
+def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
     """Restore the original in_app value before the first grouping
     enhancers have been run. This allows to re-apply grouping
     enhancers on the original frame data.
@@ -337,7 +340,7 @@ def get_processors_for_stacktraces(data, infos):
     for info in infos:
         platforms.update(info.platforms or ())
 
-    processors: List[Callable] = []
+    processors: list[Callable] = []
     for plugin in plugins.all(version=2):
         processors.extend(
             safe_execute(
@@ -363,7 +366,7 @@ def get_processable_frames(stacktrace_info, processors):
     """
     frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(frames)
-    rv: List[ProcessableFrame] = []
+    rv: list[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
@@ -379,7 +382,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     changed_processed = False
     raw_frames = []
     processed_frames = []
-    all_errors: List[Any] = []
+    all_errors: list[Any] = []
 
     bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
     frame_count = len(bare_frames)
@@ -473,13 +476,13 @@ def get_stacktrace_processing_task(infos, processors):
     """Returns a list of all tasks for the processors.  This can skip over
     processors that seem to not handle any frames.
     """
-    by_processor: Dict[str, List[Any]] = {}
-    to_lookup: Dict[str, str] = {}
+    by_processor: dict[str, list[Any]] = {}
+    to_lookup: dict[str, str] = {}
 
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important
     # to guarantee reproducible symbolicator requests.
-    by_stacktrace_info: Dict[str, Any] = {}
+    by_stacktrace_info: dict[str, Any] = {}
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)

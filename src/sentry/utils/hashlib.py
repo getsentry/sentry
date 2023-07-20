@@ -62,9 +62,13 @@ def hash_values(
     seed: Optional[str] = None,
     algorithm: Callable[[], hashlib._Hash] = _md5,
 ) -> str:
-    h = _md5()
-    if seed is not None:
-        h.update(("%s\xff" % seed).encode("utf-8"))
+    """Returns a hexadecimal hash from an iterable data structure.
+    It uses md5 by default.
+    You can optionally include a seed to help determine where in the code the values where hashed.
+    """
+    _hash = algorithm()
+    if seed:
+        _hash.update(("%s\xff" % seed).encode("utf-8"))
     for value in values:
-        hash_value(h, value)
-    return h.hexdigest()
+        hash_value(_hash, value)
+    return _hash.hexdigest()

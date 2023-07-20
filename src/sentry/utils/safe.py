@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -116,7 +116,7 @@ def get_path(data: PathSearchable, *path, **kwargs):
     only filter ``None`` values.
     """
     default = kwargs.pop("default", None)
-    f = kwargs.pop("filter", None)
+    f: Optional[bool] = kwargs.pop("filter", None)
     for k in kwargs:
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 

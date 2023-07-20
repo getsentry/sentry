@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import Dict, List
+from typing import Any, Dict, List, Sequence
 
 import msgpack
 import sentry_sdk
@@ -126,7 +126,9 @@ class Enhancements:
             if updater_rule := rule._as_updater_rule():
                 self._updater_rules.append(updater_rule)
 
-    def apply_modifications_to_frame(self, frames, platform, exception_data):
+    def apply_modifications_to_frame(
+        self, frames: Sequence[Any], platform: str, exception_data: Any
+    ):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
