@@ -85,6 +85,19 @@ def assemble_file(
     # Load all FileBlobs from db since we can be sure here we already own all chunks need to build the file.
     file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
+    # Reject all files that exceed the maximum allowed size for this organization.
+    file_size = sum(x[2] for x in file_blobs)
+    if file_size > get_max_file_size(organization):
+        set_assemble_status(
+            task,
+            org_or_project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="File exceeds maximum size",
+        )
+
+        return None
+
     # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
         # Most likely a previous check to `find_missing_chunks` or similar
@@ -98,19 +111,6 @@ def assemble_file(
             checksum,
             ChunkFileState.ERROR,
             detail="Not all chunks available for assembling",
-        )
-
-        return None
-
-    # Reject all files that exceed the maximum allowed size for this organization.
-    file_size = sum(x[2] for x in file_blobs)
-    if file_size > get_max_file_size(organization):
-        set_assemble_status(
-            task,
-            org_or_project.id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail="File exceeds maximum size",
         )
 
         return None
