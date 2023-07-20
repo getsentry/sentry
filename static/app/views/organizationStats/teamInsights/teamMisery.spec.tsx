@@ -1,5 +1,6 @@
 import range from 'lodash/range';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -10,6 +11,8 @@ import {
 import TeamMisery from 'sentry/views/organizationStats/teamInsights/teamMisery';
 
 describe('TeamMisery', () => {
+  const {routerProps} = initializeOrg();
+
   it('should render misery from projects and expand hidden items', async () => {
     const project = TestStubs.Project();
     const meta = {
@@ -82,7 +85,8 @@ describe('TeamMisery', () => {
         organization={TestStubs.Organization()}
         projects={[project]}
         period="8w"
-        location={location}
+        teamId="0"
+        {...routerProps}
       />
     );
 
@@ -109,7 +113,8 @@ describe('TeamMisery', () => {
         organization={TestStubs.Organization()}
         projects={[]}
         period="8w"
-        location={location}
+        teamId="0"
+        {...routerProps}
       />
     );
 
@@ -130,7 +135,8 @@ describe('TeamMisery', () => {
         organization={TestStubs.Organization()}
         projects={[TestStubs.Project()]}
         period="8w"
-        location={location}
+        teamId="0"
+        {...routerProps}
       />
     );
 
