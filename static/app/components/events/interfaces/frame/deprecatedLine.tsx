@@ -286,14 +286,15 @@ export class DeprecatedLine extends Component<Props, State> {
     const isShowFramesToggleExpanded = this.props.isShowFramesToggleExpanded;
     if (hiddenFrameCount) {
       return (
-        <Button
+        <ToggleButton
           analyticsEventName="Stacktrace Frames: toggled"
           analyticsEventKey="stacktrace_frames.toggled"
           analyticsParams={{
             frame_count: hiddenFrameCount,
             is_frame_expanded: isShowFramesToggleExpanded,
           }}
-          priority="link"
+          size="xs"
+          borderless
           onClick={e => {
             onShowFramesToggle(e);
           }}
@@ -301,7 +302,7 @@ export class DeprecatedLine extends Component<Props, State> {
           {isShowFramesToggleExpanded
             ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
             : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-        </Button>
+        </ToggleButton>
       );
     }
     return null;
@@ -634,4 +635,15 @@ const IconWrapper = styled('div')`
 
 const SuspectFrameTag = styled(Tag)`
   margin-right: ${space(1)};
+`;
+
+const ToggleButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-weight: normal;
+  padding: ${space(0.25)} ${space(0.5)};
+
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;
