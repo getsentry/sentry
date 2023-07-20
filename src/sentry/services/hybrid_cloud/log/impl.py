@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sentry_sdk
 from django.db import IntegrityError, router
 
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
@@ -17,18 +16,6 @@ class DatabaseBackedLogService(LogService):
                 entry.save()
             except IntegrityError as e:
                 error_message = str(e)
-                # TODO: Once we break the organization id, it will be "ok" to save audit logs with old organization
-                # identifiers and simply allow the reconciliation with tombstones to delete them.
-                if '"sentry_organization"' in error_message:
-                    metrics.incr("hybrid_cloud.audit_log.audit_log_entry.stale_event")
-                    with sentry_sdk.push_scope() as scope:
-                        scope.level = "warning"
-                        scope.set_tag("organization_id", event.organization_id)
-                        scope.set_tag("event_id", event.event_id)
-                        sentry_sdk.capture_message(
-                            "Stale organization in audit log entry detected, org may have been deleted."
-                        )
-                    return
                 if '"auth_user"' in error_message:
                     # It is possible that a user existed at the time of serialization but was deleted by the time of consumption
                     # in which case we follow the database's SET NULL on delete handling.
