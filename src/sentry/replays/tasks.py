@@ -23,7 +23,7 @@ replay_publisher: Optional[KafkaPublisher] = None
     default_retry_delay=5,
     max_retries=5,
 )
-def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict) -> None:
+def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
     delete_replay_recording(project_id, replay_id)
     archive_replay(project_id, replay_id)

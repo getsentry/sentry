@@ -5,6 +5,7 @@ from sentry.db.models.fields import picklefield
 
 
 class JsonWritingPickleModel(models.Model):
+    id = models.AutoField(primary_key=True)
     data = picklefield.PickledObjectField()
 
     class Meta:

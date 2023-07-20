@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 
 import isodate
 from croniter import croniter
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse
 from freezegun import freeze_time
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
@@ -46,7 +47,7 @@ class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def assert_deprecation_metadata(self, request: Request, response: Response):
+    def assert_deprecation_metadata(self, request: HttpRequest, response: HttpResponse) -> None:
         assert "X-Sentry-Deprecation-Date" in response
         assert "X-Sentry-Replacement-Endpoint" in response
         assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()

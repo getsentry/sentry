@@ -1,7 +1,7 @@
 """Recording segment part cache manager."""
 from __future__ import annotations
 
-from typing import Any, Dict, Generator
+from typing import Any, Generator
 
 from django.conf import settings
 
@@ -58,7 +58,7 @@ class RecordingSegmentParts:
             del part[i]
 
 
-def default(**options: Dict[str, Any]) -> BaseCache:
+def default(**options: Any) -> BaseCache:
     """The default path for non-configured instances."""
     return default_cache
 

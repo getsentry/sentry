@@ -9,9 +9,10 @@ from sentry.testutils import TestCase
 
 class BaseSafeMigrationTest(TestCase):
     BASE_PATH = "fixtures.safe_migrations_apps"
-    app = None
-    migrate_from = None
-    migrate_to = None
+    # abstract
+    app: str
+    migrate_from: str
+    migrate_to: str
 
     def run_migration(self):
         with override_settings(INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",)):

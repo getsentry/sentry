@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -74,7 +77,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        tagvalue1 = tagstore.get_tag_value(
+        tagvalue1 = tagstore.backend.get_tag_value(
             project.id,
             None,
             "sentry:release",
@@ -572,7 +575,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self):
         # test bad refs
-        data = {"version": "a" * 40, "projects": ["earth"], "refs": [None]}
+        data: dict[str, Any] = {"version": "a" * 40, "projects": ["earth"], "refs": [None]}
 
         serializer = ReleaseSerializerWithProjects(data=data)
 

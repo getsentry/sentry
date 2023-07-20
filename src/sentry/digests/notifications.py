@@ -152,7 +152,7 @@ def rewrite_record(
 
 def group_records(
     groups: MutableMapping[str, Mapping[str, MutableSequence[Record]]], record: Record
-) -> Mapping[str, Mapping[str, Sequence[Record]]]:
+) -> MutableMapping[str, Mapping[str, MutableSequence[Record]]]:
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
