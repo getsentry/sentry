@@ -357,13 +357,17 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       },
     ];
 
+    const initialData = {
+      githubPRBot: organization.githubPRBot,
+    };
+
     return (
       <Form
         apiMethod="PUT"
         apiEndpoint={endpoint}
         saveOnBlur
         allowUndo
-        initialData={organization}
+        initialData={initialData}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
         <JsonForm features={organization.features} forms={forms} />
