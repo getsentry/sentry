@@ -461,8 +461,8 @@ def dispatch_remote_call(
         )
     else:
         serial_response = _SiloServiceDispatch(
-            method_name, service_name, region, serial_arguments, use_test_client
-        ).dispatch()
+            method_name, service_name, region, serial_arguments
+        ).dispatch(use_test_client)
 
     return_value = serial_response["value"]
     return (
@@ -478,7 +478,6 @@ class _SiloServiceDispatch:
     service_name: str
     region: Region | None
     serial_arguments: ArgumentDict
-    use_test_client: bool
 
     def __post_init__(self) -> None:
         if not (self.address and settings.RPC_SHARED_SECRET):
@@ -498,7 +497,7 @@ class _SiloServiceDispatch:
             kwargs={"service_name": self.service_name, "method_name": self.method_name},
         )
 
-    def dispatch(self) -> Any:
+    def dispatch(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
             "args": self.serial_arguments,
