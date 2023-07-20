@@ -451,17 +451,9 @@ def dispatch_remote_call(
     use_test_client: bool = False,
 ) -> Any:
     service, _ = _look_up_service_method(service_name, method_name)
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        # Pass the response through json.loads and json.dumps to force testing the serialization of services
-        # in monolith mode -- if this throws an exception, it means the types of an rpc service have an issue.
-        # do not remove!
-        serial_response = json.loads(
-            json.dumps(dispatch_to_local_service(service_name, method_name, serial_arguments))
-        )
-    else:
-        serial_response = _dispatch_to_silo_service(
-            method_name, region, serial_arguments, service_name, use_test_client
-        )
+    serial_response = _dispatch_to_silo_service(
+        method_name, region, serial_arguments, service_name, use_test_client
+    )
 
     return_value = serial_response["value"]
     return (
