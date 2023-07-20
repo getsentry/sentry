@@ -1000,7 +1000,6 @@ module = [
     "tests.sentry.api.endpoints.notifications.test_notification_actions_index",
     "tests.sentry.api.endpoints.test_event_attachment_details",
     "tests.sentry.api.endpoints.test_organization_metrics",
-    "tests.sentry.api.endpoints.test_project_ownership",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.serializers.test_alert_rule",
     "tests.sentry.api.serializers.test_event",
