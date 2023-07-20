@@ -13,6 +13,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.models.integrations import Integration
+from sentry.models.integrations.pagerduty_service import PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
@@ -130,6 +131,23 @@ class IntegrationService(RpcService):
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
         return ois[0] if len(ois) > 0 else None
+
+    def find_pagerduty_service(
+        self, *, organization_id: int, integration_id: int, service_id: Union[str, int]
+    ) -> Optional[PagerDutyServiceDict]:
+        org_integration = self.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
+        if not org_integration:
+            return None
+        try:
+            return next(
+                pds
+                for pds in org_integration.config.get("pagerduty_services", [])
+                if str(pds["id"]) == str(service_id)
+            )
+        except StopIteration:
+            return None
 
     @rpc_method
     @abstractmethod

@@ -1311,14 +1311,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
     input_channel_id=None,
     integrations=None,
 ):
-    try:
-        # TODO: query the org as well to make sure we don't allow
-        # cross org access
-        service = PagerDutyService.objects.get(id=target_value)
-    except PagerDutyService.DoesNotExist:
+    service = integration_service.find_pagerduty_service(
+        organization_id=organization.id, integration_id=integration_id, service_id=target_value
+    )
+    if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return (service.id, service.service_name)
+    return service["id"], service["service_name"]
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
