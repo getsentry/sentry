@@ -176,7 +176,7 @@ def adjust_base_sample_rates_of_projects(
     name = adjust_base_sample_rates_of_projects.__name__
     state = context.get_function_state(name)
     state.num_orgs += 1
-    state.num_projects += projects_with_total_root_count
+    state.num_projects += len(projects_with_total_root_count)
     state.num_iterations += 1
     state.execution_time = timer.current()
     context.set_function_state(name, state)
