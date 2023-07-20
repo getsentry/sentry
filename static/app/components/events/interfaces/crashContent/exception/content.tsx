@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -201,8 +200,6 @@ export function Content({
           {hasSourcemapDebug && (
             <SourceMapDebug debugFrames={debugFrames} event={event} />
           )}
-
-          <SourceMapsWizard />
         </ErrorBoundary>
 
         <StackTrace
