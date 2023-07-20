@@ -21,6 +21,7 @@ import {
   Project,
   User,
 } from 'sentry/types';
+import {isSemverRelease} from 'sentry/utils/formatters';
 
 type Props = {
   activity: GroupActivity;
@@ -250,11 +251,16 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           );
         }
         return version
-          ? tct('[author] marked this issue as resolved in [version]', {
+          ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(version)
+                  ? t('(semver)')
+                  : t('(timestamp)')
+                : null,
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
