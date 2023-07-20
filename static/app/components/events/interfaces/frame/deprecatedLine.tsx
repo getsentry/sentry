@@ -72,7 +72,7 @@ type Props = {
   nextFrame?: Frame;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
-  onShowFramesToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
   platform?: PlatformType;
   prevFrame?: Frame;
@@ -86,7 +86,6 @@ type Props = {
 
 type State = {
   isExpanded?: boolean;
-  isShown?: boolean;
 };
 
 function makeFilter(
@@ -127,7 +126,6 @@ export class DeprecatedLine extends Component<Props, State> {
     isExpanded: false,
     emptySourceNotation: false,
     isHoverPreviewed: false,
-    isShown: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -135,7 +133,6 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
-    isShown: false,
   };
 
   toggleContext = evt => {
@@ -281,7 +278,7 @@ export class DeprecatedLine extends Component<Props, State> {
     return null;
   }
 
-  renderShowHideToggle(onShowFramesToggle) {
+  renderShowHideToggle() {
     const hiddenFrameCount = this.props.hiddenFrameCount;
     const isShowFramesToggleExpanded = this.props.isShowFramesToggleExpanded;
     if (hiddenFrameCount) {
@@ -296,7 +293,7 @@ export class DeprecatedLine extends Component<Props, State> {
           size="xs"
           borderless
           onClick={e => {
-            onShowFramesToggle(e);
+            this.props.onShowFramesToggle?.(e);
           }}
         >
           {isShowFramesToggleExpanded
@@ -316,7 +313,6 @@ export class DeprecatedLine extends Component<Props, State> {
       isANR,
       threadId,
       lockAddress,
-      onShowFramesToggle,
       isSubFrame,
       hiddenFrameCount,
     } = this.props;
@@ -364,9 +360,7 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {stacktraceChangesEnabled
-            ? this.renderShowHideToggle(onShowFramesToggle)
-            : null}
+          {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
           {!data.inApp ? (
             stacktraceChangesEnabled ? null : (
               <Tag>{t('System')}</Tag>

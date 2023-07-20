@@ -86,7 +86,7 @@ class Content extends Component<Props, State> {
     );
   };
 
-  getInitialFrameCounts() {
+  getInitialFrameCounts(): {[frameIndex: number]: number} {
     const {data} = this.props;
     let count = 0;
     const countMap = {};
@@ -119,7 +119,10 @@ class Content extends Component<Props, State> {
     return repeats;
   }
 
-  getHiddenFrameIndices(toggleFrameMap, frameCountMap) {
+  getHiddenFrameIndices(
+    toggleFrameMap: {[frameIndex: number]: boolean},
+    frameCountMap: {[frameIndex: number]: number}
+  ) {
     const repeatedIndeces = this.getRepeatedFrameIndices();
     let hiddenFrameIndices: number[] = [];
     Object.keys(toggleFrameMap)
@@ -169,9 +172,11 @@ class Content extends Component<Props, State> {
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
 
-  isRepeatedFrame(frame, nextFrame): boolean {
+  isRepeatedFrame(frame: Frame, nextFrame?: Frame): boolean {
+    if (!nextFrame) {
+      return false;
+    }
     return (
-      nextFrame &&
       frame.lineNo === nextFrame.lineNo &&
       frame.instructionAddr === nextFrame.instructionAddr &&
       frame.package === nextFrame.package &&
@@ -212,7 +217,7 @@ class Content extends Component<Props, State> {
     }));
   };
 
-  handleToggleFrames = (event: React.MouseEvent<SVGElement>, frameIndex: number) => {
+  handleToggleFrames = (event: React.MouseEvent<HTMLElement>, frameIndex: number) => {
     event.stopPropagation(); // to prevent toggling frame context
 
     this.setState(prevState => ({
