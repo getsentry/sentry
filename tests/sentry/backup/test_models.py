@@ -343,13 +343,13 @@ class ModelBackupTests(TransactionTestCase):
         return self.import_export_then_validate()
 
     @targets_models(IncidentSubscription)
-    def test_incidentSubscription(self):
+    def test_incident_subscription(self):
         user_id = self.create_user().id
         IncidentSubscription.objects.create(incident=self.create_incident(), user_id=user_id)
         return self.import_export_then_validate()
 
     @targets_models(IncidentTrigger)
-    def test_incidentTrigger(self):
+    def test_incident_trigger(self):
         excluded = self.create_project()
         rule = self.create_alert_rule(include_all_projects=True)
         trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
