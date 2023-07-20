@@ -181,7 +181,6 @@ def find_stacktraces_in_data(
     data: NodeData,
     include_raw: bool = False,
     with_exceptions: bool = False,
-    platform: str = "unknown",
 ) -> list[StacktraceInfo]:
     """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
@@ -193,23 +192,24 @@ def find_stacktraces_in_data(
     info object.
     """
     rv = []
-    _platform = data.get("platform", platform)
+    _platform = data.get("platform", "unknown")
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        frames = get_path(stacktrace, "frames", filter=True, default=())
-        if frames:
-            platforms = {frame.get("platform", _platform) for frame in frames}
-            rv.append(
-                StacktraceInfo(
-                    stacktrace=stacktrace,
-                    container=container,
-                    platforms=platforms,
-                    is_exception=is_exception,
-                )
+        platforms = {
+            frame.get("platform", _platform)
+            for frame in get_path(stacktrace, "frames", filter=True, default=())
+        }
+        rv.append(
+            StacktraceInfo(
+                stacktrace=stacktrace,
+                container=container,
+                platforms=platforms,
+                is_exception=is_exception,
             )
+        )
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
@@ -258,13 +258,12 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
     """
-    platform = data.get("platform", "unknown")
-    sentry_sdk.set_tag("platform", platform)
+
     stacktrace_frames = []
     stacktrace_exceptions = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
-        for stacktrace_info in find_stacktraces_in_data(data, include_raw=True, platform=platform):
+        for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
             # XXX: We already do this within find_stacktraces_in_data
             frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
             if frames:
@@ -275,6 +274,9 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
 
     if not stacktrace_frames:
         return
+
+    platform = data.get("platform", "unknown")
+    sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
     # the trimming produces a different function than the function we have
