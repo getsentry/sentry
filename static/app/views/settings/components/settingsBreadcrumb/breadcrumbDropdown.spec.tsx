@@ -5,13 +5,19 @@ import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcr
 describe('Settings Breadcrumb Dropdown', () => {
   const selectMock = jest.fn();
   const items = [
-    {value: '1', label: 'foo'},
-    {value: '2', label: 'bar'},
+    {index: 0, value: '1', label: 'foo'},
+    {index: 1, value: '2', label: 'bar'},
   ];
 
   const createWrapper = () => {
     return render(
-      <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />
+      <BreadcrumbDropdown
+        route={{path: '/', name: 'root'}}
+        items={items}
+        name="Test"
+        hasMenu
+        onSelect={selectMock}
+      />
     );
   };
 
