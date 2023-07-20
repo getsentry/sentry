@@ -13,12 +13,10 @@ from sentry.silo import SiloMode
 class PagerDutyService(DefaultFieldsModel):
     __include_in_export__ = False
 
-    # organization_integration_id = HybridCloudForeignKey(
     organization_integration = FlexibleForeignKey(
         "sentry.OrganizationIntegration", on_delete=CASCADE, db_constraint=False
     )
 
-    # organization_id = BoundedBigIntegerField(db_index=True)
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
 
     # From a region point of view, you really only have per organization scoping.

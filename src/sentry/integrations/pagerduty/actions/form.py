@@ -49,14 +49,14 @@ class PagerDutyNotifyServiceForm(forms.Form):
             "service": dict(self.fields["service"].choices).get(service_id),
         }
 
-        ois = integration_service.get_organization_integrations(
+        org_integrations = integration_service.get_organization_integrations(
             integration_id=integration_id,
             providers=[ExternalProviders.PAGERDUTY.name],
         )
 
         if not any(
             pds
-            for oi in ois
+            for oi in org_integrations
             for pds in oi.config.get("pagerduty_services", [])
             if pds["id"] == service_id
         ):

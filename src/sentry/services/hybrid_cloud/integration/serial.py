@@ -17,9 +17,6 @@ def serialize_integration(integration: Integration) -> RpcIntegration:
 
 
 def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrganizationIntegration:
-    # if oi.integration
-    # i for i in integrations if i.provider == ExternalProviders.PAGERDUTY.name
-    # if
     config: Dict[str, Any] = dict(**oi.config)
     if oi.integration.provider == ExternalProviders.PAGERDUTY.name:
         config["pagerduty_services"] = [
