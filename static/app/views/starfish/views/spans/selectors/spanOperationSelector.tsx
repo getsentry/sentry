@@ -10,6 +10,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {
+  EMPTY_OPTION_VALUE,
+  EmptyOption,
+} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_OP} = SpanMetricsFields;
 
@@ -37,10 +41,20 @@ export function SpanOperationSelector({
 
   const options = [
     {value: '', label: 'All'},
-    ...(operations ?? []).map(datum => ({
-      value: datum[SPAN_OP],
-      label: datum[SPAN_OP],
-    })),
+    ...(operations ?? [])
+      .filter(datum => Boolean(datum))
+      .map(datum => {
+        if (datum[SPAN_OP] === '') {
+          return {
+            value: EMPTY_OPTION_VALUE,
+            label: <EmptyOption />,
+          };
+        }
+        return {
+          value: datum[SPAN_OP],
+          label: datum[SPAN_OP],
+        };
+      }),
   ];
 
   return (

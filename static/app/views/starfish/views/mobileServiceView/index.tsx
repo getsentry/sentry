@@ -3,18 +3,23 @@ import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
+import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
 import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
@@ -24,8 +29,35 @@ const EventsRequest = withApi(_EventsRequest);
 export function MobileStarfishView(props: BaseStarfishViewProps) {
   const {eventView, organization} = props;
   const pageFilter = usePageFilters();
+  const location = useLocation();
+  const {data: releases, isLoading: isReleasesLoading} = useReleases();
+
+  useSynchronizeCharts();
+  if (isReleasesLoading) {
+    return <LoadingContainer />;
+  }
+
+  const release1 =
+    decodeScalar(location.query.release1) ?? releases?.[0]?.version ?? undefined;
+
+  const release2 =
+    decodeScalar(location.query.release2) ?? releases?.[0]?.version ?? undefined;
+
+  const releaseFilter: string[] = [];
+  if (defined(release1) && release1 !== '') {
+    releaseFilter.push(release1);
+  }
+
+  if (defined(release2) && release2 !== '' && release1 !== release2) {
+    releaseFilter.push(release2);
+  }
+
   function renderCharts() {
     const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
+
+    if (releaseFilter.length > 0) {
+      query.addStringFilter(`release:[${releaseFilter.join(',')}]`);
+    }
 
     return (
       <EventsRequest
@@ -266,8 +298,6 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
       </EventsRequest>
     );
   }
-
-  useSynchronizeCharts();
 
   return (
     <div data-test-id="starfish-movile-view">

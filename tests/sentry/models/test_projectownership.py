@@ -396,6 +396,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
         # manually assign the issue to someone else
+        assert self.event.group is not None
         GroupAssignee.objects.assign(self.event.group, self.user)
 
         # ensure the issue was not reassigned

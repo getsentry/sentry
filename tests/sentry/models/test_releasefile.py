@@ -239,6 +239,7 @@ class ReleaseArchiveTestCase(TestCase):
         self.create_release_file(file=file_)
 
         index = read_artifact_index(self.release, None)
+        assert index is not None
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
 
 
@@ -269,7 +270,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only key "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"foo", "123"}
 
         # Only one `File` was created:
         assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
@@ -287,7 +290,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"123", "abc"}
 
     def test_lock_existing(self):
         release = self.release
@@ -306,7 +311,9 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, only keys "0", "123" would survive:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "foo", "123"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "foo", "123"}
 
         def delete():
             sleep(2 * self.tick)
@@ -321,4 +328,6 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             thread.join()
 
         # Without locking, the delete would be surpassed by the slow update:
-        assert read_artifact_index(release, dist)["files"].keys() == {"0", "123", "abc"}
+        index = read_artifact_index(release, dist)
+        assert index is not None
+        assert index["files"].keys() == {"0", "123", "abc"}

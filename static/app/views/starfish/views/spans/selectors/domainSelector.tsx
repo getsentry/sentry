@@ -12,6 +12,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {
+  EMPTY_OPTION_VALUE,
+  EmptyOption,
+} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_DOMAIN} = SpanMetricsFields;
 
@@ -67,12 +71,19 @@ export function DomainSelector({
   const options = optionsReady
     ? [
         {value: '', label: 'All'},
+        {
+          value: EMPTY_OPTION_VALUE,
+          label: <EmptyOption />,
+        },
         ...(domains ?? [])
-          .map(datum => ({
-            value: datum['span.domain'],
-            label: datum['span.domain'],
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label)),
+          .filter(datum => Boolean(datum[SPAN_DOMAIN]))
+          .map(datum => {
+            return {
+              value: datum[SPAN_DOMAIN],
+              label: datum[SPAN_DOMAIN],
+            };
+          })
+          .sort((a, b) => a.value.localeCompare(b.value)),
       ]
     : [];
 
@@ -112,7 +123,7 @@ export function DomainSelector({
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
   db: t('Table'),
-  none: t('Domain'),
+  other: t('Domain'),
   '': t('Domain'),
 };
 
