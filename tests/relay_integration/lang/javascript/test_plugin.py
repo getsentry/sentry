@@ -808,13 +808,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]:
             with open(get_fixture_path(file), "rb") as f:
                 headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
-                file = File.objects.create(name=name, type="release.file", headers=headers)
-                file.putfile(f)
+                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
+                file_obj.putfile(f)
             ReleaseFile.objects.create(
                 name=name,
                 release_id=release.id,
                 organization_id=project.organization_id,
-                file=file,
+                file=file_obj,
             )
 
         data = {
