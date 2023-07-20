@@ -41,6 +41,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
+            assert provider.metadata is not None
 
             assert response.data == {
                 "id": str(integration.id),
@@ -83,6 +84,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
+            assert provider.metadata is not None
 
             assert response.data == {
                 "id": str(integration.id),
@@ -381,6 +383,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         integration = self.create_integration(

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
 
 import pytz
 
@@ -89,6 +92,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.issue_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_issue_alert_everyone_until(self):
@@ -114,6 +118,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.issue_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_issue_alert_user_then_everyone(self):
@@ -172,7 +177,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_edit_issue_alert_mute(self):
         """Test that we throw an error if an issue alert rule has already been muted by a user"""
-        data = {"target": "me"}
+        data: dict[str, Any] = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
@@ -388,6 +393,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.metric_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_metric_alert_everyone_until(self):
@@ -413,6 +419,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.metric_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_metric_alert_user_then_everyone(self):
@@ -471,7 +478,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_edit_metric_alert_mute(self):
         """Test that we throw an error if a metric alert rule has already been muted by a user"""
-        data = {"target": "me"}
+        data: dict[str, Any] = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,

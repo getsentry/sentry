@@ -3,7 +3,15 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-class PermissionTestMixin:
+class UserUserRolesTest(APITestCase):
+    endpoint = "sentry-api-0-user-userroles"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=True)
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "users.admin")
+
     def test_fails_without_superuser(self):
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
@@ -23,18 +31,8 @@ class PermissionTestMixin:
         assert resp.status_code == 403
 
 
-class UserUserRolesTest(APITestCase):
-    endpoint = "sentry-api-0-user-userroles"
-
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        self.add_user_permission(self.user, "users.admin")
-
-
 @control_silo_test(stable=True)
-class UserUserRolesGetTest(UserUserRolesTest, PermissionTestMixin):
+class UserUserRolesGetTest(UserUserRolesTest):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
         role.users.add(self.user)

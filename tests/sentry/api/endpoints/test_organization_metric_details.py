@@ -35,8 +35,8 @@ MOCKED_DERIVED_METRICS_2.update(
 pytestmark = pytest.mark.sentry_metrics
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
+def _indexer_record(org_id: int, string: str) -> None:
+    indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
 @region_silo_test(stable=True)
@@ -256,7 +256,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             project_id=self.project.id,
             type="counter",
             name="metric_foo_doe",
-            timestamp=(time.time() // 60 - 2) * 60,
+            timestamp=int(time.time() // 60 - 2) * 60,
             tags={
                 "release": "foow",
             },

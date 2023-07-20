@@ -43,6 +43,7 @@ class OrganizationActivityTest(APITestCase):
             },
             project_id=project_2.id,
         ).group
+        assert group_2 is not None
 
         activity = Activity.objects.create(
             group=group,

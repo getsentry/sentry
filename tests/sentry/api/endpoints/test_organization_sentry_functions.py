@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -39,13 +42,13 @@ class OrganizationSentryFunctions(APITestCase):
             )
 
     def test_post_missing_params(self):
-        data = {"name": "foo", "overview": "qux"}
+        data: dict[str, Any] = {"name": "foo", "overview": "qux"}
         with Feature("organizations:sentry-functions"):
             response = self.client.post(self.url, **data)
             assert response.status_code == 400
 
     def test_post_feature_false(self):
-        data = {"name": "foo", "author": "bar"}
+        data: dict[str, Any] = {"name": "foo", "author": "bar"}
         response = self.client.post(self.url, **data)
         assert response.status_code == 404
 

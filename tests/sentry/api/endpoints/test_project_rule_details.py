@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Mapping
 from unittest import mock
@@ -115,11 +117,13 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] == self.environment.name
 
     def test_with_filters(self):
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         data = {
             "conditions": conditions,
             "actions": actions,

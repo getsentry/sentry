@@ -12,8 +12,6 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "users.admin")
 
-
-class PermissionTestMixin:
     def test_fails_without_superuser(self):
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
@@ -33,7 +31,7 @@ class PermissionTestMixin:
 
 
 @control_silo_test(stable=True)
-class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
+class UserPermissionDetailsGetTest(UserDetailsTest):
     def test_with_permission(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
         resp = self.get_response("me", "broadcasts.admin")
@@ -45,7 +43,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest, PermissionTestMixin):
 
 
 @control_silo_test(stable=True)
-class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
+class UserPermissionDetailsPostTest(UserDetailsTest):
     method = "POST"
 
     def test_with_permission(self):
@@ -61,7 +59,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest, PermissionTestMixin):
 
 
 @control_silo_test(stable=True)
-class UserPermissionDetailsDeleteTest(UserDetailsTest, PermissionTestMixin):
+class UserPermissionDetailsDeleteTest(UserDetailsTest):
     method = "DELETE"
 
     def test_with_permission(self):

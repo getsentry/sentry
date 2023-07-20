@@ -347,11 +347,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         self.run_test(
             actions=actions,
             conditions=conditions,
@@ -360,8 +364,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_no_filter_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         self.run_test(
             filter_match=None,
@@ -370,11 +378,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters_without_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -424,7 +436,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             }
         ]
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "environment": None,

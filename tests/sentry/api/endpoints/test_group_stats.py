@@ -17,6 +17,7 @@ class GroupStatsTest(APITestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group1 is not None
 
         url = f"/api/0/issues/{group1.id}/stats/"
 

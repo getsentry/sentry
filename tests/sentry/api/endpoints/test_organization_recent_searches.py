@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from functools import cached_property
+from typing import Any
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -91,7 +94,7 @@ class RecentSearchesListTest(APITestCase):
 
     def test_param_validation(self):
         self.login_as(user=self.user)
-        error_cases = [
+        error_cases: list[tuple[dict[str, Any], str]] = [
             ({"type": 5}, "Invalid input for `type`"),
             ({"type": "hi"}, "Invalid input for `type`"),
             ({"limit": "hi"}, "Invalid input for `limit`"),

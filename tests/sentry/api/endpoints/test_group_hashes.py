@@ -80,6 +80,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         # Merge the events
         eventstream = SnubaEventStream()
         state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        assert state is not None
 
         eventstream.end_merge(state)
 

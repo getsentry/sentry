@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 from uuid import uuid4
 
 import pytest
@@ -104,7 +104,7 @@ def projectconfig_debounced_cache(monkeypatch):
 def project_config_get_mock(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig("mock_project", is_mock_config=True),
+        lambda *args, **kwargs: ProjectConfig(sentinel.mock_project, is_mock_config=True),
     )
 
 
