@@ -85,6 +85,7 @@ type Props = WithRouterProps & {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
+  isOnDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
@@ -465,8 +466,17 @@ class MetricChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, project, interval, query, location} =
-      this.props;
+    const {
+      api,
+      rule,
+      organization,
+      timePeriod,
+      project,
+      interval,
+      query,
+      location,
+      isOnDemandMetricAlert,
+    } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // Fix for 7 days * 1m interval being over the max number of results from events api
@@ -540,6 +550,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) =>
           this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)
