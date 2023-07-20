@@ -450,7 +450,9 @@ class FetchProjectTransactionVolumes:
         return self
 
     def __next__(self) -> ProjectTransactions:
+
         self._ensure_log_state()
+        assert self.log_state is not None
 
         self.log_state.num_iterations += 1
 
@@ -533,6 +535,7 @@ class FetchProjectTransactionVolumes:
         current_proj_id: Optional[int] = None
 
         self._ensure_log_state()
+        assert self.log_state is not None
 
         for row in data:
             proj_id = row["project_id"]
