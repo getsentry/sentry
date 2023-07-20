@@ -1,6 +1,5 @@
 import math
 import uuid
-from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
@@ -122,7 +121,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert response.status_code == 200, response.content
@@ -4215,7 +4214,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 url,
                 query,
                 format="json",
-                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
 
         _, kwargs = mock.call_args

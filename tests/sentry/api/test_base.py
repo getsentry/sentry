@@ -1,4 +1,3 @@
-import base64
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -115,9 +114,7 @@ class EndpointTest(APITestCase):
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         response = _dummy_endpoint(request)
         response.render()
@@ -141,9 +138,7 @@ class EndpointTest(APITestCase):
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://acme.example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         response = _dummy_endpoint(request)
         response.render()
@@ -167,9 +162,7 @@ class EndpointTest(APITestCase):
         for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
             request = self.make_request(method="GET")
             request.META["HTTP_ORIGIN"] = http_origin
-            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-                apikey.key.encode("utf-8")
-            )
+            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
             response = _dummy_endpoint(request)
             response.render()
