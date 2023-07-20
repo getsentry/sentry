@@ -16,7 +16,11 @@ from sentry.api.authentication import (
     TokenAuthentication,
 )
 from sentry.models import UserIP
-from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
+from sentry.services.hybrid_cloud.auth import (
+    MiddlewareAuthenticationResponse,
+    auth_service,
+    authentication_request_from,
+)
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
@@ -111,18 +115,16 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: Request):
         from sentry.web.frontend.accounts import expired
 
-        auth_result = auth_service.authenticate(request=authentication_request_from(request))
-        request.user_from_signed_request = auth_result.user_from_signed_request
+        auth_result: MiddlewareAuthenticationResponse = auth_service.authenticate(
+            request=authentication_request_from(request)
+        )
+        auth_result.applied_to_request(request).__enter__()
 
-        if auth_result.auth is not None:
-            request.auth = auth_result.auth
         if auth_result.expired:
             return expired(request, auth_result.user)
-        elif auth_result.user is not None:
-            request.user = auth_result.user
+
+        if auth_result.user is not None:
             UserIP.log(auth_result.user, request.META["REMOTE_ADDR"])
-        else:
-            request.user = AnonymousUser()
 
     def process_exception(self, request: Request, exception: Exception):
         pass
