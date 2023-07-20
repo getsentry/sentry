@@ -59,9 +59,6 @@ class EscalatingGroupForecast:
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
-        logger.exception(
-            f"Forecast does not exist for project id: {str(project_id)} group id: {str(group_id)}"
-        )
         generate_and_save_missing_forecasts.delay(group_id=group_id)
         return EscalatingGroupForecast(
             project_id=project_id,
