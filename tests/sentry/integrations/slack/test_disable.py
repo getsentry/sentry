@@ -63,6 +63,25 @@ class SlackClientDisable(TestCase):
         ).status == 1 # DISABLED
 
     # test with flag off
+    @responses.activate
+    def test_fatal_integration(self):
+        bodydict = {"ok": False, "error": "account_inactive"}
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(bodydict),
+        )
+        client = SlackClient(integration_id=self.integration.id)
+        with pytest.raises(ApiError):
+            client.post("/chat.postMessage", data=self.payload)
+        buffer = IntegrationRequestBuffer(client._get_redis_key())
+        assert buffer.is_integration_broken() is True
+        assert integration_service.get_integration(
+            integration_id=self.integration.id
+        ).status == 0 # ENABLED
+
 
     @responses.activate
     def test_error_integration(self):
@@ -78,8 +97,6 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        print(buffer._get())
-        print(buffer.is_integration_broken())
         assert (buffer._get()[0]["error_count"]) >= 1
         assert buffer.is_integration_broken() is False
 

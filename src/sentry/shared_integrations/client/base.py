@@ -271,9 +271,6 @@ class BaseApiClient(TrackResponseMixin):
                 resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
             ))
 
-
-
-
             if resp.status_code == 204:
                 return {}
 
