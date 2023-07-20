@@ -62,8 +62,11 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Frames that are hidden under the most recent non-InApp frame
+   */
   isSubFrame?: boolean;
-  isToggled?: boolean;
   lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
@@ -287,7 +290,7 @@ export class DeprecatedLine extends Component<Props, State> {
             onShowFramesToggle(e);
           }}
         >
-          {this.props.isToggled
+          {this.props.isShowFramesToggleExpanded
             ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
             : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
         </a>

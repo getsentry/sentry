@@ -348,7 +348,7 @@ class Content extends Component<Props, State> {
               this.handleToggleFrames(e, frameIdx);
             }}
             isSubFrame={hiddenFrameIndices.includes(frameIdx)}
-            isToggled={toggleFrameMap[frameIdx]}
+            isShowFramesToggleExpanded={toggleFrameMap[frameIdx]}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
             frameMeta={meta?.frames?.[frameIdx]}
