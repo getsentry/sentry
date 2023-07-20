@@ -69,9 +69,10 @@ export const steps = ({
       <InstallDescription>
         <p>
           {tct(
-            "To use Sentry with your Angular application, you'll need [code:@sentry/angular-ivy] or [code:@sentry/angular], Sentry’s Browser Angular SDKs:",
+            "To use Sentry with your Angular application, you'll need [sentryAngularIvyCode:@sentry/angular-ivy] or [sentryAngularCode:@sentry/angular], Sentry’s Browser Angular SDKs:",
             {
-              code: <code />,
+              sentryAngularIvyCode: <code />,
+              sentryAngularCode: <code />,
             }
           )}
         </p>

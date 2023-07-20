@@ -43,6 +43,7 @@ class BaseRequestParser(abc.ABC):
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
+        self.view_class = self.match.func.view_class  # type:ignore
         self.response_handler = response_handler
 
     # Common Helpers

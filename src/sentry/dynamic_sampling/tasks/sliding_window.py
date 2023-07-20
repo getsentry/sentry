@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
+    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     SLIDING_WINDOW_CALCULATION_ERROR,
@@ -64,7 +65,7 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def sliding_window() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_SECONDS)
+    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_TASK_SECONDS)
     adjust_base_sample_rate_of_projects_timer = Timer()
 
     window_size = get_sliding_window_size()
@@ -106,7 +107,7 @@ def sliding_window() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.sliding_window")
+        capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
         log_task_execution(context)
 
 
@@ -121,6 +122,9 @@ def adjust_base_sample_rates_of_projects(
     Adjusts the base sample rate per project by computing the sliding window sample rate, considering the total
     volume of root transactions started from each project in the org.
     """
+    if time.monotonic() > context.expiration_time:
+        raise TimeoutException(context)
+
     with timer:
         projects_with_rebalanced_sample_rate = []
 

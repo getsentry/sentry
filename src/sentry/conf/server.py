@@ -1070,18 +1070,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1119,8 +1119,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
     },
 }
 

@@ -3,7 +3,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry import tagstore
-from sentry.tagstore import TagKeyStatus
+from sentry.tagstore.base import TagKeyStatus
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -100,7 +100,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
         assert response.status_code == 403
 
         assert (
-            tagstore.get_tag_key(
+            tagstore.backend.get_tag_key(
                 project.id,
                 None,
                 "environment",

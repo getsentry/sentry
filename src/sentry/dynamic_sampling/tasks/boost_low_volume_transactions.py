@@ -32,7 +32,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -105,7 +105,7 @@ def boost_low_volume_transactions() -> None:
     )
 
     context = TaskContext(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_transactions", MAX_SECONDS
+        "sentry.dynamic_sampling.tasks.boost_low_volume_transactions", MAX_TASK_SECONDS
     )
 
     # create global timers for the internal iterators since they are created multiple times,
@@ -158,7 +158,7 @@ def boost_low_volume_transactions() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
+        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
         log_task_execution(context)
 
 
@@ -291,6 +291,8 @@ class FetchProjectTransactionTotals:
 
         self._ensure_log_state()
         assert self.log_state is not None
+
+        self.log_state.num_iterations += 1
 
         if not self._cache_empty():
             return self._get_from_cache()
@@ -447,7 +449,12 @@ class FetchProjectTransactionVolumes:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> ProjectTransactions:
+
+        self._ensure_log_state()
+        assert self.log_state is not None
+
+        self.log_state.num_iterations += 1
 
         if self.max_transactions == 0:
             # the user is not interested in transactions of this type, return nothing.
@@ -506,12 +513,16 @@ class FetchProjectTransactionVolumes:
                 request,
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
+
             count = len(data)
             self.has_more_results = count > CHUNK_SIZE
             self.offset += CHUNK_SIZE
 
             if self.has_more_results:
                 data = data[:-1]
+
+            self.log_state.num_rows_total += count
+            self.log_state.num_db_calls += 1
 
             self._add_results_to_cache(data)
 
@@ -522,6 +533,9 @@ class FetchProjectTransactionVolumes:
         transaction_counts: List[Tuple[str, float]] = []
         current_org_id: Optional[int] = None
         current_proj_id: Optional[int] = None
+
+        self._ensure_log_state()
+        assert self.log_state is not None
 
         for row in data:
             proj_id = row["project_id"]
@@ -543,6 +557,11 @@ class FetchProjectTransactionVolumes:
                             "total_num_classes": None,
                         }
                     )
+                    if current_proj_id != proj_id:
+                        self.log_state.num_projects += 1
+                    if current_org_id != org_id:
+                        self.log_state.num_orgs += 1
+
                 transaction_counts = []
                 current_org_id = org_id
                 current_proj_id = proj_id
