@@ -41,9 +41,7 @@ def get(option, silent):
     if silent:
         click.echo(value)
         return
-    # TODO(mattrobenolt): Add help to option keys
-    # if key.help:
-    #     click.echo(key.help + '\n')
+
     last_update_channel = manager.get_last_update_channel(option)
     click.echo(f"           type: {key.type.name.upper()}")
     click.echo(f"    from config: {settings.SENTRY_OPTIONS.get(key.name, '<not set>')}")
