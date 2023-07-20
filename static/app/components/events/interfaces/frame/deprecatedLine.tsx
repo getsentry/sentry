@@ -361,10 +361,10 @@ export class DeprecatedLine extends Component<Props, State> {
             : null}
           {!data.inApp ? (
             stacktraceChangesEnabled ? null : (
-              <InAppTag>{t('System')}</InAppTag>
+              <Tag>{t('System')}</Tag>
             )
           ) : (
-            <InAppTag type="info">{t('In App')}</InAppTag>
+            <Tag type="info">{t('In App')}</Tag>
           )}
           {this.renderExpander()}
         </DefaultLine>
@@ -451,10 +451,10 @@ export class DeprecatedLine extends Component<Props, State> {
 
           {!data.inApp ? (
             stacktraceChangesEnabled ? null : (
-              <InAppTag>{t('System')}</InAppTag>
+              <Tag>{t('System')}</Tag>
             )
           ) : (
-            <InAppTag type="info">{t('In App')}</InAppTag>
+            <Tag type="info">{t('In App')}</Tag>
           )}
         </DefaultLine>
       </StrictClick>
@@ -626,9 +626,5 @@ const IconWrapper = styled('div')`
 `;
 
 const SuspectFrameTag = styled(Tag)`
-  margin-right: ${space(1)};
-`;
-
-const InAppTag = styled(Tag)`
   margin-right: ${space(1)};
 `;
