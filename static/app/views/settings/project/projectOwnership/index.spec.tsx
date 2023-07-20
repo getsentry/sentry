@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,12 +7,11 @@ import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
-  let org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const {organization, project, routerProps} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/ownership/`,
+      url: `/projects/${organization.slug}/${project.slug}/ownership/`,
       method: 'GET',
       body: {
         fallthrough: false,
@@ -20,20 +20,17 @@ describe('Project Ownership', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/code-mappings/`,
-      query: {project: project.id},
+      url: `/organizations/${organization.slug}/code-mappings/?project=${project.id}`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/integrations/`,
-      query: {features: 'codeowners'},
+      url: `/organizations/${organization.slug}/integrations/?features=codeowners`,
       method: 'GET',
       body: [TestStubs.GitHubIntegrationConfig()],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/codeowners/`,
-      features: {expand: 'codeMapping'},
+      url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
       method: 'GET',
       body: [],
     });
@@ -47,8 +44,9 @@ describe('Project Ownership', () => {
     it('renders', () => {
       const wrapper = render(
         <ProjectOwnership
+          {...routerProps}
           params={{projectId: project.slug}}
-          organization={org}
+          organization={organization}
           project={project}
         />
       );
@@ -62,8 +60,9 @@ describe('Project Ownership', () => {
     it('renders allows users to edit ownership rules', () => {
       render(
         <ProjectOwnership
+          {...routerProps}
           params={{projectId: project.slug}}
-          organization={org}
+          organization={organization}
           project={project}
         />,
         {organization: TestStubs.Organization({access: ['project:read']})}
@@ -78,12 +77,13 @@ describe('Project Ownership', () => {
 
   describe('with codeowners', () => {
     it('codeowners button opens modal', async () => {
-      org = TestStubs.Organization({
+      const org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
       render(
         <ProjectOwnership
+          {...routerProps}
           params={{projectId: project.slug}}
           organization={org}
           project={project}
@@ -103,7 +103,7 @@ describe('Project Ownership', () => {
   describe('issue owners settings', () => {
     it('should set autoAssignment with commit-context string', async () => {
       const updateOwnership = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/ownership/`,
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
         method: 'PUT',
         body: {
           fallthrough: false,
@@ -114,8 +114,9 @@ describe('Project Ownership', () => {
 
       render(
         <ProjectOwnership
+          {...routerProps}
           params={{projectId: project.slug}}
-          organization={org}
+          organization={organization}
           project={project}
         />
       );
@@ -137,11 +138,15 @@ describe('Project Ownership', () => {
     });
 
     it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
-      const organization = {...org, features: ['issue-alert-fallback-targeting']};
+      const org = {
+        ...organization,
+        features: ['issue-alert-fallback-targeting'],
+      };
       render(
         <ProjectOwnership
-          params={{orgId: organization.slug, projectId: project.slug}}
-          organization={organization}
+          {...routerProps}
+          params={{projectId: project.slug}}
+          organization={org}
           project={project}
         />
       );
