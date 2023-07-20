@@ -368,12 +368,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_all_org_roles(
         self,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
+        *,
+        organization_id: int,
+        member_id: int,
     ) -> List[str]:
-        if member_id:
-            member = OrganizationMember.objects.get(id=member_id)
-            organization_member = serialize_member(member)
+        member = OrganizationMember.objects.get(id=member_id)
+        organization_member = serialize_member(member)
 
         org_roles: List[str] = []
         if organization_member:
