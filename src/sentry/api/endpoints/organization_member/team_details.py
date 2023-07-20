@@ -83,6 +83,11 @@ def _has_elevated_scope(access: Access) -> bool:
     return access.has_scope("org:write") or access.has_scope("team:write")
 
 
+def _is_org_owner_or_manager(access: Access) -> bool:
+    roles = access.get_organization_roles()
+    return "owner" in roles or "manager" in roles
+
+
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
@@ -99,12 +104,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         access = request.access
 
-        # Check for the org auth token edge case because they always have global access. When open
-        # membership is disabled, we need to check if the token has elevated permissions in order
-        # to ensure org tokens with only "org:read" scope cannot add members
+        # When open membership is disabled, we need to check if the token has elevated permissions
+        # in order to ensure org tokens with only "org:read" scope cannot add members. This check
+        # comes first because access.has_global_access is True for all org tokens
         if access.is_org_auth_token and not access.has_open_membership:
             return _has_elevated_scope(access)
-        print(access.has_global_access, can_admin_team(access, team))
         return access.has_global_access or can_admin_team(access, team)
 
     def _can_delete(
@@ -119,7 +123,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are an active superuser
         * If they are removing their own membership
         * If they are a team admin or have global write access
-        * If they are an org owner/admin/manager
         """
         if is_active_superuser(request):
             return True
@@ -130,9 +133,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.id == member.user_id:
             return True
 
-        # We need to check if the token has elevated permissions because there is an edge case where
-        # an org owner/manager cannot remove a member from a team they are not part of using team:write
-        return can_admin_team(request.access, team) or _has_elevated_scope(request.access)
+        # There is an edge case where org owners/managers cannot remove a member from a team they
+        # are not part of using team:write. We need to check the org role before calling
+        # _has_elevated_scope because org admins have team:write scope, but are not allowed to
+        # remove remove members from teams they are not a part of.
+        if _is_org_owner_or_manager(request.access):
+            return _has_elevated_scope(request.access)
+
+        return can_admin_team(request.access, team)
 
     def _create_access_request(
         self, request: Request, team: Team, member: OrganizationMember
