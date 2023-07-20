@@ -178,9 +178,7 @@ class StacktraceProcessor:
 
 
 def find_stacktraces_in_data(
-    data: NodeData,
-    include_raw: bool = False,
-    with_exceptions: bool = False,
+    data: NodeData, include_raw: bool = False, with_exceptions: bool = False
 ) -> list[StacktraceInfo]:
     """Finds all stacktraces in a given data blob and returns it
     together with some meta information.
@@ -192,14 +190,13 @@ def find_stacktraces_in_data(
     info object.
     """
     rv = []
-    _platform = data.get("platform", "unknown")
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
         platforms = {
-            frame.get("platform", _platform)
+            frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         }
         rv.append(
@@ -275,7 +272,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     if not stacktrace_frames:
         return
 
-    platform = data.get("platform", "unknown")
+    platform = data.get("platform")
     sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if
