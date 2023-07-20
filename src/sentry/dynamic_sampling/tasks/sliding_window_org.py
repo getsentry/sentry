@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 
 from sentry_sdk import capture_message, set_extra
@@ -71,7 +72,7 @@ def sliding_window_org() -> None:
         raise
     else:
         set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.sliding_window_org")
+        capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window_org")
         log_task_execution(context)
 
 
@@ -81,6 +82,9 @@ def adjust_base_sample_rate_of_org(
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
     """
+    if time.monotonic() > context.expiration_time:
+        raise TimeoutException(context)
+
     with timer:
         sample_rate = compute_guarded_sliding_window_sample_rate(
             org_id, None, total_root_count, window_size
