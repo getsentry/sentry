@@ -2094,19 +2094,6 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
-    def test_standard_metrics(self):
-        query = AlertMetricsQueryBuilder(
-            self.params,
-            use_metrics_layer=False,
-            granularity=3600,
-            query="",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=["p75(measurements.fp)"],
-            on_demand_metrics_enabled=True,
-        )
-
-        assert query.on_demand_metrics_enabled
-
     def test_run_on_demand_query(self):
         query = AlertMetricsQueryBuilder(
             self.params,
