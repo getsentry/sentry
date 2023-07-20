@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -5,9 +6,10 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
-const routes = [
+const routes: RouteWithName[] = [
   {path: '/'},
   {path: '/:orgId/'},
   {path: '/organizations/:orgId/'},
@@ -15,7 +17,9 @@ const routes = [
 ];
 
 describe('OrganizationApiKeys', function () {
-  let getMock, deleteMock;
+  const {routerProps} = initializeOrg();
+  let getMock: jest.Mock;
+  let deleteMock: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -36,26 +40,14 @@ describe('OrganizationApiKeys', function () {
   });
 
   it('fetches api keys', function () {
-    render(
-      <OrganizationApiKeys
-        location={TestStubs.location()}
-        params={{orgId: 'org-slug'}}
-        routes={routes}
-      />
-    );
+    render(<OrganizationApiKeys {...routerProps} routes={routes} />);
 
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
   it('can delete a key', async function () {
-    render(
-      <OrganizationApiKeys
-        location={TestStubs.location()}
-        params={{orgId: 'org-slug'}}
-        routes={routes}
-      />
-    );
+    render(<OrganizationApiKeys {...routerProps} routes={routes} />);
 
     expect(deleteMock).toHaveBeenCalledTimes(0);
     await userEvent.click(screen.getByRole('link', {name: 'Remove API Key?'}));
