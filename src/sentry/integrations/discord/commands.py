@@ -14,8 +14,18 @@ class DiscordCommandManager:
     # See Discord docs for the structure of a command https://discord.com/developers/docs/interactions/application-commands#application-command-object
     COMMANDS: list[object] = [
         {
-            "name": "example",
-            "description": "An example slash command!",
+            "name": "link",
+            "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
+            "type": 1,
+        },
+        {
+            "name": "unlink",
+            "description": "Unlink your Discord account from your Sentry account.",
+            "type": 1,
+        },
+        {
+            "name": "help",
+            "description": "View a list of Sentry bot commands and what they do",
             "type": 1,
         },
     ]
