@@ -63,6 +63,8 @@ class SlackClientDisable(TestCase):
             integration_id=self.integration.id
         ).status == 1 # DISABLED
 
+    # test with flag off
+
     @responses.activate
     def test_error_integration(self):
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
@@ -79,3 +81,6 @@ class SlackClientDisable(TestCase):
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is False
         assert (buffer._get()[0]["error_count"]) >= 1
+
+        #fake slow test w disable on
+        #fake slow test w disable off

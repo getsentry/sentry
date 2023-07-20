@@ -68,15 +68,11 @@ class SlackClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
-    def is_response_error(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-        return super().is_response_error(resp, e)
-
-    def is_response_fatal(self, resp: Response | None = None, e: Exception | None = None) -> bool:
-        if e is not None:
-            if "account_inactive" == e:
+    def is_response_fatal(self, response: Response) -> bool:
+        if not response.json.get("ok"):
+            if "account_inactive" == response.json.get("error",""):
                 return True
 
-        return super().is_response_fatal(resp, e)
 
     def track_response_data(
         self,
@@ -143,7 +139,5 @@ class SlackClient(IntegrationProxyClient):
             method, path, headers=headers, data=data, params=params, json=json
         )
         if not response.json.get("ok"):
-            self.record_request_error(resp=response,error=response.get("error", None))
-            self.record_request_fatal(resp=response,error=response.get("error", None))
             raise ApiError(response.get("error", ""))  # type: ignore
         return response
