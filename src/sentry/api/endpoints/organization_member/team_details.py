@@ -57,12 +57,6 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
 
 
 class TeamOrgMemberPermission(OrganizationPermission):
-    _allowed_scopes = [
-        "org:read",
-        "org:write",
-        "team:write",
-        "team:admin",
-    ]
 
     scope_map = {
         "GET": [
@@ -73,7 +67,13 @@ class TeamOrgMemberPermission(OrganizationPermission):
             "member:admin",
         ],
         "POST": ["org:read", "org:write", "team:write"],
-        "PUT": _allowed_scopes,
+        "PUT": [
+            "org:read",
+            "org:write",
+            "member:read",
+            "member:write",
+            "member:admin",
+        ],
         "DELETE": ["org:read", "org:write", "team:write"],
     }
 
