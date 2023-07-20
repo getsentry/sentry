@@ -1,12 +1,13 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Config} from 'sentry/types';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
   const integration = TestStubs.GitHubIntegration();
 
-  function interceptMessageEvent(event) {
+  function interceptMessageEvent(event: MessageEvent) {
     if (event.origin === '') {
       event.stopImmediatePropagation();
       const eventWithOrigin = new MessageEvent('message', {
@@ -25,10 +26,13 @@ describe('AddIntegration', function () {
         sentryUrl: 'https://sentry.io',
       },
       links: {
+        organizationUrl: 'https://foobar.sentry.io',
+        regionUrl: 'https://us.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
-    window.location = 'https://foobar.sentry.io';
+    } as Config;
+
+    window.location.assign('https://foobar.sentry.io');
     window.addEventListener('message', interceptMessageEvent);
   });
 
@@ -44,9 +48,13 @@ describe('AddIntegration', function () {
     global.open = open;
 
     render(
-      <AddIntegration provider={provider} onInstall={onAdd}>
-        {onClick => (
-          <a href="#" onClick={onClick}>
+      <AddIntegration
+        organization={TestStubs.Organization()}
+        provider={provider}
+        onInstall={onAdd}
+      >
+        {openDialog => (
+          <a href="#" onClick={() => openDialog()}>
             Click
           </a>
         )}
