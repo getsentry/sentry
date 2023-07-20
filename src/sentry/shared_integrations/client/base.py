@@ -96,7 +96,7 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         return f"sentry-integration-error:{self.integration_id}"
 
-    def is_response_fatal(self, resp: Response) -> bool:
+    def is_response_fatal(self, resp: BaseApiResponse) -> bool:
         return False
 
     def is_response_error(self, resp: Response) -> bool:
@@ -267,7 +267,12 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-            self.record_response(resp)
+            self.record_response(BaseApiResponse.from_response(
+                resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
+            ))
+
+
+
 
             if resp.status_code == 204:
                 return {}
@@ -340,7 +345,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: Response):
+    def record_response(self, response: BaseApiResponse):
         print("record_response")
         if self.is_response_fatal(response):
             self.record_request_fatal(response)

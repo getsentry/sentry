@@ -14,6 +14,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infe
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
+from sentry.shared_integrations.response import MappingApiResponse
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 logger = logging.getLogger(__name__)
@@ -68,11 +69,10 @@ class SlackClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
-    def is_response_fatal(self, response: Response) -> bool:
+    def is_response_fatal(self, response: BaseApiResponse) -> bool:
         if not response.json.get("ok"):
             if "account_inactive" == response.json.get("error",""):
                 return True
-
 
     def track_response_data(
         self,
