@@ -37,7 +37,7 @@ describe('ResolutionBox', function () {
       'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
-  it('handles in next release (future release)', function () {
+  it('handles in next release (semver current_release_version)', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{

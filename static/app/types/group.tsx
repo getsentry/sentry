@@ -334,8 +334,9 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-export interface GroupActivitySetByResolvedInNextRelease extends GroupActivityBase {
+export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
   data: {
+    // Set for semver releases
     current_release_version: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -467,7 +468,7 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInNextRelease
+  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen

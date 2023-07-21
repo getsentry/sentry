@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   GroupActivity,
-  GroupActivitySetByResolvedInNextRelease,
+  GroupActivitySetByResolvedInNextSemverRelease,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   Repository,
@@ -40,11 +40,11 @@ function renderReason(
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   ) as
     | GroupActivitySetByResolvedInRelease
-    | GroupActivitySetByResolvedInNextRelease
+    | GroupActivitySetByResolvedInNextSemverRelease
     | undefined;
 
   if (statusDetails.inNextRelease) {
-    // Resolved in next release has current_release_version
+    // Resolved in next release has current_release_version (semver only)
     if (relevantActivity && 'current_release_version' in relevantActivity.data) {
       const version = (
         <Version
