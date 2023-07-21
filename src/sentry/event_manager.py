@@ -1876,8 +1876,11 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             )
 
     if is_regression:
-        activity_data = {"event_id": event.event_id, "version": release.version if release else ""}
-        if resolved_in_activity is not None:
+        activity_data: dict[str, str | bool] = {
+            "event_id": event.event_id,
+            "version": release.version if release else "",
+        }
+        if resolved_in_activity and release:
             activity_data.update(
                 {
                     "follows_semver": follows_semver,
