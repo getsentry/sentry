@@ -4270,10 +4270,10 @@ caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001283, caniuse-lite@^1.0.30001449:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001473.tgz#3859898b3cab65fc8905bb923df36ad35058153c"
   integrity sha512-ewDad7+D2vlyy+E4UJuVfiBsU69IL+8oVmTuZnH5Q6CIUbxNfI50uVpRHbUPDD6SUaN2o0Lh4DhTrvLG/Tn1yg==
 
-cbor-web@^8.1.0:
-  version "8.1.0"
-  resolved "https://registry.yarnpkg.com/cbor-web/-/cbor-web-8.1.0.tgz#c1148e91ca6bfc0f5c07c1df164854596e2e33d6"
-  integrity sha512-2hWHHMVrfffgoEmsAUh8vCxHoLa1vgodtC73+C5cSarkJlwTapnqAzcHINlP6Ej0DXuP4OmmJ9LF+JaNM5Lj/g==
+cbor-web@^9.0.1:
+  version "9.0.1"
+  resolved "https://registry.yarnpkg.com/cbor-web/-/cbor-web-9.0.1.tgz#844fc2b816939bada26854de60503efd02b15e65"
+  integrity sha512-9lW24Q2fOvCei/qMSeH48VWOcndR6u/gsi1zqXzXqeTj67XVGR253S+rOaJY+zE9TDahorcpXKeIBFRv4U2MYA==
 
 chalk@^2.0.0:
   version "2.4.2"
