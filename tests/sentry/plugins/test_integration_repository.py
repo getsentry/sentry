@@ -1,12 +1,14 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.db import IntegrityError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Repository
+from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -63,12 +65,11 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].name == self.repo_name
         assert repos[0].provider == "integrations:github"
 
-    @patch("sentry.plugins.providers.integration_repository.metrics")
-    def test_create_repository__repo_exists(self, mock_metrics, get_jwt):
+    def test_create_repository__repo_exists(self, get_jwt):
         self._create_repo()
 
-        self.provider.create_repository(self.config, self.organization)
-        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
 
     def test_create_repository__repo_exists_update_name(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
@@ -81,17 +82,14 @@ class IntegrationRepositoryTestCase(TestCase):
 
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
-    @patch("sentry.plugins.providers.integration_repository.metrics")
-    def test_create_repository__delete_webhook(
-        self, mock_metrics, mock_on_delete, mock_repo, get_jwt
-    ):
+    def test_create_repository__delete_webhook(self, mock_on_delete, mock_repo, get_jwt):
         self._create_repo()
 
         mock_repo.side_effect = IntegrityError
         mock_on_delete.side_effect = IntegrationError
 
-        self.provider.create_repository(self.config, self.organization)
-        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(self, mock_metrics, get_jwt):
@@ -104,14 +102,13 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.status == ObjectStatus.ACTIVE
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_relink")
 
-    @patch("sentry.plugins.providers.integration_repository.metrics")
-    def test_create_repository__only_activates_hidden_repo(self, mock_metrics, get_jwt):
+    def test_create_repository__only_activates_hidden_repo(self, get_jwt):
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.PENDING_DELETION
         repo.save()
 
-        self.provider.create_repository(self.config, self.organization)
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
 
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION
-        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
