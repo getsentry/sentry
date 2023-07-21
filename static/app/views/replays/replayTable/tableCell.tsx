@@ -51,7 +51,13 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  showUrl,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  showUrl: boolean;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
@@ -90,7 +96,7 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}

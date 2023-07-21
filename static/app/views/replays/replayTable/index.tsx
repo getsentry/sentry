@@ -1,5 +1,6 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -33,6 +34,7 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  saveLocation?: boolean;
 };
 
 function ReplayTable({
@@ -42,10 +44,23 @@ function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
+  saveLocation,
 }: Props) {
   const routes = useRoutes();
-  const location = useLocation();
+  const newLocation = useLocation();
   const organization = useOrganization();
+
+  const location: Location = saveLocation
+    ? {
+        pathname: '',
+        search: '',
+        query: {},
+        hash: '',
+        state: '',
+        action: 'PUSH',
+        key: '',
+      }
+    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -117,6 +132,7 @@ function ReplayTable({
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl
                     />
                   );
 
@@ -126,6 +142,30 @@ function ReplayTable({
                       key="slowestTransaction"
                       replay={replay}
                       organization={organization}
+                    />
+                  );
+
+                case ReplayColumn.MOST_DEAD_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostDeadClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                    />
+                  );
+
+                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+                  return (
+                    <ReplayCell
+                      key="mostErroneousReplays"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
                     />
                   );
 
@@ -140,13 +180,21 @@ function ReplayTable({
   );
 }
 
+const flexibleColumns = [
+  ReplayColumn.REPLAY,
+  ReplayColumn.MOST_DEAD_CLICKS,
+  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
+];
+
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+      )
       .join(' ')};
 `;
 
