@@ -623,6 +623,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group=group, type=ActivityType.SET_REGRESSION.value
         )
         assert regressed_activity.data["version"] == "b"
+        assert regressed_activity.data["follows_semver"] is False
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
@@ -685,6 +686,59 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_regression_activity_follows_semver(self, plugin_is_regression):
+        """
+        If the project follows semver then the regression activity should have `follows_semver` set
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": "", "current_release_version": "pre foobar"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@1.0.1")
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "foo@1.0.1"
+
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+        assert regressed_activity.data["version"] == "foo@1.0.1"
+        assert regressed_activity.data["follows_semver"] is True
 
     def test_has_pending_commit_resolution(self):
         project_id = self.project.id
