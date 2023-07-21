@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose, IconFlag} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
@@ -62,8 +63,13 @@ export default function SourceMapsWizard() {
         size="medium"
         icon={<IconFlag size="xl" />}
         title={t("Sentry isn't Sentry without source maps")}
-        description={t(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping.'
+        description={tct(
+          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps" />
+            ),
+          }
         )}
       >
         <StyledCodeSnipped
