@@ -444,7 +444,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         organization: Organization,
         release: Optional[str],
         dist: Optional[str],
-        project_ids: Optional[List[int]],
+        project_ids: List[int],
     ):
         super().__init__(assemble_result)
         self.organization = organization
@@ -474,7 +474,17 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         # We want to measure how much time it takes to extract debug ids from manifest.
         with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
-            bundle_id, debug_ids_with_types = self.archive.extract_debug_ids_from_manifest()
+            debug_ids_with_types = self.archive.extract_debug_ids_from_manifest()
+
+        bundle_id = self.archive.extract_bundle_id()
+        if not bundle_id:
+            # In case we didn't find the bundle_id in the manifest, we will just generate our own.
+            # XXX: can this ever fail / return `None`?
+            bundle_id = ArtifactBundleArchive.normalize_debug_id(
+                self.assemble_result.bundle.checksum
+            )
+            if not bundle_id:
+                bundle_id = uuid.uuid4().hex
 
         analytics.record(
             "artifactbundle.manifest_extracted",
@@ -508,7 +518,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 router.db_for_write(DebugIdArtifactBundle),
             )
         ):
-            artifact_bundle, created = self._bind_or_create_artifact_bundle(
+            artifact_bundle, created = self._create_or_update_artifact_bundle(
                 bundle_id=bundle_id, date_added=date_snapshot
             )
 
@@ -525,7 +535,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for project_id in self.projects_ids or ():
+            for project_id in self.projects_ids:
                 ProjectArtifactBundle.objects.create_or_update(
                     organization_id=self.organization.id,
                     project_id=project_id,
@@ -544,19 +554,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-        try:
-            organization = Organization.objects.get_from_cache(id=self.organization.id)
-        except Organization.DoesNotExist:
-            organization = None
-
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
         # not support them, some files were not injected...).
-        if (
-            organization is not None
-            and self.release
-            and features.has("organizations:sourcemaps-bundle-indexing", organization, actor=None)
+        if self.release and features.has(
+            "organizations:sourcemaps-bundle-indexing", self.organization, actor=None
         ):
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
@@ -567,8 +570,8 @@ class ArtifactBundlePostAssembler(PostAssembler):
             )
 
     @sentry_sdk.tracing.trace
-    def _bind_or_create_artifact_bundle(
-        self, bundle_id: Optional[str], date_added: datetime
+    def _create_or_update_artifact_bundle(
+        self, bundle_id: str, date_added: datetime
     ) -> Tuple[ArtifactBundle, bool]:
         existing_artifact_bundles = list(
             ArtifactBundle.objects.filter(organization_id=self.organization.id, bundle_id=bundle_id)
@@ -587,8 +590,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         if existing_artifact_bundle is None:
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,
-                # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-                bundle_id=bundle_id or uuid.uuid4().hex,
+                bundle_id=bundle_id,
                 file=self.assemble_result.bundle,
                 artifact_count=self.archive.artifact_count,
                 # By default, a bundle is not indexed.
@@ -704,9 +706,16 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
 
 def prepare_post_assembler(
-    assemble_result, organization, release, dist, project_ids, upload_as_artifact_bundle
+    assemble_result: AssembleResult,
+    organization: Organization,
+    release: Optional[str],
+    dist: Optional[str],
+    project_ids: Optional[List[int]],
+    upload_as_artifact_bundle: bool,
 ) -> PostAssembler:
     if upload_as_artifact_bundle:
+        if not project_ids:
+            raise AssembleArtifactsError("uploading a bundle without a project is prohibited")
         return ArtifactBundlePostAssembler(
             assemble_result=assemble_result,
             organization=organization,
@@ -715,6 +724,8 @@ def prepare_post_assembler(
             project_ids=project_ids,
         )
     else:
+        if not release:
+            raise AssembleArtifactsError("uploading a bundle without a release is prohibited")
         return ReleaseBundlePostAssembler(
             assemble_result=assemble_result, organization=organization, version=release
         )
@@ -735,9 +746,6 @@ def assemble_artifacts(
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
-    if project_ids is None:
-        project_ids = []
-
     # We want to evaluate the type of assemble task given the input parameters.
     assemble_task = (
         AssembleTask.ARTIFACT_BUNDLE if upload_as_artifact_bundle else AssembleTask.RELEASE_BUNDLE
