@@ -38,7 +38,7 @@ type Props = {
   saveLocation?: boolean;
 };
 
-export function ReplayTable({
+function ReplayTable({
   fetchError,
   isFetching,
   replays,
@@ -214,3 +214,5 @@ const StyledAlert = styled(Alert)`
   grid-column: 1/-1;
   margin-bottom: 0;
 `;
+
+export default ReplayTable;
