@@ -70,9 +70,7 @@ def link_all_repos(
     for repo in repositories:
         try:
             config = get_repo_config(repo, integration_id)
-            integration_repo_provider.create_repository(
-                repo_config=config, organization=organization
-            )
+            integration_repo_provider.create_repository(repo_config=config, organization=rpc_org)
         except KeyError:
             continue
         except RepoExistsError:
