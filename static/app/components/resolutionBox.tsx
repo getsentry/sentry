@@ -43,16 +43,7 @@ function renderReason(
     | GroupActivitySetByResolvedInNextRelease
     | undefined;
 
-  if (statusDetails.inNextRelease && statusDetails.actor) {
-    return tct('[actor] marked this issue as resolved in the upcoming release.', {
-      actor,
-    });
-  }
   if (statusDetails.inNextRelease) {
-    return t('This issue has been marked as resolved in the upcoming release.');
-  }
-
-  if (statusDetails.inRelease) {
     // Resolved in next release has current_release_version
     if (relevantActivity && 'current_release_version' in relevantActivity.data) {
       const version = (
@@ -65,7 +56,10 @@ function renderReason(
       return statusDetails.actor
         ? tct(
             '[actor] marked this issue as resolved in versions greater than [version].',
-            {actor, version}
+            {
+              actor,
+              version,
+            }
           )
         : tct(
             'This issue has been marked as resolved in versions greater than [version].',
@@ -73,6 +67,13 @@ function renderReason(
           );
     }
 
+    return actor
+      ? tct('[actor] marked this issue as resolved in the upcoming release.', {
+          actor,
+        })
+      : t('This issue has been marked as resolved in the upcoming release.');
+  }
+  if (statusDetails.inRelease) {
     const version = (
       <Version
         version={statusDetails.inRelease}
