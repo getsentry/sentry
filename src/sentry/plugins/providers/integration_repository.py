@@ -18,6 +18,7 @@ from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.utils import metrics
@@ -89,15 +90,6 @@ class IntegrationRepositoryProvider:
         external_id = result.get("external_id")
         name = result.get("name")
 
-        repo_update_params = {
-            "external_id": external_id,
-            "url": result.get("url"),
-            "config": result.get("config") or {},
-            "provider": self.id,
-            "integration_id": integration_id,
-            "name": name,
-        }
-
         # first check if there is an existing hidden repository with an integration that matches
         repositories = repository_service.get_repositories(
             organization_id=organization.id,
@@ -123,6 +115,16 @@ class IntegrationRepositoryProvider:
         )
         repo = repositories[0] if repositories else None
 
+        repo_update_params = {
+            "external_id": external_id,
+            "url": result.get("url"),
+            "config": result.get("config") or {},
+            "provider": self.id,
+            "integration_id": integration_id,
+            "name": name,
+            "status": ObjectStatus.ACTIVE,
+        }
+
         if repo:
             if self.logger:
                 self.logger.info(
@@ -142,12 +144,11 @@ class IntegrationRepositoryProvider:
                 organization_id=organization.id, update=existing_repo
             )
         else:
-            try:
-                with transaction.atomic(router.db_for_write(Repository)):
-                    repo = Repository.objects.create(
-                        organization_id=organization.id, **repo_update_params
-                    )
-            except IntegrityError:
+            create_repository = RpcCreateRepository.parse_obj(repo_update_params)
+            new_repository = repository_service.create_repository(
+                organization_id=organization.id, create=create_repository
+            )
+            if new_repository is None:
                 # Try to delete webhook we just created
                 try:
                     repo = Repository(organization_id=organization.id, **repo_update_params)
