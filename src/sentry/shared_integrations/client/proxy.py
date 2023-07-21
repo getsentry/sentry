@@ -54,7 +54,7 @@ def infer_org_integration(
 
 
 def get_proxy_url() -> str:
-    control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", "")
+    control_address = settings.SENTRY_CONTROL_ADDRESS
     return urljoin(control_address, PROXY_BASE_PATH)
 
 
