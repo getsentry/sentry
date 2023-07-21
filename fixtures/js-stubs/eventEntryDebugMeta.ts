@@ -42,14 +42,14 @@ export function EventEntryDebugMeta(params = {}): EntryDebugMeta {
               },
               location: 'burgenland',
               source_name: 'Austria',
-              source: 'sentry:project',
+              source: 'sentry://project_debug_file/18',
             },
             {
               download: {
                 status: CandidateDownloadStatus.MALFORMED,
               },
               location: 'brussels',
-              source: 'sentry:project',
+              source: 'sentry://project_debug_file/19',
               source_name: 'Belgium',
             },
             {
@@ -57,7 +57,7 @@ export function EventEntryDebugMeta(params = {}): EntryDebugMeta {
                 status: CandidateDownloadStatus.MALFORMED,
               },
               location: 'arizona',
-              source: 'sentry:project',
+              source: 'sentry://project_debug_file/20',
               source_name: 'America',
             },
           ],
