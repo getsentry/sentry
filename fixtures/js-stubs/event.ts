@@ -5,10 +5,7 @@ export function Event(params = {}): TEvent {
     id: '1',
     message: 'ApiException',
     title: 'ApiException',
-    metadata: {
-      type: 'ApiException',
-      value: '',
-    },
+    metadata: {},
     entries: [],
     projectID: '1',
     groupID: '1',
