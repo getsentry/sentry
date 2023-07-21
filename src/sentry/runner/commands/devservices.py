@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import os
 import platform
+import shutil
 import signal
 import subprocess
 import sys
@@ -25,7 +26,7 @@ DARWIN = sys.platform == "darwin"
 # 12.3.1: arm64
 APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
-USE_COLIMA = bool(os.environ.get("USE_COLIMA"))
+USE_COLIMA = bool(shutil.which("colima"))
 
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
@@ -35,15 +36,12 @@ else:
         "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
     )
 
-if os.path.exists(RAW_SOCKET_PATH):
-    os.environ["DOCKER_HOST"] = f"unix://{RAW_SOCKET_PATH}"
-
 
 @contextlib.contextmanager
 def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    with contextlib.closing(docker.from_env()) as client:
+    with contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}")) as client:
         try:
             client.ping()
         except (requests.exceptions.ConnectionError, docker.errors.APIError):
