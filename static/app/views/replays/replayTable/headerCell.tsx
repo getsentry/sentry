@@ -12,17 +12,10 @@ type Props = {
 function HeaderCell({column, sort, headersSortable}: Props) {
   switch (column) {
     case ReplayColumn.ACTIVITY:
-      return headersSortable ? (
+      return (
         <SortableHeader
-          sort={sort}
+          sort={headersSortable ? sort : undefined}
           fieldName="activity"
-          label={t('Activity')}
-          tooltip={t(
-            'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
-          )}
-        />
-      ) : (
-        <SortableHeader
           label={t('Activity')}
           tooltip={t(
             'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
@@ -34,17 +27,10 @@ function HeaderCell({column, sort, headersSortable}: Props) {
       return <SortableHeader sort={sort} fieldName="browser.name" label={t('Browser')} />;
 
     case ReplayColumn.COUNT_DEAD_CLICKS:
-      return headersSortable ? (
+      return (
         <SortableHeader
-          sort={sort}
+          sort={headersSortable ? sort : undefined}
           fieldName="count_dead_clicks"
-          label={t('Dead Clicks')}
-          tooltip={t(
-            'A dead click is a user click that does not result in any page activity after 7 seconds.'
-          )}
-        />
-      ) : (
-        <SortableHeader
           label={t('Dead clicks')}
           tooltip={t(
             'A dead click is a user click that does not result in any page activity after 7 seconds.'
@@ -53,24 +39,19 @@ function HeaderCell({column, sort, headersSortable}: Props) {
       );
 
     case ReplayColumn.COUNT_ERRORS:
-      return headersSortable ? (
-        <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />
-      ) : (
-        <SortableHeader fieldName="count_errors" label={t('Errors')} />
+      return (
+        <SortableHeader
+          sort={headersSortable ? sort : undefined}
+          fieldName="count_errors"
+          label={t('Errors')}
+        />
       );
 
     case ReplayColumn.COUNT_RAGE_CLICKS:
-      return headersSortable ? (
+      return (
         <SortableHeader
-          sort={sort}
+          sort={headersSortable ? sort : undefined}
           fieldName="count_rage_clicks"
-          label={t('Rage Clicks')}
-          tooltip={t(
-            'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds.'
-          )}
-        />
-      ) : (
-        <SortableHeader
           label={t('Rage clicks')}
           tooltip={t(
             'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds.'
@@ -79,10 +60,12 @@ function HeaderCell({column, sort, headersSortable}: Props) {
       );
 
     case ReplayColumn.DURATION:
-      return headersSortable ? (
-        <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />
-      ) : (
-        <SortableHeader fieldName="duration" label={t('Duration')} />
+      return (
+        <SortableHeader
+          sort={headersSortable ? sort : undefined}
+          fieldName="duration"
+          label={t('Duration')}
+        />
       );
 
     case ReplayColumn.OS:
