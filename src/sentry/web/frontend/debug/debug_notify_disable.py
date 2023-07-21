@@ -17,7 +17,9 @@ class DebugNotifyDisableView(View):
         return MailPreview(
             html_template="sentry/integrations/notify-disable.html",
             text_template="sentry/integrations/notify-disable.txt",
-            context={"integration_name":integration_name,
-            "integration_link":integration_link,
-            "settings_link":settings_link
-            }).render(request)
+            context={
+                "integration_name": integration_name,
+                "integration_link": integration_link,
+                "settings_link": settings_link,
+            },
+        ).render(request)
