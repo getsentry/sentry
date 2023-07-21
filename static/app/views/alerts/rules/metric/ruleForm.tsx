@@ -800,19 +800,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return this.renderBody();
   }
 
-  renderBody() {
+  renderTriggerChart() {
+    const {organization, ruleId, rule} = this.props;
+
     const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      router,
-      disableProjectSelector,
-      eventView,
-      location,
-    } = this.props;
-    const {
-      name,
       query,
       project,
       timeWindow,
@@ -820,15 +811,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
-      loading,
       eventTypes,
       dataset,
       alertType,
       isQueryValid,
+      location,
     } = this.state;
 
     const chartProps = {
@@ -848,11 +838,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
+      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, query),
     };
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
-        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
@@ -867,6 +858,39 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         }
       />
     );
+
+    return wizardBuilderChart;
+  }
+
+  renderBody() {
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
+    const {
+      name,
+      query,
+      project,
+      timeWindow,
+      triggers,
+      aggregate,
+      thresholdType,
+      thresholdPeriod,
+      comparisonDelta,
+      comparisonType,
+      resolveThreshold,
+      loading,
+      eventTypes,
+      dataset,
+      alertType,
+    } = this.state;
+
+    const wizardBuilderChart = this.renderTriggerChart();
 
     const triggerForm = (disabled: boolean) => (
       <Triggers

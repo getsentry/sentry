@@ -65,7 +65,7 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
-
+from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
     ObjectStatus.DISABLED: "deleted",
@@ -620,6 +620,7 @@ class OrganizationProjectResponse(
     hasUserReports: bool
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
+    sampleRate: Optional[float]
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -750,6 +751,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
+            sampleRate=get_guarded_blended_sample_rate(obj.organization, obj)
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]

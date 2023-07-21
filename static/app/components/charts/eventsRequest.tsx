@@ -239,9 +239,12 @@ interface EventsRequestPropsWithoutTimeAggregation
   timeAggregationSeriesName?: undefined;
 }
 
-export type EventsRequestProps =
+export type EventsRequestProps = (
   | EventsRequestPropsWithTimeAggregation
-  | EventsRequestPropsWithoutTimeAggregation;
+  | EventsRequestPropsWithoutTimeAggregation
+) & {
+  sampleRate?: number;
+};
 
 type EventsRequestState = {
   errored: boolean;

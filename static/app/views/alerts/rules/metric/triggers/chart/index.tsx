@@ -11,6 +11,7 @@ import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import OnDemandMetricRequest from 'sentry/components/charts/onDemandMetricsRequest';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
@@ -22,11 +23,12 @@ import {
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {IconSettings, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   EventsStats,
+  EventsStatsData,
   MultiSeriesEventsStats,
   Organization,
   Project,
@@ -39,6 +41,7 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+// import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -75,6 +78,7 @@ type Props = {
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
   comparisonDelta?: number;
+  handleOnDemandMetricAlert?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
 };
@@ -277,7 +281,6 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       aggregate,
       comparisonType,
-      isOnDemandMetricAlert,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -293,8 +296,6 @@ class TriggersChart extends PureComponent<Props, State> {
         <TransparentLoadingMask visible={isReloading} />
         {isLoading && !error ? (
           <ChartPlaceholder />
-        ) : isOnDemandMetricAlert ? (
-          <WarningChart />
         ) : error ? (
           <ErrorChart
             isAllowIndexed={orgFeatures.includes('alert-allow-indexed')}
@@ -340,7 +341,6 @@ class TriggersChart extends PureComponent<Props, State> {
               selected={period}
               onChange={this.handleStatsPeriodChange}
               title={t('Display')}
-              disabled={isOnDemandMetricAlert}
             />
           </InlineContainer>
         </ChartControls>
@@ -380,15 +380,57 @@ class TriggersChart extends PureComponent<Props, State> {
       newAlertOrQuery,
     });
 
-    // Currently we don't have anything to show for on-demand metric alerts
     if (isOnDemandMetricAlert) {
-      return this.renderChart({
-        timeseriesData: [],
-        isQueryValid: true,
-        isLoading: false,
-        isReloading: false,
-        orgFeatures: organization.features,
-      });
+      return (
+        <OnDemandMetricRequest
+          api={api}
+          organization={organization}
+          query={query}
+          environment={environment ? [environment] : undefined}
+          project={projects.map(({id}) => Number(id))}
+          interval={`${timeWindow}m`}
+          comparisonDelta={comparisonDelta && comparisonDelta * 60}
+          period={period}
+          yAxis={aggregate}
+          includePrevious={false}
+          currentSeriesNames={[aggregate]}
+          partial={false}
+          queryExtras={queryExtras}
+          sampleRate={projects[0]?.sampleRate}
+        >
+          {({
+            loading,
+            errored,
+            errorMessage,
+            reloading,
+            timeseriesData,
+            comparisonTimeseriesData,
+          }) => {
+            let comparisonMarkLines: LineChartSeries[] = [];
+            if (renderComparisonStats && comparisonTimeseriesData) {
+              comparisonMarkLines = getComparisonMarkLines(
+                timeseriesData,
+                comparisonTimeseriesData,
+                timeWindow,
+                triggers,
+                thresholdType
+              );
+            }
+
+            return this.renderChart({
+              timeseriesData: timeseriesData as Series[],
+              isLoading: loading,
+              isReloading: reloading,
+              comparisonData: comparisonTimeseriesData,
+              comparisonMarkLines,
+              errorMessage,
+              isQueryValid,
+              errored,
+              orgFeatures: organization.features,
+            });
+          }}
+        </OnDemandMetricRequest>
+      );
     }
 
     return isSessionAggregate(aggregate) ? (
@@ -448,7 +490,6 @@ class TriggersChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={handleMEPAlertDataset}
-        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({
           loading,
@@ -523,21 +564,6 @@ function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
 
       <StyledErrorPanel>
         <IconWarning color="gray500" size="lg" />
-      </StyledErrorPanel>
-    </ChartErrorWrapper>
-  );
-}
-
-function WarningChart() {
-  return (
-    <ChartErrorWrapper>
-      <PanelAlert type="info">
-        {t(
-          'Selected filters include advanced conditions, which is a feature that is currently in early access. We will start collecting data for the chart once this alert rule is saved.'
-        )}
-      </PanelAlert>
-      <StyledErrorPanel>
-        <IconSettings color="gray500" size="lg" />
       </StyledErrorPanel>
     </ChartErrorWrapper>
   );

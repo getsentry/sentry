@@ -215,7 +215,7 @@ def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
 
 
 def is_on_demand_query(
-    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+        dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
 ) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
 
@@ -306,7 +306,9 @@ class OndemandMetricSpec:
 
         """
 
-        self._init__query(query)
+        # On-demand metrics are implicitly transaction metrics. Remove the
+        # filter from the query since it can't be translated to a RuleCondition.
+        self._query = re.sub(r"event\.type:transaction\s*", "", query).strip()
         self._init_aggregate(field)
 
     def _init__query(self, query: str) -> None:
@@ -329,7 +331,7 @@ class OndemandMetricSpec:
         # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
         function, arguments, _alias = fields.parse_function(aggregate)
         assert (
-            function in _AGGREGATE_TO_METRIC_TYPE and function in _SEARCH_TO_METRIC_AGGREGATES
+                function in _AGGREGATE_TO_METRIC_TYPE and function in _SEARCH_TO_METRIC_AGGREGATES
         ), f"Unsupported aggregate function {function}"
         self.metric_type = _AGGREGATE_TO_METRIC_TYPE[function]
         self.op = _SEARCH_TO_METRIC_AGGREGATES[function]
