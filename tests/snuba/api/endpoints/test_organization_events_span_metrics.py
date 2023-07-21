@@ -172,6 +172,27 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_p50_with_duration(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["p50(span.duration)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["p50(span.duration)"] == 1
+        assert meta["dataset"] == "spansMetrics"
+
     def test_eps(self):
         for _ in range(6):
             self.store_span_metric(
@@ -558,3 +579,44 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[3]["span.module"] == "http"
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["p50(span.self_time)"] == "duration"
+
+
+@region_silo_test
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_time_spent_percentage(self):
+        super().test_time_spent_percentage()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_time_spent_percentage_local(self):
+        super().test_time_spent_percentage_local()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_error_rate_and_count(self):
+        super().test_http_error_rate_and_count()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_percentile_percent_change(self):
+        super().test_percentile_percent_change()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_error_count_percent_change(self):
+        super().test_http_error_count_percent_change()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_epm_percent_change(self):
+        super().test_epm_percent_change()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_eps_percent_change(self):
+        super().test_eps_percent_change()
+
+    @pytest.mark.xfail(reason="Cannot group by transform")
+    def test_span_module(self):
+        super().test_span_module()

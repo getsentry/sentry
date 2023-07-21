@@ -57,6 +57,7 @@ def query(
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
         has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
         transform_alias_to_input_format=transform_alias_to_input_format,
         skip_tag_resolution=skip_tag_resolution,
     )
@@ -91,6 +92,7 @@ def timeseries_query(
         selected_columns=selected_columns,
         functions_acl=functions_acl,
         allow_metric_aggregates=allow_metric_aggregates,
+        use_metrics_layer=use_metrics_layer,
         groupby=groupby,
     )
     result = metrics_query.run_query(referrer)

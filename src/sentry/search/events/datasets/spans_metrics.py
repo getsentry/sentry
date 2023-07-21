@@ -39,11 +39,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
-    def resolve_value(self, value: str) -> int:
-        value_id = self.builder.resolve_tag_value(value)
-
-        return value_id
-
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
@@ -568,3 +563,256 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
+
+
+class SpansMetricsLayerDatasetConfig(DatasetConfig):
+    missing_function_error = IncompatibleMetricsQuery
+
+    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+        self.builder = builder
+        self.total_span_duration: Optional[float] = None
+
+    def resolve_mri(self, value) -> Column:
+        if value == "span.self_time" and not self.builder.has_transaction:
+            return Column(constants.SELF_TIME_LIGHT)
+        else:
+            return Column(constants.SPAN_METRICS_MAP[value])
+
+    @property
+    def search_filter_converter(
+        self,
+    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+        return {}
+
+    @property
+    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
+        return {constants.SPAN_MODULE_ALIAS: self._resolve_span_module}
+
+    @property
+    def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
+        """Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since
+        the Metric Layer will actually handle which dataset each function goes to
+        """
+
+        function_converter = {
+            function.name: function
+            for function in [
+                fields.MetricsFunction(
+                    "count_unique",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["user"],
+                            allow_custom_measurements=False,
+                        )
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "count_unique",
+                        [self.resolve_mri("user")],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "epm",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "rate",
+                        [
+                            self.resolve_mri("span.self_time"),
+                            args["interval"],
+                            60,
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "eps",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "rate",
+                        [
+                            self.resolve_mri("span.self_time"),
+                            args["interval"],
+                            1,
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "count",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "count",
+                        [
+                            self.resolve_mri("span.self_time"),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "sum",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "sum",
+                        [self.resolve_mri(args["column"])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "percentile",
+                    required_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    snql_metric_layer=self._resolve_percentile,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p50",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
+                        args=args, alias=alias, fixed_percentile=0.50
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p75",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
+                        args=args, alias=alias, fixed_percentile=0.75
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p95",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
+                        args=args, alias=alias, fixed_percentile=0.95
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p99",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
+                        args=args, alias=alias, fixed_percentile=0.99
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p100",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
+                        args=args, alias=alias, fixed_percentile=1
+                    ),
+                    default_result_type="duration",
+                ),
+            ]
+        }
+
+        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
+            if name in function_converter:
+                function_converter[alias] = function_converter[name].alias_as(alias)
+
+        return function_converter
+
+    @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
+
+    # Query Functions
+    def _resolve_percentile(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+        fixed_percentile: Optional[float] = None,
+    ) -> SelectType:
+        if fixed_percentile is None:
+            fixed_percentile = args["percentile"]
+        if fixed_percentile not in constants.METRIC_PERCENTILES:
+            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+        column = self.resolve_mri(args["column"])
+        return (
+            Function(
+                "max",
+                [
+                    column,
+                ],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                f"p{int(fixed_percentile * 100)}",
+                [
+                    column,
+                ],
+                alias,
+            )
+        )
