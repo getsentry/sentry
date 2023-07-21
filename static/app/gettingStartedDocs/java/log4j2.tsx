@@ -140,8 +140,12 @@ sentry {
         description: (
           <p>
             {tct(
-              'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
-              {log4j2Code: <code />, sentryAppenderCode: <code />}
+              'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryConsoleAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [sentryAppenderCode:SentryAppender] that logs to the Sentry server at the ERROR level.',
+              {
+                log4j2Code: <code />,
+                sentryConsoleAppenderCode: <code />,
+                sentryAppenderCode: <code />,
+              }
             )}
           </p>
         ),

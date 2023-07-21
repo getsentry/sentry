@@ -22,8 +22,8 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
 describe('IssueList -> Polling', function () {
-  let issuesRequest;
-  let pollRequest;
+  let issuesRequest: jest.Mock;
+  let pollRequest: jest.Mock;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -33,9 +33,9 @@ describe('IssueList -> Polling', function () {
     jest.useRealTimers();
   });
 
-  const {organization, project, router, routerContext} = initializeOrg({
+  const {organization, project, routerProps, routerContext} = initializeOrg({
     organization: {
-      access: ['releases'],
+      access: ['project:releases'],
     },
   });
   const savedSearch = TestStubs.Search({
@@ -49,26 +49,17 @@ describe('IssueList -> Polling', function () {
   const group2 = TestStubs.Group({project, id: 2});
 
   const defaultProps = {
-    location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-    params: {orgId: organization.slug},
+    location: TestStubs.location({
+      query: {query: 'is:unresolved'},
+      search: 'query=is:unresolved',
+    }),
+    params: {},
     organization,
   };
 
   /* helpers */
-  const renderComponent = async ({params, location, ...p} = {}) => {
-    const newRouter = {
-      ...router,
-      params: {
-        ...router.params,
-        ...params,
-      },
-      location: {
-        ...router.location,
-        ...location,
-      },
-    };
-
-    render(<IssueList {...newRouter} {...defaultProps} {...p} />, {
+  const renderComponent = async () => {
+    render(<IssueList {...routerProps} {...defaultProps} />, {
       context: routerContext,
     });
 
@@ -134,7 +125,7 @@ describe('IssueList -> Polling', function () {
       body: [group],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': 1,
+        'X-Hits': '1',
       },
     });
     MockApiClient.addMockResponse({
@@ -146,11 +137,11 @@ describe('IssueList -> Polling', function () {
       body: [],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': 1,
+        'X-Hits': '1',
       },
     });
 
-    StreamGroup.mockClear();
+    jest.mocked(StreamGroup).mockClear();
     TagStore.init();
   });
 
@@ -196,7 +187,7 @@ describe('IssueList -> Polling', function () {
       body: [group2],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': 2,
+        'X-Hits': '2',
       },
     });
 
