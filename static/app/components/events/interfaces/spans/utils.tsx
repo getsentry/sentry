@@ -80,7 +80,7 @@ enum TimestampStatus {
   EQUAL = 2,
 }
 
-enum SpanSubTimingMark {
+export enum SpanSubTimingMark {
   SPAN_START = 0,
   SPAN_END = 1,
   HTTP_REQUEST_START = 'http.request.request_start',
@@ -363,7 +363,7 @@ const SPAN_SUB_TIMINGS: Record<string, SubTimingDefinition[]> = {
   ],
 };
 
-function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) {
+export function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) {
   if (mark === SpanSubTimingMark.SPAN_START) {
     return span.start_timestamp;
   }
