@@ -694,7 +694,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         If the project follows semver then the regression activity should have `follows_semver` set.
         We should also record which version the issue was resolved in as `resolved_in_version`.
 
-        This allows the UI to say the issue was resolved in 1.0.0 and regressed in 2.0.0 and
+        This allows the UI to say the issue was resolved in 1.0.0, regressed in 2.0.0 and
         the versions were compared using semver.
         """
         plugin_is_regression.return_value = True

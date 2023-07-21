@@ -1824,7 +1824,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
         )
 
     follows_semver = False
-    activity = None
+    resolved_in_activity = None
     if is_regression and release:
         resolution = None
 
@@ -1845,7 +1845,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
-                activity = Activity.objects.filter(
+                resolved_in_activity = Activity.objects.filter(
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     ident=resolution.id,
@@ -1860,11 +1860,13 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
                     # We also should not override the `data` attribute here because it might have
                     # a `current_release_version` for semver releases and we wouldn't want to
                     # lose that
-                    if activity.data["version"] == "":
-                        activity.update(data={**activity.data, "version": release.version})
+                    if resolved_in_activity.data["version"] == "":
+                        resolved_in_activity.update(
+                            data={**resolved_in_activity.data, "version": release.version}
+                        )
                 except KeyError:
                     # Safeguard in case there is no "version" key. However, should not happen
-                    activity.update(data={"version": release.version})
+                    resolved_in_activity.update(data={"version": release.version})
 
             # Record how we compared the two releases
             follows_semver = follows_semver_versioning_scheme(
@@ -1875,12 +1877,13 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
     if is_regression:
         activity_data = {"event_id": event.event_id, "version": release.version if release else ""}
-        if activity and activity.data.get("version"):
+        if resolved_in_activity is not None:
             activity_data.update(
                 {
                     "follows_semver": follows_semver,
-                    # The version from the most recent SET_RESOLVED_IN_RELEASE activity
-                    "resolved_in_version": activity.data["version"],
+                    "resolved_in_version": resolved_in_activity.data.get(
+                        "version", release.version
+                    ),
                 }
             )
 
