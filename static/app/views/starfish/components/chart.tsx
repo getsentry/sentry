@@ -28,7 +28,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -45,6 +44,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
@@ -65,10 +65,7 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
 
 type Props = {
   data: Series[];
-  end: DateString;
   loading: boolean;
-  start: DateString;
-  statsPeriod: string | null | undefined;
   utc: boolean;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
@@ -148,9 +145,6 @@ function Chart({
   data,
   dataMax,
   previousData,
-  statsPeriod,
-  start,
-  end,
   utc,
   loading,
   height,
@@ -182,6 +176,8 @@ function Chart({
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
+  const pageFilters = usePageFilters();
+  const {start, end, period} = pageFilters.selection.datetime;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -341,7 +337,7 @@ function Chart({
 
   // Trims off the last data point because it's incomplete
   const trimmedSeries =
-    statsPeriod && !start && !end
+    period && !start && !end
       ? series.map(serie => {
           return {
             ...serie,
@@ -376,7 +372,7 @@ function Chart({
       <ChartZoom
         router={router}
         saveOnZoom
-        period={statsPeriod}
+        period={period}
         start={start}
         end={end}
         utc={utc}

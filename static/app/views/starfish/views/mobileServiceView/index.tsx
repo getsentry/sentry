@@ -127,11 +127,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               <ChartsContainerItem>
                 <MiniChartPanel title={t('App Initialization')}>
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[coldStart]}
-                    start={eventView.start as string}
-                    end={eventView.end as string}
                     loading={loading}
                     utc={false}
                     grid={{
@@ -154,11 +151,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
                   <Spacer />
 
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[warmStart]}
-                    start=""
-                    end=""
                     loading={loading}
                     showLegend
                     utc={false}
@@ -183,11 +177,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               <ChartsContainerItem>
                 <MiniChartPanel title={t('Perceived Page Load')}>
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[initialDisplay]}
-                    start={eventView.start as string}
-                    end={eventView.end as string}
                     loading={loading}
                     utc={false}
                     grid={{
@@ -210,11 +201,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
                   <Spacer />
 
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[fullDisplay]}
-                    start=""
-                    end=""
                     loading={loading}
                     showLegend
                     utc={false}
@@ -239,11 +227,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               <ChartsContainerItem>
                 <MiniChartPanel title={t('Responsiveness')}>
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[slowFrames]}
-                    start={eventView.start as string}
-                    end={eventView.end as string}
                     loading={loading}
                     utc={false}
                     grid={{
@@ -266,11 +251,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
                   <Spacer />
 
                   <Chart
-                    statsPeriod={eventView.statsPeriod}
                     height={125}
                     data={[frozenFrames]}
-                    start=""
-                    end=""
                     loading={loading}
                     showLegend
                     utc={false}
