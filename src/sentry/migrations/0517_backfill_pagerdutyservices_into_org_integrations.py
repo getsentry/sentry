@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "516_switch_pagerduty_silo"),
+        ("sentry", "0516_switch_pagerduty_silo"),
     ]
 
     operations = [
