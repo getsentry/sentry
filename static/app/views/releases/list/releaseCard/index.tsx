@@ -17,7 +17,6 @@ import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
@@ -130,18 +129,13 @@ class ReleaseCard extends Component<Props> {
             )}
           </ReleaseInfoHeader>
           <ReleaseInfoSubheader>
-            <PackageSemver>
-              {versionInfo?.package && (
+            {versionInfo?.package && (
+              <PackageName>
                 <TextOverflow ellipsisDirection="left">
                   {versionInfo.package}
                 </TextOverflow>
-              )}
-              {organization.features.includes('issue-release-semver')
-                ? isVersionInfoSemver(versionInfo.version)
-                  ? t('(semver)')
-                  : t('(timestamp)')
-                : null}
-            </PackageSemver>
+              </PackageName>
+            )}
             <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
             {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
           </ReleaseInfoSubheader>
@@ -254,7 +248,7 @@ const ReleaseInfoSubheader = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const PackageSemver = styled('div')`
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   display: flex;

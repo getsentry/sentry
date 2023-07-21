@@ -251,7 +251,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               semver: organization.features.includes('issue-release-semver')
                 ? isSemverRelease(currentVersion)
                   ? t('(semver)')
-                  : t('(timestamp)')
+                  : t('(non-semver)')
                 : '',
             }
           );
@@ -267,7 +267,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               semver: organization.features.includes('issue-release-semver')
                 ? isSemverRelease(version)
                   ? t('(semver)')
-                  : t('(timestamp)')
+                  : t('(non-semver)')
                 : '',
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {

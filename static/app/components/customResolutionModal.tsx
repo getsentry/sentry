@@ -40,7 +40,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
             {hasIssueReleaseSemver
               ? isVersionInfoSemver(release.versionInfo.version)
                 ? t('(semver)')
-                : t('(timestamp)')
+                : t('(non-semver)')
               : null}
           </Fragment>
         ),
