@@ -183,11 +183,31 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
+    @patch("sentry.models.Repository.objects.create")
+    @patch("sentry.plugins.providers.integration_repository.metrics")
+    @responses.activate
+    def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, _):
+        mock_repo.side_effect = IntegrityError
+
+        self._add_responses()
+
+        link_all_repos(
+            integration_key=self.key,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
+
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.models.Repository.objects.create")
+    @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     @responses.activate
-    def test_link_all_repos_repo_creation_error(self, mock_repo, mock_capture_exception, _):
+    def test_link_all_repos_repo_creation_exception(
+        self, mock_delete_repo, mock_repo, mock_capture_exception, _
+    ):
         mock_repo.side_effect = IntegrityError
+        mock_delete_repo.side_effect = Exception
 
         self._add_responses()
 
