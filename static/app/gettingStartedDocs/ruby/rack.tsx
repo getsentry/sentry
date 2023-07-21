@@ -30,9 +30,10 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Add use [code:Sentry::Rack::CaptureExceptions] to your [code:config.ru] or other rackup file (this is automatically inserted in Rails):',
+          'Add use [sentryRackCode:Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
           {
-            code: <code />,
+            sentryRackCode: <code />,
+            sentryConfigCode: <code />,
           }
         )}
       </p>

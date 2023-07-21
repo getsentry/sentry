@@ -34,8 +34,11 @@ export const steps = ({
         description: (
           <p>
             {tct(
-              'Due to a bug in all versions below "6.0" of the [code:SensioFrameworkExtraBundle] bundle, you will likely receive an error during the execution of the command above related to the missing [code:NyholmPsr7FactoryPsr17Factory] class. To workaround the issue, if you are not using the PSR-7 bridge, please change the configuration of that bundle as follows:',
-              {code: <code />}
+              'Due to a bug in all versions below "6.0" of the [sensioFrameworkExtraBundleCode:SensioFrameworkExtraBundle] bundle, you will likely receive an error during the execution of the command above related to the missing [nyholmPsr7FactoryPsr17FactoryCode:NyholmPsr7FactoryPsr17Factory] class. To workaround the issue, if you are not using the PSR-7 bridge, please change the configuration of that bundle as follows:',
+              {
+                sensioFrameworkExtraBundleCode: <code />,
+                nyholmPsr7FactoryPsr17FactoryCode: <code />,
+              }
             )}
           </p>
         ),

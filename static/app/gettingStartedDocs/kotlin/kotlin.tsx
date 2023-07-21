@@ -72,12 +72,8 @@ dependencies {
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct("Configure Sentry as soon as possible in your application's lifecycle:", {
-          code: <code />,
-        })}
-      </p>
+    description: t(
+      "Configure Sentry as soon as possible in your application's lifecycle:"
     ),
     configurations: [
       {
