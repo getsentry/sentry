@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Dict
+from urllib.parse import urljoin
 
 from django.http import Http404, HttpRequest, HttpResponse
 from requests import Request, Response
@@ -129,22 +130,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         return True
 
-    def http_method_not_allowed(self, request):
-        """
-        Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
-        """
-        self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
-        self.log_extra["method"] = request.method
-        self.log_extra["path"] = self.proxy_path
-        self.log_extra["host"] = request.headers.get("Host")
-
-        if not self._should_operate(request):
-            raise Http404
-
-        full_url = f"{self.client.base_url}/{self.proxy_path}"
-        self.log_extra["full_url"] = full_url
-        headers = clean_outbound_headers(request.headers)
-
+    def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
         prepared_request = Request(
             method=request.method,
             url=full_url,
@@ -160,17 +146,41 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             prepared_request=prepared_request,
             raw_response=True,
         )
-        response = HttpResponse(
+        clean_headers = clean_outbound_headers(raw_response.headers)
+        return HttpResponse(
             content=raw_response.content,
             status=raw_response.status_code,
             reason=raw_response.reason,
-            content_type=raw_response.headers.get("Content-Type"),
-            # XXX: Can be added in Django 3.2
-            # headers=raw_response.headers
+            headers=clean_headers,
         )
-        valid_headers = clean_outbound_headers(raw_response.headers)
-        for header, value in valid_headers.items():
-            response[header] = value
+
+    def http_method_not_allowed(self, request):
+        """
+        Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
+        """
+        self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
+        self.log_extra["method"] = request.method
+        self.log_extra["path"] = self.proxy_path
+        self.log_extra["host"] = request.headers.get("Host")
+
+        if not self._should_operate(request):
+            raise Http404
+
+        full_url = urljoin(self.client.base_url, self.proxy_path)
+        self.log_extra["full_url"] = full_url
+        headers = clean_outbound_headers(request.headers)
+
+        if self.client.should_delegate():
+            response: HttpResponse = self.client.delegate(
+                request=request,
+                proxy_path=self.proxy_path,
+                headers=headers,
+            )
+        else:
+            response = self._call_third_party_api(
+                request=request, full_url=full_url, headers=headers
+            )
+
         metrics.incr("hc.integration_proxy.success")
         logger.info("proxy_success", extra=self.log_extra)
         return response
