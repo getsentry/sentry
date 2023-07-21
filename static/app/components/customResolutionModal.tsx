@@ -21,7 +21,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   const [version, setVersion] = useState('');
   const currentUser = configStore.get('user');
   const hasIssueResolveSemver =
-    props.organization.features.includes('issue-resolve-semver');
+    props.organization.features.includes('issue-release-semver');
 
   const onChange = (selection: string | number | boolean) => {
     setVersion(selection as string);

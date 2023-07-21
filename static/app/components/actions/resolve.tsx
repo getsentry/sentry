@@ -151,7 +151,7 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
+    const hasIssueResolveSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
