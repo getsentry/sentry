@@ -168,7 +168,6 @@ function SpanSummaryPage({params, location}: Props) {
                       span?.[SPAN_OP] !== 'db.redis' && (
                         <Block title={t('Table')}>{span?.[SPAN_DOMAIN]}</Block>
                       )}
-                    <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                     <Block
                       title={getThroughputTitle(span?.[SPAN_OP])}
                       description={tct('Throughput of this [spanType] per second', {
