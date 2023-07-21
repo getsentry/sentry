@@ -121,7 +121,8 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
 }
 
-# Query fields that on their own do not require on-demand metric extraction.
+# Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
+# will be converted to metric extraction conditions.
 _STANDARD_METRIC_FIELDS = [
     "release",
     "dist",
@@ -135,7 +136,9 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
+    # These fields are skipped during on demand spec generation and will not be converted to metric extraction conditions
     "event.type",
+    "project",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
@@ -222,9 +225,8 @@ def is_on_demand_query(
     for field in _get_aggregate_fields(aggregate):
         if not _is_standard_metrics_field(field):
             return True
-
     try:
-        return not _is_standard_metrics_query(event_search.parse_search_query(query or ""))
+        return not _is_standard_metrics_query(event_search.parse_search_query(query))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
@@ -304,10 +306,17 @@ class OndemandMetricSpec:
 
         """
 
-        # On-demand metrics are implicitly transaction metrics. Remove the
-        # filter from the query since it can't be translated to a RuleCondition.
-        self._query = re.sub(r"event\.type:transaction\s*", "", query)
+        self._init__query(query)
         self._init_aggregate(field)
+
+    def _init__query(self, query: str) -> None:
+        # On-demand metrics are implicitly transaction metrics. Remove the
+        # filters from the query that can't be translated to a RuleCondition.
+        query = re.sub(r"event\.type:transaction\s*", "", query)
+        # extend the following to also support project:"some-project"
+        query = re.sub(r"project:[\w\"]+\s*", "", query)
+
+        self._query = query.strip()
 
     def _init_aggregate(self, aggregate: str) -> None:
         """

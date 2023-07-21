@@ -305,6 +305,10 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.use_metrics_layer = features.has(
             "organizations:use-metrics-layer", Organization.objects.get_from_cache(id=self.org_id)
         )
+        self.on_demand_metrics_enabled = features.has(
+            "organizations:on-demand-metrics-extraction",
+            Organization.objects.get_from_cache(id=self.org_id),
+        )
 
     @abstractmethod
     def get_snql_aggregations(self) -> List[str]:
@@ -378,6 +382,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             skip_time_conditions=True,
             granularity=self.get_granularity(),
             use_metrics_layer=self.use_metrics_layer,
+            on_demand_metrics_enabled=self.on_demand_metrics_enabled,
         )
         extra_conditions = self.get_snql_extra_conditions()
 
