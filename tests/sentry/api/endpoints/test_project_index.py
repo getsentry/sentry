@@ -5,10 +5,12 @@ from rest_framework import status
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
-from sentry.silo import unguarded_write
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 
@@ -184,7 +186,8 @@ class ProjectsListTest(APITestCase):
             webhook_url="http://example.com",
         )
         # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = SentryAppInstallationToken.objects.first()
         path = reverse(self.endpoint)
         response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
         assert project.name.encode("utf-8") in response.content
@@ -197,11 +200,12 @@ class ProjectsListTest(APITestCase):
             webhook_url="http://example.com",
         )
         # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
-        token = token.api_token.token
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = SentryAppInstallationToken.objects.first()
+            token = token.api_token.token
+            # Delete the token
+            SentryAppInstallationToken.objects.all().delete()
 
-        # Delete the token
-        SentryAppInstallationToken.objects.all().delete()
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -232,7 +236,8 @@ class ProjectsListTest(APITestCase):
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
 
-        ApiToken.objects.all().delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ApiToken.objects.all().delete()
 
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},

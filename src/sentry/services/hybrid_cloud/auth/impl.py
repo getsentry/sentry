@@ -6,6 +6,7 @@ from typing import Any, List, Mapping
 from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models import Count, F, Q
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
@@ -153,10 +154,14 @@ class DatabaseBackedAuthService(AuthService):
         token: Any = None
 
         for authenticator_type in authenticator_types:
-            t = authenticator_type.as_authenticator().authenticate(fake_request)
-            if t is not None:
-                user, token = t
-                break
+            try:
+                t = authenticator_type.as_authenticator().authenticate(fake_request)
+            except AuthenticationFailed:
+                pass
+            else:
+                if t is not None:
+                    user, token = t
+                    break
 
         return AuthenticationContext(
             auth=AuthenticatedToken.from_token(token) if token else None,

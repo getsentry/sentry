@@ -1,5 +1,4 @@
 from django.db.models import Q
-from django.db.models.query import EmptyQuerySet
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +11,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
 from sentry.models import Project, ProjectPlatform
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.search.utils import tokenize_query
 
 
@@ -49,8 +47,9 @@ class ProjectIndexEndpoint(Endpoint):
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             if request.user.is_sentry_app:
-                queryset = SentryAppInstallation.objects.get_projects(request.auth)
-                if isinstance(queryset, EmptyQuerySet):
+                if request.auth.organization_id is not None:
+                    queryset = Project.objects.filter(organization_id=request.auth.organization_id)
+                else:
                     raise AuthenticationFailed("Token not found")
             else:
                 queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)

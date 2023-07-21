@@ -8,7 +8,7 @@ from django.db import models, router, transaction
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
-from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -17,6 +17,7 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
@@ -43,22 +44,13 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
-        from sentry.models import Project, SentryAppInstallationToken
+    def get_projects(self, token: AuthenticatedToken | ApiToken) -> QuerySet[Project]:
+        from sentry.models.project import Project
 
-        try:
-            installation = self.get_by_api_token(token.id).get()
-        except SentryAppInstallation.DoesNotExist:
-            installation = None
-
-        if not installation:
+        if token.organization_id is None:
             return Project.objects.none()
 
-        # TODO(nisanthan): Right now, Internal Integrations can have multiple ApiToken, so we use the join table `SentryAppInstallationToken` to map the one to many relationship. However, for Public Integrations, we can only have 1 ApiToken per installation. So we currently don't use the join table for Public Integrations. We should update to make records in the join table for Public Integrations so that we can have a common abstraction for finding an installation by ApiToken.
-        if installation.sentry_app.status == SentryAppStatus.INTERNAL:
-            return SentryAppInstallationToken.objects.get_projects(token)
-
-        return Project.objects.filter(organization_id=installation.organization_id)
+        return Project.objects.filter(organization_id=token.organization_id)
 
     def get_related_sentry_app_components(
         self,
