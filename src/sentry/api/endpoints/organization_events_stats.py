@@ -183,7 +183,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics")
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
 
         def get_event_stats(
             query_columns: Sequence[str],
