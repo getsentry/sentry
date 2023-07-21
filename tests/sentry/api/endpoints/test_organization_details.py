@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from base64 import b64encode
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +17,7 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models import (
@@ -660,7 +664,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ]
 
         initial_settings = {"trustedRelays": initial_trusted_relays}
-        changed_settings = {"trustedRelays": []}
+        changed_settings: dict[str, Any] = {"trustedRelays": []}
 
         with self.feature("organizations:relay"):
             self.get_success_response(self.organization.slug, **initial_settings)
@@ -1068,9 +1072,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
         self.get_success_response(self.org_2fa.slug)
-
-
-from sentry.api.endpoints.organization_details import TrustedRelaySerializer
 
 
 def test_trusted_relays_option_serialization():

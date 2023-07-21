@@ -1070,18 +1070,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1119,8 +1119,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
     },
 }
 
@@ -1341,10 +1341,6 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Enable Discord integration
-    "organizations:integrations-discord": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1458,6 +1454,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to create a Discord integration
+    "organizations:integrations-discord": False,
+    # Enable Discord integration notifications
+    "organizations:integrations-discord-notifications"
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -3494,6 +3496,7 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     # RPC authentication and address information
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",

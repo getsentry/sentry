@@ -1278,7 +1278,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
 #  values
-DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
+DERIVED_METRICS = {
     derived_metric.metric_mri: derived_metric
     for derived_metric in [
         SingularEntityDerivedMetric(

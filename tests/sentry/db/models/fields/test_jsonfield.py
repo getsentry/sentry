@@ -8,6 +8,7 @@ from sentry.testutils import TestCase
 
 
 class JSONFieldTestModel(models.Model):
+    id = models.AutoField(primary_key=True)
     json = JSONField("test", null=True, blank=True)
 
     class Meta:
@@ -15,6 +16,7 @@ class JSONFieldTestModel(models.Model):
 
 
 class JSONFieldWithDefaultTestModel(models.Model):
+    id = models.AutoField(primary_key=True)
     json = JSONField(default={"sukasuka": "YAAAAAZ"})
 
     class Meta:
@@ -68,12 +70,12 @@ class JSONFieldTest(TestCase):
         obj2 = JSONFieldTestModel.objects.get(id=10)
         self.assertEqual(obj2.json, None)
 
-    def test_db_prep_save(self):
+    def test_db_prep_value(self):
         field = JSONField("test")
         field.set_attributes_from_name("json")
-        self.assertEqual(None, field.get_db_prep_save(None, connection=None))
+        self.assertEqual(None, field.get_db_prep_value(None, connection=None))
         self.assertEqual(
-            '{"spam":"eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
+            '{"spam":"eggs"}', field.get_db_prep_value({"spam": "eggs"}, connection=None)
         )
 
     def test_formfield(self):
