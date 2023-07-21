@@ -466,9 +466,10 @@ const RowHeader = styled('span')<{
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
-  background: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
-  background-color: ${p => p.theme.bodyBackground};
+  background-color: ${p =>
+    p.stacktraceChangesEnabled && p.isSubFrame
+      ? `${p.theme.surface100}`
+      : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
   color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};

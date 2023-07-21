@@ -85,7 +85,6 @@ export function NativeContent({
   }
 
   function getInitialFrameCounts(): {[frameIndex: number]: number} {
-    // console.log('im called');
     let count = 0;
     const countMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
