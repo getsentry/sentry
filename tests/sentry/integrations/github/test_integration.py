@@ -237,11 +237,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        # Updates the existing Repository to belong to the new Integration
-        assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-
-        # Doesn't touch Repositories not accessible by the new Integration
-        assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Updates the existing Repository to belong to the new Integration
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            # Doesn't touch Repositories not accessible by the new Integration
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
     def test_basic_flow(self):
