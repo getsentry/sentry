@@ -49,6 +49,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
    * This will override `MockApiClient.asyncDelay` for this request.
    */
   asyncDelay?: AsyncDelay;
+  query?: Record<string, string | number | boolean | string[] | number[]>;
 }
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
