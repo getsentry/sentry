@@ -789,7 +789,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             not [
                 sf
                 for sf in (search_filters or ())
-                if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
+                if sf.key.name not in self.postgres_only_fields.union(["date"])
             ]
         ):
             group_queryset = (

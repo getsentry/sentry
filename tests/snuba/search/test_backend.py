@@ -984,7 +984,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         results = self.backend.query(
             [self.project],
             environments=[self.environments["production"]],
-            date_to=self.event1.datetime + timedelta(minutes=1),
+            date_to=self.event3.datetime + timedelta(minutes=1),
         )
         assert set(results) == {self.group1}
 
