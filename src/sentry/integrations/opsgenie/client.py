@@ -74,7 +74,7 @@ class OpsgenieClient(IntegrationProxyClient):
                     "Logger": group.logger,
                     "Level": group.get_level_display(),
                     "URL": group.get_absolute_url(),
-                    "Triggering Rules": rules,
+                    # "Triggering Rules": [rule.label for rule in rules],
                     "Release": data.release,
                 },
                 "entity": group.culprit,
@@ -86,6 +86,6 @@ class OpsgenieClient(IntegrationProxyClient):
         else:
             pass
             # print("Not implemented hehe")
-
+        # print("PAYLOAD:", payload)
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.post("/alerts", data=payload, headers=headers)
