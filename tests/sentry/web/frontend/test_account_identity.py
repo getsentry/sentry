@@ -1,6 +1,5 @@
 import pytest
 from django.urls import reverse
-from django.utils.encoding import force_bytes
 
 from sentry import identity
 from sentry.identity.providers.dummy import DummyProvider
@@ -35,7 +34,7 @@ class AccountIdentityTest(TestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert resp.content == force_bytes(DummyProvider.TEMPLATE)
+        assert resp.content == DummyProvider.TEMPLATE.encode()
 
         resp = self.client.post(path, data={"email": "rick@example.com"})
         ident = Identity.objects.get(user=user)
