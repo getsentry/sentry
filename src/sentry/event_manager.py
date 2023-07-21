@@ -1824,6 +1824,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
         )
 
     follows_semver = False
+    activity = None
     if is_regression and release:
         resolution = None
 
@@ -1873,14 +1874,20 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             )
 
     if is_regression:
+        activity_data = {"event_id": event.event_id, "version": release.version if release else ""}
+        if activity and activity.data.get("version"):
+            activity_data.update(
+                {
+                    "follows_semver": follows_semver,
+                    # The version from the most recent SET_RESOLVED_IN_RELEASE activity
+                    "resolved_in_version": activity.data["version"],
+                }
+            )
+
         Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
-            data={
-                "event_id": event.event_id,
-                "version": release.version if release else "",
-                "follows_semver": follows_semver,
-            },
+            data=activity_data,
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 

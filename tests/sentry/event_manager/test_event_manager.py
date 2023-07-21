@@ -688,9 +688,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
-    def test_regression_activity_follows_semver(self, plugin_is_regression):
+    def test_resolved_in_release_regression_activity_follows_semver(self, plugin_is_regression):
         """
-        If the project follows semver then the regression activity should have `follows_semver` set
+        Issue was marked resolved in 1.0.0, regression occurred in 2.0.0.
+        If the project follows semver then the regression activity should have `follows_semver` set.
+        We should also record which version the issue was resolved in as `resolved_in_version`.
+
+        This allows the UI to say the issue was resolved in 1.0.0 and regressed in 2.0.0 and
+        the versions were compared using semver.
         """
         plugin_is_regression.return_value = True
 
@@ -718,12 +723,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             project=group.project,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
-            data={"version": "", "current_release_version": "pre foobar"},
+            data={"version": "foo@1.0.0"},
         )
 
         # Create a regression
         manager = EventManager(
-            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@1.0.1")
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@2.0.0")
         )
         event = manager.save(self.project.id)
         assert event.group_id == group.id
@@ -732,13 +737,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.UNRESOLVED
 
         activity = Activity.objects.get(id=activity.id)
-        assert activity.data["version"] == "foo@1.0.1"
+        assert activity.data["version"] == "foo@1.0.0"
 
         regressed_activity = Activity.objects.get(
             group=group, type=ActivityType.SET_REGRESSION.value
         )
-        assert regressed_activity.data["version"] == "foo@1.0.1"
+        assert regressed_activity.data["version"] == "foo@2.0.0"
         assert regressed_activity.data["follows_semver"] is True
+        assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
     def test_has_pending_commit_resolution(self):
         project_id = self.project.id
