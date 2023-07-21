@@ -4,7 +4,6 @@ import logging
 from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
@@ -157,11 +156,19 @@ class IntegrationRepositoryProvider:
                     pass
 
                 # if possible update the repo with matching integration
-                repo = Repository.objects.filter(
+                repositories = repository_service.get_repositories(
                     organization_id=organization.id,
-                    external_id=external_id,
                     integration_id=integration_id,
-                ).update(**repo_update_params)
+                    external_id=external_id,
+                )
+                repo = repositories[0] if repositories else None
+                if repo:
+                    for field_name, field_value in repo_update_params.items():
+                        setattr(repo, field_name, field_value)
+                    repository_service.update_repository(
+                        organization_id=organization.id,
+                        update=repo,
+                    )
 
                 raise RepoExistsError
 
