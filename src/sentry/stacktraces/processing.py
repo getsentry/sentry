@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, NamedTuple, Optional, Set
+from typing import Any, Callable, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
@@ -21,7 +21,7 @@ op = "stacktrace_processing"
 class StacktraceInfo(NamedTuple):
     stacktrace: Any
     container: Any
-    platforms: Any
+    platforms: set[str]
     is_exception: bool
 
     def __hash__(self) -> int:
@@ -195,10 +195,8 @@ def find_stacktraces_in_data(
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = {
-            frame.get("platform") or data.get("platform")
-            for frame in get_path(stacktrace, "frames", filter=True, default=())
-        }
+        frames = get_path(stacktrace, "frames", filter=True, default=())
+        platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -225,6 +223,15 @@ def find_stacktraces_in_data(
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
+
+
+def _get_frames_metadata(frames: Sequence[Any], fallback_platform: str) -> set[str]:
+    """Create a set of platforms involved"""
+    platforms = set()
+    for frame in frames:
+        platforms.add(frame.get("platform", fallback_platform))
+
+    return platforms
 
 
 def _has_system_frames(frames):
@@ -322,7 +329,7 @@ def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
     infos = find_stacktraces_in_data(data, with_exceptions=True)
-    platforms: Set[str] = set()
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
     for plugin in plugins.all(version=2):
@@ -341,7 +348,7 @@ def should_process_for_stacktraces(data):
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins.base import plugins
 
-    platforms: Set[str] = set()
+    platforms: set[str] = set()
     for info in infos:
         platforms.update(info.platforms or ())
 
