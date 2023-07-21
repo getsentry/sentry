@@ -69,9 +69,11 @@ export const migratedDocs = [
   'node',
   'node-awslambda',
   'node-azurefunctions',
-  'node-gcpfunctions',
+  'node-connect',
   'node-express',
+  'node-gcpfunctions',
   'node-koa',
+  'node-serverlesscloud',
   'electron',
   'elixir',
 ];
