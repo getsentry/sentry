@@ -74,7 +74,7 @@ class OpsgenieClient(IntegrationProxyClient):
                     "Logger": group.logger,
                     "Level": group.get_level_display(),
                     "URL": group.get_absolute_url(),
-                    # "Triggering Rules": [rule.label for rule in rules],
+                    "Triggering Rules": ", ".join([str(rule.id) for rule in rules]),
                     "Release": data.release,
                 },
                 "entity": group.culprit,
