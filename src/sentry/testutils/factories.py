@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import os
 import random
+from base64 import b64encode
 from binascii import hexlify
 from contextlib import contextmanager
 from datetime import datetime
@@ -1531,6 +1532,10 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    def create_basic_auth_header(username: str, password: str = "") -> str:
+        return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
