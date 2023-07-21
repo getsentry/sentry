@@ -201,7 +201,9 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard.'
+        textWithMarkupMatcher(
+          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. Learn more.'
+        )
       )
     ).toBeInTheDocument();
     expect(

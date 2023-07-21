@@ -67,7 +67,10 @@ export default function SourceMapsWizard() {
           'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps" />
+              <ExternalLink
+                openInNewTab
+                href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps"
+              />
             ),
           }
         )}
