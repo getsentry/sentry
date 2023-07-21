@@ -1,4 +1,4 @@
-import {EntryStacktrace, EntryType} from 'sentry/types';
+import {type EntryStacktrace, EntryType} from 'sentry/types';
 
 export function EventEntryStacktrace(params = {}): EntryStacktrace {
   return {

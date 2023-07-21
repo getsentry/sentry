@@ -1,4 +1,4 @@
-import {SavedQuery} from 'sentry/types';
+import type {SavedQuery} from 'sentry/types';
 
 export function DiscoverSavedQuery(params = {}): SavedQuery {
   return {

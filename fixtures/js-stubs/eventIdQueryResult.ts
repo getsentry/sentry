@@ -1,4 +1,4 @@
-import {EventIdResponse} from 'sentry/types';
+import type {EventIdResponse} from 'sentry/types';
 
 export function EventIdQueryResult(params = {}): EventIdResponse {
   const event = TestStubs.Event({

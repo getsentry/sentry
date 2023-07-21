@@ -1,4 +1,4 @@
-import {EntryDebugMeta, EntryType} from 'sentry/types';
+import {type EntryDebugMeta, EntryType} from 'sentry/types';
 import {
   CandidateDownloadStatus,
   CandidateProcessingStatus,

@@ -1,4 +1,4 @@
-import {EventAttachment as TEventAttachment} from 'sentry/types';
+import type {EventAttachment as TEventAttachment} from 'sentry/types';
 
 export function EventAttachment(params = {}): TEventAttachment {
   return {

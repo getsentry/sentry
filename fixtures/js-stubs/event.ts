@@ -1,4 +1,4 @@
-import {Event as TEvent, EventOrGroupType} from 'sentry/types';
+import {type Event as TEvent, EventOrGroupType} from 'sentry/types';
 
 export function Event(params = {}): TEvent {
   return {
