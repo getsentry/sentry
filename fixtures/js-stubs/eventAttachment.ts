@@ -1,4 +1,6 @@
-export function EventAttachment(params = {}) {
+import {EventAttachment as TEventAttachment} from 'sentry/types';
+
+export function EventAttachment(params = {}): TEventAttachment {
   return {
     id: '1',
     name: 'screenshot.png',
