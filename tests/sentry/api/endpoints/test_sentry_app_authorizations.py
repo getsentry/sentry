@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.mediators import GrantTypes
+from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models import ApiApplication, ApiToken
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase

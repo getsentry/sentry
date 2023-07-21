@@ -4,7 +4,7 @@ from datetime import datetime
 import pytz
 from django.urls import reverse
 
-from sentry.api.endpoints.project_release_details import ReleaseSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
 from sentry.models.orgauthtoken import OrgAuthToken
