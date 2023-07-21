@@ -20,7 +20,9 @@ EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}
 
 
 def import_export_then_validate(
-    tmp_path: Path, fixture_file_name: str, map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING
+    tmp_path: Path,
+    fixture_file_name: str,
+    map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING,
 ) -> None:
     """Test helper that validates that data imported from a fixture `.json` file correctly matches
     the actual outputted export data."""
@@ -34,11 +36,7 @@ def import_export_then_validate(
         rv = CliRunner().invoke(import_, [str(fixture_file_path)])
         assert rv.exit_code == 0, rv.output
 
-    res = validate(
-        expect,
-        tmp_export_to_file(tmp_path.joinpath("tmp_test_file.json")),
-        map,
-    )
+    res = validate(expect, tmp_export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:
         raise ValidationError(res)
 
