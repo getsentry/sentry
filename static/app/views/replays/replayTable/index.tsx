@@ -186,7 +186,7 @@ export function CardReplayTable({
     <StyledPanelTable
       headers={tableHeaders}
       isEmpty={replays?.length === 0}
-      isLoading={isFetching}
+      isLoading={false}
       visibleColumns={visibleColumns}
       disablePadding
       data-test-id="card-replay-table"
@@ -216,10 +216,10 @@ export function CardReplayTable({
                     <ReplayCell
                       key="mostDeadClicks"
                       replay={replay}
-                      eventView={eventView}
                       organization={organization}
                       referrer={referrer}
                       showUrl={false}
+                      eventView={eventView}
                     />
                   );
 
@@ -228,10 +228,10 @@ export function CardReplayTable({
                     <ReplayCell
                       key="mostErroneousReplays"
                       replay={replay}
-                      eventView={eventView}
                       organization={organization}
                       referrer={referrer}
                       showUrl={false}
+                      eventView={eventView}
                     />
                   );
 

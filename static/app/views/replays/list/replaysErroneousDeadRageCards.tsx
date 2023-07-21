@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -11,64 +11,57 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CardReplayTable} from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 function ReplaysErroneousDeadRageCards() {
-  const location = useLocation<ReplayListLocationQuery>();
+  const location = useLocation();
   const organization = useOrganization();
 
-  const eventViewErrors = useMemo(() => {
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'duration',
-          'count_errors',
-          'id',
-          'project_id',
-          'user',
-          'finished_at',
-          'is_archived',
-          'started_at',
-        ],
-        range: '1d',
-        projects: [],
-        query: '',
-        orderby: '-count_errors',
-      },
-      location
-    );
-  }, [location]);
+  const eventViewErrors = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      version: 2,
+      fields: [
+        'activity',
+        'duration',
+        'count_errors',
+        'id',
+        'project_id',
+        'user',
+        'finished_at',
+        'is_archived',
+        'started_at',
+      ],
+      range: '1d',
+      projects: [],
+      query: '',
+      orderby: '-count_errors',
+    },
+    location
+  );
 
-  const eventViewDeadRage = useMemo(() => {
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: [
-          'activity',
-          'duration',
-          'count_dead_clicks',
-          'count_rage_clicks',
-          'id',
-          'project_id',
-          'user',
-          'finished_at',
-          'is_archived',
-          'started_at',
-        ],
-        range: '2d',
-        projects: [],
-        query: '',
-        orderby: '-count_dead_clicks',
-      },
-      location
-    );
-  }, [location]);
+  const eventViewDeadRage = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      version: 2,
+      fields: [
+        'activity',
+        'duration',
+        'count_dead_clicks',
+        'count_rage_clicks',
+        'id',
+        'project_id',
+        'user',
+        'finished_at',
+        'is_archived',
+        'started_at',
+      ],
+      range: '2d',
+      projects: [],
+      query: '',
+      orderby: '-count_dead_clicks',
+    },
+    location
+  );
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
