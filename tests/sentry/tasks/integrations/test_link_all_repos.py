@@ -184,7 +184,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
     @patch("sentry.models.Repository.objects.create")
-    @patch("sentry.plugins.providers.integration_repository.metrics")
+    @patch("sentry.tasks.integrations.link_all_repos.metrics")
     @responses.activate
     def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, _):
         mock_repo.side_effect = IntegrityError
