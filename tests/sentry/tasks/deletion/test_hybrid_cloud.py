@@ -105,7 +105,7 @@ def setup_deletable_objects(
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
     for region_name in find_regions_for_user(u_id):
-        shard = ControlOutbox.for_shard(OutboxScope.USER_SCOPE, u_id, region_name)
+        shard = ControlOutbox(OutboxScope.USER_SCOPE, u_id, region_name)
         if send_tombstones:
             shard.drain_shard()
 
