@@ -251,13 +251,21 @@ export function ReplayCardTable({
   );
 }
 
+const replayCells = [
+  ReplayColumn.REPLAY,
+  ReplayColumn.MOST_DEAD_CLICKS,
+  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
+];
+
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        replayCells.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+      )
       .join(' ')};
 `;
 
