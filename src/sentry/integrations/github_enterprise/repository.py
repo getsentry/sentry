@@ -1,5 +1,6 @@
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
@@ -23,7 +24,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
         return repo_data
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         integration = Integration.objects.get(
             id=data["integration_id"], provider=self.repo_provider
         )

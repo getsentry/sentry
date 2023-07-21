@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.utils import metrics
@@ -79,7 +80,7 @@ class IntegrationRepositoryProvider:
     def create_repository(
         self,
         repo_config: MutableMapping[str, Any],
-        organization,
+        organization: RpcOrganization,
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
 
@@ -209,7 +210,7 @@ class IntegrationRepositoryProvider:
         """
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         """
         Builds final dict containing all necessary data to create the repository
 

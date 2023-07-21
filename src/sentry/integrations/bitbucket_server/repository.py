@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -29,7 +30,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
             config["repo"] = repo["name"]
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
 

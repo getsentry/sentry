@@ -4,6 +4,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.models import Commit, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -37,7 +38,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, str]
+        self, organization: RpcOrganization, data: Mapping[str, str]
     ) -> Mapping[str, Any]:
         return {
             "name": data["name"],
