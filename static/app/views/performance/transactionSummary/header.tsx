@@ -223,11 +223,6 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiles')}
-                {organization.features.includes('profiling-ga') ? (
-                  <FeatureBadge type="new" tooltipProps={{disabled: true}} />
-                ) : (
-                  <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
-                )}
               </TabList.Item>
             </TabList>
           );
