@@ -43,8 +43,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
 
-        full_config_requested = request.relay_request_data.get("fullConfig")
+        if request.relay_request_data.get("globalConfig"):
+            metrics.incr("relay.project_configs.global.fetched")
+            return config.get_global_config
 
+        full_config_requested = request.relay_request_data.get("fullConfig")
         if full_config_requested and not relay.is_internal:
             return Response("Relay unauthorized for full config information", 403)
 
@@ -70,14 +73,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
     def _get_v4_config(self, request: Request):
         res = self._post_or_schedule_by_key(request, version=4)
-
         metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
         metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
-
-        if request.GET.get("global") == "true":
-            res["global"] = config.get_global_config()
-            metrics.incr("relay.project_configs.global.fetched")
-
         return Response(res, status=200)
 
     def _get_v3_config(self, request):
