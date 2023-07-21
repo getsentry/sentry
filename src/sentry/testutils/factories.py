@@ -1512,7 +1512,6 @@ class Factories:
         return action
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
     def create_basic_auth_header(username: str, password: str = "") -> str:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
