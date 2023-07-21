@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicatorActions from 'sentry/actionCreators/indicator';
@@ -7,8 +8,8 @@ import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralS
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function () {
-  const organization = TestStubs.Organization();
-  let putMock;
+  const {organization, routerProps} = initializeOrg();
+  let putMock: jest.Mock;
   const onSave = jest.fn();
 
   beforeEach(function () {
@@ -36,8 +37,7 @@ describe('OrganizationSettingsForm', function () {
 
     render(
       <OrganizationSettingsForm
-        location={TestStubs.location()}
-        orgId={organization.slug}
+        {...routerProps}
         access={new Set(['org:write'])}
         initialData={TestStubs.Organization()}
         onSave={onSave}
@@ -104,8 +104,7 @@ describe('OrganizationSettingsForm', function () {
 
     render(
       <OrganizationSettingsForm
-        location={TestStubs.location()}
-        orgId={organization.slug}
+        {...routerProps}
         access={new Set(['org:write'])}
         initialData={TestStubs.Organization()}
         onSave={onSave}
@@ -141,8 +140,7 @@ describe('OrganizationSettingsForm', function () {
 
     render(
       <OrganizationSettingsForm
-        location={TestStubs.location()}
-        orgId={organization.slug}
+        {...routerProps}
         access={new Set(['org:write'])}
         initialData={TestStubs.Organization({codecovAccess: false})}
         onSave={onSave}
@@ -167,27 +165,5 @@ describe('OrganizationSettingsForm', function () {
         },
       })
     );
-  });
-
-  it('enable PR bot is disabled without GitHub integration', function () {
-    render(
-      <OrganizationSettingsForm
-        location={TestStubs.location()}
-        orgId={organization.slug}
-        access={new Set(['org:write'])}
-        initialData={TestStubs.Organization()}
-        onSave={onSave}
-      />,
-      {
-        organization: {
-          ...organization,
-          features: ['pr-comment-bot'],
-        },
-      }
-    );
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
-    ).toBeDisabled();
   });
 });

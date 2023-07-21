@@ -45,3 +45,23 @@ export const getTooltip = (
   }
   return '';
 };
+
+export const getThroughputTitle = (spanOp?: string) => {
+  if (spanOp?.startsWith('db')) {
+    return t('Queries');
+  }
+  if (spanOp) {
+    return t('Requests');
+  }
+  return '--';
+};
+
+export const getThroughputChartTitle = (spanOp?: string) => {
+  if (spanOp?.startsWith('db')) {
+    return t('Queries Per Second');
+  }
+  if (spanOp) {
+    return t('Requests Per Second');
+  }
+  return '--';
+};

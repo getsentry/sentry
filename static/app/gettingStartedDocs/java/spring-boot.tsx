@@ -81,9 +81,10 @@ export const steps = ({
     description: (
       <p>
         {tct(
-          'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+          'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
           {
-            code: <code />,
+            applicationPropertiesCode: <code />,
+            applicationYmlCode: <code />,
           }
         )}
       </p>
@@ -116,8 +117,8 @@ sentry:
         additionalInfo: (
           <p>
             {tct(
-              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [code:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [code:SentryAppender].',
-              {code: <code />}
+              'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module using either Maven or Gradle. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
+              {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
             )}
           </p>
         ),

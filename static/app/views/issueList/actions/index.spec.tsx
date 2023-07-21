@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -34,6 +33,9 @@ const defaultProps = {
   realtimeActive: false,
   statsPeriod: '24h',
   onDelete: jest.fn(),
+  displayReprocessingActions: false,
+  onSortChange: jest.fn(),
+  sort: '',
 };
 
 function WrappedComponent(props) {
@@ -502,9 +504,6 @@ describe('IssueListActions', function () {
         expect(
           within(modal).getByText(/merging performance issues is not yet supported/i)
         ).toBeInTheDocument();
-
-        // Wait for ProjectStore to update before closing the modal
-        await act(tick);
 
         await userEvent.click(
           within(modal).getByRole('button', {name: 'Bulk merge issues'})

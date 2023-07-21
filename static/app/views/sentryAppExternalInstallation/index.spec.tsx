@@ -4,19 +4,20 @@ import pick from 'lodash/pick';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {Organization} from 'sentry/types';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
-  let sentryApp,
-    getOrgsMock,
-    getOrgMock,
-    getAppMock,
-    getInstallationsMock,
-    getFeaturesMock,
-    org1,
-    org1Lite,
-    org2,
-    org2Lite;
+  let sentryApp: ReturnType<typeof TestStubs.SentryApp>,
+    getOrgsMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    getInstallationsMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    getFeaturesMock: ReturnType<typeof MockApiClient.addMockResponse>,
+    org1: Organization,
+    org1Lite: Pick<Organization, 'slug' | 'name' | 'id'>,
+    org2: Organization,
+    org2Lite: Pick<Organization, 'slug' | 'name' | 'id'>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -76,7 +77,12 @@ describe('SentryAppExternalInstallation', () => {
     });
 
     it('sets the org automatically', () => {
-      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
+      render(
+        <SentryAppExternalInstallation
+          {...TestStubs.routeComponentProps()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
 
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
@@ -104,7 +110,12 @@ describe('SentryAppExternalInstallation', () => {
         body: install,
       });
 
-      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
+      render(
+        <SentryAppExternalInstallation
+          {...TestStubs.routeComponentProps()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
 
       await userEvent.click(await screen.findByTestId('install'));
 
@@ -121,7 +132,7 @@ describe('SentryAppExternalInstallation', () => {
         );
       });
 
-      window.location.assign.mockClear();
+      (window.location.assign as jest.Mock).mockClear();
     });
   });
 
@@ -134,7 +145,12 @@ describe('SentryAppExternalInstallation', () => {
     });
 
     it('renders org dropdown', () => {
-      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
+      render(
+        <SentryAppExternalInstallation
+          {...TestStubs.routeComponentProps()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
 
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
@@ -152,7 +168,12 @@ describe('SentryAppExternalInstallation', () => {
         body: [],
       });
 
-      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
+      render(
+        <SentryAppExternalInstallation
+          {...TestStubs.routeComponentProps()}
+          params={{sentryAppSlug: sentryApp.slug}}
+        />
+      );
 
       await selectEvent.select(screen.getByText('Select an organization'), 'org2');
 
