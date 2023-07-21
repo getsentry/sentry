@@ -131,7 +131,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     #         200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
     #         401: RESPONSE_UNAUTHORIZED,
     #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOT_FOUND,
+    #         404: RESPONSE_NOTFOUND,
     #     },
     # )
     def put(
