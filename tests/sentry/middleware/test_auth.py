@@ -1,4 +1,3 @@
-import base64
 from functools import cached_property
 from unittest.mock import patch
 
@@ -114,9 +113,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
                 organization_id=self.organization.id, allowed_origins="*"
             )
             request = self.make_request(method="GET")
-            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-                apikey.key.encode("utf-8")
-            )
+            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         self.middleware.process_request(request)
         # ApiKey is tied to an organization not user
