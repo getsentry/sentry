@@ -19,10 +19,12 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
+    mock_segment_click,
     mock_segment_console,
     mock_segment_fullsnapshot,
     mock_segment_init,
     mock_segment_nagivation,
+    mock_segment_rageclick,
 )
 
 
@@ -41,6 +43,31 @@ def create_recording(replay_id, project_id, timestamp):
         mock_segment_nagivation(timestamp + timedelta(seconds=1), hrefFrom="/", hrefTo="/home/"),
         mock_segment_nagivation(
             timestamp + timedelta(seconds=2), hrefFrom="/home/", hrefTo="/profile/"
+        ),
+        mock_segment_rageclick(
+            timestamp + timedelta(seconds=2),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+            24,
+        ),
+        mock_segment_click(
+            timestamp + timedelta(seconds=2),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+        ),
+        mock_segment_nagivation(
+            timestamp + timedelta(seconds=6),
+            hrefFrom="/profile/",
+            hrefTo="/performance/",
+        ),
+        mock_segment_rageclick(
+            timestamp + timedelta(seconds=6),
+            "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
+            "sidebar-item-performance",
+            "a",
+            24,
         ),
     ]
     for (segment_id, segment) in enumerate(segments):
@@ -97,7 +124,7 @@ def main():
     project.add_team(team)
 
     replay_id = uuid.uuid4().hex
-    seq1_timestamp = datetime.now() - timedelta(seconds=22)
+    seq1_timestamp = datetime.now() - timedelta(seconds=15)
     seq2_timestamp = datetime.now() - timedelta(seconds=5)
 
     click.echo("Creating Replay events entries...")

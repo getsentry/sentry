@@ -21,7 +21,8 @@ logger = logging.getLogger("sentry")
 TIMEOUT = 30
 
 # hard maximum runtime for a monitor, in minutes
-MAX_TIMEOUT = 720
+# current limit is 28 days
+MAX_TIMEOUT = 40_320
 
 # This is the MAXIMUM number of MONITOR this job will check.
 #

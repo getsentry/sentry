@@ -1,4 +1,6 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any, List
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -81,7 +83,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
 @control_silo_test(stable=True)
 class PostDocIntegrationsTest(DocIntegrationsTest):
     method = "POST"
-    payload = {
+    payload: dict[str, Any] = {
         "name": "Enemy",
         "author": "Imagine Dragons",
         "description": "An opening theme song 👀",

@@ -5,7 +5,8 @@ from threading import Thread
 import pytest
 
 from sentry.event_manager import _save_aggregate
-from sentry.eventstore.models import CalculatedHashes, Event
+from sentry.eventstore.models import Event
+from sentry.grouping.result import CalculatedHashes
 
 
 @pytest.mark.django_db(transaction=True)
@@ -34,7 +35,7 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         class FakeTransactionModule:
             @staticmethod
             @contextlib.contextmanager
-            def atomic():
+            def atomic(*args, **kwds):
                 yield
 
         # Disable transaction isolation just within event manager, but not in
@@ -53,22 +54,21 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
             "89aeed6a472e4c5fb992d14df4d7e1b6",
             data=data,
         )
-
-        return_values.append(
-            _save_aggregate(
-                evt,
-                hashes=CalculatedHashes(
-                    hashes=["a" * 32, "b" * 32],
-                    hierarchical_hashes=[],
-                    tree_labels=[],
-                ),
-                release=None,
-                metadata={},
-                received_timestamp=None,
-                level=10,
-                culprit="",
-            )
+        ret = _save_aggregate(
+            evt,
+            hashes=CalculatedHashes(
+                hashes=["a" * 32, "b" * 32],
+                hierarchical_hashes=[],
+                tree_labels=[],
+            ),
+            release=None,
+            metadata={},
+            received_timestamp=0,
+            level=10,
+            culprit="",
         )
+        assert ret is not None
+        return_values.append(ret)
 
     threads = []
     for _ in range(CONCURRENCY):

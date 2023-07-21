@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC
 from datetime import datetime, timedelta
 from time import time
+from typing import Any
 from unittest import mock
 
 import pytz
+from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
@@ -500,7 +504,7 @@ class ProjectUpdateTest(APITestCase):
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
     def test_options(self):
-        options = {
+        options: dict[str, Any] = {
             "sentry:resolve_age": 1,
             "sentry:scrub_data": False,
             "sentry:scrub_defaults": False,
@@ -1202,7 +1206,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1229,7 +1233,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1353,7 +1357,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
     @mock.patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
     def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.1
-        new_biases = [
+        new_biases: list[dict[str, Any]] = [
             {"id": "boostEnvironments", "active": True},
             {
                 "id": "boostLatestRelease",
@@ -1652,17 +1656,12 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         """
         Test when user is on a new plan and is trying to update dynamic sampling features of a new plan with no biases
         """
-        new_biases = []
-        with Feature(
-            {
-                self.new_ds_flag: True,
-            }
-        ):
+        with Feature({self.new_ds_flag: True}):
             response = self.client.put(
                 self.url,
                 format="json",
                 HTTP_AUTHORIZATION=self.authorization,
-                data={"dynamicSamplingBiases": new_biases},
+                data={"dynamicSamplingBiases": []},
             )
             assert response.status_code == 200
             assert response.data["dynamicSamplingBiases"] == DEFAULT_BIASES

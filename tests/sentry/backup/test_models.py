@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from click.testing import CliRunner
 from django.core.management import call_command
+from django.db import router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
@@ -18,10 +19,22 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
+    Incident,
+    IncidentActivity,
+    IncidentSnapshot,
+    IncidentSubscription,
+    IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
 from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
@@ -114,7 +127,8 @@ class ModelBackupTests(TransactionTestCase):
     comparators."""
 
     def setUp(self):
-        with unguarded_write():
+        # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
+        with unguarded_write(using=router.db_for_write(Organization)):
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
@@ -134,7 +148,8 @@ class ModelBackupTests(TransactionTestCase):
             expect = tmp_export_to_file(tmp_expect)
 
             # Write the contents of the "expected" JSON file into the now clean database.
-            with unguarded_write():
+            # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
+            with unguarded_write(using=router.db_for_write(Organization)):
                 # Reset the Django database.
                 call_command("flush", verbosity=0, interactive=False)
 
@@ -171,6 +186,12 @@ class ModelBackupTests(TransactionTestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
+    @targets_models(Actor)
+    def test_actor(self):
+        self.create_user(email="test@example.com")
+        self.create_team(name="pre save team", organization=self.organization)
+        return self.import_export_then_validate()
+
     @targets_models(AlertRule, QuerySubscription, SnubaQuery, SnubaQueryEventType)
     def test_alert_rule(self):
         self.create_alert_rule()
@@ -190,6 +211,54 @@ class ModelBackupTests(TransactionTestCase):
         rule = self.create_alert_rule(include_all_projects=True)
         trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        return self.import_export_then_validate()
+
+    @targets_models(ApiAuthorization, ApiApplication)
+    def test_api_authorization_application(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(name="test", owner=user)
+        ApiAuthorization.objects.create(
+            application=app, user=self.create_user("example@example.com")
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(ApiToken)
+    def test_api_token(self):
+        user = self.create_user()
+        app = ApiApplication.objects.create(
+            owner=user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
+        )
+        ApiToken.objects.create(application=app, user=user, token=uuid4().hex, expires_at=None)
+        return self.import_export_then_validate()
+
+    @targets_models(ApiKey)
+    def test_api_key(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
+        return self.import_export_then_validate()
+
+    @targets_models(Authenticator)
+    def test_authenticator(self):
+        user = self.create_user()
+        Authenticator.objects.create(user=user, type=1)
+        return self.import_export_then_validate()
+
+    @targets_models(AuthIdentity, AuthProvider)
+    def test_auth_identity_provider(self):
+        user = self.create_user()
+        test_data = {
+            "key1": "value1",
+            "key2": 42,
+            "key3": [1, 2, 3],
+            "key4": {"nested_key": "nested_value"},
+        }
+        AuthIdentity.objects.create(
+            user=user,
+            auth_provider=AuthProvider.objects.create(organization_id=1, provider="sentry"),
+            ident="123456789",
+            data=test_data,
+        )
         return self.import_export_then_validate()
 
     @targets_models(ControlOption)
@@ -242,6 +311,53 @@ class ModelBackupTests(TransactionTestCase):
         project = self.create_project()
         EnvironmentProject.objects.create(project=project, environment=env, is_hidden=False)
         return self.import_export_then_validate()
+
+    @targets_models(Incident)
+    def test_incident(self):
+        self.create_incident()
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentActivity)
+    def test_incident_activity(self):
+        IncidentActivity.objects.create(
+            incident=self.create_incident(),
+            type=1,
+            comment="hello",
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentSnapshot, TimeSeriesSnapshot)
+    def test_incident_snapshot(self):
+        IncidentSnapshot.objects.create(
+            incident=self.create_incident(),
+            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
+                start=datetime.utcnow() - timedelta(hours=24),
+                end=datetime.utcnow(),
+                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
+                period=1,
+            ),
+            unique_users=1,
+            total_events=1,
+        )
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentSubscription)
+    def test_incident_subscription(self):
+        user_id = self.create_user().id
+        IncidentSubscription.objects.create(incident=self.create_incident(), user_id=user_id)
+        return self.import_export_then_validate()
+
+    @targets_models(IncidentTrigger)
+    def test_incident_trigger(self):
+        excluded = self.create_project()
+        rule = self.create_alert_rule(include_all_projects=True)
+        trigger = self.create_alert_rule_trigger(alert_rule=rule, excluded_projects=[excluded])
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        IncidentTrigger.objects.create(
+            incident=self.create_incident(),
+            alert_rule_trigger=trigger,
+            status=1,
+        )
 
     @targets_models(Monitor)
     def test_monitor(self):
@@ -398,17 +514,11 @@ class ModelBackupTests(TransactionTestCase):
         updater.run(self.user)
         return self.import_export_then_validate()
 
-    @targets_models(PendingIncidentSnapshot, TimeSeriesSnapshot)
+    @targets_models(PendingIncidentSnapshot)
     def test_snapshot(self):
         incident = self.create_incident()
         PendingIncidentSnapshot.objects.create(
             incident=incident, target_run_date=datetime.utcnow() + timedelta(hours=4)
-        )
-        TimeSeriesSnapshot.objects.create(
-            start=datetime.utcnow() - timedelta(hours=24),
-            end=datetime.utcnow(),
-            values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
-            period=1,
         )
         return self.import_export_then_validate()
 

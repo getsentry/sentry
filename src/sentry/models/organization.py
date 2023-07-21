@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
@@ -263,7 +264,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     #  properly to the control silo.
     @override
     def update(self, *args, **kwargs):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             results = super().update(*args, **kwargs)
             Organization.outbox_for_update(self.id).save()
             return results
@@ -281,7 +282,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization)), flush=False):
             Organization.outbox_for_update(self.id).save()
             return super().delete(**kwargs)
 
@@ -323,7 +324,8 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": list(owners)})
+        with in_test_hide_transaction_boundary():
+            return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):

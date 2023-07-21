@@ -28,7 +28,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, transaction
+from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
@@ -1473,7 +1473,7 @@ def _save_aggregate(
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     migrate_off_hierarchical: Optional[bool] = False,
-    **kwargs: dict[str, Any],
+    **kwargs: Any,
 ) -> Optional[GroupInfo]:
     project = event.project
 
@@ -1534,7 +1534,9 @@ def _save_aggregate(
             op="event_manager.create_group_transaction"
         ) as span, metrics.timer(
             "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic():
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
@@ -1730,7 +1732,7 @@ def _find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
-def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> Group:
+def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
@@ -2308,10 +2310,13 @@ class PerformanceJob(TypedDict, total=False):
 
 
 def _save_grouphash_and_group(
-    project: Project, event: Event, new_grouphash: str, **group_kwargs: dict[str, Any]
+    project: Project,
+    event: Event,
+    new_grouphash: str,
+    **group_kwargs: Any,
 ) -> Tuple[Group, bool]:
     group = None
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
         if created:
             group = _create_group(project, event, **group_kwargs)

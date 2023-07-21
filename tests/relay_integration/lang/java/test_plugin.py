@@ -411,7 +411,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         )
 
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
@@ -586,7 +586,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
         event_data = {
             "user": {"ip_address": "31.172.207.97"},

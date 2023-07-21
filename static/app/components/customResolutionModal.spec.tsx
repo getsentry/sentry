@@ -9,6 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
+  const organization = TestStubs.Organization();
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
@@ -30,7 +31,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        orgSlug="org-slug"
+        organization={organization}
         projectSlug="project-slug"
         onSelected={onSelected}
         closeModal={jest.fn()}
@@ -57,7 +58,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        orgSlug="org-slug"
+        organization={organization}
         projectSlug="project-slug"
         onSelected={jest.fn()}
         closeModal={jest.fn()}
@@ -68,5 +69,52 @@ describe('CustomResolutionModal', () => {
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText(/You committed/)).toBeInTheDocument();
+  });
+
+  it('indicates if the release is semver or timestamp', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/',
+      body: [
+        // Timestamp release
+        TestStubs.Release({
+          version: 'frontend@abcdef',
+          versionInfo: {version: {raw: 'abcdef'}},
+        }),
+        // Semver release
+        TestStubs.Release({
+          version: 'frontend@1.2.3',
+          versionInfo: {
+            version: {
+              raw: '1.2.3',
+              major: 1,
+              minor: 2,
+              patch: 3,
+              buildCode: null,
+              components: 3,
+            },
+          },
+        }),
+      ],
+    });
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        organization={{...organization, features: ['issue-release-semver']}}
+        projectSlug="project-slug"
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'abcdef (timestamp)'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: '1.2.3 (semver)'})
+    ).toBeInTheDocument();
   });
 });
