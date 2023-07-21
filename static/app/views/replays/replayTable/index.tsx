@@ -15,7 +15,6 @@ import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
   ActivityCell,
   BrowserCell,
-  CardReplayCell,
   DeadClickCountCell,
   DurationCell,
   ErrorCountCell,
@@ -120,6 +119,7 @@ export function ReplayTable({
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl
                     />
                   );
 
@@ -213,23 +213,25 @@ export function CardReplayTable({
 
                 case ReplayColumn.MOST_DEAD_CLICKS:
                   return (
-                    <CardReplayCell
+                    <ReplayCell
                       key="mostDeadClicks"
                       replay={replay}
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl={false}
                     />
                   );
 
                 case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
                   return (
-                    <CardReplayCell
+                    <ReplayCell
                       key="mostErroneousReplays"
                       replay={replay}
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl={false}
                     />
                   );
 
