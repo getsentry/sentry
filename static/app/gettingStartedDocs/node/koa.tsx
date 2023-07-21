@@ -140,7 +140,7 @@ npm install --save @sentry/node @sentry/utils
       },
     ],
   },
-  getUploadSourceMapsStep('https://docs.sentry.io/platforms/node/guides/koa/sourcemaps'),
+  getUploadSourceMapsStep('https://docs.sentry.io/platforms/node/guides/koa/sourcemaps/'),
   {
     type: StepType.VERIFY,
     description: t(
