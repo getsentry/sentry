@@ -68,7 +68,7 @@ class SlackClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
-    def is_response_fatal(self, response: BaseApiResponse) -> bool:
+    def is_response_fatal(self, response: Response) -> bool:
         resp_json = response.json()
         if not resp_json.get("ok"):
             if "account_inactive" == resp_json.get("error", ""):
