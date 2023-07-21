@@ -315,7 +315,7 @@ export type EntryException = {
   type: EntryType.EXCEPTION;
 };
 
-type EntryStacktrace = {
+export type EntryStacktrace = {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
 };
