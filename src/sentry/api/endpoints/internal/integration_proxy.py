@@ -129,6 +129,30 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         return True
 
+    def _call_third_party_api(self, request, full_url: str, headers) -> HttpResponse:
+        prepared_request = Request(
+            method=request.method,
+            url=full_url,
+            headers=headers,
+            data=request.body,
+        ).prepare()
+        # Third-party authentication headers will be added in client.authorize_request which runs
+        # in IntegrationProxyClient.finalize_request.
+        raw_response: Response = self.client._request(
+            request.method,
+            self.proxy_path,
+            allow_text=True,
+            prepared_request=prepared_request,
+            raw_response=True,
+        )
+        clean_headers = clean_outbound_headers(raw_response.headers)
+        return HttpResponse(
+            content=raw_response.content,
+            status=raw_response.status_code,
+            reason=raw_response.reason,
+            headers=clean_headers,
+        )
+
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
@@ -152,27 +176,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 headers=headers,
             )
         else:
-            prepared_request = Request(
-                method=request.method,
-                url=full_url,
-                headers=headers,
-                data=request.body,
-            ).prepare()
-            # Third-party authentication headers will be added in client.authorize_request which runs
-            # in IntegrationProxyClient.finalize_request.
-            raw_response: Response = self.client._request(
-                request.method,
-                self.proxy_path,
-                allow_text=True,
-                prepared_request=prepared_request,
-                raw_response=True,
-            )
-            clean_headers = clean_outbound_headers(raw_response.headers)
-            response = HttpResponse(
-                content=raw_response.content,
-                status=raw_response.status_code,
-                reason=raw_response.reason,
-                headers=clean_headers,
+            response = self._call_third_party_api(
+                request=request, full_url=full_url, headers=headers
             )
 
         metrics.incr("hc.integration_proxy.success")
