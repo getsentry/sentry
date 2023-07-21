@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
-  const member = {
+  const member = TestStubs.Member({
     id: '1',
     email: '',
     name: '',
@@ -19,7 +19,7 @@ describe('OrganizationMemberRow', function () {
       name: 'sentry@test.com',
     },
     groupOrgRoles: [],
-  };
+  });
 
   const managerTeam = TestStubs.Team({
     orgRole: 'manager',
@@ -37,13 +37,12 @@ describe('OrganizationMemberRow', function () {
     ],
   });
 
-  const currentUser = {
+  const currentUser = TestStubs.User({
     id: '2',
     email: 'currentUser@email.com',
-  };
+  });
 
-  const defaultProps = {
-    routes: [],
+  const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
     organization: TestStubs.Organization(),
     status: '',
     requireLink: false,
@@ -78,10 +77,10 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{
+          member={TestStubs.Member({
             ...member,
-            user: {...member.user, has2fa: true},
-          }}
+            user: TestStubs.User({...member.user, has2fa: true}),
+          })}
         />
       );
 
@@ -221,10 +220,7 @@ describe('OrganizationMemberRow', function () {
   describe('Is Current User', function () {
     const props = {
       ...defaultProps,
-      member: {
-        ...member,
-        email: 'currentUser@email.com',
-      },
+      member: {...member, email: 'currentUser@email.com'},
     };
 
     it('has button to leave organization and no button to remove', function () {
@@ -247,10 +243,7 @@ describe('OrganizationMemberRow', function () {
     it('current user cannot leave if idp:provisioned', function () {
       const props = {
         ...defaultProps,
-        member: {
-          ...member,
-          email: 'currentUser@email.com',
-        },
+        member: {...member, email: 'currentUser@email.com'},
       };
 
       render(
@@ -303,10 +296,7 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{
-            ...member,
-            user: {...member.user},
-          }}
+          member={{...member, user: {...member.user}}}
         />
       );
 
@@ -321,10 +311,7 @@ describe('OrganizationMemberRow', function () {
     render(
       <OrganizationMemberRow
         {...defaultProps}
-        member={{
-          ...memberOnManagerTeam,
-          user: {...memberOnManagerTeam.user},
-        }}
+        member={{...memberOnManagerTeam, user: {...memberOnManagerTeam.user}}}
       />
     );
 

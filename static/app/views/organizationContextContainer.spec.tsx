@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openSudo} from 'sentry/actionCreators/modal';
@@ -17,14 +18,13 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('OrganizationContextContainer', function () {
-  const org = TestStubs.Organization();
+  const {organization, projects, routerProps} = initializeOrg();
   const teams = [TestStubs.Team()];
-  const projects = [TestStubs.Project()];
 
   const api = new MockApiClient();
-  let getOrgMock;
-  let getProjectsMock;
-  let getTeamsMock;
+  let getOrgMock: jest.Mock;
+  let getProjectsMock: jest.Mock;
+  let getTeamsMock: jest.Mock;
 
   function DisplayOrg() {
     const contextOrg = useOrganization();
@@ -32,13 +32,19 @@ describe('OrganizationContextContainer', function () {
     return <div>{contextOrg.slug}</div>;
   }
 
-  function makeComponent(props) {
+  type Props = Partial<React.ComponentProps<typeof OrganizationLegacyContext>>;
+
+  function makeComponent(props?: Props) {
     return (
       <OrganizationLegacyContext
+        {...routerProps}
         api={api}
         params={{orgId: 'org-slug'}}
-        location={{query: {}}}
-        routes={[]}
+        location={TestStubs.location({query: {}})}
+        useLastOrganization={false}
+        organizationsLoading={false}
+        organizations={[]}
+        includeSidebar={false}
         {...props}
       >
         <DisplayOrg />
@@ -46,7 +52,7 @@ describe('OrganizationContextContainer', function () {
     );
   }
 
-  function renderComponent(props) {
+  function renderComponent(props?: Props) {
     return render(makeComponent(props));
   }
 
@@ -54,7 +60,7 @@ describe('OrganizationContextContainer', function () {
     MockApiClient.clearMockResponses();
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
-      body: org,
+      body: organization,
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -83,7 +89,7 @@ describe('OrganizationContextContainer', function () {
     expect(getTeamsMock).toHaveBeenCalled();
 
     expect(screen.queryByRole('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.getByText(org.slug)).toBeInTheDocument();
+    expect(screen.getByText(organization.slug)).toBeInTheDocument();
     expect(
       screen.queryByText('The organization you were looking for was not found.')
     ).not.toBeInTheDocument();
@@ -102,7 +108,7 @@ describe('OrganizationContextContainer', function () {
     const newOrg = TestStubs.Organization({slug: 'new-slug'});
 
     const {rerender} = renderComponent();
-    expect(await screen.findByText(org.slug)).toBeInTheDocument();
+    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
 
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/new-slug/',
@@ -148,9 +154,9 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
-    ConfigStore.get.mockImplementation(() => ({
-      isSuperuser: true,
-    }));
+    jest
+      .mocked(ConfigStore.get)
+      .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,
@@ -164,7 +170,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization from ConfigStore', function () {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/last-org/',
-      body: org,
+      body: organization,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/last-org/projects/',
@@ -176,8 +182,8 @@ describe('OrganizationContextContainer', function () {
     });
 
     // mocking `.get('lastOrganization')`
-    ConfigStore.get.mockImplementation(() => 'last-org');
-    renderComponent({useLastOrganization: true, params: {}});
+    jest.mocked(ConfigStore.get).mockImplementation(() => 'last-org');
+    renderComponent({useLastOrganization: true, params: {orgId: ''}});
 
     expect(getOrgMock).toHaveBeenLastCalledWith(
       '/organizations/last-org/',
@@ -192,7 +198,7 @@ describe('OrganizationContextContainer', function () {
     });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/',
-      body: org,
+      body: organization,
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/projects/',
@@ -203,7 +209,7 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    ConfigStore.get.mockImplementation(() => '');
+    jest.mocked(ConfigStore.get).mockImplementation(() => '');
 
     const {rerender} = renderComponent({
       params: {orgId: ''},
@@ -226,7 +232,7 @@ describe('OrganizationContextContainer', function () {
       })
     );
 
-    expect(await screen.findByText(org.slug)).toBeInTheDocument();
+    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
 
     expect(getOrgMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
@@ -234,7 +240,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('uses last organization when no orgId in URL - and fetches org details once', async function () {
-    ConfigStore.get.mockImplementation(() => 'my-last-org');
+    jest.mocked(ConfigStore.get).mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
       body: TestStubs.Organization({slug: 'my-last-org'}),
@@ -249,7 +255,7 @@ describe('OrganizationContextContainer', function () {
     });
 
     const {rerender} = renderComponent({
-      params: {},
+      params: {orgId: ''},
       useLastOrganization: true,
       organizations: [],
     });
@@ -261,7 +267,7 @@ describe('OrganizationContextContainer', function () {
     // org details fetch
     rerender(
       makeComponent({
-        params: {},
+        params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
         organizations: [
@@ -283,7 +289,7 @@ describe('OrganizationContextContainer', function () {
       organizations: [],
     });
 
-    expect(await screen.findByText(org.slug)).toBeInTheDocument();
+    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
     expect(getOrgMock).toHaveBeenCalledTimes(1);
 
     // Simulate OrganizationsStore being loaded *after* `OrganizationContext` finishes

@@ -67,6 +67,7 @@ export const migratedDocs = [
   'ruby-rack',
   'kotlin',
   'node',
+  'node-azurefunctions',
   'node-gcpfunctions',
   'node-express',
   'node-serverlesscloud',
