@@ -2,7 +2,17 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+
+type StepProps = {
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 const performanceIntegrations: string[] = [
   `// Automatically instrument Node.js libraries and frameworks
@@ -14,9 +24,8 @@ tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production
 
 export const steps = ({
   sentryInitContent,
-}: {
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: t('Add the Sentry Node SDK as a dependency:'),
@@ -140,7 +149,10 @@ npm install --save @sentry/node @sentry/utils
       },
     ],
   },
-  getUploadSourceMapsStep('https://docs.sentry.io/platforms/node/guides/koa/sourcemaps/'),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/node/guides/koa/sourcemaps/',
+    ...props,
+  }),
   {
     type: StepType.VERIFY,
     description: t(
@@ -159,7 +171,13 @@ npm install --save @sentry/node @sentry/utils
   },
 ];
 
-export function GettingStartedWithKoa({dsn, ...props}: ModuleProps) {
+export function GettingStartedWithKoa({
+  dsn,
+  organization,
+  newOrg,
+  platformKey,
+  projectId,
+}: ModuleProps) {
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
 
   const integrations = [...performanceIntegrations];
@@ -174,7 +192,17 @@ export function GettingStartedWithKoa({dsn, ...props}: ModuleProps) {
   }
 
   return (
-    <Layout steps={steps({sentryInitContent: sentryInitContent.join('\n')})} {...props} />
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
+      newOrg={newOrg}
+      platformKey={platformKey}
+    />
   );
 }
 
