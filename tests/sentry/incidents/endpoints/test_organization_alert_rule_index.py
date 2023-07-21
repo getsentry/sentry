@@ -2,6 +2,7 @@ from copy import deepcopy
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.db import router
 from django.test.utils import override_settings
@@ -25,6 +26,8 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+
+pytestmark = [pytest.mark.sentry_metrics]
 
 
 class AlertRuleBase:

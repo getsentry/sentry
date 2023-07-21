@@ -1,6 +1,5 @@
 from functools import cached_property
 
-import pytest
 import pytz
 import requests
 from freezegun import freeze_time
@@ -17,8 +16,6 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
-
-pytestmark = [pytest.mark.sentry_metrics]
 
 
 class AlertRuleBase:
