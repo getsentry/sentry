@@ -150,9 +150,7 @@ class IntegrationRepositoryProvider:
                     organization_id=organization.id,
                     external_id=external_id,
                     integration_id=integration_id,
-                ).first()
-                if repo:
-                    repo.update(**repo_update_params)
+                ).update(**repo_update_params)
 
                 raise RepoExistsError
 
