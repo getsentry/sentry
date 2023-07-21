@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from django.db import IntegrityError
+
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.services.hybrid_cloud.repository import RepositoryService, RpcRepository
+from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.repository.serial import serialize_repository
 
 
@@ -40,6 +43,15 @@ class DatabaseBackedRepositoryService(RepositoryService):
         if repository is None:
             return None
         return serialize_repository(repository)
+
+    def create_repository(
+        self, *, organization_id: int, create: RpcCreateRepository
+    ) -> RpcRepository | None:
+        try:
+            repository = Repository.objects.create(organization_id=organization_id, **create.dict())
+            return serialize_repository(repository)
+        except IntegrityError:
+            return None
 
     def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
         repository = Repository.objects.filter(

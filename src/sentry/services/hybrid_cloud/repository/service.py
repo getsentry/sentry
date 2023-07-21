@@ -8,6 +8,7 @@ from typing import List, Optional, cast
 
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
+from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo import SiloMode
 
@@ -40,6 +41,13 @@ class RepositoryService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_repository(self, *, organization_id: int, id: int) -> Optional[RpcRepository]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_repository(
+        self, *, organization_id: int, create: RpcCreateRepository
+    ) -> Optional[RpcRepository]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
