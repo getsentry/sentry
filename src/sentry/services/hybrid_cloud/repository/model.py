@@ -17,3 +17,4 @@ class RpcRepository(RpcModel):
     integration_id: int
     provider: str
     status: int
+    url: str
