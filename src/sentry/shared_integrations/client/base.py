@@ -95,15 +95,8 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         return f"sentry-integration-error:{self.integration_id}"
 
-    def is_error(self, e: Exception) -> bool:
-        if type(e) is ConnectionError:
-            return True
-        if type(e) is Timeout:
-            return True
-        if type(e) is HTTPError:
-            return True
-
-        return False
+    def is_considered_error(self, e: Exception) -> bool:
+        return True
 
     def is_response_fatal(self, resp: Response) -> bool:
         return False
@@ -391,7 +384,7 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_error(error):
+        if not self.is_considered_error(error):
             return
         buffer = IntegrationRequestBuffer(redis_key)
         buffer.record_error()
@@ -427,12 +420,30 @@ class BaseApiClient(TrackResponseMixin):
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
+        if (
+            integration_service.get_integration(integration_id=rpc_integration.id).status
+            == ObjectStatus.DISABLED
+        ):
+            return
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
-        if features.has("organizations:disable-on-broken", org):
+        if (
+            features.has("organizations:disable-on-broken", org)
+            and rpc_integration.provider == "slack"
+        ):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
+        if len(rpc_org_integration) == 0:
+            self.logger.info(
+                "integration.disabled",
+                extra={
+                    "integration_id": self.integration_id,
+                    "provider": rpc_integration.provider,
+                    "organization_id": "rpc_org_integration is empty",
+                },
+            )
+            return
         self.logger.info(
             "integration.disabled",
             extra={

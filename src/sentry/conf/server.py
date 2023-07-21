@@ -1343,7 +1343,7 @@ SENTRY_FEATURES = {
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
-    "organization:disable-on-broken": False,
+    "organizations:slack-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
