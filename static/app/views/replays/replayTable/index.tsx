@@ -34,7 +34,6 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
-  headersSortable?: boolean;
 };
 
 export function ReplayTable({
@@ -144,13 +143,12 @@ export function ReplayTable({
   );
 }
 
-export function ReplayCardTable({
+export function CardReplayTable({
   fetchError,
   isFetching,
   replays,
   sort,
   visibleColumns,
-  headersSortable,
 }: Props) {
   const routes = useRoutes();
   const location = useLocation();
@@ -159,12 +157,7 @@ export function ReplayCardTable({
   const tableHeaders = visibleColumns
     .filter(Boolean)
     .map(column => (
-      <HeaderCell
-        key={column}
-        column={column}
-        sort={sort}
-        headersSortable={headersSortable}
-      />
+      <HeaderCell key={column} column={column} sort={sort} headersSortable={false} />
     ));
 
   if (fetchError && !isFetching) {
@@ -173,7 +166,7 @@ export function ReplayCardTable({
         headers={tableHeaders}
         isLoading={false}
         visibleColumns={visibleColumns}
-        data-test-id="replay-card-table"
+        data-test-id="card-replay-table"
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -196,7 +189,7 @@ export function ReplayCardTable({
       isLoading={isFetching}
       visibleColumns={visibleColumns}
       disablePadding
-      data-test-id="replay-card-table"
+      data-test-id="card-replay-table"
     >
       {replays?.map(replay => {
         return (
@@ -251,7 +244,7 @@ export function ReplayCardTable({
   );
 }
 
-const replayCells = [
+const replayDetailCells = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_DEAD_CLICKS,
   ReplayColumn.MOST_ERRONEOUS_REPLAYS,
@@ -264,7 +257,7 @@ const StyledPanelTable = styled(PanelTable)<{
     p.visibleColumns
       .filter(Boolean)
       .map(column =>
-        replayCells.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+        replayDetailCells.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
       )
       .join(' ')};
 `;

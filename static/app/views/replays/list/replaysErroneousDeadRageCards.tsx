@@ -9,7 +9,7 @@ import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ReplayCardTable} from 'sentry/views/replays/replayTable';
+import {CardReplayTable} from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
@@ -74,67 +74,49 @@ function ReplaysErroneousDeadRageCards() {
   const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
-  return hasSessionReplay && !fetching && hasSentOneReplay ? (
-    hasDeadRageCards ? (
-      <SplitCardContainer>
-        <ReplaysErroneousTable
-          eventView={eventViewErrors}
-          location={location}
-          organization={organization}
-        />
-        <ReplaysDeadRageTable
-          eventView={eventViewDeadRage}
-          location={location}
-          organization={organization}
-        />
-      </SplitCardContainer>
-    ) : null
-  ) : null;
-}
+  const deadRageCols = [
+    ReplayColumn.MOST_DEAD_CLICKS,
+    ReplayColumn.COUNT_DEAD_CLICKS,
+    ReplayColumn.COUNT_RAGE_CLICKS,
+  ];
 
-function ReplaysErroneousTable({
-  eventView,
-  location,
-  organization,
-}: {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-}) {
-  const {replays, isFetching, fetchError} = useReplayList({
-    eventView,
-    location,
-    organization,
-  });
-
-  const visibleCols = [
+  const errorCols = [
     ReplayColumn.MOST_ERRONEOUS_REPLAYS,
     ReplayColumn.DURATION,
     ReplayColumn.COUNT_ERRORS,
     ReplayColumn.ACTIVITY,
   ];
 
-  return (
-    <Fragment>
-      <ReplayCardTable
-        fetchError={fetchError}
-        isFetching={isFetching}
-        replays={replays?.slice(0, 3)}
-        sort={eventView.sorts[0]}
-        visibleColumns={visibleCols}
-      />
-    </Fragment>
-  );
+  return hasSessionReplay && !fetching && hasSentOneReplay ? (
+    hasDeadRageCards ? (
+      <SplitCardContainer>
+        <CardTable
+          eventView={eventViewErrors}
+          location={location}
+          organization={organization}
+          visibleColumns={errorCols}
+        />
+        <CardTable
+          eventView={eventViewDeadRage}
+          location={location}
+          organization={organization}
+          visibleColumns={deadRageCols}
+        />
+      </SplitCardContainer>
+    ) : null
+  ) : null;
 }
 
-function ReplaysDeadRageTable({
+function CardTable({
   eventView,
   location,
   organization,
+  visibleColumns,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  visibleColumns: ReplayColumn[];
 }) {
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -142,21 +124,14 @@ function ReplaysDeadRageTable({
     organization,
   });
 
-  const visibleCols = [
-    ReplayColumn.MOST_DEAD_CLICKS,
-    ReplayColumn.COUNT_DEAD_CLICKS,
-    ReplayColumn.COUNT_RAGE_CLICKS,
-  ];
-
   return (
     <Fragment>
-      <ReplayCardTable
+      <CardReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays?.slice(0, 3)}
         sort={eventView.sorts[0]}
-        visibleColumns={visibleCols}
-        headersSortable={false}
+        visibleColumns={visibleColumns}
       />
     </Fragment>
   );
