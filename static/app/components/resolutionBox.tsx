@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   GroupActivity,
+  GroupActivitySetByResolvedInNextRelease,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
   Repository,
@@ -37,9 +38,10 @@ function renderReason(
 
   const relevantActivity = activities.find(
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
-  ) as GroupActivitySetByResolvedInRelease | undefined;
-
-  const currentReleaseVersion = relevantActivity?.data.current_release_version!;
+  ) as
+    | GroupActivitySetByResolvedInRelease
+    | GroupActivitySetByResolvedInNextRelease
+    | undefined;
 
   if (statusDetails.inNextRelease && statusDetails.actor) {
     return tct('[actor] marked this issue as resolved in the upcoming release.', {
@@ -49,52 +51,41 @@ function renderReason(
   if (statusDetails.inNextRelease) {
     return t('This issue has been marked as resolved in the upcoming release.');
   }
-  if (statusDetails.inRelease && statusDetails.actor) {
-    return currentReleaseVersion
-      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
-          actor,
-          version: (
-            <Version
-              version={currentReleaseVersion}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        })
-      : tct('[actor] marked this issue as resolved in version [version].', {
-          actor,
-          version: (
-            <Version
-              version={statusDetails.inRelease}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        });
-  }
+
   if (statusDetails.inRelease) {
-    return currentReleaseVersion
-      ? tct(
-          'This issue has been marked as resolved in versions greater than [version].',
-          {
-            version: (
-              <Version
-                version={currentReleaseVersion}
-                projectId={projectId}
-                tooltipRawVersion
-              />
-            ),
-          }
-        )
-      : tct('This issue has been marked as resolved in version [version].', {
-          version: (
-            <Version
-              version={statusDetails.inRelease}
-              projectId={projectId}
-              tooltipRawVersion
-            />
-          ),
-        });
+    // Resolved in next release has current_release_version
+    if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+      const version = (
+        <Version
+          version={relevantActivity.data.current_release_version}
+          projectId={projectId}
+          tooltipRawVersion
+        />
+      );
+      return statusDetails.actor
+        ? tct(
+            '[actor] marked this issue as resolved in versions greater than [version].',
+            {actor, version}
+          )
+        : tct(
+            'This issue has been marked as resolved in versions greater than [version].',
+            {version}
+          );
+    }
+
+    const version = (
+      <Version
+        version={statusDetails.inRelease}
+        projectId={projectId}
+        tooltipRawVersion
+      />
+    );
+    return actor
+      ? tct('[actor] marked this issue as resolved in version [version].', {
+          actor,
+          version,
+        })
+      : tct('This issue has been marked as resolved in version [version].', {version});
   }
   if (statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
