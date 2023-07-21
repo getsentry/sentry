@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -13,13 +14,16 @@ import TeamStore from 'sentry/stores/teamStore';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', function () {
+  const {routerProps} = initializeOrg();
+
   beforeEach(function () {
+    TeamStore.reset();
     MockApiClient.clearMockResponses();
     jest.spyOn(window.location, 'assign');
   });
 
   afterEach(function () {
-    window.location.assign.mockRestore();
+    jest.mocked(window.location.assign).mockRestore();
   });
 
   it('can change slug', async function () {
@@ -32,7 +36,7 @@ describe('TeamSettings', function () {
       },
     });
 
-    render(<TeamSettings team={team} params={{teamId: team.slug}} />);
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />);
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
 
@@ -77,7 +81,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
@@ -120,7 +124,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
@@ -139,7 +143,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
@@ -158,7 +162,7 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
@@ -171,9 +175,9 @@ describe('TeamSettings', function () {
       url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',
     });
-    TeamStore.loadInitialData([{slug: 'team-slug', hasAccess: true}]);
+    TeamStore.loadInitialData([team]);
 
-    render(<TeamSettings params={{teamId: team.slug}} team={team} />);
+    render(<TeamSettings {...routerProps} params={{teamId: team.slug}} team={team} />);
 
     // Click "Remove Team button
     await userEvent.click(screen.getByRole('button', {name: 'Remove Team'}));
