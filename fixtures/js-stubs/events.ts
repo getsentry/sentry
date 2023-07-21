@@ -1,14 +1,16 @@
-export function EventsStats(params = {}) {
+import {type Event, EventOrGroupType, EventsStats as TEventsStats} from 'sentry/types';
+
+export function EventsStats(params = {}): TEventsStats {
   return {
     data: [
-      [new Date(), [{count: 321}, {count: 79}]],
-      [new Date(), [{count: 123}]],
+      [new Date().getTime(), [{count: 321}, {count: 79}]],
+      [new Date().getTime(), [{count: 123}]],
     ],
     ...params,
   };
 }
 
-export function DetailedEvents() {
+export function DetailedEvents(): Event[] {
   return [
     {
       eventID: '807f0de4d8c246098f21f8e0f1684f3d',
@@ -33,8 +35,14 @@ export function DetailedEvents() {
         {value: 'id:1', key: 'user'},
       ],
       contexts: {
-        os: {version: '10.12.5', type: 'os', name: 'Mac OS X'},
-        browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'},
+        os: {
+          version: '10.12.5',
+          type: 'os',
+          name: 'Mac OS X',
+          build: '',
+          kernel_version: '',
+        },
+        browser: {version: '59.0.3071', name: 'Chrome'},
       },
       dateReceived: '2017-07-26T00:34:20Z',
       dateCreated: '2017-07-26T00:34:20Z',
@@ -56,18 +64,17 @@ export function DetailedEvents() {
       message:
         "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
       sdk: {
-        clientIP: '127.0.0.1',
         version: '3.16.1',
         name: 'raven-js',
-        upstream: {
-          url: 'https://docs.sentry.io/clients/javascript/',
-          isNewer: false,
-          name: 'raven-js',
-        },
       },
-      type: 'error',
+      type: EventOrGroupType.ERROR,
       id: '904',
       size: 21896,
+      crashFile: null,
+      culprit: 'callback(app/utils/handleXhrErrorResponse)',
+      location: './app/utils/handleXhrErrorResponse.tsx',
+      occurrence: null,
+      projectID: '1',
     },
     {
       eventID: '807f0de4d8c246098f21f8e0f1684f3d',
@@ -92,8 +99,14 @@ export function DetailedEvents() {
         {value: 'id:1', key: 'user'},
       ],
       contexts: {
-        os: {version: '10.12.5', type: 'os', name: 'Mac OS X'},
-        browser: {version: '59.0.3071', type: 'browser', name: 'Chrome'},
+        os: {
+          version: '10.12.5',
+          type: 'os',
+          name: 'Mac OS X',
+          build: '',
+          kernel_version: '',
+        },
+        browser: {version: '59.0.3071', name: 'Chrome'},
       },
       dateReceived: '2017-07-26T00:34:20Z',
       dateCreated: '2017-07-26T00:34:20Z',
@@ -115,18 +128,17 @@ export function DetailedEvents() {
       message:
         "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
       sdk: {
-        clientIP: '127.0.0.1',
         version: '3.16.1',
         name: 'raven-js',
-        upstream: {
-          url: 'https://docs.sentry.io/clients/javascript/',
-          isNewer: false,
-          name: 'raven-js',
-        },
       },
-      type: 'error',
+      type: EventOrGroupType.ERROR,
       id: '905',
       size: 21896,
+      crashFile: null,
+      culprit: 'callback(app/utils/handleXhrErrorResponse)',
+      location: './app/utils/handleXhrErrorResponse.tsx',
+      occurrence: null,
+      projectID: '1',
     },
   ];
 }
