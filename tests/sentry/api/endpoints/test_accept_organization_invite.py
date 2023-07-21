@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.conf import settings
+from django.db import router
 from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
@@ -30,7 +32,8 @@ from sentry.types.region import Region, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
+        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+            self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
     def _get_paths(self, args):
@@ -111,7 +114,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsAuthentication"]
+            assert resp.json()["needsAuthentication"]
 
     def test_not_needs_authentication(self):
         self.login_as(self.user)
@@ -122,7 +125,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needsAuthentication"]
+            assert not resp.json()["needsAuthentication"]
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
@@ -137,7 +140,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needs2fa"]
+            assert resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_in_session(om)
 
@@ -155,7 +158,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
                     slug="abcslug",
@@ -172,7 +175,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
                 OrganizationMemberMapping.objects.create(
                     organization_id=101010, organizationmember_id=om.id
                 )
@@ -183,7 +186,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
                 assert resp.status_code == 200
-                assert resp.data["needs2fa"]
+                assert resp.json()["needs2fa"]
 
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
@@ -198,7 +201,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
             OrganizationMemberMapping.objects.create(
                 organization_id=self.organization.id, organizationmember_id=om.id
             )
@@ -221,7 +224,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needs2fa"]
+            assert not resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_not_in_session(resp)
 
@@ -235,9 +238,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsSso"]
-            assert resp.data["hasAuthProvider"]
-            assert resp.data["ssoProvider"] == "Google"
+            assert resp.json()["needsSso"]
+            assert resp.json()["hasAuthProvider"]
+            assert resp.json()["ssoProvider"] == "Google"
 
     def test_can_accept_while_authenticated(self):
         urls = self._get_urls()
@@ -276,7 +279,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )

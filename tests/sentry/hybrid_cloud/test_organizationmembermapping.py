@@ -1,3 +1,5 @@
+from django.db import router
+
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -166,7 +168,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             org_member.update(role="owner")
         region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()

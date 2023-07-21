@@ -1,18 +1,15 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 
 const EventsRequest = withApi(_EventsRequest);
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -29,19 +26,15 @@ import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/f
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
 
-type BasePerformanceViewProps = {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-};
-
-export function StarfishView(props: BasePerformanceViewProps) {
+export function StarfishView(props: BaseStarfishViewProps) {
   const {organization, eventView} = props;
   const pageFilter = usePageFilters();
   const theme = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
 
   function renderCharts() {
     const query = new MutableSearch([
@@ -64,7 +57,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-homepage-charts"
+        referrer="api.starfish-web-service.homepage-charts"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
@@ -91,6 +84,8 @@ export function StarfishView(props: BasePerformanceViewProps) {
             seriesName: t('Requests'),
             data: results[2].data,
           };
+
+          setIsLoading(loading);
 
           return (
             <Fragment>
@@ -171,7 +166,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
     );
   }
 
-  useSynchronizeCharts();
+  useSynchronizeCharts([isLoading]);
 
   return (
     <div data-test-id="starfish-view">

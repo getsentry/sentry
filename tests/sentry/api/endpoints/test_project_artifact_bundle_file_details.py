@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.models import ArtifactBundle, File, ProjectArtifactBundle
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -99,7 +100,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="index.js.map"'
         assert response.get("Content-Length") == str(3)
         assert response.get("Content-Type") == "application/json"
-        assert b"foo" == b"".join(response.streaming_content)
+        assert b"foo" == close_streaming_response(response)
 
         # Download as a superuser
         url = reverse(
@@ -118,7 +119,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         assert response.get("Content-Disposition") == 'attachment; filename="index.js"'
         assert response.get("Content-Length") == str(3)
         assert response.get("Content-Type") == "application/json"
-        assert b"bar" == b"".join(response.streaming_content)
+        assert b"bar" == close_streaming_response(response)
 
         # Download as a superuser with non-existing file
         url = reverse(

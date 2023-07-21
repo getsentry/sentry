@@ -9,13 +9,17 @@ from sentry import audit_log
 from sentry.models import AuditLogEntry, ProjectOwnership
 from sentry.models.group import Group
 from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"
@@ -40,6 +44,26 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "sentry-api-0-project-ownership",
             kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
         )
+
+    def python_event_data(self):
+        return {
+            "message": "Kaboom!",
+            "platform": "python",
+            "timestamp": iso_format(before_now(seconds=10)),
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "handle_set_commits",
+                        "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
+                        "module": "sentry.api",
+                        "in_app": True,
+                        "lineno": 30,
+                        "filename": "sentry/api/foo.py",
+                    }
+                ]
+            },
+            "tags": {"sentry:release": self.release.version},
+        }
 
     def test_empty_state(self):
         resp = self.client.get(self.path)
@@ -132,26 +156,30 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["codeownersAutoSync"] is False
 
     def test_audit_log_entry(self):
-        resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+        with outbox_runner():
+            resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
         assert resp.status_code == 200
 
-        auditlog = AuditLogEntry.objects.filter(
-            organization_id=self.project.organization.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            target_object=self.project.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auditlog = AuditLogEntry.objects.filter(
+                organization_id=self.project.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                target_object=self.project.id,
+            )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
 
     def test_audit_log_ownership_change(self):
-        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        with outbox_runner():
+            resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
 
-        auditlog = AuditLogEntry.objects.filter(
-            organization_id=self.project.organization.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            target_object=self.project.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auditlog = AuditLogEntry.objects.filter(
+                organization_id=self.project.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                target_object=self.project.id,
+            )
         assert len(auditlog) == 1
         assert "modified" in auditlog[0].data["ownership_rules"]
 
@@ -231,9 +259,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost #tiger-team"})
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.member_user_delete.delete()
+
         # Get after with the streamline-targeting-context flag
         with self.feature({"organizations:streamline-targeting-context": True}):
-            self.member_user_delete.delete()
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
@@ -256,9 +286,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         # Put without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js member_delete@localhost"})
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.member_user_delete.delete()
+
         # Get after with the streamline-targeting-context flag
         with self.feature({"organizations:streamline-targeting-context": True}):
-            self.member_user_delete.delete()
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {"$version": 1, "rules": []}
 
@@ -285,10 +317,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
         )
 
-        # Get after with the streamline-targeting-context flag
-        with self.feature({"organizations:streamline-targeting-context": True}):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.member_user_delete.delete()
             self.member_user_delete2.delete()
+
+        # Get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
@@ -379,22 +413,53 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 403
 
     def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
-        ProjectOwnership.objects.create(
-            project=self.project, raw="*.js member@localhost #tiger-team"
-        )
         # Turn auto assignment on
         self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+
+        # Create codeowner rule
+        self.code_mapping = self.create_code_mapping(project=self.project)
+        rule = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
+        )
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule])
+        )
+
+        # Auto assign rule using codeowner
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule)},
+        )
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+
         auto_assignment_ownership = ProjectOwnership.objects.get(project=self.project)
         auto_assignment_types = ProjectOwnership._get_autoassignment_types(
             auto_assignment_ownership
         )
+        assert auto_assignment_types == [
+            GroupOwnerType.OWNERSHIP_RULE.value,
+            GroupOwnerType.CODEOWNERS.value,
+        ]
         # Get the cache keys
         groups = Group.objects.filter(
             project_id=self.project.id,
             last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
-        ).values_list("id", flat=True)
+        )
+        assert groups
         auto_assignment_cache_keys = [
-            GroupOwner.get_autoassigned_cache_key(group.id, self.project.id, auto_assignment_types)
+            GroupOwner.get_autoassigned_owner_cache_key(
+                group.id, self.project.id, auto_assignment_types
+            )
             for group in groups
         ]
         assert auto_assignment_types == [
@@ -403,7 +468,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         ]
         # Assert the cache is set
         for cache_key in auto_assignment_cache_keys:
-            assert cache.get(cache_key) is None
+            assert cache.get(cache_key) is not None
 
         # Turn auto assignment off
         self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})

@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import MAX_TIMEOUT
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -98,6 +99,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
         min_value=1,
+        max_value=MAX_TIMEOUT,
     )
 
     timezone = serializers.ChoiceField(
@@ -226,7 +228,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
 
 class TraceContextValidator(serializers.Serializer):
-    trace_id = serializers.CharField(max_length=32)
+    trace_id = serializers.UUIDField(format="hex")
 
 
 class ContextsValidator(serializers.Serializer):

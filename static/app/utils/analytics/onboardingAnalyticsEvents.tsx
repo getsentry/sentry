@@ -59,6 +59,10 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.source_maps_wizard_button_copy_clicked': {
+    platform: string;
+    project_id: string;
+  };
   'onboarding.view_error_button_clicked': {
     new_organization: boolean;
     platform: string;
@@ -96,4 +100,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Data Removal Modal Confirm Button Clicked',
   'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
   'onboarding.data_removed': 'Onboarding: Data Removed',
+  'onboarding.source_maps_wizard_button_copy_clicked':
+    'Onboarding: Source Maps Wizard Copy Button Clicked',
 };

@@ -3,10 +3,11 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.testutils import (  # mock_replay_click,
+from sentry.replays.testutils import (
     assert_expected_response,
     mock_expected_response,
     mock_replay,
+    mock_replay_click,
 )
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -75,6 +76,25 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 error_ids=[],
             )
         )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                is_dead=1,
+                is_rage=1,
+                text="Hello",
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -100,6 +120,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 count_errors=1,
                 tags={"test": ["hello", "world"], "other": ["hello"]},
                 activity=4,
+                count_dead_clicks=1,
+                count_rage_clicks=1,
+                clicks=[
+                    {
+                        "click.alt": "Alt",
+                        "click.classes": ["class1", "class2"],
+                        "click.id": "myid",
+                        "click.role": "button",
+                        "click.tag": "div",
+                        "click.testid": "1",
+                        "click.text": "Hello",
+                        "click.title": "MyTitle",
+                        "click.label": "AriaLabel",
+                    }
+                ],
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -511,6 +546,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:1",
+                "count_dead_clicks:0",
+                "count_rage_clicks:0",
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
@@ -585,6 +622,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
+                "count_dead_clicks:>0",
+                "count_rage_clicks:>0",
                 f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
                 "id:b OR duration:>1000",
@@ -867,6 +906,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "urls": None,
                     "started_at": None,
                     "count_errors": None,
+                    "count_dead_clicks": None,
+                    "count_rage_clicks": None,
                     "activity": None,
                     "finished_at": None,
                     "duration": None,
@@ -913,171 +954,171 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     #             }
     #         ]
 
-    # def test_get_replays_filter_clicks(self):
-    #     """Test replays conform to the interchange format."""
-    #     project = self.create_project(teams=[self.team])
+    def test_get_replays_filter_clicks(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
 
-    #     replay1_id = uuid.uuid4().hex
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-    #     self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-    #     self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-    #     self.store_replays(
-    #         mock_replay_click(
-    #             seq2_timestamp,
-    #             project.id,
-    #             replay1_id,
-    #             node_id=1,
-    #             tag="div",
-    #             id="myid",
-    #             class_=["class1", "class2"],
-    #             role="button",
-    #             testid="1",
-    #             alt="Alt",
-    #             aria_label="AriaLabel",
-    #             title="MyTitle",
-    #             text="Hello",
-    #         )
-    #     )
-    #     self.store_replays(
-    #         mock_replay_click(
-    #             seq2_timestamp,
-    #             project.id,
-    #             replay1_id,
-    #             node_id=2,
-    #             tag="button",
-    #             id="myid",
-    #             class_=["class1", "class3"],
-    #         )
-    #     )
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                class_=["class1", "class3"],
+            )
+        )
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         queries = [
-    #             "click.alt:Alt",
-    #             "click.class:class1",
-    #             "click.class:class2",
-    #             "click.class:class3",
-    #             "click.id:myid",
-    #             "click.label:AriaLabel",
-    #             "click.role:button",
-    #             "click.tag:div",
-    #             "click.tag:button",
-    #             "click.testid:1",
-    #             "click.textContent:Hello",
-    #             "click.title:MyTitle",
-    #             "click.selector:div#myid",
-    #             "click.selector:div[alt=Alt]",
-    #             "click.selector:div[title=MyTitle]",
-    #             "click.selector:div[data-testid='1']",
-    #             "click.selector:div[data-test-id='1']",
-    #             "click.selector:div[role=button]",
-    #             "click.selector:div#myid.class1.class2",
-    #             # Single quotes around attribute value.
-    #             "click.selector:div[role='button']",
-    #             "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
-    #         ]
-    #         for query in queries:
-    #             response = self.client.get(self.url + f"?field=id&query={query}")
-    #             assert response.status_code == 200, query
-    #             response_data = response.json()
-    #             assert len(response_data["data"]) == 1, query
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "click.alt:Alt",
+                "click.class:class1",
+                "click.class:class2",
+                "click.class:class3",
+                "click.id:myid",
+                "click.label:AriaLabel",
+                "click.role:button",
+                "click.tag:div",
+                "click.tag:button",
+                "click.testid:1",
+                "click.textContent:Hello",
+                "click.title:MyTitle",
+                "click.selector:div#myid",
+                "click.selector:div[alt=Alt]",
+                "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-testid='1']",
+                "click.selector:div[data-test-id='1']",
+                "click.selector:div[role=button]",
+                "click.selector:div#myid.class1.class2",
+                # Single quotes around attribute value.
+                "click.selector:div[role='button']",
+                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
 
-    #         queries = [
-    #             "click.alt:NotAlt",
-    #             "click.class:class4",
-    #             "click.id:other",
-    #             "click.label:NotAriaLabel",
-    #             "click.role:form",
-    #             "click.tag:header",
-    #             "click.testid:2",
-    #             "click.textContent:World",
-    #             "click.title:NotMyTitle",
-    #             "!click.selector:div#myid",
-    #             "click.selector:div#notmyid",
-    #             # Assert all classes must match.
-    #             "click.selector:div#myid.class1.class2.class3",
-    #             # Invalid selectors return no rows.
-    #             "click.selector:$#%^#%",
-    #             # Integer type role values are not allowed and must be wrapped in single quotes.
-    #             "click.selector:div[title=1]",
-    #         ]
-    #         for query in queries:
-    #             response = self.client.get(self.url + f"?query={query}")
-    #             assert response.status_code == 200, query
-    #             response_data = response.json()
-    #             assert len(response_data["data"]) == 0, query
+            queries = [
+                "click.alt:NotAlt",
+                "click.class:class4",
+                "click.id:other",
+                "click.label:NotAriaLabel",
+                "click.role:form",
+                "click.tag:header",
+                "click.testid:2",
+                "click.textContent:World",
+                "click.title:NotMyTitle",
+                "!click.selector:div#myid",
+                "click.selector:div#notmyid",
+                # Assert all classes must match.
+                "click.selector:div#myid.class1.class2.class3",
+                # Invalid selectors return no rows.
+                "click.selector:$#%^#%",
+                # Integer type role values are not allowed and must be wrapped in single quotes.
+                "click.selector:div[title=1]",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
 
-    # def test_get_replays_click_fields(self):
-    #     project = self.create_project(teams=[self.team])
+    def test_get_replays_click_fields(self):
+        project = self.create_project(teams=[self.team])
 
-    #     replay1_id = uuid.uuid4().hex
-    #     seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-    #     seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-    #     self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-    #     self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-    #     self.store_replays(
-    #         mock_replay_click(
-    #             seq2_timestamp,
-    #             project.id,
-    #             replay1_id,
-    #             node_id=1,
-    #             tag="div",
-    #             id="myid",
-    #             class_=["class1", "class2"],
-    #             role="button",
-    #             testid="1",
-    #             alt="Alt",
-    #             aria_label="AriaLabel",
-    #             title="MyTitle",
-    #             text="Hello",
-    #         )
-    #     )
-    #     self.store_replays(
-    #         mock_replay_click(
-    #             seq2_timestamp,
-    #             project.id,
-    #             replay1_id,
-    #             node_id=2,
-    #             tag="button",
-    #             id="myid",
-    #             class_=["class1", "class3"],
-    #         )
-    #     )
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                text="Hello",
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=2,
+                tag="button",
+                id="myid",
+                class_=["class1", "class3"],
+            )
+        )
 
-    #     with self.feature(REPLAYS_FEATURES):
-    #         response = self.client.get(self.url + "?field=clicks")
-    #         assert response.status_code == 200, response.content
-    #         response_data = response.json()
-    #         assert response_data["data"] == [
-    #             {
-    #                 "clicks": [
-    #                     {
-    #                         "click.alt": "Alt",
-    #                         "click.classes": ["class1", "class3"],
-    #                         "click.id": "myid",
-    #                         "click.role": "button",
-    #                         "click.tag": "button",
-    #                         "click.testid": "1",
-    #                         "click.text": "Hello",
-    #                         "click.title": "MyTitle",
-    #                         "click.label": "AriaLabel",
-    #                     },
-    #                     {
-    #                         "click.alt": None,
-    #                         "click.classes": ["class1", "class2"],
-    #                         "click.id": "myid",
-    #                         "click.role": None,
-    #                         "click.tag": "div",
-    #                         "click.testid": None,
-    #                         "click.text": None,
-    #                         "click.title": None,
-    #                         "click.label": None,
-    #                     },
-    #                 ]
-    #             }
-    #         ]
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=clicks")
+            assert response.status_code == 200, response.content
+            response_data = response.json()
+            assert response_data["data"] == [
+                {
+                    "clicks": [
+                        {
+                            "click.alt": "Alt",
+                            "click.classes": ["class1", "class3"],
+                            "click.id": "myid",
+                            "click.role": "button",
+                            "click.tag": "button",
+                            "click.testid": "1",
+                            "click.text": "Hello",
+                            "click.title": "MyTitle",
+                            "click.label": "AriaLabel",
+                        },
+                        {
+                            "click.alt": None,
+                            "click.classes": ["class1", "class2"],
+                            "click.id": "myid",
+                            "click.role": None,
+                            "click.tag": "div",
+                            "click.testid": None,
+                            "click.text": None,
+                            "click.title": None,
+                            "click.label": None,
+                        },
+                    ]
+                }
+            ]
 
     def test_get_replays_filter_clicks_nested_selector(self):
         """Test replays do not support nested selectors."""

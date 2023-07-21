@@ -85,7 +85,7 @@ class DiscordRequest:
         if signature and timestamp and verify_signature(public_key, signature, timestamp + body):
             return
 
-        self._error("discord.interactions.auth")
+        self._info("discord.interactions.auth")
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
 
     def _validate_data(self) -> None:
@@ -109,4 +109,8 @@ class DiscordRequest:
         logger.error(key, extra={**self.logging_data})
 
     def is_ping(self) -> bool:
+        # TODO: Make these constants an enum like DISCORD_REQUEST_TYPE.PING
         return self._data.get("type", 0) == 1
+
+    def is_command(self) -> bool:
+        return self._data.get("type", 0) == 2
