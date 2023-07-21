@@ -2,12 +2,12 @@ import logging
 
 import sentry_sdk
 
-from sentry.models.organization import Organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -38,9 +38,8 @@ def link_all_repos(
         metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
         return
 
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
+    rpc_org = organization_service.get(organization_id=organization_id)
+    if rpc_org is None:
         logger.error(
             f"{integration_key}.link_all_repos.organization_missing",
             extra={"organization_id": organization_id},
