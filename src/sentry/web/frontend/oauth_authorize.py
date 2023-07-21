@@ -8,9 +8,10 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
+from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
-logger = logging.getLogger("sentry.api")
+logger = logging.getLogger("sentry.api.oauth_authorize")
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -284,12 +285,28 @@ class OAuthAuthorizeView(AuthLoginView):
                         auth.scope_list.append(scope)
                 auth.save()
 
+        metrics.incr(
+            "oauth_authorize.get.approve",
+            sample_rate=1.0,
+            tags={
+                "respose_type": params["response_type"],
+            },
+        )
+
         if params["response_type"] == "code":
             grant = ApiGrant.objects.create(
                 user_id=request.user.id,
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
+            )
+            logger.info(
+                "approve.grant",
+                extra={
+                    "respose_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": params["scopes"],
+                },
             )
             return self.redirect_response(
                 params["response_type"],
@@ -302,6 +319,16 @@ class OAuthAuthorizeView(AuthLoginView):
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+            )
+
+            logger.info(
+                "approve.token",
+                extra={
+                    "respose_type": params["response_type"],
+                    "redirect_uri": params["redirect_uri"],
+                    "scope": " ".join(token.get_scopes()),
+                    "state": params["state"],
+                },
             )
 
             return self.redirect_response(
