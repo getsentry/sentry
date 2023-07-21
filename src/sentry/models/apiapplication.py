@@ -1,5 +1,4 @@
 from typing import List
-from urllib.parse import urlparse
 from uuid import uuid4
 
 import petname
@@ -100,13 +99,7 @@ class ApiApplication(Model):
         return value in ("code", "token")
 
     def is_valid_redirect_uri(self, value):
-        v_netloc = urlparse(value).netloc
-        for ruri in self.redirect_uris.split("\n"):
-            if v_netloc != urlparse(ruri).netloc:
-                continue
-            if value.startswith(ruri):
-                return True
-        return False
+        return value in self.redirect_uris.split("\n")
 
     def get_default_redirect_uri(self):
         return self.redirect_uris.split()[0]
