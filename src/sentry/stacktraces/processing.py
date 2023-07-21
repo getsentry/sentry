@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence
+from typing import Any, Callable, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
@@ -33,7 +33,7 @@ class StacktraceInfo(NamedTuple):
     def __ne__(self, other: object) -> bool:
         return self is not other
 
-    def get_frames(self) -> Sequence[Dict[str, Any]] | None:
+    def get_frames(self) -> Sequence[dict[str, str]]:
         return get_path(self.stacktrace, "frames", filter=True, default=())
 
 
@@ -195,7 +195,8 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
-        frames = get_path(stacktrace, "frames", filter=True, default=())
+        # Since we do not pass default=() we will get a None value if there are no frames
+        frames = get_path(stacktrace, "frames", filter=True)
         if not is_exception and (not stacktrace or not frames):
             return
 
@@ -250,7 +251,7 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace: list[dict[str, str]]) -> None:
+def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> None:
     """
     Ensures consistent values of in_app across a stacktrace.
     """
