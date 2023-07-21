@@ -53,7 +53,7 @@ class IntegrationRequestBuffer:
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in self._get()
-            if item.get("fatal_count", 0) != 0 and item.get("date")
+            if item.get("fatal_count", 0) > 0 and item.get("date")
         ][0:IS_BROKEN_RANGE]
 
         if len(data) > 0:
