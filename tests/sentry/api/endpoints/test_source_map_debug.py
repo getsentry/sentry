@@ -1,7 +1,7 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
+from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -46,7 +46,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ]
 
         for filename, artifact_name, expected in cases:
-            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
+            assert _find_url_prefix(filename, artifact_name) == expected
 
     def test_missing_event(self):
         resp = self.get_error_response(
