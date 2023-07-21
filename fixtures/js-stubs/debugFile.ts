@@ -1,12 +1,18 @@
-export function DebugFile(params = {}) {
+import {
+  type DebugFile as TDebugFile,
+  DebugFileFeature,
+  DebugFileType,
+} from 'sentry/types';
+
+export function DebugFile(params = {}): TDebugFile {
   return {
     objectName: 'libS.so',
     symbolType: 'elf',
     dateCreated: '2010-04-23T02:08:51.179486Z',
     debugId: '2oihoi4h5ioh34534oi5h',
     data: {
-      type: 'lib',
-      features: ['unwind'],
+      type: DebugFileType.LIB,
+      features: [DebugFileFeature.UNWIND],
     },
     id: '12345',
     size: 12345,

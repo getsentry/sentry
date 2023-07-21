@@ -1,20 +1,28 @@
-export function EventEntryDebugMeta(params = {}) {
+import {type EntryDebugMeta, EntryType} from 'sentry/types';
+import {
+  CandidateDownloadStatus,
+  CandidateProcessingStatus,
+  ImageStatus,
+} from 'sentry/types/debugImage';
+
+export function EventEntryDebugMeta(params = {}): EntryDebugMeta {
   return {
-    type: 'debugmeta',
+    type: EntryType.DEBUGMETA,
     data: {
       images: [
         {
           arch: 'x86_64',
           candidates: [
             {
+              location: '',
               download: {
-                status: 'notfound',
+                status: CandidateDownloadStatus.NOT_FOUND,
               },
               source: 'sentry:microsoft',
               source_name: 'Microsoft',
             },
             {
-              debug: {status: 'ok'},
+              debug: {status: CandidateProcessingStatus.OK},
               download: {
                 features: {
                   has_debug_info: true,
@@ -22,7 +30,7 @@ export function EventEntryDebugMeta(params = {}) {
                   has_symbols: true,
                   has_unwind_info: false,
                 },
-                status: 'ok',
+                status: CandidateDownloadStatus.OK,
               },
               location: 'sentry://project_debug_file/17',
               source: 'sentry:project',
@@ -30,23 +38,26 @@ export function EventEntryDebugMeta(params = {}) {
             },
             {
               download: {
-                status: 'malformed',
+                status: CandidateDownloadStatus.MALFORMED,
               },
               location: 'burgenland',
               source_name: 'Austria',
+              source: 'sentry://project_debug_file/18',
             },
             {
               download: {
-                status: 'malformed',
+                status: CandidateDownloadStatus.MALFORMED,
               },
               location: 'brussels',
+              source: 'sentry://project_debug_file/19',
               source_name: 'Belgium',
             },
             {
               download: {
-                status: 'malformed',
+                status: CandidateDownloadStatus.MALFORMED,
               },
               location: 'arizona',
+              source: 'sentry://project_debug_file/20',
               source_name: 'America',
             },
           ],
@@ -54,7 +65,7 @@ export function EventEntryDebugMeta(params = {}) {
           code_id: '43fd26cc39043633a546f1b003ea17a4',
           debug_file: 'sentry_example',
           debug_id: '43fd26cc-3904-3633-a546-f1b003ea17a4',
-          debug_status: 'found',
+          debug_status: ImageStatus.FOUND,
           features: {
             has_debug_info: true,
             has_sources: false,
@@ -64,7 +75,7 @@ export function EventEntryDebugMeta(params = {}) {
           image_addr: '0x10753f000',
           image_size: 16384,
           type: 'macho',
-          unwind_status: 'unused',
+          unwind_status: ImageStatus.UNUSED,
         },
       ],
     },

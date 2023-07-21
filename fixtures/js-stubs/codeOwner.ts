@@ -1,3 +1,5 @@
+import {type CodeOwner as TCodeOwner} from 'sentry/types';
+
 import {GitHubIntegration} from './githubIntegration';
 import {Project} from './project';
 import {Repository} from './repository';
@@ -8,7 +10,7 @@ export function CodeOwner({
   repo = Repository(),
   integration = GitHubIntegration(),
   ...params
-} = {}) {
+} = {}): TCodeOwner {
   return {
     id: '1225',
     raw: '',

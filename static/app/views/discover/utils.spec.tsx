@@ -574,7 +574,7 @@ describe('getExpandedResults()', function () {
   it('applies project condition to project property', () => {
     const view = new EventView(state);
 
-    const result = getExpandedResults(view, TestStubs.Event({'project.id': 1}));
+    const result = getExpandedResults(view, {'project.id': '1'});
     expect(result.query.includes('event.type:error')).toBeTruthy();
     expect(result.project).toEqual([42, 1]);
   });
