@@ -40,7 +40,7 @@ const {organization, router, routerContext} = initializeOrg({
     id: '1337',
     slug: 'org-slug',
     features: ['global-views'],
-    access: ['releases'],
+    access: [],
   },
   router: {
     location: {query: {}, search: ''},
@@ -57,12 +57,19 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  let group;
-  let groupStats;
-  let savedSearch;
+  const tags = TestStubs.Tags();
+  const group = TestStubs.Group({project});
+  const groupStats = TestStubs.GroupStats();
+  const savedSearch = TestStubs.Search({
+    id: '789',
+    query: 'is:unresolved TypeError',
+    sort: 'date',
+    name: 'Unresolved TypeErrors',
+    projectId: project.id,
+  });
 
-  let fetchTagsRequest;
-  let fetchMembersRequest;
+  let fetchTagsRequest: jest.Mock;
+  let fetchMembersRequest: jest.Mock;
   const api = new MockApiClient();
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
@@ -72,18 +79,6 @@ describe('IssueList', function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
-    localStorageWrapper.clear();
-    MockApiClient.clearMockResponses();
-
-    savedSearch = TestStubs.Search({
-      id: '789',
-      query: 'is:unresolved TypeError',
-      sort: 'date',
-      name: 'Unresolved TypeErrors',
-      projectId: project.id,
-    });
-
-    group = TestStubs.Group({project});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
@@ -91,7 +86,6 @@ describe('IssueList', function () {
         Link: DEFAULT_LINKS_HEADER,
       },
     });
-    groupStats = TestStubs.GroupStats();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
@@ -126,7 +120,6 @@ describe('IssueList', function () {
         },
       ],
     });
-    const tags = TestStubs.Tags();
     fetchTagsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
@@ -146,7 +139,7 @@ describe('IssueList', function () {
       body: [project],
     });
 
-    TagStore.init();
+    TagStore.init?.();
 
     props = {
       api,
@@ -172,16 +165,16 @@ describe('IssueList', function () {
   afterEach(function () {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
+    localStorageWrapper.clear();
   });
 
   describe('withStores and feature flags', function () {
-    const defaultProps = {};
-    let savedSearchesRequest;
-    let recentSearchesRequest;
-    let issuesRequest;
+    let savedSearchesRequest: jest.Mock;
+    let recentSearchesRequest: jest.Mock;
+    let issuesRequest: jest.Mock;
 
     beforeEach(function () {
-      StreamGroup.mockClear();
+      jest.mocked(StreamGroup).mockClear();
 
       recentSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
@@ -202,7 +195,7 @@ describe('IssueList', function () {
     });
 
     it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
-      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+      render(<IssueListWithStores {...routerProps} />, {
         context: routerContext,
       });
 
@@ -245,12 +238,12 @@ describe('IssueList', function () {
         ],
       });
 
-      const location = {query: {query: 'level:foo'}};
+      const location = TestStubs.location({query: {query: 'level:foo'}});
 
-      render(
-        <IssueListWithStores {...merge({}, routerProps, {location})} {...defaultProps} />,
-        {context: routerContext, router: {location}}
-      );
+      render(<IssueListWithStores {...merge({}, routerProps, {location})} />, {
+        context: routerContext,
+        router: {location},
+      });
 
       await waitFor(() => {
         // Main /issues/ request
@@ -284,7 +277,7 @@ describe('IssueList', function () {
         ],
       });
 
-      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+      render(<IssueListWithStores {...routerProps} />, {
         context: routerContext,
       });
 
@@ -308,7 +301,6 @@ describe('IssueList', function () {
       render(
         <IssueListWithStores
           {...routerProps}
-          {...defaultProps}
           organization={{...organization, features: ['escalating-issues']}}
         />,
         {
@@ -345,13 +337,10 @@ describe('IssueList', function () {
 
       const localRouter = {params: {searchId: '123'}};
 
-      render(
-        <IssueListWithStores
-          {...merge({}, routerProps, localRouter)}
-          {...defaultProps}
-        />,
-        {context: routerContext, router: localRouter}
-      );
+      render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
+        context: routerContext,
+        router: localRouter,
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
@@ -389,13 +378,9 @@ describe('IssueList', function () {
 
       const localRouter = {location: {query: {query: 'level:error'}}};
 
-      render(
-        <IssueListWithStores
-          {...merge({}, routerProps, localRouter)}
-          {...defaultProps}
-        />,
-        {context: routerContext, router: localRouter}
-      );
+      render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
+        context: routerContext,
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
@@ -430,7 +415,6 @@ describe('IssueList', function () {
       render(
         <IssueListWithStores
           {...merge({}, routerProps, {location: {query: {query: undefined}}})}
-          {...defaultProps}
         />,
         {context: routerContext}
       );
@@ -458,7 +442,7 @@ describe('IssueList', function () {
         body: [localSavedSearch],
       });
 
-      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+      render(<IssueListWithStores {...routerProps} />, {
         context: routerContext,
       });
 
@@ -489,7 +473,7 @@ describe('IssueList', function () {
         ],
       });
 
-      render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
+      render(<IssueListWithStores {...routerProps} />, {
         context: routerContext,
       });
 
@@ -526,17 +510,16 @@ describe('IssueList', function () {
         body: [savedSearch],
       });
 
-      const {rerender} = render(
-        <IssueListWithStores {...routerProps} {...defaultProps} />,
-        {context: routerContext}
-      );
+      const {rerender} = render(<IssueListWithStores {...routerProps} />, {
+        context: routerContext,
+      });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
       await userEvent.clear(screen.getByRole('textbox'));
       await userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
 
-      expect(browserHistory.push.mock.calls[0][0]).toEqual(
+      expect((browserHistory.push as jest.Mock).mock.calls[0][0]).toEqual(
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'assigned:me level:fatal',
@@ -548,13 +531,7 @@ describe('IssueList', function () {
 
       const routerWithQuery = {location: {query: {query: 'assigned:me level:fatal'}}};
 
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, routerWithQuery)}
-          {...defaultProps}
-        />,
-        {context: routerContext, router: routerWithQuery}
-      );
+      rerender(<IssueListWithStores {...merge({}, routerProps, routerWithQuery)} />);
 
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
 
@@ -606,13 +583,10 @@ describe('IssueList', function () {
         params: {searchId: pinnedSearch.id},
       };
 
-      render(
-        <IssueListWithStores
-          {...merge({}, routerProps, routerWithSavedSearch)}
-          {...defaultProps}
-        />,
-        {context: routerContext, router: routerWithSavedSearch}
-      );
+      render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
+        context: routerContext,
+        router: routerWithSavedSearch,
+      });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -660,13 +634,10 @@ describe('IssueList', function () {
       });
       const routerWithSavedSearch = {params: {searchId: '789'}};
 
-      render(
-        <IssueListWithStores
-          {...merge({}, routerProps, routerWithSavedSearch)}
-          {...defaultProps}
-        />,
-        {context: routerContext, router: routerWithSavedSearch}
-      );
+      render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
+        context: routerContext,
+        router: routerWithSavedSearch,
+      });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -705,11 +676,15 @@ describe('IssueList', function () {
       render(
         <IssueListWithStores
           {...newRouter}
-          {...defaultProps}
           selection={{
-            projects: ['123'],
+            projects: [123],
             environments: ['prod'],
-            datetime: {},
+            datetime: {
+              end: null,
+              period: null,
+              start: null,
+              utc: null,
+            },
           }}
         />,
         {context: newRouterContext}
@@ -782,11 +757,15 @@ describe('IssueList', function () {
       render(
         <IssueListWithStores
           {...newRouter}
-          {...defaultProps}
           selection={{
-            projects: ['123'],
+            projects: [123],
             environments: ['prod'],
-            datetime: {},
+            datetime: {
+              end: null,
+              period: null,
+              start: null,
+              utc: null,
+            },
           }}
           savedSearch={localSavedSearch}
         />,
@@ -814,12 +793,9 @@ describe('IssueList', function () {
     });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
-      const {rerender} = render(
-        <IssueListWithStores {...routerProps} {...defaultProps} />,
-        {
-          context: routerContext,
-        }
-      );
+      const {rerender} = render(<IssueListWithStores {...routerProps} />, {
+        context: routerContext,
+      });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
@@ -852,12 +828,7 @@ describe('IssueList', function () {
         expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {location: pushArgs})}
-          {...defaultProps}
-        />
-      );
+      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
 
@@ -881,12 +852,7 @@ describe('IssueList', function () {
         expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {location: pushArgs})}
-          {...defaultProps}
-        />
-      );
+      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       // Click previous
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
@@ -908,12 +874,7 @@ describe('IssueList', function () {
         expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
-      rerender(
-        <IssueListWithStores
-          {...merge({}, routerProps, {location: pushArgs})}
-          {...defaultProps}
-        />
-      );
+      rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
 
       // Click previous back to initial page
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
@@ -1338,17 +1299,21 @@ describe('IssueList', function () {
       body: [...new Array(25)].map((_, i) => ({id: i})),
       headers: {
         Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': 500,
-        'X-Max-Hits': 1000,
+        'X-Hits': '500',
+        'X-Max-Hits': '1000',
       },
     });
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
         results: true,
+        cursor: '',
+        href: '',
       },
       previous: {
         results: false,
+        cursor: '',
+        href: '',
       },
     });
     props = {
@@ -1371,9 +1336,13 @@ describe('IssueList', function () {
     parseLinkHeaderSpy.mockReturnValue({
       next: {
         results: true,
+        cursor: '',
+        href: '',
       },
       previous: {
         results: true,
+        cursor: '',
+        href: '',
       },
     });
     rerender(<IssueListOverview {...props} />);

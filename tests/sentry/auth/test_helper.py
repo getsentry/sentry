@@ -452,6 +452,7 @@ class AuthHelperTest(TestCase):
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
         helper.initialize()
         assert helper.is_valid()
 
