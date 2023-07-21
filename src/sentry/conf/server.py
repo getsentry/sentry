@@ -1342,10 +1342,6 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Enable Discord integration
-    "organizations:integrations-discord": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
     # Allow disabling integrations when broken is detected
     "organization:disable-on-broken": False,
     # Enable the 'discover' interface.

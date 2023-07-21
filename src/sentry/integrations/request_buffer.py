@@ -22,7 +22,6 @@ class IntegrationRequestBuffer:
 
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
-        self.is_fatal = False
 
     def _convert_obj_to_dict(self, redis_object):
         """
@@ -126,5 +125,4 @@ class IntegrationRequestBuffer:
         self.add("success")
 
     def record_fatal(self):
-        self.is_fatal = True
         self.add("fatal")
