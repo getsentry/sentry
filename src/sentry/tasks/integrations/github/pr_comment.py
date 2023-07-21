@@ -254,13 +254,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except ApiError as e:
         cache.delete(cache_key)
 
-        if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.issue_locked_error")
-            return
+        if e.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.issue_locked_error")
+                return
 
-        elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.rate_limited_error")
-            return
+            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.rate_limited_error")
+                return
 
         metrics.incr("github_pr_comment.api_error")
         raise e
