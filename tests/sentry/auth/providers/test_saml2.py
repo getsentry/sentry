@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -48,7 +51,7 @@ class SAML2ProviderTest(TestCase):
 
     def test_build_identity_invalid(self):
         self.provider.config = dummy_provider_config
-        state = {"auth_attributes": {}}
+        state: dict[str, dict[str, Any]] = {"auth_attributes": {}}
 
         with pytest.raises(IdentityNotValid):
             self.provider.build_identity(state)

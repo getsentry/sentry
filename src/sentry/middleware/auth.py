@@ -45,8 +45,7 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                    UserIP.log(user, request.META["REMOTE_ADDR"])
+                UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
 
