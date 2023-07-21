@@ -1354,7 +1354,7 @@ SENTRY_FEATURES = {
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enables data secrecy mode
-    "organizations:enterprise-data-secrecy": True,
+    "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow in MS Teams
