@@ -29,6 +29,7 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: Optional[int] = None,
+        external_id: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_integration: Optional[bool] = None,
         has_provider: Optional[bool] = None,

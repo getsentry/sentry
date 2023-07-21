@@ -14,6 +14,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         *,
         organization_id: int,
         integration_id: Optional[int] = None,
+        external_id: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_integration: Optional[bool] = None,
         has_provider: Optional[bool] = None,
@@ -22,6 +23,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)
+        if external_id is not None:
+            query = query.filter(external_id=external_id)
         if providers is not None:
             query = query.filter(provider__in=providers)
         if has_integration is not None:
