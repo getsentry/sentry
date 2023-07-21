@@ -20,8 +20,8 @@ interface CustomResolutionModalProps extends ModalRenderProps {
 function CustomResolutionModal(props: CustomResolutionModalProps) {
   const [version, setVersion] = useState('');
   const currentUser = configStore.get('user');
-  const hasIssueResolveSemver =
-    props.organization.features.includes('issue-resolve-semver');
+  const hasIssueReleaseSemver =
+    props.organization.features.includes('issue-release-semver');
 
   const onChange = (selection: string | number | boolean) => {
     setVersion(selection as string);
@@ -37,7 +37,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         label: (
           <Fragment>
             <Version version={release.version} anchor={false} />{' '}
-            {hasIssueResolveSemver
+            {hasIssueReleaseSemver
               ? isVersionInfoSemver(release.versionInfo.version)
                 ? t('(semver)')
                 : t('(timestamp)')
