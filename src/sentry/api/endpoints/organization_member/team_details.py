@@ -64,7 +64,7 @@ class TeamOrgMemberPermission(OrganizationPermission):
             "member:write",
             "member:admin",
         ],
-        "DELETE": ["org:read", "org:write", "team:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
     }
 
 
@@ -75,7 +75,8 @@ def _has_elevated_scope(access: Access) -> bool:
 
 def _is_org_owner_or_manager(access: Access) -> bool:
     roles = access.get_organization_roles()
-    return "owner" in roles or "manager" in roles
+    # only org owners and managers have org:write scope
+    return any("org:write" in role.scopes for role in roles)
 
 
 @region_silo_endpoint
@@ -122,11 +123,10 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             return True
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
-        # are not part of using team:write. We need to check the org role before calling
-        # _has_elevated_scope because org admins have team:write scope, but are not allowed to
-        # remove members from teams they are not a part of.
+        # are not part of using team:write. We cannot explicitly check for team:write b/c org admins
+        # but are only allowed to remove members from teams they are on.
         if _is_org_owner_or_manager(request.access):
-            return _has_elevated_scope(request.access)
+            return True
 
         return can_admin_team(request.access, team)
 

@@ -581,20 +581,22 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_manager_can_remove_members_using_user_token(self):
         self.login_as(self.manager)
 
-        token = self.create_user_auth_token(
-            user=self.manager_user, scope_list=["org:write", "team:write"]
-        )
-        self.get_success_response(
-            self.org.slug,
-            self.member_on_team.id,
-            self.team.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
-            status_code=200,
-        )
+        scopes = ["org:write", "team:write"]
+        members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
+        for scope in scopes:
+            for member in members:
+                token = self.create_user_auth_token(user=self.manager_user, scope_list=[scope])
+                self.get_success_response(
+                    self.org.slug,
+                    member.id,
+                    self.team.slug,
+                    extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+                    status_code=200,
+                )
 
-        assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.member_on_team
-        ).exists()
+                assert not OrganizationMemberTeam.objects.filter(
+                    team=self.team, organizationmember=member
+                ).exists()
 
     def test_owner_can_remove_members(self):
         self.login_as(self.owner)
@@ -629,18 +631,22 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_remove_members_using_user_token(self):
         self.login_as(self.owner)
 
-        token = self.create_user_auth_token(user=self.user, scope_list=["org:write", "team:write"])
-        self.get_success_response(
-            self.org.slug,
-            self.member_on_team.id,
-            self.team.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
-            status_code=200,
-        )
+        scopes = ["org:write", "org:admin", "team:write"]
+        members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
+        for scope in scopes:
+            for member in members:
+                token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+                self.get_success_response(
+                    self.org.slug,
+                    member.id,
+                    self.team.slug,
+                    extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+                    status_code=200,
+                )
 
-        assert not OrganizationMemberTeam.objects.filter(
-            team=self.team, organizationmember=self.member_on_team
-        ).exists()
+                assert not OrganizationMemberTeam.objects.filter(
+                    team=self.team, organizationmember=self.member
+                ).exists()
 
     def test_access_revoked_after_leaving_team(self):
         user = self.create_user()
