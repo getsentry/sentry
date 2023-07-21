@@ -270,7 +270,7 @@ class AbstractFile(Model):
                 except Exception:
                     pass
 
-    @sentry_sdk.trace
+    @sentry_sdk.tracing.trace
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Save a fileobj into a number of chunks.
@@ -302,7 +302,7 @@ class AbstractFile(Model):
             self.save()
         return results
 
-    @sentry_sdk.trace
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
         """
         This creates a file, from file blobs and returns a temp file with the
