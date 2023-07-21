@@ -116,9 +116,12 @@ class IntegrationRepositoryProvider:
             return result, existing_repo
 
         # then check if there is a repository without an integration that matches
-        repo = Repository.objects.filter(
-            organization_id=organization.id, external_id=external_id, integration_id=None
-        ).first()
+        repositories = repository_service.get_repositories(
+            organization_id=organization.id,
+            has_integration=False,
+            external_id=external_id,
+        )
+        repo = repositories[0] if repositories else None
 
         if repo:
             if self.logger:
@@ -135,7 +138,9 @@ class IntegrationRepositoryProvider:
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
-            repo.save()
+            repository_service.update_repository(
+                organization_id=organization.id, update=existing_repo
+            )
         else:
             try:
                 with transaction.atomic(router.db_for_write(Repository)):
