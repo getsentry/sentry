@@ -123,7 +123,6 @@ function ReplaysListTable({
         replays={replays}
         sort={eventView.sorts[0]}
         visibleColumns={visibleCols}
-        headersSortable
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

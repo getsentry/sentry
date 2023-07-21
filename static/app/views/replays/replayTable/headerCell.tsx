@@ -5,16 +5,15 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
   column: ReplayColumn;
-  headersSortable?: boolean;
   sort?: Sort;
 };
 
-function HeaderCell({column, sort, headersSortable}: Props) {
+function HeaderCell({column, sort}: Props) {
   switch (column) {
     case ReplayColumn.ACTIVITY:
       return (
         <SortableHeader
-          sort={headersSortable ? sort : undefined}
+          sort={sort}
           fieldName="activity"
           label={t('Activity')}
           tooltip={t(
@@ -29,7 +28,7 @@ function HeaderCell({column, sort, headersSortable}: Props) {
     case ReplayColumn.COUNT_DEAD_CLICKS:
       return (
         <SortableHeader
-          sort={headersSortable ? sort : undefined}
+          sort={sort}
           fieldName="count_dead_clicks"
           label={t('Dead clicks')}
           tooltip={t(
@@ -39,18 +38,12 @@ function HeaderCell({column, sort, headersSortable}: Props) {
       );
 
     case ReplayColumn.COUNT_ERRORS:
-      return (
-        <SortableHeader
-          sort={headersSortable ? sort : undefined}
-          fieldName="count_errors"
-          label={t('Errors')}
-        />
-      );
+      return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
 
     case ReplayColumn.COUNT_RAGE_CLICKS:
       return (
         <SortableHeader
-          sort={headersSortable ? sort : undefined}
+          sort={sort}
           fieldName="count_rage_clicks"
           label={t('Rage clicks')}
           tooltip={t(
@@ -60,13 +53,7 @@ function HeaderCell({column, sort, headersSortable}: Props) {
       );
 
     case ReplayColumn.DURATION:
-      return (
-        <SortableHeader
-          sort={headersSortable ? sort : undefined}
-          fieldName="duration"
-          label={t('Duration')}
-        />
-      );
+      return <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />;
 
     case ReplayColumn.OS:
       return <SortableHeader sort={sort} fieldName="os.name" label={t('OS')} />;

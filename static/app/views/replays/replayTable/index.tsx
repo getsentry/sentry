@@ -34,7 +34,6 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
-  headersSortable?: boolean;
   saveLocation?: boolean;
 };
 
@@ -46,35 +45,26 @@ function ReplayTable({
   visibleColumns,
   emptyMessage,
   saveLocation,
-  headersSortable,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
 
-  const location: Location =
-    saveLocation ?? false
-      ? {
-          pathname: '',
-          search: '',
-          query: {},
-          hash: '',
-          state: '',
-          action: 'PUSH',
-          key: '',
-        }
-      : newLocation;
+  const location: Location = saveLocation
+    ? {
+        pathname: '',
+        search: '',
+        query: {},
+        hash: '',
+        state: '',
+        action: 'PUSH',
+        key: '',
+      }
+    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
-    .map(column => (
-      <HeaderCell
-        key={column}
-        column={column}
-        sort={sort}
-        headersSortable={headersSortable}
-      />
-    ));
+    .map(column => <HeaderCell key={column} column={column} sort={sort} />);
 
   if (fetchError && !isFetching) {
     return (
@@ -190,7 +180,7 @@ function ReplayTable({
   );
 }
 
-const replayDetailCells = [
+const flexibleColumns = [
   ReplayColumn.REPLAY,
   ReplayColumn.MOST_DEAD_CLICKS,
   ReplayColumn.MOST_ERRONEOUS_REPLAYS,
@@ -203,7 +193,7 @@ const StyledPanelTable = styled(PanelTable)<{
     p.visibleColumns
       .filter(Boolean)
       .map(column =>
-        replayDetailCells.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
       )
       .join(' ')};
 `;

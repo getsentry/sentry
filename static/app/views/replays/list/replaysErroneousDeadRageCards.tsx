@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -46,26 +45,29 @@ function ReplaysErroneousDeadRageCards() {
     location
   );
 
-  const eventViewDeadRage = EventView.fromSavedQuery({
-    name: '',
-    version: 2,
-    fields: [
-      'activity',
-      'duration',
-      'count_dead_clicks',
-      'count_rage_clicks',
-      'id',
-      'project_id',
-      'user',
-      'finished_at',
-      'is_archived',
-      'started_at',
-    ],
-    range: '7d',
-    projects: [],
-    query: '',
-    orderby: '-count_dead_clicks',
-  });
+  const eventViewDeadRage = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      version: 2,
+      fields: [
+        'activity',
+        'duration',
+        'count_dead_clicks',
+        'count_rage_clicks',
+        'id',
+        'project_id',
+        'user',
+        'finished_at',
+        'is_archived',
+        'started_at',
+      ],
+      range: '7d',
+      projects: [],
+      query: '',
+      orderby: '-count_dead_clicks',
+    },
+    location
+  );
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
@@ -122,17 +124,14 @@ function CardTable({
   });
 
   return (
-    <Fragment>
-      <ReplayTable
-        fetchError={fetchError}
-        isFetching={isFetching}
-        replays={replays?.slice(0, 3)}
-        sort={eventView.sorts[0]}
-        visibleColumns={visibleColumns}
-        saveLocation
-        headersSortable={false}
-      />
-    </Fragment>
+    <ReplayTable
+      fetchError={fetchError}
+      isFetching={isFetching}
+      replays={replays?.slice(0, 3)}
+      sort={undefined}
+      visibleColumns={visibleColumns}
+      saveLocation
+    />
   );
 }
 
