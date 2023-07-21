@@ -17,6 +17,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.utils import metrics
@@ -98,16 +99,17 @@ class IntegrationRepositoryProvider:
         }
 
         # first check if there is an existing hidden repository with an integration that matches
-        existing_repo = Repository.objects.filter(
+        repositories = repository_service.get_repositories(
             organization_id=organization.id,
             integration_id=integration_id,
             external_id=external_id,
             status=ObjectStatus.HIDDEN,
-        ).first()
+        )
+        existing_repo = repositories[0] if repositories else None
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
-            existing_repo.save()
+            repository_service.update_repository(organization_id=organization, update=existing_repo)
             metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
