@@ -16,9 +16,11 @@ export function useEventsStatsQuery({
   enabled,
   referrer,
   initialData,
+  excludeOther = false,
 }: {
   eventView: EventView;
   enabled?: boolean;
+  excludeOther?: boolean;
   initialData?: MultiSeriesEventsStats;
   referrer?: string;
 }) {
@@ -33,7 +35,7 @@ export function useEventsStatsQuery({
       ...eventView.getEventsAPIPayload(location),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
-      excludeOther: 0,
+      excludeOther: excludeOther === true ? 1 : 0,
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
