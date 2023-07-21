@@ -31,10 +31,13 @@ USE_COLIMA = bool(shutil.which("colima"))
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
 else:
-    # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
-    RAW_SOCKET_PATH = os.path.expanduser(
-        "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
-    )
+    if DARWIN:
+        # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
+        RAW_SOCKET_PATH = os.path.expanduser(
+            "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
+        )
+    else:
+        RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
 @contextlib.contextmanager
