@@ -94,6 +94,7 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -355,6 +356,15 @@ class Factories:
     def create_api_key(organization, scope_list=None, **kwargs):
         return ApiKey.objects.create(
             organization_id=organization.id if organization else None, scope_list=scope_list
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_auth_token(user, scope_list: List[str], **kwargs) -> ApiToken:
+        return ApiToken.objects.create(
+            user=user,
+            scope_list=scope_list,
+            **kwargs,
         )
 
     @staticmethod
@@ -931,6 +941,21 @@ class Factories:
         return SentryAppInstallationTokenCreator(sentry_app_installation=install, **kwargs).run(
             user=user, request=request
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(organization, user, scopes, **kwargs):
+        sentry_app = Factories.create_sentry_app(
+            name="Org Token",
+            organization=organization,
+            # webhook_url="https://example.com",
+            scopes=scopes,
+        )
+
+        install = Factories.create_sentry_app_installation(
+            organization=organization, slug=sentry_app.slug, user=user
+        )
+        return Factories.create_internal_integration_token(install=install, user=user)
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):
@@ -1534,7 +1559,6 @@ class Factories:
         return action
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
     def create_basic_auth_header(username: str, password: str = "") -> str:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 

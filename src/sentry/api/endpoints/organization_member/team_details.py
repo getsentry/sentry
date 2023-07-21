@@ -136,7 +136,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         # There is an edge case where org owners/managers cannot remove a member from a team they
         # are not part of using team:write. We need to check the org role before calling
         # _has_elevated_scope because org admins have team:write scope, but are not allowed to
-        # remove remove members from teams they are not a part of.
+        # remove members from teams they are not a part of.
         if _is_org_owner_or_manager(request.access):
             return _has_elevated_scope(request.access)
 

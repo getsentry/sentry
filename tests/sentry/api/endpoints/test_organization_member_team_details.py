@@ -9,7 +9,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -358,23 +357,45 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
     @with_feature("organizations:team-roles")
     def test_team_admin_can_add_member_using_user_token(self):
-        org = self.org
         self.login_as(self.team_admin)
 
         # Team admins needs both org:read and team:write to pass the permissions checks when open
         # membership is off
-        token = self.create_api_key(organization=org, scope_list=["org:read", "team:write"])
+        token = self.create_user_auth_token(
+            user=self.team_admin_user, scope_list=["org:read", "team:write"]
+        )
 
         self.get_success_response(
-            org.slug,
+            self.org.slug,
             self.member.id,
             self.team.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.key}"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=status.HTTP_201_CREATED,
         )
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
+        ).exists()
+
+    def test_org_token_needs_elevated_permissions(self):
+        # Org tokens with org:read should generate an access request when open membership is off
+        org_token = self.create_org_auth_token(self.org, self.user, ["org:read"])
+
+        self.get_success_response(
+            self.org.slug,
+            self.member.id,
+            self.team.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {org_token.token}"},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
+        assert OrganizationAccessRequest.objects.filter(
+            team=self.team,
+            member=self.member,
         ).exists()
 
     def test_multiple_of_the_same_access_request(self):
@@ -468,9 +489,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_cannot_remove_member_using_user_token(self):
         # admin not in team
         self.login_as(self.admin)
-
-        # Org admins don't have access to org:write
-        token = ApiToken.objects.create(user=self.admin_user, scope_list=["team:write"])
+        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:write"])
         self.get_error_response(
             self.org.slug,
             self.member_on_team.id,
@@ -516,8 +535,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_on_team_can_remove_members_using_user_token(self):
         self.login_as(self.admin_on_team)
 
-        # Org admins don't have access to org:write
-        token = ApiToken.objects.create(user=self.admin_on_team_user, scope_list=["team:write"])
+        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:write"])
         self.get_success_response(
             self.org.slug,
             self.member_on_team.id,
@@ -563,7 +581,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_manager_can_remove_members_using_user_token(self):
         self.login_as(self.manager)
 
-        token = ApiToken.objects.create(
+        token = self.create_user_auth_token(
             user=self.manager_user, scope_list=["org:write", "team:write"]
         )
         self.get_success_response(
@@ -611,7 +629,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_remove_members_using_user_token(self):
         self.login_as(self.owner)
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:write", "team:write"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:write", "team:write"])
         self.get_success_response(
             self.org.slug,
             self.member_on_team.id,
