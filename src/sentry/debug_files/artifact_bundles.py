@@ -99,6 +99,7 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
+@sentry_sdk.tracing.trace
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
