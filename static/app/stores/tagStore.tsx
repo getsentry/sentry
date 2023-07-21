@@ -17,6 +17,7 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getIssueAttributes(org: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
+  init(): void;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -82,7 +83,11 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: [IssueCategory.ERROR, IssueCategory.PERFORMANCE],
+        values: [
+          IssueCategory.ERROR,
+          IssueCategory.PERFORMANCE,
+          ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
+        ],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {

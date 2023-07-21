@@ -3,8 +3,9 @@ from io import BytesIO
 from django.urls import reverse
 
 from sentry.models import File, UserAvatar
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
@@ -12,7 +13,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 class UserAvatarTest(TestCase):
     def test_headers(self):
         user = self.create_user(email="a@example.com")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             photo = File.objects.create(name="test.png", type="avatar.file")
             photo.putfile(BytesIO(b"test"))
         avatar = UserAvatar.objects.create(user=user, file_id=photo.id)

@@ -20,7 +20,10 @@ from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingT
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
-default_owner_scopes = frozenset(filter(lambda scope: scope != "org:ci", settings.SENTRY_SCOPES))
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -83,6 +86,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "team-roles",
             "performance-issues-search",
             "transaction-name-normalize",
             "transaction-name-mark-scrubbed-as-sanitized",

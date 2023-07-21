@@ -5,10 +5,13 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
-from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import (
+    GroupHistoryStatus,
+    bulk_record_group_history,
+    record_group_history,
+)
 from sentry.types.activity import ActivityType
 
 INBOX_REASON_DETAILS = {
@@ -89,12 +92,6 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group, action=None, user=None, referrer=None):
-    # The MARK_REVIEWED feature is going away as part of the issue states project
-    if action == GroupInboxRemoveAction.MARK_REVIEWED and features.has(
-        "organizations:remove-mark-reviewed", group.project.organization
-    ):
-        return
-
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
@@ -107,6 +104,29 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
+    except GroupInbox.DoesNotExist:
+        pass
+
+
+def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None):
+    try:
+        group_inbox = GroupInbox.objects.filter(group__in=groups)
+        group_inbox.delete()
+
+        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+            Activity.objects.bulk_create(
+                [
+                    Activity(
+                        project_id=group_inbox_item.group.project_id,
+                        group_id=group_inbox_item.group.id,
+                        type=ActivityType.MARK_REVIEWED.value,
+                        user_id=user.id,
+                    )
+                    for group_inbox_item in group_inbox
+                ]
+            )
+
+            bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
     except GroupInbox.DoesNotExist:
         pass
 

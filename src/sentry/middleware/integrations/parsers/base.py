@@ -43,6 +43,7 @@ class BaseRequestParser(abc.ABC):
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
+        self.view_class = self.match.func.view_class  # type:ignore
         self.response_handler = response_handler
 
     # Common Helpers
@@ -114,12 +115,14 @@ class BaseRequestParser(abc.ABC):
         Used to create outboxes for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        for outbox in ControlOutbox.for_webhook_update(
-            webhook_identifier=self.webhook_identifier,
-            region_names=[region.name for region in regions],
-            request=self.request,
-        ):
-            outbox.save()
+        if len(regions) > 0:
+            for outbox in ControlOutbox.for_webhook_update(
+                webhook_identifier=self.webhook_identifier,
+                region_names=[region.name for region in regions],
+                request=self.request,
+            ):
+                outbox.save()
+
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     # Required Overrides

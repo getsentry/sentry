@@ -66,7 +66,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     groupBy = serializers.MultipleChoiceField(
-        list(GROUPBY_MAP.keys()),
+        choices=list(GROUPBY_MAP.keys()),
         required=True,
         help_text=(
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "

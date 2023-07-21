@@ -15,7 +15,21 @@ import type {
 } from '@sentry/replay';
 import invariant from 'invariant';
 
-export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
+/**
+ * Extra breadcrumb types not included in `@sentry/replay`
+ */
+type ExtraBreadcrumbTypes = {
+  category: 'navigation';
+  data: {
+    from: string;
+    to: string;
+  };
+  message: string;
+  timestamp: number;
+  type: string; // For compatibility reasons
+};
+
+export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
@@ -47,10 +61,38 @@ export function isOptionFrameEvent(
   return attachment.data?.tag === 'options';
 }
 
-export function frameOpOrCategory(frame: BreadcrumbFrame | SpanFrame | ErrorFrame) {
+export function isBreadcrumbFrame(
+  frame: ReplayFrame | undefined
+): frame is BreadcrumbFrame {
+  return Boolean(frame && 'category' in frame && frame.category !== 'issue');
+}
+
+export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
+  return Boolean(frame && 'op' in frame);
+}
+
+export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'issue');
+}
+
+export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  return frame.data.endReason === 'timeout';
+}
+
+export function isDeadRageClick(frame: SlowClickFrame) {
+  return Boolean(
+    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+  );
+}
+
+export function isRageClick(frame: MultiClickFrame) {
+  return frame.data.clickCount >= 5;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -70,7 +112,7 @@ type HydratedTimestamp = {
   timestampMs: number;
 };
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<TRawBreadcrumbFrame, {category: Category}>,
+  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
 
@@ -106,16 +148,20 @@ type HydratedSpan<Op extends string> = Overwrite<
 >;
 
 // Breadcrumbs
-export type BreadcrumbFrame = Overwrite<TRawBreadcrumbFrame, HydratedTimestamp>;
-export type ConsoleFrame = HydratedBreadcrumb<'console'>;
-export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
-export type InputFrame = HydratedBreadcrumb<'ui.input'>;
-export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
-export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
+export type BreadcrumbFrame = Overwrite<
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
+  HydratedTimestamp
+>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
+export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
-export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type InputFrame = HydratedBreadcrumb<'ui.input'>;
+export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
+export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
+export type NavFrame = HydratedBreadcrumb<'navigation'>;
+export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 
 // This list should match each of the categories used in `HydratedBreadcrumb` above.
 export const BreadcrumbCategories = [
@@ -197,3 +243,5 @@ export type ErrorFrame = Overwrite<
     message: string;
   }
 >;
+
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;

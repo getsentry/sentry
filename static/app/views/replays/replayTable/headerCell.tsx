@@ -25,8 +25,32 @@ function HeaderCell({column, sort}: Props) {
     case ReplayColumn.BROWSER:
       return <SortableHeader sort={sort} fieldName="browser.name" label={t('Browser')} />;
 
+    case ReplayColumn.COUNT_DEAD_CLICKS:
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_dead_clicks"
+          label={t('Dead clicks')}
+          tooltip={t(
+            'A dead click is a user click that does not result in any page activity after 7 seconds.'
+          )}
+        />
+      );
+
     case ReplayColumn.COUNT_ERRORS:
       return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
+
+    case ReplayColumn.COUNT_RAGE_CLICKS:
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_rage_clicks"
+          label={t('Rage clicks')}
+          tooltip={t(
+            'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds.'
+          )}
+        />
+      );
 
     case ReplayColumn.DURATION:
       return <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />;
@@ -36,6 +60,12 @@ function HeaderCell({column, sort}: Props) {
 
     case ReplayColumn.REPLAY:
       return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
+
+    case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+      return <SortableHeader label={t('Most erroneous replays')} />;
+
+    case ReplayColumn.MOST_DEAD_CLICKS:
+      return <SortableHeader label={t('Most dead clicks')} />;
 
     case ReplayColumn.SLOWEST_TRANSACTION:
       return (

@@ -4,11 +4,11 @@ from functools import cached_property
 
 import pytz
 import requests
+from django.db import router
 from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -19,6 +19,7 @@ from sentry.models import AuditLogEntry, Rule
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.silo import unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -339,7 +340,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
 
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
 
         resp = self.get_response(self.organization.slug)

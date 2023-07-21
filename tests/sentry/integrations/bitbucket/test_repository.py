@@ -9,26 +9,30 @@ from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test(stable=True)
 class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
         super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
-            provider="bitbucket",
-            external_id=self.subject,
-            name="MyBitBucket",
-            metadata={
-                "base_url": self.base_url,
-                "shared_secret": self.shared_secret,
-                "subject": self.subject,
-            },
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="bitbucket",
+                external_id=self.subject,
+                name="MyBitBucket",
+                metadata={
+                    "base_url": self.base_url,
+                    "shared_secret": self.shared_secret,
+                    "subject": self.subject,
+                },
+            )
+            self.integration.add_organization(self.organization, self.user)
         self.repo = Repository.objects.create(
             provider="bitbucket",
             name="sentryuser/newsdiffs",
@@ -94,13 +98,14 @@ class BitbucketRepositoryProviderTest(TestCase):
         )
 
         organization = self.create_organization()
-        integration = Integration.objects.create(
-            provider="bitbucket",
-            external_id="bitbucket_external_id",
-            name="Hello world",
-            metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
-        )
-        integration.add_organization(organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="bitbucket",
+                external_id="bitbucket_external_id",
+                name="Hello world",
+                metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
+            )
+            integration.add_organization(organization)
         data = {
             "provider": "integrations:bitbucket",
             "identifier": full_repo_name,
@@ -134,6 +139,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             assert "requires an integration id" in str(e)
 
 
+@region_silo_test(stable=True)
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
@@ -142,18 +148,19 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
-            provider="bitbucket",
-            external_id=self.subject,
-            name="MyBitBucket",
-            metadata={
-                "base_url": self.base_url,
-                "shared_secret": self.shared_secret,
-                "subject": self.subject,
-            },
-        )
-        self.integration.get_provider().setup()
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="bitbucket",
+                external_id=self.subject,
+                name="MyBitBucket",
+                metadata={
+                    "base_url": self.base_url,
+                    "shared_secret": self.shared_secret,
+                    "subject": self.subject,
+                },
+            )
+            self.integration.get_provider().setup()
+            self.integration.add_organization(self.organization, self.user)
         self.repo = Repository.objects.create(
             provider="bitbucket",
             name="sentryuser/newsdiffs",
@@ -182,7 +189,8 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        self.integration.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
         assert response.status_code == 404

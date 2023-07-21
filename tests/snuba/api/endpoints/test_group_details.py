@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     GROUP_OWNER_TYPE,
     Environment,
@@ -64,13 +65,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
-        event = None
-        for timestamp in last_release.values():
-            event = self.store_event(
+        event = [
+            self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},
                 project_id=self.project.id,
             )
-
+            for timestamp in last_release.values()
+        ][-1]
         group = event.group
 
         url = f"/api/0/issues/{group.id}/"
@@ -103,9 +104,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tagstore.get_release_tags"
-        ) as get_release_tags:
+        with mock.patch("sentry.tagstore.backend.get_release_tags") as get_release_tags:
             response = self.client.get(url, format="json")
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
@@ -201,6 +200,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             group = event.group
+            generate_and_save_forecasts([group])
+
             url = f"/api/0/issues/{group.id}/?expand=forecast"
 
             response = self.client.get(url, format="json")

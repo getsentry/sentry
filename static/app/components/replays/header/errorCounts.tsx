@@ -12,7 +12,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -22,27 +21,15 @@ type Props = {
 
 export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const {pathname, query} = useLocation();
-  const organization = useOrganization();
-  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
   const getLink = useCallback(
     ({project}: {project?: Project}) => {
-      return hasErrorTab
-        ? {
-            pathname,
-            query: {...query, t_main: 'errors', f_e_project: project?.slug},
-          }
-        : {
-            pathname,
-            query: {
-              ...query,
-              t_main: 'console',
-              f_c_logLevel: 'issue',
-              f_c_search: undefined,
-            },
-          };
+      return {
+        pathname,
+        query: {...query, t_main: 'errors', f_e_project: project?.slug},
+      };
     },
-    [hasErrorTab, pathname, query]
+    [pathname, query]
   );
 
   const errorCountPerProject = useErrorCountPerProject({replayErrors, replayRecord});
@@ -81,7 +68,6 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const totalErrors = errorCountPerProject.reduce((acc, val) => acc + val.count, 0);
   return (
     <Tooltip
-      forceVisible
       title={
         <ColumnTooltipContent>
           {errorCountPerProject.map(({project, count}) => (

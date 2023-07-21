@@ -22,7 +22,6 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     {
       fields: ['id', 'timestamp', 'project.name', 'transaction.duration'],
       name: 'Transactions',
-      projects: [1],
       version: 2,
       query: `id:[${eventIDs.join(',')}]`,
     },
@@ -50,12 +49,15 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     return {
       isFetching: false,
       isLoading: false,
+      error: null,
       data: [],
+      isEnabled: enabled,
     };
   }
 
   return {
     ...response,
+    isEnabled: enabled,
     data,
   };
 }

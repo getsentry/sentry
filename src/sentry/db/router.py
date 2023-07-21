@@ -1,15 +1,21 @@
+from __future__ import annotations
+
 import logging
-import sys
 from typing import Iterable, Optional
 
 from django.apps import apps
 from django.db import connections
-from django.db.utils import ConnectionDoesNotExist
+from django.utils.connection import ConnectionDoesNotExist
 
 from sentry.db.models.base import Model, ModelSiloLimit
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
+
+
+class SiloConnectionUnavailableError(ValueError):
+    pass
 
 
 class SiloRouter:
@@ -71,11 +77,11 @@ class SiloRouter:
             self.__is_simulated = False
 
     def use_simulated(self, value: bool):
-        if "pytest" not in sys.modules:
+        if not in_test_environment():
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
-    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str):
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str | None:
         # XXX This method has an override in getsentry for region silo primary splits.
         active_mode = SiloMode.get_current_mode()
 
@@ -89,10 +95,15 @@ class SiloRouter:
             if active_mode == silo_mode:
                 return "default"
 
-            raise ValueError(
-                f"Cannot resolve table {table} in {silo_mode}. "
+        # If we're in tests raise an error, otherwise return 'no decision'
+        # so that django skips migration operations that won't work.
+        if in_test_environment():
+            raise SiloConnectionUnavailableError(
+                f"Cannot resolve table {table} in {silo_modes}. "
                 f"Application silo mode is {active_mode} and simulated silos are not enabled."
             )
+        else:
+            return None
 
     def _find_model(self, table: str, app_label: str) -> Optional[Model]:
         # Use django's model inventory to find our table and what silo it is on.
@@ -132,10 +143,17 @@ class SiloRouter:
             # Incrementally build up our result cache so we don't
             # have to scan through models more than once.
             self.__table_to_silo[table] = self._db_for_model(model)
+        else:
+            # We no longer have the model and can't determine silo assignment.
+            # Default to None for sentry/getsentry app_label as models
+            # in those apps must have silo assignments, and 'default'
+            # for other app_labels that can't have silo assignments.
+            fallback = "default"
+            if app_label in {"sentry", "getsentry"}:
+                fallback = None
+            self.__table_to_silo[table] = fallback
 
-        # All actively used tables should be in this map, but we also
-        # need to handle tables in migrations that no longer exist.
-        return self.__table_to_silo.get(table, "default")
+        return self.__table_to_silo[table]
 
     def db_for_read(self, model, **hints):
         return self._db_for_model(model)

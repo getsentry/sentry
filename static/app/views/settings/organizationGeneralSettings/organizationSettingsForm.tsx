@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,57 +7,48 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import DeprecatedAsyncComponent, {
+  AsyncComponentState,
+} from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Scope} from 'sentry/types';
+import type {Organization, OrganizationAuthProvider, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   access: Set<Scope>;
   initialData: Organization;
   location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncComponent['state'] & {
-  authProvider: object;
-  githubIntegrations: Integration[];
-};
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider;
+}
 
-class OrganizationSettingsForm extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class OrganizationSettingsForm extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    return [
-      ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
-      [
-        'githubIntegrations',
-        `/organizations/${organization.slug}/integrations/?provider_key=github`,
-      ],
-    ];
+    return [['authProvider', `/organizations/${organization.slug}/auth-provider/`]];
   }
 
   render() {
     const {initialData, organization, onSave, access} = this.props;
-    const {authProvider, githubIntegrations} = this.state;
+    const {authProvider} = this.state;
     const endpoint = `/organizations/${organization.slug}/`;
-    const hasGithubIntegration = githubIntegrations
-      ? githubIntegrations.length > 0
-      : false;
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
@@ -110,28 +100,6 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
             {t('powered by')} <IconCodecov /> Codecov{' '}
             <HookCodecovSettingsLink organization={organization} />
           </PoweredByCodecov>
-        ),
-      },
-      {
-        name: 'githubPRBot',
-        type: 'boolean',
-        label: t('Enable Pull Request Bot'),
-        visible: ({features}) => features.has('pr-comment-bot'),
-        help: (
-          <Fragment>
-            {t(
-              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
-            )}{' '}
-            <Link to={`/settings/${organization.slug}/integrations/github`}>
-              {t('Configure GitHub integration')}
-            </Link>
-          </Fragment>
-        ),
-        disabled: !hasGithubIntegration,
-        disabledReason: (
-          <Fragment>
-            {t('You must have a GitHub integration to enable this feature.')}
-          </Fragment>
         ),
       },
     ];

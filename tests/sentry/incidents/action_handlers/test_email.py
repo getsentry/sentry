@@ -217,34 +217,23 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
-    @with_feature("organizations:mute-metric-alerts")
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
-        rule_link = self.organization.absolute_url(
+        alert_link = self.organization.absolute_url(
             reverse(
-                "sentry-metric-alert-details",
+                "sentry-metric-alert",
                 kwargs={
-                    "organization_slug": self.organization.slug,
-                    "alert_rule_id": incident.alert_rule.id,
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
                 },
             ),
             query="referrer=alert_email",
         )
         expected = {
-            "link": self.organization.absolute_url(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                ),
-                query="referrer=alert_email",
-            ),
-            "rule_link": rule_link,
+            "link": alert_link,
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
@@ -262,7 +251,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
-            "snooze_alert_url": rule_link + "&mute=1",
+            "snooze_alert_url": alert_link + "&mute=1",
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,

@@ -556,6 +556,37 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
 
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry_sdk.capture_exception")
+    @responses.activate
+    def test_gh_comment_api_error(self, mock_capture_exception, get_jwt, mock_comment_workflow):
+        """Captures exception if Github API call errors"""
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=400,
+            json={"message": "error"},
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_capture_exception.called
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
         """No comments on commit not in default branch"""
@@ -604,17 +635,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             assert not mock_comment_workflow.called
 
     @with_feature("organizations:pr-comment-bot")
-    def test_gh_comment_org_settings(self, mock_comment_workflow):
-        """No comments on org who disabled feature"""
-        # TODO(Cathy or Aniket): implement once the toggle is merged
-        pass
-
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
         """No comment on pr that's older than 30 days"""
-        self.pull_request.date_added = iso_format(before_now(days=31))
+        self.pull_request.date_added = iso_format(before_now(days=8))
         self.pull_request.save()
 
         self.add_responses()

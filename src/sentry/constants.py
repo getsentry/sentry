@@ -46,7 +46,6 @@ SORT_OPTIONS = {
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
-    "better_priority": _("Better Priority"),
 }
 
 SEARCH_SORT_OPTIONS = {
@@ -117,7 +116,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "customers",
         "de",
         "debug",
-        "demo",
         "devinfra",
         "docs",
         "enterprise",

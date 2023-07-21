@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import pytest
 import responses
-from django.utils.encoding import force_bytes
 
 from sentry.models import (
     ArtifactBundle,
@@ -183,7 +182,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             },
         }
 
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
+        mock_fetch_by_url.return_value.body = "\n".join("hello world").encode()
         mock_fetch_by_url.return_value.encoding = None
         mock_fetch_by_url.return_value.headers = {}
 
@@ -236,7 +235,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -283,7 +282,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -342,7 +341,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         mock_from_bytes.side_effect = Exception()
@@ -792,6 +791,70 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}"]
         else:
             assert frame.post_context == ["}", ""]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_urlencoded_files(self, process_with_symbolicator):
+        if not process_with_symbolicator:
+            return
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        for file, name in [
+            ("file.min.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js"),
+            ("file.wc.sourcemap.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js.map"),
+        ]:
+            with open(get_fixture_path(file), "rb") as f:
+                headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
+                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
+                file_obj.putfile(f)
+            ReleaseFile.objects.create(
+                name=name,
+                release_id=release.id,
+                organization_id=project.organization_id,
+                file=file_obj,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "app:///_next/static/chunks/pages/foo/%5Bbar%5D-1234.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert len(frame_list) == 1
+        frame = frame_list[0]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
+
+        assert frame.function == "multiply"
+        assert frame.filename == "file2.js"
+        assert frame.lineno == 3
+        assert frame.colno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator

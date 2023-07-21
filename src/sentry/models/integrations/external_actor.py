@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.db.models import (
@@ -16,6 +16,7 @@ from sentry.types.integrations import ExternalProviders
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): This should probably be a control silo model. We'd need to replace the actor reference with a team_id and user_id
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
@@ -76,7 +77,7 @@ def process_resource_change(instance, **kwargs):
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(Project))
 
 
 post_save.connect(

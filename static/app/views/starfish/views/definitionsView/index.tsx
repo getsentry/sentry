@@ -3,12 +3,12 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 
 function DefinitionsView() {
   return (
     <Layout.Page>
-      <StarfishPageFilterContainer>
+      <StarfishPageFiltersContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -27,7 +27,7 @@ function DefinitionsView() {
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </StarfishPageFilterContainer>
+      </StarfishPageFiltersContainer>
     </Layout.Page>
   );
 }

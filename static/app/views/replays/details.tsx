@@ -11,6 +11,9 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useInitialTimeOffsetMs, {
   TimeOffsetLocationQueryParams,
 } from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -18,6 +21,9 @@ import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataL
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
@@ -32,8 +38,19 @@ type Props = RouteComponentProps<
 >;
 
 function ReplayDetails({params: {replaySlug}}: Props) {
-  useReplayPageview('replay.details-time-spent');
+  const config = useLegacyStore(ConfigStore);
+  const location = useLocation();
   const organization = useOrganization();
+
+  useReplayPageview('replay.details-time-spent');
+  useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
+  useRouteAnalyticsParams({
+    organization,
+    referrer: decodeScalar(location.query.referrer),
+    user_email: config.user.email,
+    tab: location.query.t_main,
+  });
+
   const {slug: orgSlug} = organization;
 
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
@@ -175,7 +192,7 @@ function DetailsInsideContext({
   return (
     <Page
       orgSlug={orgSlug}
-      crumbs={replay?.getNavCrumbs()}
+      frames={replay?.getNavigationFrames()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
       replayErrors={replayErrors}

@@ -1,9 +1,12 @@
 from sentry import audit_log
-from sentry.models import AuditLogEntry, DeletedTeam, ScheduledDeletion, Team, TeamStatus
+from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
+from sentry.services.hybrid_cloud.log.service import log_rpc_service
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class TeamDetailsTestBase(APITestCase):
@@ -16,31 +19,31 @@ class TeamDetailsTestBase(APITestCase):
     def assert_team_status(
         self,
         team_id: int,
-        status: TeamStatus,
+        status: int,
     ) -> None:
         team = Team.objects.get(id=team_id)
 
         assert team.status == status
 
         deleted_team = DeletedTeam.objects.filter(slug=team.slug)
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("TEAM_REMOVE"), target_object=team.id
+        audit_log_event = log_rpc_service.find_last_log(
+            organization_id=team.organization_id,
+            event=audit_log.get_event_id("TEAM_REMOVE"),
+            target_object_id=team.id,
         )
+        scheduled_deletion_exists = RegionScheduledDeletion.objects.filter(
+            model_name="Team", object_id=team.id
+        ).exists()
 
         if status == TeamStatus.ACTIVE:
             assert not deleted_team
-            assert not audit_log_entry
-            assert not ScheduledDeletion.objects.filter(
-                model_name="Team", object_id=team.id
-            ).exists()
-            return
-
-        # In spite of the name, this checks the DeletedTeam object, not the audit log
-        self.assert_valid_deleted_log(deleted_team.get(), team)
-        # *this* actually checks the audit log
-        assert audit_log_entry.get()
-        # Ensure a scheduled deletion was made.
-        assert ScheduledDeletion.objects.filter(model_name="Team", object_id=team.id).exists()
+            assert audit_log_event is None
+            assert not scheduled_deletion_exists
+        else:
+            # In spite of the name, this checks the DeletedTeam object, not the audit log
+            self.assert_valid_deleted_log(deleted_team.get(), team)
+            assert audit_log_event
+            assert scheduled_deletion_exists
 
     def assert_team_deleted(self, team_id):
         """
@@ -66,7 +69,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -185,7 +188,8 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
 
         team = Team.objects.get(id=team.id)
         assert team.org_role == "owner"
@@ -205,10 +209,9 @@ class TeamUpdateTest(TeamDetailsTestBase):
         )
 
         test_team_edit = audit_log.get(21)
-        assert (
-            test_team_edit.render(AuditLogEntry.objects.get(event=21))
-            == f"edited team {team.slug}'s org role to owner"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(event=21)
+        assert test_team_edit.render(entry) == f"edited team {team.slug}'s org role to owner"
 
     def test_put_team_org_role__missing_flag(self):
         # the put goes through but doesn't update the org role field
@@ -218,14 +221,15 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.create_member(user=user, organization=self.organization, role="owner")
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, orgRole="owner")
 
         team = Team.objects.get(id=team.id)
         assert not team.org_role
         test_team_edit = audit_log.get(21)
-        assert (
-            test_team_edit.render(AuditLogEntry.objects.get(event=21)) == f"edited team {team.slug}"
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(event=21)
+        assert test_team_edit.render(entry) == f"edited team {team.slug}"
 
     @with_feature("organizations:org-roles-for-teams")
     def test_put_team_org_role__success_with_org_role_from_team(self):
@@ -334,7 +338,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.org_role == "owner"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 
@@ -347,7 +351,8 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.create_member(organization=org, user=user, role="admin", teams=[team])
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, status_code=204)
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, status_code=204)
 
         original_slug = team.slug
         team.refresh_from_db()
@@ -363,7 +368,8 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.create_member(organization=org, user=member_user, role="member", teams=[team])
         self.login_as(member_user)
 
-        self.get_error_response(team.organization.slug, team.slug, status_code=403)
+        with outbox_runner():
+            self.get_error_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id)
 
     @with_feature("organizations:team-roles")
@@ -375,7 +381,8 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.create_team_membership(team, member, role="admin")
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, status_code=204)
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id)
 
     def test_admin_with_team_membership(self):
@@ -387,7 +394,8 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.create_member(organization=org, user=user, role="admin", teams=[team])
         self.login_as(user)
 
-        self.get_success_response(team.organization.slug, team.slug, status_code=204)
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, status_code=204)
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
@@ -405,14 +413,16 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.login_as(user)
 
         # first, try deleting the team with open membership off
-        self.get_error_response(team.organization.slug, team.slug, status_code=403)
+        with outbox_runner():
+            self.get_error_response(team.organization.slug, team.slug, status_code=403)
         self.assert_team_not_deleted(team.id)
 
         # now, with open membership on
         org.flags.allow_joinleave = True
         org.save()
 
-        self.get_success_response(team.organization.slug, team.slug, status_code=204)
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id)
 
     def test_manager_without_team_membership(self):
@@ -424,7 +434,8 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.create_member(organization=org, user=manager_user, role="manager")
         self.login_as(manager_user)
 
-        self.get_success_response(team.organization.slug, team.slug, status_code=204)
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.slug, status_code=204)
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)

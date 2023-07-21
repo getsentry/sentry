@@ -100,7 +100,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
+                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": -10000000.0,
                 "trend_percentage": 0.9090909090909091,
@@ -115,7 +115,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": -900000000.0,
                 "trend_percentage": 0.1,
@@ -177,7 +177,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "regression",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": 400000000.0,
                 "trend_percentage": 5.0,
@@ -192,7 +192,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "regression",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
+                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": 900000000.0,
                 "trend_percentage": 10.0,
@@ -217,6 +217,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert results
         trend_percentages = [data["trend_percentage"] for data in results]
         assert trend_percentages == [10.0, 5.0]
+        for data in results:
+            assert isinstance(data["worst"], list)
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
     def test_improvement(self, mock_trends_query):
@@ -256,7 +258,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "bar"})
+                    self.function_fingerprint({"package": "foo", "function": "bar"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": -400000000.0,
                 "trend_percentage": 0.2,
@@ -271,7 +273,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                    self.function_fingerprint({"package": "foo", "function": "baz"}) & 0xFFFFFFFF
                 ),
                 "trend_difference": -900000000.0,
                 "trend_percentage": 0.1,
@@ -296,6 +298,8 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert results
         trend_percentages = [data["trend_percentage"] for data in results]
         assert trend_percentages == [0.1, 0.2]
+        for data in results:
+            assert isinstance(data["worst"], list)
 
 
 def test_get_rollup_from_range_max_buckets():
