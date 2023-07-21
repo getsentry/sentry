@@ -126,9 +126,9 @@ class TransactionMRI(Enum):
     TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
 
     # Spans (might be moved to their own namespace soon)
-    SPAN_USER = "s:transactions/span.user@none"
-    SPAN_DURATION = "d:transactions/span.duration@millisecond"
-    SPAN_SELF_TIME = "d:spans/duration@millisecond"
+    SPAN_USER = "s:spans/user@none"
+    SPAN_DURATION = "d:spans/duration@millisecond"
+    SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
     SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
     COUNT_ON_DEMAND = "c:transactions/on_demand@none"
