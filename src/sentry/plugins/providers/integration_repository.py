@@ -109,7 +109,9 @@ class IntegrationRepositoryProvider:
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
-            repository_service.update_repository(organization_id=organization, update=existing_repo)
+            repository_service.update_repository(
+                organization_id=organization.id, update=existing_repo
+            )
             metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
