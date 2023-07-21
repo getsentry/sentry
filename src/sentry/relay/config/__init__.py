@@ -40,7 +40,6 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import (
-    _DEFAULT_THRESHOLD,
     _HISTOGRAM_OUTLIER_RULES,
     get_dynamic_metric_conditional_tagging_rules,
     get_metric_conditional_tagging_rules,
@@ -181,7 +180,6 @@ def get_global_config():
     return {
         "measurements": get_measurements_config(),
         "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
-        "foobar": _DEFAULT_THRESHOLD,
     }
 
 

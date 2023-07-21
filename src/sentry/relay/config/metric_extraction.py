@@ -170,9 +170,10 @@ def get_dynamic_metric_conditional_tagging_rules(
     try:
         threshold = ProjectTransactionThreshold.objects.get(project=project)
         rules.extend(_threshold_to_rules(threshold, []))
-        return (rules, True)
-    except Exception:
-        return (rules, False)
+    except ProjectTransactionThreshold.DoesNotExist:
+        rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
+
+    return rules
 
 
 def get_metric_conditional_tagging_rules(
