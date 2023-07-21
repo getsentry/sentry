@@ -121,6 +121,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         ):
             resp = self.get_success_response(
                 self.organization.slug,
+                self.project.slug,
                 status_code=201,
                 **self.valid_alert_rule,
             )
