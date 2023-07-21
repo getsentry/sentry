@@ -195,8 +195,7 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
-        # Since we do not pass default=() we will get a None value if there are no frames
-        frames = get_path(stacktrace, "frames", filter=True)
+        frames = get_path(stacktrace, "frames", filter=True, default=())
         if not is_exception and (not stacktrace or not frames):
             return
 
@@ -276,7 +275,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
             frames = stacktrace_info.get_frames()
             if frames:
-                stacktrace_frames.append(stacktrace_info.get_frames())
+                stacktrace_frames.append(frames)
                 stacktrace_container.append(stacktrace_info.container)
 
     if not stacktrace_frames:
