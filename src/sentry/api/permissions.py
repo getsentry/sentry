@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence
 
-from django.conf import settings
 from rest_framework import permissions
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.api.exceptions import (
     DataSecrecy,
     MemberDisabledOverLimit,
@@ -127,7 +127,7 @@ class SentryPermission(ScopedPermission):
         if (
             request.user
             and request.user.is_superuser
-            and org_context.organization.slug in settings.SENTRY_DATA_SECRECY_ORGS
+            and features.has("organizations:enterprise-data-secrecy", org_context.organization)
         ):
             raise DataSecrecy()
 

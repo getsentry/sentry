@@ -605,8 +605,6 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
-SENTRY_DATA_SECRECY_ORGS: list[str] = []
-
 import random
 
 
@@ -1355,6 +1353,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enables data secrecy mode
+    "organizations:enterprise-data-secrecy": True,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow in MS Teams
