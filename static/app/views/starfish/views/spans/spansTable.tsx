@@ -238,7 +238,7 @@ function getColumns(
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
       ? [
           {
             key: SPAN_DOMAIN,
