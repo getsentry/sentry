@@ -13,7 +13,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.models.integrations import Integration
-from sentry.models.integrations.pagerduty_service import PagerDutyServiceDict
+from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
@@ -141,11 +141,7 @@ class IntegrationService(RpcService):
         if not org_integration:
             return None
         try:
-            return next(
-                pds
-                for pds in org_integration.config.get("pagerduty_services", [])
-                if str(pds["id"]) == str(service_id)
-            )
+            return PagerDutyService.find_service(org_integration.config, service_id)
         except StopIteration:
             return None
 

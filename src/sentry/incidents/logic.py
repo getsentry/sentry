@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from django.db import router, transaction
 from django.db.models.signals import post_save
@@ -1360,11 +1360,14 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization_id, integration_id):
-    return PagerDutyService.objects.filter(
-        organization_id=organization_id,
-        integration_id=integration_id,
-    ).values("id", "service_name")
+def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    services = PagerDutyService.services_in(org_int.config)
+    return [(s["id"], s["service_name"]) for s in services]
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

@@ -1,4 +1,6 @@
-from typing import Any, TypedDict
+from __future__ import annotations
+
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from django.db import models, router, transaction
 from django.db.models import CASCADE
@@ -49,13 +51,26 @@ class PagerDutyService(DefaultFieldsModel):
         except OrganizationIntegration.DoesNotExist:
             pass
 
-    def as_dict(self) -> "PagerDutyServiceDict":
+    def as_dict(self) -> PagerDutyServiceDict:
         return dict(
             integration_id=self.integration_id,
             integration_key=self.integration_key,
             service_name=self.service_name,
             id=self.id,
         )
+
+    @staticmethod
+    def services_in(config: Mapping[str, Any]) -> List[PagerDutyServiceDict]:
+        return config.get("pagerduty_services", [])
+
+    @staticmethod
+    def find_service(config: Mapping[str, Any], id: int | str) -> Optional[PagerDutyServiceDict]:
+        try:
+            return next(
+                pds for pds in PagerDutyService.services_in(config) if str(pds["id"]) == str(id)
+            )
+        except StopIteration:
+            return None
 
 
 class PagerDutyServiceDict(TypedDict):
