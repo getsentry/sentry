@@ -130,6 +130,7 @@ function CardTable({
         sort={eventView.sorts[0]}
         visibleColumns={visibleColumns}
         saveLocation
+        headersSortable={false}
       />
     </Fragment>
   );
