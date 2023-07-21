@@ -52,3 +52,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
         repository.provider = update.provider
         repository.status = update.status
         repository.save()
+
+    def reinstall_repositories_for_integration(
+        self, *, organization_id: int, integration_id: int, provider: str
+    ) -> None:
+        Repository.objects.filter(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+        ).update(status=ObjectStatus.ACTIVE)
