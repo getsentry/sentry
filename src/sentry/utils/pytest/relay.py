@@ -1,11 +1,10 @@
 # Fixtures used to interact with a test Relay server
 
 
-import datetime
 import logging
-import os
 import shutil
 import sys
+import tempfile
 import time
 from os import environ, path
 from urllib.parse import urlparse
@@ -49,13 +48,8 @@ def _remove_container_if_exists(docker_client, container_name):
 
 @pytest.fixture(scope="session")
 def relay_server_setup(live_server, tmpdir_factory):
-    prefix = "test_relay_config_{}_".format(
-        datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
-    )
-    # colima (container runtime) can see ~ and /tmp/colima for mounts,
-    # so a normal mkdtemp isn't going to work
-    config_path = f"/tmp/colima/{prefix}"
-    os.makedirs(config_path)
+    # colima (container runtime) can only see ~ and /tmp/colima for mounts
+    config_path = tempfile.mkdtemp(dir="/tmp/colima/")
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
