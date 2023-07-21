@@ -2598,7 +2598,7 @@ INTERNAL_URLS = [
     ),
     re_path(
         # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy/\S+$",
+        r"^integration-proxy/\S*$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
     ),
