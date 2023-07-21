@@ -33,7 +33,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     def _get_team(self, org_integration: RpcOrganizationIntegration):
         teams = org_integration.config.get("team_table")
         if not teams:
-            return False
+            return None
         team_id = self.get_option("team")
         for team in teams:
             if team["id"] == team_id:
@@ -49,7 +49,9 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         org_integration = self.get_organization_integration()
         team = self._get_team(org_integration)
         if not team:
-            logger.exception("The Opsgenie team no longer exists.")
+            logger.exception(
+                "The Opsgenie team no longer exists, or the team does not belong to the selected account."
+            )
             return
 
         def send_notification(event, futures):
