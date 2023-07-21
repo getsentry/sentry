@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Dict
+from urllib.parse import urljoin
 
 from django.http import Http404, HttpRequest, HttpResponse
 from requests import Request, Response
@@ -165,7 +166,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             raise Http404
 
-        full_url = f"{self.client.base_url}/{self.proxy_path}"
+        full_url = urljoin(self.client.base_url, self.proxy_path)
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
