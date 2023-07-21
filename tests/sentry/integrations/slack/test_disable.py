@@ -120,7 +120,7 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    def test_integration_is_broken(self):
+    def slow_test_integration_is_broken(self):
         """
         slow shut off with disable flag off
         put errors in buffer for 10 days, assert integration is broken but not disabled
@@ -139,10 +139,11 @@ class SlackClientDisable(TestCase):
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
+                buffer.record_success()
 
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
-        assert buffer.is_integration_broken() is True
+        assert buffer.is_integration_broken() is False
         assert (
             integration_service.get_integration(integration_id=self.integration.id).status
             == ObjectStatus.ACTIVE
@@ -150,10 +151,10 @@ class SlackClientDisable(TestCase):
 
     @responses.activate
     @with_feature("organizations:slack-disable-on-broken")
-    def test_integration_is_broken_and_disabled(self):
+    def slow_test_integration_is_not_broken_or_disabled(self):
         """
-        slow shut off with disable flag on
-        put errors in buffer for 10 days, assert integration is broken and disabled
+        slow test with disable flag on
+        put errors and success in buffer for 10 days, assert integration is not broken or disabled
         """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(

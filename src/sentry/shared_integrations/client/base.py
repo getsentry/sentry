@@ -428,7 +428,7 @@ class BaseApiClient(TrackResponseMixin):
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
         if (
-            features.has("organizations:disable-on-broken", org)
+            features.has("organizations:slack-disable-on-broken", org)
             and rpc_integration.provider == "slack"
         ):
             integration_service.update_integration(
