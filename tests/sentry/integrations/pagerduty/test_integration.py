@@ -141,6 +141,21 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         assert PagerDutyService.objects.filter(id=service.id).exists()
         assert PagerDutyService.objects.filter(service_name="Additional Service").exists()
+        oi = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert PagerDutyService.services_in(oi.config) == [
+            service.as_dict(),
+            PagerDutyService.objects.get(service_name="Additional Service").as_dict(),
+        ]
+
+        service.service_name = "Updated Name Yo"
+        service.save()
+        oi.refresh_from_db()
+        assert PagerDutyService.services_in(oi.config) == [
+            PagerDutyService.objects.get(service_name="Additional Service").as_dict(),
+            service.as_dict(),
+        ]
 
     @responses.activate
     def test_update_organization_config(self):

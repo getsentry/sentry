@@ -33,16 +33,22 @@ class PagerDutyService(DefaultFieldsModel):
 
     def save(self, *args: Any, **kwds: Any) -> None:
         with transaction.atomic(router.db_for_write(PagerDutyService)):
-            self.add_to_org_integration()
             super().save(*args, **kwds)
+            self.add_to_org_integration()
 
     def add_to_org_integration(self):
         from sentry.models import OrganizationIntegration
 
+        assert self.id
+
         try:
-            org_integration = self.organization_integration
-            existing: list[PagerDutyServiceDict] = org_integration.config.get(
-                "pagerduty_services", []
+            org_integration = (
+                OrganizationIntegration.objects.filter(id=self.organization_integration_id)
+                .select_for_update()
+                .get()
+            )
+            existing: list[PagerDutyServiceDict] = PagerDutyService.services_in(
+                org_integration.config
             )
             org_integration.config["pagerduty_services"] = [
                 row for row in existing if row["id"] != self.id
