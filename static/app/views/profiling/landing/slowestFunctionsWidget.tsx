@@ -134,7 +134,7 @@ export function SlowestFunctionsWidget({
         )}
         {!isError && !isLoading && !hasFunctions && (
           <EmptyStateWarning>
-            <p>{t('No functions found')}</p>
+            <p>{t('No application functions found')}</p>
           </EmptyStateWarning>
         )}
         {hasFunctions && totalsQuery.isFetched && (
