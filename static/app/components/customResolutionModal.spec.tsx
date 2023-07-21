@@ -111,7 +111,7 @@ describe('CustomResolutionModal', () => {
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(
-      await screen.findByRole('menuitemradio', {name: 'abcdef (timestamp)'})
+      await screen.findByRole('menuitemradio', {name: 'abcdef (non-semver)'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: '1.2.3 (semver)'})

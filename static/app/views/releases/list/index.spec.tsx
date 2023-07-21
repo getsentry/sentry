@@ -581,18 +581,4 @@ describe('ReleasesList', () => {
 
     expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });
-
-  it('renders if the version is using semver or timestamp', async () => {
-    const org = {...organization, features: ['issue-release-semver']};
-    render(<ReleasesList {...props} organization={org} />, {
-      context: routerContext,
-      organization: org,
-    });
-    const items = await screen.findAllByTestId('release-panel');
-
-    expect(items.length).toEqual(3);
-
-    expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
-    expect(within(items.at(0)!).getByText('(semver)')).toBeInTheDocument();
-  });
 });
