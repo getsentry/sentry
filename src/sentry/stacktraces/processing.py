@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, NamedTuple, Optional, Sequence
+from typing import Any, Callable, Dict, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
@@ -32,6 +32,9 @@ class StacktraceInfo(NamedTuple):
 
     def __ne__(self, other: object) -> bool:
         return self is not other
+
+    def get_frames(self) -> Sequence[Dict[str, Any]] | None:
+        return get_path(self.stacktrace, "frames", filter=True, default=())
 
 
 class ProcessableFrame:
@@ -192,14 +195,15 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
-        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
+        frames = get_path(stacktrace, "frames", filter=True, default=())
+        if not is_exception and (not stacktrace or not frames):
             return
 
-        frames = get_path(stacktrace, "frames", filter=True, default=())
         platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
+                # XXX: This contains all the contents of stacktrace
                 container=container,
                 platforms=platforms,
                 is_exception=is_exception,
@@ -218,8 +222,8 @@ def find_stacktraces_in_data(
         _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
-        for info in rv[:]:
-            if info.container is not None:
+        for info in rv:
+            if info.container:
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
@@ -264,17 +268,14 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     """
 
     stacktrace_frames = []
-    stacktrace_exceptions = []
+    stacktrace_container = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
+        # XXX: Why do we want include the raw stacktrace?
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-            # XXX: We already do this within find_stacktraces_in_data
-            frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
-            if frames:
-                stacktrace_frames.append(frames)
-                stacktrace_exceptions.append(
-                    stacktrace_info.container if stacktrace_info.is_exception else None
-                )
+            if stacktrace_info.get_frames():
+                stacktrace_frames.append(stacktrace_info.get_frames())
+                stacktrace_container.append(stacktrace_info.container)
 
     if not stacktrace_frames:
         return
@@ -294,7 +295,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_exceptions):
+            for frames, exception_data in zip(stacktrace_frames, stacktrace_container):
                 grouping_config.enhancements.apply_modifications_to_frame(
                     frames, platform, exception_data
                 )
@@ -376,7 +377,7 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    frames = stacktrace_info.get_frames()
     frame_count = len(frames)
     rv: list[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
@@ -396,7 +397,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     processed_frames = []
     all_errors: list[Any] = []
 
-    bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    bare_frames = stacktrace_info.get_frames()
     frame_count = len(bare_frames)
     processable_frames = {frame.idx: frame for frame in processable_frames}
 
