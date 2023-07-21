@@ -6,6 +6,7 @@ from typing import Any, MutableMapping
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +19,11 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.utils import metrics
+
+
+class RepoExistsError(APIException):
+    status_code = 400
+    detail = {"errors": {"__all__": "A repository with that name already exists"}}
 
 
 def get_integration_repository_provider(integration):
@@ -158,6 +164,9 @@ class IntegrationRepositoryProvider:
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
+        except RepoExistsError as e:
+            metrics.incr("sentry.integration_repo_provider.repo_exists")
+            return self.handle_api_error(e)
         except Exception as e:
             return self.handle_api_error(e)
 
