@@ -44,8 +44,12 @@ export function useSpansQuery<T = any[]>({
   const {isReady: pageFiltersReady} = usePageFilters();
 
   if (eventView) {
+    const newEventView = eventView.clone();
+    if (view === 'webservice') {
+      newEventView.query = `${eventView.query} transaction.op:http.server`;
+    }
     const response = queryFunction<T>({
-      eventView,
+      eventView: newEventView,
       initialData,
       limit,
       // We always want to wait until the pageFilters are ready to prevent clobbering requests

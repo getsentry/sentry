@@ -32,7 +32,7 @@ export const useSpanMeta = (
 };
 
 function getEventView(
-  groupId,
+  groupId: string,
   location: Location,
   queryFilters: SpanSummaryQueryFilters
 ) {
