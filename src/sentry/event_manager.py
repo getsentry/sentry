@@ -462,9 +462,6 @@ class EventManager:
 
         is_reprocessed = is_reprocessed_event(job["data"])
 
-        # This metric can be used to track how many error events there are per platform
-        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
-
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
 
