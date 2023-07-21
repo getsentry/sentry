@@ -9,14 +9,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.helpers import install_slack, with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 
 control_address = "http://controlserver"
@@ -50,6 +46,9 @@ class SlackClientDisable(TestCase):
     @responses.activate
     @with_feature("organizations:disable-on-broken")
     def test_fatal_and_disable_integration(self):
+        """
+        fatal fast shut off with disable flag on, integration should be broken and disabled
+        """
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
             method=responses.POST,
@@ -71,7 +70,7 @@ class SlackClientDisable(TestCase):
     @responses.activate
     def test_fatal_integration(self):
         """
-        fatal fast shut off with flag off
+        fatal fast shut off with disable flag off, integration should be broken but not disabled
         """
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
@@ -93,6 +92,9 @@ class SlackClientDisable(TestCase):
 
     @responses.activate
     def test_error_integration(self):
+        """
+        recieve one error and assert error is recorded, integration is not broken yet so no disable
+        """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
             method=responses.POST,
@@ -112,6 +114,7 @@ class SlackClientDisable(TestCase):
     def test_integration_is_broken(self):
         """
         slow shut off with disable flag off
+        put errors in buffer for 10 days, assert integration is broken but not disabled
         """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
@@ -136,10 +139,13 @@ class SlackClientDisable(TestCase):
             == ObjectStatus.ACTIVE
         )
 
-    # fake slow test w disable on
     @responses.activate
     @with_feature("organizations:disable-on-broken")
     def test_integration_is_broken_and_disabled(self):
+        """
+        slow shut off with disable flag on
+        put errors in buffer for 10 days, assert integration is broken and disabled
+        """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
             method=responses.POST,

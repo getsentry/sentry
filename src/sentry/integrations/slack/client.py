@@ -12,7 +12,6 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.response import MappingApiResponse
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import metrics
 
@@ -84,7 +83,6 @@ class SlackClient(IntegrationProxyClient):
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
         span = span or Span()
-        #   print("track_response_data")
         try:
             span.set_http_status(int(code))
         except ValueError:
