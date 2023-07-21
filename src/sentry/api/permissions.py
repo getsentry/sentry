@@ -125,7 +125,8 @@ class SentryPermission(ScopedPermission):
             assert False, "Failed to fetch organization in determine_access"
 
         if (
-            request.user.is_superuser
+            request.user
+            and request.user.is_superuser
             and org_context.organization.slug in settings.SENTRY_DATA_SECRECY_ORGS
         ):
             raise DataSecrecy()
