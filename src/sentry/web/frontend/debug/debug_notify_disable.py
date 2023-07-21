@@ -4,24 +4,20 @@ from django.views.generic import View
 from sentry.models import Organization, OrganizationMember, User
 from sentry.tasks.integrations.disabled_notif import IntegrationBrokenNotification
 
-from .mail import render_preview_email_for_notification
+from .mail import COMMIT_EXAMPLE, MailPreview
 
 
 class DebugNotifyDisableView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="default", name="Default")
-        requester = User(name="Rick Swan")
-        recipient = User(name="James Bond")
-        recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
+        integration_name = "slack"
+        integration_link = "https://sentry.io/settings/default/integrations/slack/"
+        settings_link = "https://sentry.io/settings/default/integrations/slack/"
 
-        notification = IntegrationBrokenNotification(
-            org,
-            requester,
-            provider_type="first_party",
-            provider_slug="slack",
-            provider_name="Slack",
-        )
-
-        # hack to avoid a query
-        #   notification.role_based_recipient_strategy.set_member_in_cache(recipient_member)
-        return render_preview_email_for_notification(notification, recipient)
+        return MailPreview(
+            html_template="sentry/integrations/notify-disable.html",
+            text_template="sentry/integrations/notify-disable.txt",
+            context={"integration_name":integration_name,
+            "integration_link":integration_link,
+            "settings_link":settings_link
+            }).render(request)
