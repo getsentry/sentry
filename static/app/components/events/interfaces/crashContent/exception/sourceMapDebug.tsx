@@ -165,8 +165,8 @@ function getErrorMessage(
         },
       ];
     // Need to return something but this does not need to follow the pattern since it uses a different alert
-    case SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP:
-      return [{title: 'Debug ID not set up'}];
+    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
+      return [{title: 'Debug Id but no Sourcemaps'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -288,7 +288,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
 
   if (
     errorMessages.filter(
-      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
     ).length > 0
   ) {
     return <SourceMapsWizard />;

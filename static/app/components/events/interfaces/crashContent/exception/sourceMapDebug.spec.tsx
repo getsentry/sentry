@@ -181,9 +181,9 @@ describe('SourceMapDebug', () => {
     );
   });
 
-  it('should show source maps wizard alert for DEBUG_ID_NOT_SET_UP', async () => {
+  it('should show source maps wizard alert for DEBUG_ID_NO_SOURCEMAPS', async () => {
     const error: SourceMapDebugError = {
-      type: SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP,
+      type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS,
       message: '',
     };
 

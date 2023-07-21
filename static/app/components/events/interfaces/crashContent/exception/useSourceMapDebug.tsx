@@ -51,7 +51,7 @@ interface NotPartOfPipelineError extends BaseSourceMapDebugError {
 }
 
 interface DebugIdNotSetUpError extends BaseSourceMapDebugError {
-  type: SourceMapProcessingIssueType.DEBUG_ID_NOT_SET_UP;
+  type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS;
 }
 
 export type SourceMapDebugError =
@@ -80,7 +80,7 @@ export enum SourceMapProcessingIssueType {
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
   NOT_PART_OF_PIPELINE = 'not_part_of_pipeline',
-  DEBUG_ID_NOT_SET_UP = 'no_debug_id_set_up',
+  DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
 }
 
 const sourceMapDebugQuery = ({
