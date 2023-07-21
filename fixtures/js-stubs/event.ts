@@ -22,20 +22,11 @@ export function Event(params = {}): TEvent {
     dist: null,
     fingerprints: [],
     culprit: '',
-    user: {ip_address: '127.0.0.1', email: 'billy@sentry.io', id: '1'},
+    user: null,
     location: '',
     type: EventOrGroupType.ERROR,
     occurrence: null,
-    contexts: {
-      os: {
-        version: '10.12.5',
-        type: 'os',
-        name: 'Mac OS X',
-        build: '',
-        kernel_version: '',
-      },
-      browser: {version: '59.0.3071', name: 'Chrome'},
-    },
+    contexts: {},
     ...params,
   };
 }
