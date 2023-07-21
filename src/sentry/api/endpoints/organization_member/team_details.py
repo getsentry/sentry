@@ -80,7 +80,6 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    public = {"DELETE", "POST"}
     permission_classes = [TeamOrgMemberPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:

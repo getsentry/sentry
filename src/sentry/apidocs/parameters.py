@@ -80,16 +80,6 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
     )
 
     @staticmethod
-    def member_id(description: str) -> OpenApiParameter:
-        return OpenApiParameter(
-            name="member_id",
-            location="path",
-            required=True,
-            type=str,
-            description=description,
-        )
-
-    @staticmethod
     def name(description: str, required: bool = False) -> OpenApiParameter:
         return OpenApiParameter(
             name="name",
