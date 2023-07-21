@@ -162,13 +162,11 @@ class AuthLoginView(BaseView):
 
     def get_registration_page(self, request: Request, **kwargs) -> HttpResponse:
         """
-        Returns the standard registration page.
+        Returns the standard registration page when a user has been invited to an org.
         """
         context = self.get_default_context(request=request)
 
-        register_form = self.initialize_register_form(
-            request=request, initial={"username": request.session.get("invite_email", "")}
-        )
+        register_form = self.initialize_register_form(request=request)
         context.update(
             {
                 "op": "register",
@@ -206,7 +204,8 @@ class AuthLoginView(BaseView):
                 request=request, organization=organization, **kwargs
             )
         else:
-            return self.handle_login_form_submit(request=request, organization=organization, op=op)
+            assert op == "login"
+            return self.handle_login_form_submit(request=request, organization=organization)
 
     def redirect_post_to_sso(self, request: Request) -> HttpResponseRedirect:
         """
@@ -247,9 +246,7 @@ class AuthLoginView(BaseView):
         """
         context = self.get_default_context(request=request, **kwargs)
 
-        register_form = self.initialize_register_form(
-            request=request, initial={"username": request.session.get("invite_email", "")}
-        )
+        register_form = self.initialize_register_form(request=request)
         if register_form.is_valid():
             user = self.handle_new_user_creation(
                 request=request, register_form=register_form, organization=organization
@@ -266,14 +263,15 @@ class AuthLoginView(BaseView):
             )
             return self.respond_login(request=request, context=context, **kwargs)
 
-    def initialize_register_form(self, request: Request, initial: dict) -> RegistrationForm:
+    def initialize_register_form(self, request: Request) -> RegistrationForm:
         """
         Extracts the register form from a request, then formats and returns it.
         """
         op = request.POST.get("op")
+        initial_data = {"username": request.session.get("invite_email", "")}
         return RegistrationForm(
             request.POST if op == "register" else None,
-            initial=initial,
+            initial=initial_data,
             # Custom auto_id to avoid ID collision with AuthenticationForm.
             auto_id="id_registration_%s",
         )
@@ -358,7 +356,7 @@ class AuthLoginView(BaseView):
         return add_params_to_url(url=base_url, params=params)
 
     def handle_login_form_submit(
-        self, request: Request, organization: Organization, op: str, **kwargs
+        self, request: Request, organization: Organization, **kwargs
     ) -> HttpResponse:
         """
         Validates a completed login  form, redirecting to the next
@@ -366,12 +364,12 @@ class AuthLoginView(BaseView):
         """
         context = self.get_default_context(request=request, **kwargs)
 
-        login_form = AuthenticationForm(request, request.POST if op == "login" else None)
+        login_form = AuthenticationForm(request, request.POST)
 
-        if self.is_ratelimited_login_attempt(request=request, login_form=login_form, op=op):
+        if self.is_ratelimited_login_attempt(request=request, login_form=login_form):
             return self.get_ratelimited_login_form(request=request, login_form=login_form, **kwargs)
         elif not login_form.is_valid():
-            context.update({"login_form": login_form, "op": op or login})
+            context.update({"login_form": login_form, "op": "login"})
             return self.respond_login(request=request, context=context, **kwargs)
 
         user = login_form.get_user()
@@ -382,7 +380,7 @@ class AuthLoginView(BaseView):
         )
 
     def is_ratelimited_login_attempt(
-        self, request: Request, login_form: AuthenticationForm, op: str
+        self, request: Request, login_form: AuthenticationForm
     ) -> bool:
         """
         Returns true if a user is attempting to login but is currently ratelimited.
@@ -390,9 +388,7 @@ class AuthLoginView(BaseView):
         from sentry import ratelimits as ratelimiter
         from sentry.utils.hashlib import md5_text
 
-        attempted_login = (
-            op == "login" and request.POST.get("username") and request.POST.get("password")
-        )
+        attempted_login = request.POST.get("username") and request.POST.get("password")
 
         return attempted_login and ratelimiter.is_limited(
             "auth:login:username:{}".format(
@@ -574,9 +570,7 @@ class AuthLoginView(BaseView):
         # login_form either validated on post or renders form fields for GET
         login_form = self.get_login_form(request)
         if can_register:
-            register_form = self.initialize_register_form(
-                request, initial={"username": request.session.get("invite_email", "")}
-            )
+            register_form = self.initialize_register_form(request)
         else:
             register_form = None
 
