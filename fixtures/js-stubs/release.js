@@ -24,6 +24,7 @@ export function Release(params, healthParams) {
         minor: 2,
         buildCode: null,
         patch: 0,
+        components: 3,
       },
       description: '1.2.0',
       package: 'sentry-android-shop',

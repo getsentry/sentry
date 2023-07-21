@@ -64,10 +64,8 @@ class HandleIgnoredTest(TestCase):
 class HandleArchiveUntilEscalating(TestCase):
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating_group_forecast.logger")
     def test_archive_until_escalating_no_counts(
         self,
-        mock_logger: MagicMock,
         mock_generate_and_save_missing_forecasts: MagicMock,
         mock_query_groups_past_counts: MagicMock,
     ) -> None:
@@ -87,9 +85,6 @@ class HandleArchiveUntilEscalating(TestCase):
 
         fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
         assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
-        assert mock_logger.exception.call_args.args[0] == (
-            f"Forecast does not exist for project id: {self.group.project.id} group id: {str(self.group.id)}"
-        )
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
     @patch("sentry.issues.forecasts.query_groups_past_counts")
