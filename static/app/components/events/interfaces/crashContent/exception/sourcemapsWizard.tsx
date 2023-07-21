@@ -64,7 +64,7 @@ export default function SourceMapsWizard() {
         icon={<IconFlag size="xl" />}
         title={t("Sentry isn't Sentry without source maps")}
         description={tct(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more].',
+          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more]',
           {
             link: (
               <ExternalLink
