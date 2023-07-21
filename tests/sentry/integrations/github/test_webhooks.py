@@ -162,6 +162,7 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker/public-repo",
         )
         repo.status = ObjectStatus.HIDDEN
+        repo.external_id = "35129377"
         repo.save()
 
         self._setup_repo_test(project)
@@ -453,6 +454,7 @@ class PullRequestEventWebhook(APITestCase):
             name="baxterthehacker/public-repo",
         )
         repo.status = ObjectStatus.HIDDEN
+        repo.external_id = "35129377"
         repo.save()
 
         self._setup_repo_test(project)
