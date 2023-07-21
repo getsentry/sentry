@@ -1,6 +1,5 @@
 from typing import Any, Mapping, MutableMapping
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
@@ -12,16 +11,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.team import BaseTeamSerializer, TeamSerializer
-from sentry.apidocs.constants import (
-    RESPONSE_ACCEPTED,
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_NO_CONTENT,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
-from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -88,7 +78,6 @@ def _is_org_owner_or_manager(access: Access) -> bool:
     return "owner" in roles or "manager" in roles
 
 
-@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     public = {"DELETE", "POST"}
@@ -175,26 +164,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
         )
 
-    @extend_schema(
-        operation_id="Add an Organization Member to a Team",
-        parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the organization member to add to the team"),
-            GlobalParams.TEAM_SLUG,
-        ],
-        request=None,
-        responses={
-            201: BaseTeamSerializer,
-            202: RESPONSE_ACCEPTED,
-            204: RESPONSE_NO_CONTENT,
-            401: RESPONSE_UNAUTHORIZED,
-            403: OpenApiResponse(
-                description="This team is managed through your organization's identity provider"
-            ),
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=TeamExamples.ADD_TO_TEAM,
-    )
     def post(
         self,
         request: Request,
@@ -202,75 +171,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
-        # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
-        r"""
-        This request can return various success codes depending on the context of the team:
-        - **`201`**: The member has been successfully added.
-        - **`202`**: The member needs permission to join the team and an access request
-        has been generated.
-        - **`204`**: The member is already on the team.
-
-        If the team is provisioned through an identity provider, then the member cannot join the
-        team through Sentry.
-
-        Note that the permission scopes also vary depending on the organization setting `"Open
-        Membership"` and the type of authorization token. The following table outlines the accepted
-        scopes.
-        <table style="width: 100%;">
-        <thead>
-            <tr>
-            <th style="width: 33%;"></th>
-            <th colspan="2" style="text-align: center; font-weight: bold; width: 33%;">Open Membership</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-            <td style="width: 34%;"></td>
-            <td style="text-align: center; font-weight: bold; width: 33%;">On</td>
-            <td style="text-align: center; font-weight: bold; width: 33%;">Off</td>
-            </tr>
-            <tr>
-            <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
-            href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
-            <td style="text-align: left; width: 33%;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
-                </ul>
-            </td>
-            <td style="text-align: left; width: 33%;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                </ul>
-            </td>
-            </tr>
-            <tr>
-            <td style="text-align: center; font-weight: bold; vertical-align: middle;"><a
-            href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
-            <td style="text-align: left; width: 33%;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
-                </ul>
-            </td>
-            <td style="text-align: left; width: 33%;">
-                <ul style="list-style-type: none; padding-left: 0;">
-                <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
-                <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                <li><strong style="color: #9c5f99;">&bull; org:read +</strong></li>
-                <li><strong style="color: #9c5f99;">&nbsp; &nbsp;team:write**</strong></li>
-                </ul>
-            </td>
-            </tr>
-        </tbody>
-        </table>
-
-
-        *Organization members are restricted to this scope. When sending a request, it will always
-        return a 202 and request an invite to the team.
-
-
-        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user auth
-        token to utilize this endpoint
+        """
+        Join, request access to or add a member to a team.
+        If the user needs permission to join the team, an access request will
+        be generated and the returned status code will be 202.
+        If the user is already a member of the team, this will simply return
+        a 204.
+        If the team is provisioned through an identity provider, then the user
+        cannot join or request to join the team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -367,24 +275,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             tags={"target_team_role": team_role.id, "applying_minimum": str(applying_minimum)},
         )
 
-    @extend_schema(
-        operation_id="Delete an Organization Member from a Team",
-        parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the organization member to delete from the team"),
-            GlobalParams.TEAM_SLUG,
-        ],
-        request=None,
-        responses={
-            200: BaseTeamSerializer,
-            400: RESPONSE_BAD_REQUEST,
-            403: OpenApiResponse(
-                description="This team is managed through your organization's identity provider"
-            ),
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=TeamExamples.DELETE_FROM_TEAM,
-    )
     def delete(
         self,
         request: Request,
@@ -392,40 +282,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
-        r"""
-        Delete an organization member from a team.
-
-        Note that the permission scopes also vary depending on the type of authorization token. The
-        following table outlines the accepted scopes.
-        <table style="width: 100%;">
-            <tr style="width: 50%;">
-                <td style="width: 50%; text-align: center; font-weight: bold; vertical-align: middle;"><a href="https://docs.sentry.io/api/auth/#auth-tokens">Org Auth Token</a></td>
-                <td style="width: 50%; text-align: left;">
-                    <ul style="list-style-type: none; padding-left: 0;">
-                        <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                    </ul>
-                </td>
-            </tr>
-            <tr style="width: 50%;">
-                <td style="width: 50%; text-align: center; font-weight: bold; vertical-align: middle;"><a href="https://docs.sentry.io/api/auth/#user-authentication-tokens">User Auth Token</a></td>
-                <td style="width: 50%; text-align: left;">
-                    <ul style="list-style-type: none; padding-left: 0;">
-                        <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
-                        <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
-                    </ul>
-                </td>
-            </tr>
-        </table>
-
-
-        \***`org:read`** can only be used to remove yourself from the teams you are a member of.
-
-
-        \*\*Team Admins must have both **`org:read`** and **`team:write`** scopes in their user
-        auth token to remove other organization members from the teams they are admins of.
+        """
+        Leave or remove a member from a team
         """
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
