@@ -38,7 +38,7 @@ def link_all_repos(
         metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
         return
 
-    rpc_org = organization_service.get(organization_id=organization_id)
+    rpc_org = organization_service.get(id=organization_id)
     if rpc_org is None:
         logger.error(
             f"{integration_key}.link_all_repos.organization_missing",
