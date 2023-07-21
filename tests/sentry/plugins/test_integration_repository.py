@@ -45,9 +45,9 @@ class IntegrationRepositoryTestCase(TestCase):
     def provider(self):
         return GitHubRepositoryProvider("integrations:github")
 
-    def _create_repo(self, external_id=None):
+    def _create_repo(self, external_id=None, name=None):
         return Repository.objects.create(
-            name=self.repo_name,
+            name=name if name else self.repo_name,
             provider="integrations:github",
             organization_id=self.organization.id,
             integration_id=self.integration.id,
@@ -66,10 +66,19 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository__repo_exists(self, get_jwt):
-        self._create_repo()
+        self._create_repo(external_id=self.config["external_id"])
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
+
+    def test_create_repository__repo_exists_update_name(self, get_jwt):
+        repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
+
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
+
+        repo.refresh_from_db()
+        assert repo.name == self.repo_name
 
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
