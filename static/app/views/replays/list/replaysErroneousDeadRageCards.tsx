@@ -7,13 +7,20 @@ import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CardReplayTable} from 'sentry/views/replays/replayTable';
+import {ReplayTable} from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 function ReplaysErroneousDeadRageCards() {
-  const location = useLocation();
+  const location: Location = {
+    pathname: '',
+    search: '',
+    query: {},
+    hash: '',
+    state: '',
+    action: 'PUSH',
+    key: '',
+  };
   const organization = useOrganization();
 
   const eventViewErrors = EventView.fromNewQueryWithLocation(
@@ -31,7 +38,7 @@ function ReplaysErroneousDeadRageCards() {
         'is_archived',
         'started_at',
       ],
-      range: '1d',
+      range: '7d',
       projects: [],
       query: '',
       orderby: '-count_errors',
@@ -39,29 +46,26 @@ function ReplaysErroneousDeadRageCards() {
     location
   );
 
-  const eventViewDeadRage = EventView.fromNewQueryWithLocation(
-    {
-      name: '',
-      version: 2,
-      fields: [
-        'activity',
-        'duration',
-        'count_dead_clicks',
-        'count_rage_clicks',
-        'id',
-        'project_id',
-        'user',
-        'finished_at',
-        'is_archived',
-        'started_at',
-      ],
-      range: '2d',
-      projects: [],
-      query: '',
-      orderby: '-count_dead_clicks',
-    },
-    location
-  );
+  const eventViewDeadRage = EventView.fromSavedQuery({
+    name: '',
+    version: 2,
+    fields: [
+      'activity',
+      'duration',
+      'count_dead_clicks',
+      'count_rage_clicks',
+      'id',
+      'project_id',
+      'user',
+      'finished_at',
+      'is_archived',
+      'started_at',
+    ],
+    range: '7d',
+    projects: [],
+    query: '',
+    orderby: '-count_dead_clicks',
+  });
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasDeadRageCards = organization.features.includes('replay-error-click-cards');
@@ -119,12 +123,13 @@ function CardTable({
 
   return (
     <Fragment>
-      <CardReplayTable
+      <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
         replays={replays?.slice(0, 3)}
         sort={eventView.sorts[0]}
         visibleColumns={visibleColumns}
+        saveLocation
       />
     </Fragment>
   );

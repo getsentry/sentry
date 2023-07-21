@@ -1,5 +1,6 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -33,6 +34,8 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  headersSortable?: boolean;
+  saveLocation?: boolean;
 };
 
 export function ReplayTable({
@@ -42,15 +45,35 @@ export function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
+  saveLocation,
+  headersSortable,
 }: Props) {
   const routes = useRoutes();
-  const location = useLocation();
+  const newLocation = useLocation();
   const organization = useOrganization();
+
+  const location: Location =
+    saveLocation ?? false
+      ? {
+          pathname: '',
+          search: '',
+          query: {},
+          hash: '',
+          state: '',
+          action: 'PUSH',
+          key: '',
+        }
+      : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
     .map(column => (
-      <HeaderCell key={column} column={column} sort={sort} headersSortable />
+      <HeaderCell
+        key={column}
+        column={column}
+        sort={sort}
+        headersSortable={headersSortable}
+      />
     ));
 
   if (fetchError && !isFetching) {
@@ -131,85 +154,6 @@ export function ReplayTable({
                       organization={organization}
                     />
                   );
-
-                default:
-                  return null;
-              }
-            })}
-          </Fragment>
-        );
-      })}
-    </StyledPanelTable>
-  );
-}
-
-export function CardReplayTable({
-  fetchError,
-  isFetching,
-  replays,
-  sort,
-  visibleColumns,
-}: Props) {
-  const routes = useRoutes();
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const tableHeaders = visibleColumns
-    .filter(Boolean)
-    .map(column => (
-      <HeaderCell key={column} column={column} sort={sort} headersSortable={false} />
-    ));
-
-  if (fetchError && !isFetching) {
-    return (
-      <StyledPanelTable
-        headers={tableHeaders}
-        isLoading={false}
-        visibleColumns={visibleColumns}
-        data-test-id="card-replay-table"
-      >
-        <StyledAlert type="error" showIcon>
-          {typeof fetchError === 'string'
-            ? fetchError
-            : t(
-                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-              )}
-        </StyledAlert>
-      </StyledPanelTable>
-    );
-  }
-
-  const referrer = getRouteStringFromRoutes(routes);
-  const eventView = EventView.fromLocation(location);
-
-  return (
-    <StyledPanelTable
-      headers={tableHeaders}
-      isEmpty={replays?.length === 0}
-      isLoading={false}
-      visibleColumns={visibleColumns}
-      disablePadding
-      data-test-id="card-replay-table"
-    >
-      {replays?.map(replay => {
-        return (
-          <Fragment key={replay.id}>
-            {visibleColumns.map(column => {
-              switch (column) {
-                case ReplayColumn.ACTIVITY:
-                  return <ActivityCell key="activity" replay={replay} />;
-
-                case ReplayColumn.COUNT_DEAD_CLICKS:
-                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
-
-                case ReplayColumn.COUNT_ERRORS:
-                  return <ErrorCountCell key="countErrors" replay={replay} />;
-
-                case ReplayColumn.COUNT_RAGE_CLICKS:
-                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
-
-                case ReplayColumn.DURATION:
-                  return <DurationCell key="duration" replay={replay} />;
 
                 case ReplayColumn.MOST_DEAD_CLICKS:
                   return (
