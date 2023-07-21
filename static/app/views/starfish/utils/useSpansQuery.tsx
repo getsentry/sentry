@@ -28,6 +28,7 @@ export function useSpansQuery<T = any[]>({
   enabled,
   referrer = 'use-spans-query',
   cursor,
+  view = 'webservice',
 }: {
   cursor?: string;
   enabled?: boolean;
@@ -35,6 +36,7 @@ export function useSpansQuery<T = any[]>({
   initialData?: T;
   limit?: number;
   referrer?: string;
+  view?: 'webservice' | 'mobile' | 'frontend';
 }) {
   const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
   const queryFunction = isTimeseriesQuery
@@ -45,6 +47,7 @@ export function useSpansQuery<T = any[]>({
 
   if (eventView) {
     const newEventView = eventView.clone();
+    // We can also add `if (view == 'mobile') -> 'transaction.op:ui.load'` here in the future
     if (view === 'webservice') {
       newEventView.query = `${eventView.query} transaction.op:http.server`;
     }
