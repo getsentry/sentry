@@ -66,6 +66,7 @@ describe('Incident Rules Create', function () {
           statsPeriod: '10000m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          useOnDemandMetrics: false,
         },
       })
     );
