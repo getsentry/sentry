@@ -7,7 +7,7 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.exceptions import (
-    DataSecrecy,
+    DataSecrecyError,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -129,7 +129,7 @@ class SentryPermission(ScopedPermission):
             and request.user.is_superuser
             and features.has("organizations:enterprise-data-secrecy", org_context.organization)
         ):
-            raise DataSecrecy()
+            raise DataSecrecyError()
 
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
