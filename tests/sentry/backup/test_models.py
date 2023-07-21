@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from click.testing import CliRunner
 from django.core.management import call_command
-from django.db import router
+from django.db import models, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
@@ -87,7 +87,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.runner.commands.backup import import_, validate
+from sentry.runner.commands.backup import DatetimeSafeDjangoJSONEncoder, import_, validate
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -112,19 +112,86 @@ def targets(expected_models: list[Type]):
     """A helper decorator that checks that every model that a test "targeted" was actually seen in
     the output, ensuring that we're actually testing the thing we think we are. Additionally, this
     decorator is easily legible to static analysis, which allows for static checks to ensure that
-    all `__include_in_export__ = True` models are being tested."""
+    all `__include_in_export__ = True` models are being tested.
+
+    To be considered a proper "testing" of a given target type, the resulting output must contain at
+    least one instance of that type with all of its fields present and set to non-default values."""
 
     def decorator(func):
         def wrapped(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            if ret is None:
+            actual = func(*args, **kwargs)
+            if actual is None:
                 return AssertionError(f"The test {func.__name__} did not return its actual JSON")
-            actual_model_names = {entry["model"] for entry in ret}
-            expected_model_names = {"sentry." + model.__name__.lower() for model in expected_models}
+
+            # Do a quick scan to ensure that at least one instance of each expected model is
+            # present.
+            actual_model_names = {entry["model"] for entry in actual}
+            expected_model_types = {
+                "sentry." + type.__name__.lower(): type for type in expected_models
+            }
+            expected_model_names = set(expected_model_types.keys())
             notfound = sorted(expected_model_names - actual_model_names)
             if len(notfound) > 0:
-                raise AssertionError(f"Some `@targets` entries were not used: {notfound}")
-            return ret
+                raise AssertionError(f"Some `@targets_models` entries were not found: {notfound}")
+
+            # Now do a more thorough check: for every `expected_models` entry, make sure that we
+            # have at least one instance of that model that sets all of its fields to some
+            # non-default value.
+            mistakes_by_model: dict[str, list[str]] = {}
+            encoder = DatetimeSafeDjangoJSONEncoder()
+            for model in actual:
+                name = model["model"]
+                if name not in expected_model_names:
+                    continue
+
+                data = model["fields"]
+                type = expected_model_types[name]
+                fields = type._meta.get_fields()
+                mistakes = []
+                for f in fields:
+                    field_name = f.name
+
+                    # IDs are synonymous with primary keys, and should not be included in JSON field
+                    # output.
+                    if field_name == "id":
+                        continue
+
+                    # The model gets a `ManyToOneRel` or `ManyToManyRel` from all other models where
+                    # it is referenced by foreign key. Those do not explicitly need to be set - we
+                    # don't care that models that reference this model exist, just that this model
+                    # exists in its most filled-out form.
+                    if isinstance(f, models.ManyToOneRel) or isinstance(f, models.ManyToManyRel):
+                        continue
+
+                    # TODO(getsentry/team-ospo#156): For some reason we currently don't always
+                    # serialize some `ManyToManyField`s with the `through` property set. I'll
+                    # investigate, but will skip over these for now.
+                    if isinstance(f, models.ManyToManyField):
+                        continue
+
+                    # TODO(getsentry/team-ospo#156): Maybe make these checks recursive for models
+                    # that have POPOs for some of their field values?
+                    if field_name not in data:
+                        mistakes.append(f"Must include field: `{field_name}`")
+                        continue
+                    if f.has_default():
+                        default_value = f.get_default()
+                        serialized = encoder.encode(default_value)
+                        if serialized == data:
+                            mistakes.append(f"Must use non-default data: `{field_name}`")
+                            return
+
+                # If one model instance has N mistakes, and another has N - 1 mistakes, we want to
+                # keep the shortest list, to give the user the smallest number of fixes to make when
+                # reporting the mistake.
+                if name not in mistakes_by_model or (len(mistakes) < len(mistakes_by_model[name])):
+                    mistakes_by_model[name] = mistakes
+            for name, mistakes in mistakes_by_model.items():
+                num = len(mistakes)
+                if num > 0:
+                    raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
+
+            return actual
 
         return wrapped
 
@@ -181,9 +248,12 @@ class ModelBackupTests(TransactionTestCase):
 
         user = self.create_user()
         org = self.create_organization(owner=user)
-        return Dashboard.objects.create(
+        project = self.create_project(organization=org)
+        dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=user.id, organization=org
         )
+        dashboard.projects.add(project)
+        return dashboard
 
     def create_monitor(self):
         """Re-usable monitor object for test cases."""
