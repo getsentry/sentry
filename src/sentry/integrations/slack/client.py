@@ -69,8 +69,9 @@ class SlackClient(IntegrationProxyClient):
         return prepared_request
 
     def is_response_fatal(self, response: BaseApiResponse) -> bool:
-        if not response.json.get("ok"):
-            if "account_inactive" == response.json.get("error", ""):
+        resp_json = response.json()
+        if not resp_json.get("ok"):
+            if "account_inactive" == resp_json.get("error", ""):
                 return True
 
     def track_response_data(

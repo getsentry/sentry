@@ -306,11 +306,7 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-            self.record_response(
-                BaseApiResponse.from_response(
-                    resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
-                )
-            )
+            self.record_response(resp)
 
             if resp.status_code == 204:
                 return {}
