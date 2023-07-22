@@ -784,6 +784,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if (
             cursor is None
             and sort_by == "date"
+            # only apply this optimization if `end` is really close to now (non-absolute time range filter)
+            # otherwise if end is far in the past, `group.filter(last_seen_lte=end)` would
+            # exclude issues where group.last_seen is after end, we want to delegate to snuba to get a more 'correct'
+            # accounting for when events happened
+            and now - timedelta(minutes=1) < end
             and
             # This handles tags and date parameters for search filters.
             not [
