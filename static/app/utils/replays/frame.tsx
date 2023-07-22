@@ -7,171 +7,265 @@ import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
+  ErrorFrame,
   LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
-  SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick, isDeadRageClick, isRageClick} from 'sentry/utils/replays/types';
+import {
+  getFrameOpOrCategory,
+  isDeadClick,
+  isDeadRageClick,
+  isRageClick,
+} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 import stripOrigin from 'sentry/utils/url/stripOrigin';
 
-export function getColor(frame: ReplayFrame): Color {
-  if ('category' in frame) {
-    switch (frame.category) {
-      case 'replay.init':
-        return 'gray300';
-      case 'navigation':
-        return 'green300';
-      case 'issue':
-        return 'red300';
-      case 'ui.slowClickDetected':
-        return isDeadClick(frame as SlowClickFrame) ? 'red300' : 'yellow300';
-      case 'ui.multiClick':
-        return isRageClick(frame as MultiClickFrame) ? 'red300' : 'yellow300';
-      case 'replay.mutations':
-        return 'yellow300';
-      case 'ui.click':
-      case 'ui.input':
-      case 'ui.keyDown':
-      case 'ui.blur':
-      case 'ui.focus':
-        return 'purple300';
-      case 'console':
-      default: // Custom breadcrumbs will fall through here
-        return 'gray300';
-    }
-  }
-
-  switch (frame.op) {
-    case 'navigation.navigate':
-    case 'navigation.reload':
-    case 'navigation.back_forward':
-    case 'navigation.push':
-      return 'green300';
-    case 'largest-contentful-paint':
-    case 'memory':
-    case 'paint':
-    case 'resource.fetch':
-    case 'resource.xhr':
-    default:
-      return 'gray300';
-  }
+interface Details {
+  color: Color;
+  description: ReactNode;
+  tabKey: TabKey;
+  title: ReactNode;
+  type: BreadcrumbType; // @deprecated
 }
 
-/**
- * The breadcrumbType is used as a value for <BreadcrumbIcon/>
- * We could remove the indirection by associating frames with icons directly.
- *
- * @deprecated
- */
-export function getBreadcrumbType(frame: ReplayFrame): BreadcrumbType {
-  if ('category' in frame) {
-    switch (frame.category) {
-      case 'replay.init':
-        return BreadcrumbType.DEFAULT;
-      case 'navigation':
-        return BreadcrumbType.NAVIGATION;
-      case 'issue':
-        return BreadcrumbType.ERROR;
-      case 'ui.slowClickDetected':
-        return isDeadClick(frame as SlowClickFrame)
-          ? BreadcrumbType.ERROR
-          : BreadcrumbType.WARNING;
-      case 'ui.multiClick':
-        return isRageClick(frame as MultiClickFrame)
-          ? BreadcrumbType.ERROR
-          : BreadcrumbType.WARNING;
-      case 'replay.mutations':
-        return BreadcrumbType.WARNING;
-      case 'ui.click':
-      case 'ui.input':
-      case 'ui.keyDown':
-      case 'ui.blur':
-      case 'ui.focus':
-        return BreadcrumbType.UI;
-      case 'console':
-        return BreadcrumbType.DEBUG;
-      default: // Custom breadcrumbs will fall through here
-        return BreadcrumbType.DEFAULT;
+const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
+  'replay.init': (frame: BreadcrumbFrame) => ({
+    color: 'gray300',
+    description: stripOrigin(frame.message ?? ''),
+    tabKey: TabKey.CONSOLE,
+    title: 'Replay Start',
+    type: BreadcrumbType.DEFAULT,
+  }),
+  navigation: (frame: NavFrame) => ({
+    color: 'green300',
+    description: stripOrigin((frame as NavFrame).data.to),
+    tabKey: TabKey.NETWORK,
+    title: 'Navigation',
+    type: BreadcrumbType.NAVIGATION,
+  }),
+  issue: (frame: ErrorFrame) => ({
+    color: 'red300',
+    description: frame.message,
+    tabKey: TabKey.ERRORS,
+    title: defaultTitle(frame),
+    type: BreadcrumbType.ERROR,
+  }),
+  'ui.slowClickDetected': (frame: SlowClickFrame) => {
+    const node = frame.data.node;
+    if (isDeadClick(frame)) {
+      return {
+        color: 'red300',
+        description: tct(
+          'Click on [selector] did not cause a visible effect within [timeout] ms',
+          {
+            selector: stringifyNodeAttributes(node),
+            timeout: frame.data.timeAfterClickMs,
+          }
+        ),
+        type: BreadcrumbType.ERROR,
+        title: isDeadRageClick(frame) ? 'Rage Click' : 'Dead Click',
+        tabKey: TabKey.DOM,
+      };
     }
-  }
+    return {
+      color: 'yellow300',
+      description: tct(
+        'Click on [selector] took [duration] ms to have a visible effect',
+        {
+          selector: stringifyNodeAttributes(node),
+          duration: frame.data.timeAfterClickMs,
+        }
+      ),
+      type: BreadcrumbType.WARNING,
+      title: 'Slow Click',
+      tabKey: TabKey.DOM,
+    };
+  },
+  'ui.multiClick': (frame: MultiClickFrame) => {
+    if (isRageClick(frame)) {
+      return {
+        color: 'red300',
+        description: tct('Rage clicked [clickCount] times on [selector]', {
+          clickCount: frame.data.clickCount,
+          selector: stringifyNodeAttributes(frame.data.node),
+        }),
+        tabKey: TabKey.DOM,
+        title: 'Rage Click',
+        type: BreadcrumbType.ERROR,
+      };
+    }
 
-  switch (frame.op) {
-    case 'navigation.navigate':
-    case 'navigation.reload':
-    case 'navigation.back_forward':
-    case 'navigation.push':
-      return BreadcrumbType.NAVIGATION;
-    case 'largest-contentful-paint':
-    case 'memory':
-    case 'paint':
-      return BreadcrumbType.INFO;
-    case 'resource.fetch':
-    case 'resource.xhr':
-      return BreadcrumbType.HTTP;
-    default:
-      return BreadcrumbType.DEFAULT;
-  }
+    return {
+      color: 'yellow300',
+      description: tct('[clickCount] clicks on [selector]', {
+        clickCount: frame.data.clickCount,
+        selector: stringifyNodeAttributes(frame.data.node),
+      }),
+      tabKey: TabKey.DOM,
+      title: 'Multi Click',
+      type: BreadcrumbType.WARNING,
+    };
+  },
+  'replay.mutations': (frame: MutationFrame) => ({
+    color: 'yellow300',
+    description: frame.data.limit
+      ? t(
+          'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
+          frame.data.count
+        )
+      : t(
+          'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
+          frame.data.count
+        ),
+    tabKey: TabKey.DOM,
+    title: 'Replay',
+    type: BreadcrumbType.WARNING,
+  }),
+  'ui.click': frame => ({
+    color: 'gray300',
+    description: frame.message ?? '',
+    tabKey: TabKey.DOM,
+    title: 'User Click',
+    type: BreadcrumbType.UI,
+  }),
+  'ui.input': () => ({
+    color: 'gray300',
+    description: 'User Action',
+    tabKey: TabKey.DOM,
+    title: 'User Input',
+    type: BreadcrumbType.UI,
+  }),
+  'ui.keyDown': () => ({
+    color: 'gray300',
+    description: 'User Action',
+    tabKey: TabKey.DOM,
+    title: 'User KeyDown',
+    type: BreadcrumbType.UI,
+  }),
+  'ui.blur': () => ({
+    color: 'gray300',
+    description: 'User Action',
+    tabKey: TabKey.DOM,
+    title: 'User Blur',
+    type: BreadcrumbType.UI,
+  }),
+  'ui.focus': () => ({
+    color: 'purple300',
+    description: 'User Action',
+    tabKey: TabKey.DOM,
+    title: 'User Focus',
+    type: BreadcrumbType.UI,
+  }),
+  console: frame => ({
+    color: 'gray300',
+    description: frame.message ?? '',
+    tabKey: TabKey.CONSOLE,
+    title: 'Console',
+    type: BreadcrumbType.DEBUG,
+  }),
+  'navigation.navigate': frame => ({
+    color: 'gray300',
+    description: stripOrigin(frame.description),
+    tabKey: TabKey.NETWORK,
+    title: 'Page Load',
+    type: BreadcrumbType.NAVIGATION,
+  }),
+  'navigation.reload': frame => ({
+    color: 'gray300',
+    description: stripOrigin(frame.description),
+    tabKey: TabKey.NETWORK,
+    title: 'Reload',
+    type: BreadcrumbType.NAVIGATION,
+  }),
+  'navigation.back_forward': frame => ({
+    color: 'gray300',
+    description: stripOrigin(frame.description),
+    tabKey: TabKey.NETWORK,
+    title: 'Navigate Back',
+    type: BreadcrumbType.NAVIGATION,
+  }),
+  'navigation.push': frame => ({
+    color: 'green300',
+    description: stripOrigin(frame.description),
+    tabKey: TabKey.NETWORK,
+    title: 'Navigation',
+    type: BreadcrumbType.NAVIGATION,
+  }),
+  'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({
+    color: 'gray300',
+    description:
+      typeof frame.data.value === 'number' ? (
+        `${Math.round(frame.data.value)}ms`
+      ) : (
+        <Tooltip
+          title={t(
+            'This replay uses a SDK version that is subject to inaccurate LCP values. Please upgrade to the latest version for best results if you have not already done so.'
+          )}
+        >
+          <IconWarning />
+        </Tooltip>
+      ),
+    tabKey: TabKey.NETWORK,
+    title: 'LCP',
+    type: BreadcrumbType.INFO,
+  }),
+  memory: () => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.MEMORY,
+    title: 'Memory',
+    type: BreadcrumbType.INFO,
+  }),
+  paint: () => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: 'Paint',
+    type: BreadcrumbType.INFO,
+  }),
+  'resource.fetch': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+  'resource.xhr': frame => ({
+    color: 'gray300',
+    description: undefined,
+    tabKey: TabKey.NETWORK,
+    title: frame.description,
+    type: BreadcrumbType.HTTP,
+  }),
+};
+
+const MAPPER_DEFAULT = frame => ({
+  color: 'gray300',
+  description: frame.message ?? '',
+  tabKey: TabKey.CONSOLE,
+  title: defaultTitle(frame),
+  type: BreadcrumbType.DEFAULT,
+});
+
+export function getDetails(frame: ReplayFrame): Details {
+  const key = getFrameOpOrCategory(frame);
+  const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
+  return fn(frame);
 }
 
-export function getTitle(frame: ReplayFrame): ReactNode {
-  if (
-    typeof frame.data === 'object' &&
-    frame.data !== null &&
-    'label' in frame.data &&
-    frame.data.label
-  ) {
-    return frame.data.label; // TODO(replay): Included for backwards compat
-  }
-
+function defaultTitle(frame: ReplayFrame) {
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
-    switch (frame.category) {
-      case 'replay.init':
-        return 'Replay Start';
-      case 'navigation':
-        return 'Navigation';
-      case 'ui.slowClickDetected':
-        return isDeadRageClick(frame as SlowClickFrame)
-          ? 'Rage Click'
-          : isDeadClick(frame as SlowClickFrame)
-          ? 'Dead Click'
-          : 'Slow Click';
-      case 'ui.multiClick':
-        return isRageClick(frame as MultiClickFrame) ? 'Rage Click' : 'Multi Click';
-      case 'replay.mutations':
-        return 'Replay';
-      case 'ui.click':
-      case 'ui.input':
-      case 'ui.keyDown':
-      case 'ui.blur':
-      case 'ui.focus':
-        return `User ${action || ''}`;
-      default: // Custom breadcrumbs will fall through here
-        return `${type} ${action || ''}`.trim();
-    }
+    return `${type} ${action || ''}`.trim();
   }
-
   if ('message' in frame) {
-    return frame.message; // TODO(replay): Included for backwards compat
+    return frame.message as string; // TODO(replay): Included for backwards compat
   }
-
-  switch (frame.op) {
-    case 'navigation.navigate':
-      return 'Page Load';
-    case 'navigation.reload':
-      return 'Reload';
-    case 'navigation.back_forward':
-      return 'Navigate Back';
-    case 'navigation.push':
-      return 'Navigation';
-    default:
-      return frame.description;
-  }
+  return frame.description;
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
@@ -182,130 +276,4 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
       ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
       : ''
   }`;
-}
-
-export function getDescription(frame: ReplayFrame): ReactNode {
-  if ('category' in frame) {
-    switch (frame.category) {
-      case 'replay.init':
-        return stripOrigin(frame.message ?? '');
-      case 'navigation':
-        const navFrame = frame as NavFrame;
-        return stripOrigin(navFrame.data.to);
-      case 'issue':
-      case 'ui.slowClickDetected': {
-        const slowClickFrame = frame as SlowClickFrame;
-        const node = slowClickFrame.data.node;
-        return isDeadClick(slowClickFrame)
-          ? tct(
-              'Click on [selector] did not cause a visible effect within [timeout] ms',
-              {
-                selector: stringifyNodeAttributes(node),
-                timeout: slowClickFrame.data.timeAfterClickMs,
-              }
-            )
-          : tct('Click on [selector] took [duration] ms to have a visible effect', {
-              selector: stringifyNodeAttributes(node),
-              duration: slowClickFrame.data.timeAfterClickMs,
-            });
-      }
-      case 'ui.multiClick':
-        const multiClickFrame = frame as MultiClickFrame;
-        return isRageClick(multiClickFrame)
-          ? tct('Rage clicked [clickCount] times on [selector]', {
-              clickCount: multiClickFrame.data.clickCount,
-              selector: stringifyNodeAttributes(multiClickFrame.data.node),
-            })
-          : tct('[clickCount] clicks on [selector]', {
-              clickCount: multiClickFrame.data.clickCount,
-              selector: stringifyNodeAttributes(multiClickFrame.data.node),
-            });
-      case 'replay.mutations': {
-        const mutationFrame = frame as MutationFrame;
-        return mutationFrame.data.limit
-          ? t(
-              'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
-              mutationFrame.data.count
-            )
-          : t(
-              'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
-              mutationFrame.data.count
-            );
-      }
-      case 'ui.click':
-        return frame.message ?? ''; // This should be the selector
-      case 'ui.input':
-      case 'ui.keyDown':
-      case 'ui.blur':
-      case 'ui.focus':
-        return t('User Action');
-      case 'console':
-      default: // Custom breadcrumbs will fall through here
-        return frame.message ?? '';
-    }
-  }
-
-  switch (frame.op) {
-    case 'navigation.navigate':
-    case 'navigation.reload':
-    case 'navigation.back_forward':
-    case 'navigation.push':
-      return stripOrigin(frame.description);
-    case 'largest-contentful-paint': {
-      const lcpFrame = frame as LargestContentfulPaintFrame;
-      if (typeof lcpFrame.data.value === 'number') {
-        return `${Math.round((frame as LargestContentfulPaintFrame).data.value)}ms`;
-      }
-      // Included for backwards compat
-      return (
-        <Tooltip
-          title={t(
-            'This replay uses a SDK version that is subject to inaccurate LCP values. Please upgrade to the latest version for best results if you have not already done so.'
-          )}
-        >
-          <IconWarning />
-        </Tooltip>
-      );
-    }
-    default:
-      return undefined;
-  }
-}
-
-export function getTabKeyForFrame(frame: BreadcrumbFrame | SpanFrame): TabKey {
-  if ('category' in frame) {
-    switch (frame.category) {
-      case 'replay.init':
-        return TabKey.CONSOLE;
-      case 'navigation':
-        return TabKey.NETWORK;
-      case 'issue':
-        return TabKey.ERRORS;
-      case 'replay.mutations':
-      case 'ui.click':
-      case 'ui.input':
-      case 'ui.keyDown':
-      case 'ui.multiClick':
-      case 'ui.slowClickDetected':
-        return TabKey.DOM;
-      case 'console':
-      default: // Custom breadcrumbs will fall through here
-        return TabKey.CONSOLE;
-    }
-  }
-
-  switch (frame.op) {
-    case 'memory':
-      return TabKey.MEMORY;
-    case 'navigation.navigate':
-    case 'navigation.reload':
-    case 'navigation.back_forward':
-    case 'navigation.push':
-    case 'largest-contentful-paint':
-    case 'paint':
-    case 'resource.fetch':
-    case 'resource.xhr':
-    default:
-      return TabKey.NETWORK;
-  }
 }

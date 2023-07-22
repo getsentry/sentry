@@ -3,7 +3,7 @@ import {useCallback, useRef} from 'react';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {getTabKeyForFrame} from 'sentry/utils/replays/frame';
+import {getDetails} from 'sentry/utils/replays/frame';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {ReplayFrame} from 'sentry/utils/replays/types';
 import type {NetworkSpan} from 'sentry/views/replays/types';
@@ -83,7 +83,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         const frame = crumb; // Finding `offsetMs` means we have a frame, not a crumb or span
 
         setCurrentTime(frame.offsetMs);
-        setActiveTab(getTabKeyForFrame(frame));
+        setActiveTab(getDetails(frame).tabKey);
         return;
       }
 
