@@ -71,7 +71,7 @@ def send_incident_alert_notification(
     else:
         org_integration_id = org_integration.id
 
-    if org_integration:
+    if org_integration and action.target_identifier:
         service = PagerDutyService.find_service(org_integration.config, action.target_identifier)
 
     if service is None:

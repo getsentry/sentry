@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class PagerDutyIntegrationTest(IntegrationTestCase):
     provider = PagerDutyIntegrationProvider
     base_url = "https://app.pagerduty.com"
@@ -116,7 +116,11 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         )
-        assert oi.config == {}
+        assert oi.config == dict(
+            pagerduty_services=[
+                PagerDutyService.objects.get(integration_id=integration.id).as_dict()
+            ]
+        )
 
     @responses.activate
     def test_add_services_flow(self):

@@ -39,8 +39,6 @@ class PagerDutyService(DefaultFieldsModel):
     def add_to_org_integration(self):
         from sentry.models import OrganizationIntegration
 
-        assert self.id
-
         try:
             org_integration = (
                 OrganizationIntegration.objects.filter(id=self.organization_integration_id)
