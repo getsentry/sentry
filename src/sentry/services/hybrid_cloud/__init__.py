@@ -25,12 +25,13 @@ from typing import (
 
 import pydantic
 import sentry_sdk
-from django.db import router
+from django.db import router, transaction
 from django.db.models import Model
 from typing_extensions import Self
 
 from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -249,15 +250,22 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
         self._default = default
 
     def __getattr__(self, item: str) -> Any:
-        from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
-
         for model, constructor in self._constructors.items():
-            if (
-                simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
-                    using=router.db_for_write(model)
+            if in_test_environment():
+                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
+                open_transaction = (
+                    simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+                        using=router.db_for_write(model)
+                    )
+                    > 0
                 )
-                > 0
-            ):
+            else:
+                open_transaction = transaction.get_connection(
+                    router.db_for_write(model)
+                ).in_atomic_block
+
+            if open_transaction:
                 return getattr(constructor(), item)
         return getattr(self._default(), item)
 
