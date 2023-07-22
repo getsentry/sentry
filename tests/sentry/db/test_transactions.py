@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from django.db import IntegrityError, router, transaction
 from django.test import override_settings
@@ -172,7 +174,7 @@ class FakeRegionService:
 @no_silo_test(stable=True)
 class TestDelegatedByOpenTransaction(TestCase):
     def test_selects_mode_in_transaction_or_default(self):
-        service = silo_mode_delegation(
+        service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
                 SiloMode.REGION: lambda: FakeRegionService(),

@@ -25,7 +25,7 @@ from typing import (
 
 import pydantic
 import sentry_sdk
-from django.db import router, transaction
+from django.db import router
 from django.db.models import Model
 from typing_extensions import Self
 
@@ -228,20 +228,6 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         raise KeyError(f"No implementation found for {cur_mode}.")
 
 
-class _Switch:
-    """
-    A simple callback that helps test for open transactions
-    """
-
-    activated: bool
-
-    def __init__(self):
-        self.activated = False
-
-    def __call__(self, *args: Any, **kwds: Any) -> None:
-        self.activated = True
-
-
 class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     """
     It is possible to run monolith mode in a split database scenario -- in this case, the silo mode does not help
@@ -263,11 +249,13 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
         self._default = default
 
     def __getattr__(self, item: str) -> Any:
+        from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
         for model, constructor in self._constructors.items():
-            # Shared memory reference for the transaction.on_commit
-            switch = _Switch()
-            transaction.on_commit(switch, router.db_for_read(model))
-            if not switch.activated:
+            if (
+                simulated_transaction_watermarks.get_transaction_depth(router.db_for_write(model))
+                > 0
+            ):
                 return getattr(constructor(), item)
         return getattr(self._default(), item)
 
@@ -364,7 +352,7 @@ def silo_mode_delegation(
         )
 
     # We need to retain a closure around the original mapping passed in, so we'll use a new variable here
-    final_mapping = {
+    final_mapping: Mapping[SiloMode, Callable[[], ServiceInterface]] = {
         SiloMode.MONOLITH: delegator,
         **({k: v for k, v in mapping.items() if k != SiloMode.MONOLITH}),
     }
