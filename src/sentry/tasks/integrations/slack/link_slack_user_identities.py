@@ -6,16 +6,9 @@ from django.utils import timezone
 
 from sentry.integrations.slack.utils import get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    UserEmail,
-)
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.models import Identity, IdentityProvider, IdentityStatus, UserEmail
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
