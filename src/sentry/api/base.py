@@ -267,13 +267,16 @@ class Endpoint(APIView):
         if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
             return
 
-        if not len(request.body):
-            return
+        if hasattr(request, "_data"):
+            request.json_body = request.data
+        else:
+            if not len(request.body):
+                return
 
-        try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
-            return
+            try:
+                request.json_body = json.loads(request.body)
+            except json.JSONDecodeError:
+                return
 
     def initialize_request(self, request: Request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into

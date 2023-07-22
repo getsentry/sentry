@@ -98,7 +98,10 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
         self.middleware.process_request(request)
         self.assert_user_equals(request)
-        assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(token)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(
+                token
+            )
 
     def test_process_request_invalid_authtoken(self):
         request = self.make_request(method="GET")
