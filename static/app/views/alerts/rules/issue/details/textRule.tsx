@@ -30,8 +30,8 @@ export function TextCondition({
               // Double %% escapes
               'Percent of sessions affected by an issue is %s%% higher in %s compared to %s ago',
               condition.value,
-              condition.comparisonInterval,
-              condition.interval
+              condition.interval,
+              condition.comparisonInterval
             )}
           </Fragment>
         );
@@ -42,8 +42,8 @@ export function TextCondition({
             // Double %% escapes
             'Number of events in an issue is %s%% higher in %s compared to %s ago',
             condition.value,
-            condition.comparisonInterval,
-            condition.interval
+            condition.interval,
+            condition.comparisonInterval
           )}
         </Fragment>
       );
