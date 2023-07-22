@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import pytest
 import responses
-from django.utils.encoding import force_bytes
 
 from sentry.models import (
     ArtifactBundle,
@@ -183,7 +182,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             },
         }
 
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
+        mock_fetch_by_url.return_value.body = "\n".join("hello world").encode()
         mock_fetch_by_url.return_value.encoding = None
         mock_fetch_by_url.return_value.headers = {}
 
@@ -236,7 +235,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -283,7 +282,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -342,7 +341,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         mock_from_bytes.side_effect = Exception()

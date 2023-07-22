@@ -30,7 +30,7 @@ describe('AlertRuleDetails', () => {
     const wrapper = render(
       <TextCondition
         condition={{
-          comparisonInterval: '1h',
+          comparisonInterval: '1w',
           comparisonType: 'percent',
           id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
           interval: '1h',
@@ -44,7 +44,7 @@ describe('AlertRuleDetails', () => {
       />
     );
     expect(wrapper.container).toHaveTextContent(
-      'Number of events in an issue is 150% higher in 1h compared to 1h ago'
+      'Number of events in an issue is 150% higher in 1h compared to 1w ago'
     );
   });
 
@@ -52,11 +52,11 @@ describe('AlertRuleDetails', () => {
     const wrapper = render(
       <TextCondition
         condition={{
-          comparisonInterval: '1h',
+          comparisonInterval: '1d',
           comparisonType: 'percent',
           id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
           interval: '1h',
-          name: 'Percent of sessions affected by an issue is 150% higher in 1h compared to 1h ago',
+          name: 'Percent of sessions affected by an issue is 150% higher in 1h compared to 1w ago',
           value: 150,
 
           // TODO(scttcper): label and prompt only exist in the type definition
@@ -66,7 +66,7 @@ describe('AlertRuleDetails', () => {
       />
     );
     expect(wrapper.container).toHaveTextContent(
-      'Percent of sessions affected by an issue is 150% higher in 1h compared to 1h ago'
+      'Percent of sessions affected by an issue is 150% higher in 1h compared to 1d ago'
     );
   });
   it('hides slack id and empty tags', () => {

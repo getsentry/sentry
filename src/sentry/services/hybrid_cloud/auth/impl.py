@@ -189,7 +189,9 @@ class DatabaseBackedAuthService(AuthService):
             auth = AuthenticatedToken.from_token(fake_request.auth)
 
         result = MiddlewareAuthenticationResponse(
-            auth=auth, user_from_signed_request=fake_request.user_from_signed_request
+            auth=auth,
+            user_from_signed_request=fake_request.user_from_signed_request,
+            accessed=fake_request.session._accessed,
         )
 
         if expired_user is not None:
@@ -241,11 +243,18 @@ class DatabaseBackedAuthService(AuthService):
 
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]
+    _accessed: set[str]
 
     def __init__(self, **d: Any):
         self.d = d
+        self._accessed = set()
+
+    @property
+    def accessed(self) -> bool:
+        return bool(self._accessed)
 
     def __getitem__(self, item: str) -> str | bytes:
+        self._accessed.add(item)
         result = self.d[item]
         if result is None:
             raise KeyError(f"Key '{item!r}' does not exist")

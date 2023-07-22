@@ -1,12 +1,14 @@
-export function DocIntegration(params = {}) {
+import {type DocIntegration as TDocIntegration} from 'sentry/types';
+
+export function DocIntegration(params = {}): TDocIntegration {
   return {
     name: 'Sample Doc',
     slug: 'sample-doc',
     author: 'The Sentry Team',
     url: 'https://example.com/sentry',
-    popularity: '10',
+    popularity: 10,
     description: 'A helpful tutorial on how to setup this integration with Sentry',
-    isDraft: 'false',
+    isDraft: false,
     features: [
       {
         featureId: 5,

@@ -215,7 +215,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         organization_context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=request.user.id  # type: ignore
+            slug=organization_slug, only_visible=False, user_id=request.user.id
         )
         if organization_context is None:
             raise ResourceDoesNotExist
