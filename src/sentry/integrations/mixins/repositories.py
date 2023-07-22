@@ -5,7 +5,6 @@ from typing import Collection, Mapping, Sequence
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
 from sentry.models import Identity, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
