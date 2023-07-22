@@ -17,14 +17,15 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.query import in_iexact
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import User
 
 
 class UserEmailManager(BaseManager):
-    def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
+    def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         emails_by_user = defaultdict(set)
