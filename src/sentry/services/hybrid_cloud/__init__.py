@@ -253,7 +253,9 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
 
         for model, constructor in self._constructors.items():
             if (
-                simulated_transaction_watermarks.get_transaction_depth(router.db_for_write(model))
+                simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+                    using=router.db_for_write(model)
+                )
                 > 0
             ):
                 return getattr(constructor(), item)
