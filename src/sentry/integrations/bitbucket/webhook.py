@@ -7,9 +7,9 @@ from django.http import Http404, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 from rest_framework.request import Request
 
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -105,7 +105,9 @@ class PushEventWebhook(Webhook):
                     pass
 
 
-class BitbucketWebhookEndpoint(View):
+@region_silo_endpoint
+class BitbucketWebhookEndpoint(Endpoint):
+    permission_classes = ()
     _handlers = {"repo:push": PushEventWebhook}
 
     def get_handler(self, event_type):
