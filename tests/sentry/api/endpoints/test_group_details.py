@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
@@ -436,7 +435,7 @@ class GroupUpdateTest(APITestCase):
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()

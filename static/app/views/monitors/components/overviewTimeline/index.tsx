@@ -98,7 +98,7 @@ export function OverviewTimeline({monitorList}: Props) {
         <TimelineRow key={monitor.id}>
           <MonitorDetails monitor={monitor} />
           {isLoading || !monitorStats ? (
-            <Placeholder />
+            <TimelinePlaceholder />
           ) : (
             <div>
               <CheckInTimeline
@@ -180,4 +180,8 @@ const TimelineWidthTracker = styled('div')`
   width: 100%;
   grid-row: 1;
   grid-column: 2;
+`;
+
+const TimelinePlaceholder = styled(Placeholder)`
+  align-self: center;
 `;
