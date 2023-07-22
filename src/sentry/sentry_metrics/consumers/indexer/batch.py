@@ -114,6 +114,7 @@ class IndexerBatch:
         for string, endcoded in headers:
             if string == "namespace":
                 return endcoded.decode("utf-8")
+        metrics.incr("sentry-metrics.indexer.killswitch.no-namespace-in-header")
         return None
 
     @metrics.wraps("process_messages.extract_messages")
