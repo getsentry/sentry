@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models import Organization, User
 
 
 class UserEmailManager(BaseManager):
