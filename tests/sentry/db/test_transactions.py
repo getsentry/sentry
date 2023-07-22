@@ -1,5 +1,8 @@
+from typing import Any
+
 import pytest
 from django.db import IntegrityError, router, transaction
+from django.test import override_settings
 
 from sentry.conf.server import env
 from sentry.db.postgres.transactions import (
@@ -8,6 +11,8 @@ from sentry.db.postgres.transactions import (
     in_test_hide_transaction_boundary,
 )
 from sentry.models import Organization, User, outbox_context
+from sentry.services.hybrid_cloud import silo_mode_delegation
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import collect_transaction_queries
@@ -154,3 +159,40 @@ class TestPytestDjangoDbAll(CaseMixin):
     @django_db_all
     def test_collect_transaction_queries(self):
         super().test_collect_transaction_queries()
+
+
+class FakeControlService:
+    def a(self) -> int:
+        return 1
+
+
+class FakeRegionService:
+    def a(self) -> int:
+        return 2
+
+
+@no_silo_test(stable=True)
+class TestDelegatedByOpenTransaction(TestCase):
+    def test_selects_mode_in_transaction_or_default(self):
+        service: Any = silo_mode_delegation(
+            {
+                SiloMode.CONTROL: lambda: FakeControlService(),
+                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.MONOLITH: lambda: FakeRegionService(),
+            }
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            assert service.a() == FakeControlService().a()
+            with transaction.atomic(router.db_for_write(User)):
+                assert service.a() == FakeControlService().a()
+
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            assert service.a() == FakeRegionService().a()
+            with transaction.atomic(router.db_for_write(Organization)):
+                assert service.a() == FakeRegionService().a()
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            assert service.a() == FakeRegionService().a()
+            with transaction.atomic(router.db_for_write(User)):
+                assert service.a() == FakeControlService().a()
