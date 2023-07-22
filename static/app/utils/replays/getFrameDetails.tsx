@@ -251,7 +251,7 @@ const MAPPER_DEFAULT = frame => ({
   type: BreadcrumbType.DEFAULT,
 });
 
-export function getDetails(frame: ReplayFrame): Details {
+export default function getFrameDetails(frame: ReplayFrame): Details {
   const key = getFrameOpOrCategory(frame);
   const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
   return fn(frame);

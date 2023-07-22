@@ -16,7 +16,7 @@ import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {getDetails as getFrameDetails} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
