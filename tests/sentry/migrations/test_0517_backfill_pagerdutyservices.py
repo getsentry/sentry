@@ -1,3 +1,4 @@
+from sentry.models import Integration, Organization, OrganizationIntegration, PagerDutyService
 from sentry.testutils.cases import TestMigrations
 
 
@@ -6,27 +7,29 @@ class BackfillPagerDutyServices(TestMigrations):
     migrate_to = "0517_backfill_pagerdutyservices_into_org_integrations"
 
     def setup_initial_state(self):
-        Integration = self.apps.get_model("sentry", "Integration")
-        Organization = self.apps.get_model("sentry", "Organization")
-        OrganizationIntegration = self.apps.get_model("sentry", "OrganizationIntegration")
-        PagerDutyServices = self.apps.get_model("sentry", "PagerDutyServices")
-
         org = Organization.objects.create(name="test", slug="test")
+        org2 = Organization.objects.create(name="test", slug="test2")
         int = Integration.objects.create(
             provider="pagerduty",
             name="Blah",
             external_id="TXXXXXXX1",
             metadata={},
         )
+        int2 = Integration.objects.create(
+            provider="pagerduty",
+            name="Blah 2",
+            external_id="TXXXXXXX2",
+            metadata={},
+        )
 
         self.org_int1 = org_int1 = OrganizationIntegration.objects.create(
-            organization=org, integration=int
+            organization_id=org.id, integration=int
         )
         self.org_int2 = org_int2 = OrganizationIntegration.objects.create(
-            organization=org, integration=int
+            organization_id=org2.id, integration=int2
         )
 
-        PagerDutyServices.objects.create(
+        PagerDutyService.objects.create(
             organization_id=org.id,
             integration_id=int.id,
             organization_integration_id=org_int1.id,
@@ -34,7 +37,7 @@ class BackfillPagerDutyServices(TestMigrations):
             service_name="service1",
         )
 
-        PagerDutyServices.objects.create(
+        PagerDutyService.objects.create(
             organization_id=org.id,
             integration_id=int.id,
             organization_integration_id=org_int2.id,
@@ -42,7 +45,7 @@ class BackfillPagerDutyServices(TestMigrations):
             service_name="service2",
         )
 
-        PagerDutyServices.objects.create(
+        PagerDutyService.objects.create(
             organization_id=org.id,
             integration_id=int.id,
             organization_integration_id=org_int2.id,
@@ -50,7 +53,7 @@ class BackfillPagerDutyServices(TestMigrations):
             service_name="service3",
         )
 
-        PagerDutyServices.objects.create(
+        PagerDutyService.objects.create(
             organization_id=org.id,
             integration_id=int.id,
             organization_integration_id=org_int2.id,
@@ -59,8 +62,18 @@ class BackfillPagerDutyServices(TestMigrations):
         )
 
         org_int1.refresh_from_db()
+        org_int1.config = {}
+        org_int1.save()
+
+        org_int2.refresh_from_db()
+        org_int2.config = {}
+        org_int2.save()
+
         assert org_int1.config == {}
+        assert org_int2.config == {}
 
     def test_backfill(self):
+        self.org_int1.refresh_from_db()
+        self.org_int2.refresh_from_db()
         assert len(self.org_int1.config["pagerduty_services"]) == 1
-        assert len(self.org_int1.config["pagerduty_services"]) == 3
+        assert len(self.org_int2.config["pagerduty_services"]) == 3

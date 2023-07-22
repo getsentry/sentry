@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import migrations, router, transaction
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
@@ -19,16 +19,17 @@ def backfill_pagerdutyservices(apps, schema_editor):
 
     for pds in RangeQuerySetWrapper(PagerDutyService.objects.all()):
         try:
-            org_integration = (
-                OrganizationIntegration.objects.filter(id=pds.organization_integration_id)
-                .select_for_update()
-                .get()
-            )
-            existing = org_integration.config.get("pagerduty_services", [])
-            org_integration.config["pagerduty_services"] = [
-                row for row in existing if row["id"] != pds.id
-            ] + [as_dict(pds)]
-            org_integration.save()
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+                org_integration = (
+                    OrganizationIntegration.objects.filter(id=pds.organization_integration_id)
+                    .select_for_update()
+                    .get()
+                )
+                existing = org_integration.config.get("pagerduty_services", [])
+                org_integration.config["pagerduty_services"] = [
+                    row for row in existing if row["id"] != pds.id
+                ] + [as_dict(pds)]
+                org_integration.save()
         except OrganizationIntegration.DoesNotExist:
             pass
 
