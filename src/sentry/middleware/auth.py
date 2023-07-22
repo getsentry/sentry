@@ -115,6 +115,10 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
         request.user_from_signed_request = auth_result.user_from_signed_request
 
+        # Simulate accessing attributes on the session to trigger side effects related to doing so.
+        for attr in auth_result.accessed:
+            request.session[attr]
+
         if auth_result.auth is not None:
             request.auth = auth_result.auth
         if auth_result.expired:

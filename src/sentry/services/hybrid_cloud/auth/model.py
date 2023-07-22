@@ -6,8 +6,21 @@
 import base64
 import contextlib
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
+from django.contrib.sessions.backends.base import SessionBase
 from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
@@ -123,12 +136,33 @@ class AuthenticationRequest(RpcModel):
     user_id: Optional[str] = None
     user_hash: Optional[str] = None
     nonce: Optional[str] = None
+
     remote_addr: Optional[str] = None
     signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
     authorization_b64: Optional[str] = None
+
+    @classmethod
+    def get_attributes_of_session_keys(cls) -> Mapping[str, Any]:
+        return dict(
+            backend="_auth_user_backend",
+            user_id="_auth_user_id",
+            user_hash="_auth_user_hash",
+            nonce="_nonce",
+        )
+
+    def apply_from_session(self, session: SessionBase) -> "AuthenticationRequest":
+        """
+        Copies over attributes from session without changing the existing value for session.accessed
+        Modifies self in place and returns it.
+        """
+        orig = session.accessed
+        for attr, session_key in self.get_attributes_of_session_keys().items():
+            setattr(self, attr, session.get(session_key, None))
+        session.accessed = orig
+        return self
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
@@ -137,17 +171,13 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
-        backend=request.session.get("_auth_user_backend", None),
-        user_id=request.session.get("_auth_user_id", None),
-        user_hash=request.session.get("_auth_user_hash", None),
-        nonce=request.session.get("_nonce", None),
         remote_addr=request.META["REMOTE_ADDR"],
         signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
         authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
-    )
+    ).apply_from_session(request.session)
 
 
 class AuthenticatedToken(RpcModel):
@@ -229,7 +259,7 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
+    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an
@@ -244,7 +274,7 @@ class AuthenticationContext(RpcModel):
         if request is None:
             # Contexts that lack a request
             # Note -- if a request is setup in the env after this context manager, you run the risk of bugs.
-            yield
+            yield request
             return
 
         has_user = hasattr(request, "user")
@@ -256,7 +286,7 @@ class AuthenticationContext(RpcModel):
         request.auth = self.auth
 
         try:
-            yield
+            yield request
         finally:
             if has_user:
                 request.user = old_user
@@ -272,6 +302,7 @@ class AuthenticationContext(RpcModel):
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False
+    accessed: Set[str] = Field(default_factory=set)
 
 
 class RpcAuthProviderFlags(RpcModel):
