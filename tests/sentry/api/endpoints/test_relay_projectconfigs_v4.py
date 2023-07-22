@@ -49,12 +49,32 @@ def relay(relay_id, public_key):
 
 
 @pytest.fixture
+def call_global_config(client, relay, private_key, default_projectkey):
+    def inner(full_config, global_config=False, public_keys=None):
+        path = reverse("sentry-api-0-relay-projectconfigs")
+
+        if public_keys is None:
+            public_keys = [str(default_projectkey.public_key)]
+        raw_json = {"globalConfig": True}
+
+        resp = client.post(
+            path,
+            data=raw_json,
+            content_type="application/json",
+            HTTP_X_SENTRY_RELAY_ID=relay.relay_id,
+            #     HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+        )
+
+        return json.loads(resp.content), resp.status_code
+
+    return inner
+
+
+@pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
     def inner(full_config, global_config=False, public_keys=None):
         global_config = "true" if global_config else "false"
-        path = (
-            reverse("sentry-api-0-relay-projectconfigs") + "?version=4" + "&global=" + global_config
-        )
+        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=4"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
@@ -130,7 +150,7 @@ def test_return_global_config(
         "pending": [],
     }
 
-    result, status_code = call_endpoint(full_config=True, global_config=True)
+    result, status_code = call_global_config()
     assert status_code < 400
     # i'll put this in separate file ofc, this is temporary
     assert result == {
