@@ -84,6 +84,16 @@
         "description": "Found an error? Let us know.",
         "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md"
       }
+    },
+    {
+      "name": "Replays",
+      "x-sidebar-name": "Replays",
+      "description": "Endpoints for replays",
+      "x-display-description": true,
+      "externalDocs": {
+        "description": "Found an error? Let us know.",
+        "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md"
+      }
     }
   ],
   "paths": {
@@ -218,6 +228,9 @@
     },
     "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
       "$ref": "paths/scim/team_index.json"
+    },
+    "/api/0/organizations/{organization_slug}/replays/": {
+      "$ref": "paths/replays/replay_index.json"
     }
   },
   "components": {
