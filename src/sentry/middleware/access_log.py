@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.utils import metrics
 
+from ..services.hybrid_cloud.auth import AuthenticatedToken
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
@@ -36,7 +37,10 @@ def _get_request_auth(request: Request) -> RequestAuth | None:
 def _get_token_name(auth: RequestAuth) -> str | None:
     if not auth:
         return None
-    token_class = getattr(auth, "__class__", None)
+    if isinstance(auth, AuthenticatedToken):
+        token_class = auth.get_kinds().get(auth.kind)
+    else:
+        token_class = getattr(auth, "__class__", None)
     return token_class.__name__ if token_class else None
 
 

@@ -267,7 +267,7 @@ class Endpoint(APIView):
         if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
             return
 
-        if hasattr(request, "_data"):
+        if hasattr(request, "_data") and isinstance(request._data, dict):
             request.json_body = request.data
         else:
             if not len(request.body):
