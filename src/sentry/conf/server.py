@@ -3623,3 +3623,7 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
+
+
+SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.kafka"
+SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}

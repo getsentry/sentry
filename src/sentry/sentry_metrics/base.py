@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import Mapping, Optional, Sequence, Union
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils.services import Service
 
 
-class GenericMetricsBackend(ABC):
-    @abstractmethod
+class GenericMetricsBackend(Service):
     def counter(
         self,
         use_case_id: UseCaseID,
@@ -27,7 +26,6 @@ class GenericMetricsBackend(ABC):
 
         raise NotImplementedError()
 
-    @abstractmethod
     def set(
         self,
         use_case_id: UseCaseID,
@@ -46,7 +44,6 @@ class GenericMetricsBackend(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def distribution(
         self,
         use_case_id: UseCaseID,
