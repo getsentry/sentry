@@ -85,6 +85,8 @@ class DiscordRequest:
 
         if self.integration:
             data["integration_id"] = self.integration.id
+        if self.user_id:
+            data["discord_user_id"] = self.user_id
 
         return {k: v for k, v in data.items() if v}
 
