@@ -128,6 +128,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
+        actor: RpcActor | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -138,6 +139,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """
         if user:
             user_id = user.id
+        elif actor:
+            if actor.actor_type == ActorType.USER:
+                user_id = actor.id
+            else:
+                team_id = actor.id
 
         if user_id is not None:
             actor_type = ActorType.USER

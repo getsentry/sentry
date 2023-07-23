@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationFineTuningTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications-fine-tuning"
 
@@ -22,7 +22,7 @@ class UserNotificationFineTuningTestBase(APITestCase):
         self.get_error_response("me", "invalid", status_code=404)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
     def test_returns_correct_defaults(self):
         NotificationSetting.objects.update_settings(

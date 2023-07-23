@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ListProjectKeysTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -21,7 +21,7 @@ class ListProjectKeysTest(APITestCase):
         assert response.data[0]["public"] == key.public_key
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class CreateProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

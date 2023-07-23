@@ -141,7 +141,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()

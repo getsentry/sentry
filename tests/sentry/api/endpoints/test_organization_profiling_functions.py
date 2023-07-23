@@ -17,7 +17,7 @@ PROFILING_FEATURES = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 

@@ -11,7 +11,7 @@ JIRA_ACTION = "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
