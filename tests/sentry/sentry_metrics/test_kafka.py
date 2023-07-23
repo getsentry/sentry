@@ -6,8 +6,8 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
-from sentry import sentry_metrics
-from sentry.sentry_metrics.kafka import build_mri
+from sentry.sentry_metrics import client
+from sentry.sentry_metrics.client.kafka import build_mri
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 
@@ -19,6 +19,10 @@ values = [2, 3]
 tags = {"a": "b"}
 
 
+metrics_backend = client.backend
+metrics_backend.close()
+
+
 def test_produce_set() -> None:
     my_topic = Topic("my-topic")
     clock = Clock()
@@ -26,12 +30,10 @@ def test_produce_set() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    metrics_backend = sentry_metrics()
     # For testing, we are swapping out the KafkaProducer
     # with a LocalProducer, but regardless,
     # close() must always be called in order to close
     # the backend's KafkaProducer
-    metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
@@ -71,12 +73,10 @@ def test_produce_counter() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    metrics_backend = sentry_metrics()
     # For testing, we are swapping out the KafkaProducer
     # with a LocalProducer, but regardless,
     # close() must always be called in order to close
     # the backend's KafkaProducer
-    metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
@@ -116,12 +116,10 @@ def test_produce_distribution() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    metrics_backend = sentry_metrics()
     # For testing, we are swapping out the KafkaProducer
     # with a LocalProducer, but regardless,
     # close() must always be called in order to close
     # the backend's KafkaProducer
-    metrics_backend.close()
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 

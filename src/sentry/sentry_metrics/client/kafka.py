@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import quotas
-from sentry.sentry_metrics.base import GenericMetricsBackend
+from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options
@@ -157,7 +157,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         payload = KafkaPayload(None, json.dumps(metric).encode("utf-8"), [])
         self.producer.produce(self.kafka_topic, payload)
 
-    def close(self):
+    def close(self) -> None:
         """
         Calling this is required once we are done emitting metrics
         using the current instance of the KafkaMetricsBackend.

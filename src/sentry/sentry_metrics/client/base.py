@@ -61,3 +61,10 @@ class GenericMetricsBackend(Service):
         has been registered in the UseCaseID enum.
         """
         raise NotImplementedError()
+
+    def close(self) -> None:
+        """
+        Calling this is required once we are done emitting metrics
+        using the current instance of the KafkaMetricsBackend.
+        """
+        raise NotImplementedError()

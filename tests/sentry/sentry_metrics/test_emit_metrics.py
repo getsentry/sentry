@@ -1,4 +1,4 @@
-from sentry.sentry_metrics.kafka import KafkaMetricsBackend
+from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
