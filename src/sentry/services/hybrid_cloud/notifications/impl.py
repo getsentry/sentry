@@ -72,7 +72,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             for notification_type, setting_option in notification_type_to_value_map.items():
                 self.update_settings(
                     external_provider=external_provider,
-                    user_id=user_id,
+                    actor=RpcActor(id=user_id, actor_type=ActorType.USER),
                     notification_type=notification_type,
                     setting_option=setting_option,
                 )
