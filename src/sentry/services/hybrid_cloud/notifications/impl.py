@@ -46,10 +46,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         external_provider: ExternalProviders,
         notification_type: NotificationSettingTypes,
         setting_option: NotificationSettingOptionValues,
+        actor: RpcActor,
         project_id: Optional[int] = None,
         organization_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        team_id: Optional[int] = None,
     ) -> None:
         NotificationSetting.objects.update_settings(
             provider=external_provider,
@@ -57,8 +56,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             value=setting_option,
             project=project_id,
             organization=organization_id,
-            user_id=user_id,
-            team_id=team_id,
+            actor=actor,
         )
 
     def bulk_update_settings(

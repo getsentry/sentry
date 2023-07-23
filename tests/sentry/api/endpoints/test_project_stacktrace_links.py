@@ -6,8 +6,9 @@ from sentry.api.endpoints.project_stacktrace_link import get_code_mapping_config
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -17,9 +18,10 @@ class ProjectStacktraceLinksTest(APITestCase):
     url = "https://example.com/example/foo/blob/master/src/foo/bar/baz.py"
 
     def setUp(self):
-        self.integration = Integration.objects.create(provider="example", name="Example")
-        self.integration.add_organization(self.organization, self.user)
-        self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration.add_organization(self.organization, self.user)
+            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
         self.repo = self.create_repo(
             project=self.project,
