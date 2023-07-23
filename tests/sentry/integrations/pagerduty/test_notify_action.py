@@ -36,13 +36,14 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": SERVICES},
             )
             self.integration.add_organization(self.organization, self.user)
-        self.service = PagerDutyService.objects.create(
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.service = PagerDutyService.objects.create(
+                service_name=SERVICES[0]["service_name"],
+                integration_key=SERVICES[0]["integration_key"],
+                organization_integration_id=self.integration.organizationintegration_set.first().id,
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
         self.installation = self.integration.get_installation(self.organization.id)
 
     @responses.activate
