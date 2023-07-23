@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import build_linking_url
+from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
@@ -92,7 +93,17 @@ class DiscordInteractionsEndpoint(Endpoint):
         return self.reply(link_url)
 
     def unlink_user(self) -> Response:
-        return self.reply("unlink")
+        if not self.request.has_identity():
+            return self.reply("not linked")
+
+        if not (self.request.integration and self.request.user_id):
+            raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
+
+        unlink_url = build_unlinking_url(
+            integration=self.request.integration,
+            discord_id=self.request.user_id,
+        )
+        return self.reply(unlink_url)
 
     def help(self) -> Response:
         return self.reply("help")
