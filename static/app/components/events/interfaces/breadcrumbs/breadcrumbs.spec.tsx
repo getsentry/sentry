@@ -1,25 +1,13 @@
-import selectEvent from 'react-select-event';
-
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {
-  useHasOrganizationSentAnyReplayEvents,
-  useReplayOnboardingSidebarPanel,
-} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
 
-const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({}),
-  errors: [],
-  attachments: TestStubs.ReplaySegmentInit({}),
-});
-
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/useProjects');
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -30,32 +18,12 @@ jest.mock('screenfull', () => ({
   off: jest.fn(),
 }));
 
-jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
-  return {
-    __esModule: true,
-    default: jest.fn(() => {
-      return {
-        replay: mockReplay,
-        fetching: false,
-      };
-    }),
-  };
-});
+jest.mock('sentry/utils/useProjects');
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
   const MockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-
-  const MockUseReplayOnboardingSidebarPanel =
-    useReplayOnboardingSidebarPanel as jest.MockedFunction<
-      typeof useReplayOnboardingSidebarPanel
-    >;
-
-  const MockUseHasOrganizationSentAnyReplayEvents =
-    useHasOrganizationSentAnyReplayEvents as jest.MockedFunction<
-      typeof useHasOrganizationSentAnyReplayEvents
-    >;
 
   beforeEach(() => {
     const project = TestStubs.Project({platform: 'javascript'});
@@ -69,18 +37,9 @@ describe('Breadcrumbs', () => {
       placeholders: [],
       projects: [project],
     });
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
-    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
-    });
 
     props = {
       organization: TestStubs.Organization(),
-      projectSlug: 'project-slug',
-      isShare: false,
       event: TestStubs.Event({entries: [], projectID: project.id}),
       data: {
         values: [
@@ -269,166 +228,6 @@ describe('Breadcrumbs', () => {
         'href',
         '/organizations/org-slug/performance/project-slug:abcdabcdabcdabcdabcdabcdabcdabcd/?referrer=breadcrumbs'
       );
-    });
-  });
-
-  describe('replay', () => {
-    it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-        hasOrgSentReplays: false,
-        fetching: false,
-      });
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        activateSidebar: jest.fn(),
-      });
-      const {container} = render(
-        <Breadcrumbs
-          {...props}
-          event={TestStubs.Event({
-            entries: [],
-            tags: [],
-            platform: 'javascript',
-          })}
-          organization={TestStubs.Organization({
-            features: ['session-replay'],
-          })}
-        />
-      );
-
-      expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-      expect(container).toSnapshot();
-    });
-
-    it('should not render the replay inline onboarding component when the project is not JS', async function () {
-      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-        hasOrgSentReplays: false,
-        fetching: false,
-      });
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        activateSidebar: jest.fn(),
-      });
-      const {container} = render(
-        <Breadcrumbs
-          {...props}
-          event={TestStubs.Event({
-            entries: [],
-            tags: [],
-          })}
-          organization={TestStubs.Organization({
-            features: ['session-replay'],
-          })}
-        />
-      );
-
-      expect(
-        await screen.queryByText('Configure Session Replay')
-      ).not.toBeInTheDocument();
-      expect(await screen.queryByTestId('player-container')).not.toBeInTheDocument();
-      expect(container).toSnapshot();
-    });
-
-    it('should render a replay when there is a replayId from tags', async function () {
-      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-        hasOrgSentReplays: true,
-        fetching: false,
-      });
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        activateSidebar: jest.fn(),
-      });
-      const {container} = render(
-        <Breadcrumbs
-          {...props}
-          event={TestStubs.Event({
-            entries: [],
-            tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
-            platform: 'javascript',
-          })}
-          organization={TestStubs.Organization({
-            features: ['session-replay'],
-          })}
-        />
-      );
-
-      expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-      expect(container).toSnapshot();
-    });
-
-    it('should render a replay when there is a replay_id from contexts', async function () {
-      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-        hasOrgSentReplays: true,
-        fetching: false,
-      });
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        activateSidebar: jest.fn(),
-      });
-      const {container} = render(
-        <Breadcrumbs
-          {...props}
-          event={TestStubs.Event({
-            entries: [],
-            tags: [],
-            contexts: {
-              replay: {
-                replay_id: '761104e184c64d439ee1014b72b4d83b',
-              },
-            },
-            platform: 'javascript',
-          })}
-          organization={TestStubs.Organization({
-            features: ['session-replay'],
-          })}
-        />
-      );
-
-      expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-      expect(container).toSnapshot();
-    });
-
-    it('can change the sort', async function () {
-      render(
-        <Breadcrumbs
-          {...props}
-          data={{
-            values: [
-              {
-                message: 'sup',
-                category: 'default',
-                level: BreadcrumbLevelType.WARNING,
-                type: BreadcrumbType.INFO,
-              },
-              {
-                message: 'hey',
-                category: 'error',
-                level: BreadcrumbLevelType.INFO,
-                type: BreadcrumbType.INFO,
-              },
-              {
-                message: 'hello',
-                category: 'default',
-                level: BreadcrumbLevelType.WARNING,
-                type: BreadcrumbType.INFO,
-              },
-            ],
-          }}
-        />
-      );
-      const breadcrumbsBefore = screen.getAllByTestId(/crumb/i);
-      expect(breadcrumbsBefore).toHaveLength(4); // Virtual exception crumb added to 3 in props
-
-      // Should be sorted newest -> oldest by default
-      expect(within(breadcrumbsBefore[0]).getByText(/exception/i)).toBeInTheDocument();
-      expect(within(breadcrumbsBefore[1]).getByText('hello')).toBeInTheDocument();
-      expect(within(breadcrumbsBefore[2]).getByText('hey')).toBeInTheDocument();
-      expect(within(breadcrumbsBefore[3]).getByText('sup')).toBeInTheDocument();
-
-      await selectEvent.select(screen.getByText(/newest/i), /oldest/i);
-
-      // Now should be sorted oldest -> newest
-      const breadcrumbsAfter = screen.getAllByTestId(/crumb/i);
-      expect(within(breadcrumbsAfter[0]).getByText('sup')).toBeInTheDocument();
-      expect(within(breadcrumbsAfter[1]).getByText('hey')).toBeInTheDocument();
-      expect(within(breadcrumbsAfter[2]).getByText('hello')).toBeInTheDocument();
-      expect(within(breadcrumbsAfter[3]).getByText(/exception/i)).toBeInTheDocument();
     });
   });
 });

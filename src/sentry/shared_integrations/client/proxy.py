@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
-import sys
 from typing import Any, Mapping
+from urllib.parse import urljoin
 
 from django.conf import settings
+from django.http import HttpResponse
 from requests import PreparedRequest
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -18,8 +21,41 @@ from sentry.silo.util import (
     encode_subnet_signature,
     trim_leading_slashes,
 )
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
+
+
+def infer_org_integration(
+    integration_id: int, ctx_logger: logging.Logger | None = None
+) -> int | None:
+    """
+    Given an integration_id, return the first associated org_integration_id.
+    The IntegrationProxyClient requires org_integration context to proxy requests properly
+    but sometimes clients don't have context on the specific organization issuing a request.
+    In those situations, we just grab the first organization and log this assumption.
+    """
+    org_integration_id = None
+    with in_test_hide_transaction_boundary():
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id
+        )
+    if len(org_integrations) > 0:
+        org_integration_id = org_integrations[0].id
+        if ctx_logger:
+            ctx_logger.info(
+                "infer_organization_from_integration",
+                extra={
+                    "integration_id": integration_id,
+                    "org_integration_id": org_integration_id,
+                },
+            )
+    return org_integration_id
+
+
+def get_proxy_url() -> str:
+    control_address: str = settings.SENTRY_CONTROL_ADDRESS
+    return urljoin(control_address, PROXY_BASE_PATH)
 
 
 class IntegrationProxyClient(ApiClient):
@@ -29,7 +65,7 @@ class IntegrationProxyClient(ApiClient):
     add sensitive credentials at that stage.
 
     When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
-    is set to True.
+    is set to True. Enable to test proxying locally.
     """
 
     _should_proxy_to_control = False
@@ -47,13 +83,13 @@ class IntegrationProxyClient(ApiClient):
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
         control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
-        is_test_environment = "pytest" in sys.modules
 
         if is_region_silo and subnet_secret and control_address:
             self._should_proxy_to_control = True
-            self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
+            self.proxy_url = get_proxy_url()
 
-        if is_test_environment and not self._use_proxy_url_for_tests:
+        if in_test_environment() and not self._use_proxy_url_for_tests:
+            logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
     @control_silo_function
@@ -77,8 +113,11 @@ class IntegrationProxyClient(ApiClient):
             return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
-        proxy_path = trim_leading_slashes(prepared_request.url[len(self.base_url) :])
-        url = f"{self.proxy_url}/{proxy_path}"
+        assert self.base_url and self.proxy_url
+        base_url = self.base_url.rstrip("/")
+        proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
+        proxy_url = self.proxy_url.rstrip("/")
+        url = f"{proxy_url}/{proxy_path}"
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
@@ -99,3 +138,15 @@ class IntegrationProxyClient(ApiClient):
             },
         )
         return prepared_request
+
+    def should_delegate(self) -> bool:
+        return False
+
+    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
+        """
+        Rather than letting the internal integration proxy endpoint perform the 3rd-party API request, this method
+        performs the processing of that request whenever should_delegate() returns True.
+
+        This method should be implemented in cases when an integration uses a Python SDK API client (e.g. boto3).
+        """
+        raise NotImplementedError

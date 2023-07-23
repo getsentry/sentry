@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import deletions
 from sentry.models import ServiceHook
@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
 from sentry.services.hybrid_cloud.hook.serial import serialize_service_hook
 
 
-class DatabaseBackedAppService(HookService):
+class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
@@ -19,8 +19,8 @@ class DatabaseBackedAppService(HookService):
         webhook_url: Optional[str] = None,
         events: List[str],
     ) -> List[RpcServiceHook]:
-        hooks = ServiceHook.objects.filter(application_id=application_id)
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
                 for hook in hooks:
                     hook.url = webhook_url
@@ -43,7 +43,7 @@ class DatabaseBackedAppService(HookService):
         url: str = "",
     ) -> RpcServiceHook:
         # nullable for sentry apps
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ServiceHook)):
             project_id: Optional[int] = project_ids[0] if project_ids else None
 
             hook = ServiceHook.objects.create(
@@ -60,6 +60,3 @@ class DatabaseBackedAppService(HookService):
                     hook.add_project(project_id)
 
             return serialize_service_hook(hook)
-
-    def close(self) -> None:
-        pass

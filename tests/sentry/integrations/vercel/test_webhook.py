@@ -22,13 +22,15 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
+@control_silo_test(stable=True)
 class SignatureVercelTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
@@ -48,7 +50,7 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
     header = "VERCEL"
@@ -210,7 +212,8 @@ class VercelReleasesTest(APITestCase):
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
             json={},
         )
-        self.project.delete()
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            self.project.delete()
 
         with override_options({"vercel.client-secret": SECRET}):
             response = self._get_response(EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE_OLD, SIGNATURE)
@@ -308,6 +311,7 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
+@control_silo_test(stable=True)
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
     header = "VERCEL"

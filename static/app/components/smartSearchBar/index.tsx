@@ -42,7 +42,12 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldDefinition,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -66,6 +71,7 @@ import {
 import {
   addSpace,
   createSearchGroups,
+  escapeTagValue,
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
@@ -101,13 +107,6 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
-};
-
-const escapeValue = (value: string): string => {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${value.replace(/"/g, '\\"')}"`
-    : value;
 };
 
 export type ActionProps = {
@@ -196,6 +195,10 @@ type Props = WithRouterProps &
      * Custom Performance Metrics for query string unit parsing
      */
     customPerformanceMetrics?: CustomMeasurementCollection;
+    /**
+     * The default search group to show when there is no query
+     */
+    defaultSearchGroup?: SearchGroup;
     /**
      * Disabled control (e.g. read-only)
      */
@@ -1190,7 +1193,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState({noValueQuery});
 
       return values.map(value => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1206,11 +1209,27 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    (tag.values ?? [])
+  getPredefinedTagValues = (
+    tag: Tag,
+    query: string
+  ): AutocompleteGroup['searchItems'] => {
+    const groupOrValue = tag.values ?? [];
+
+    // Is an array of SearchGroup
+    if (groupOrValue.some(item => typeof item === 'object')) {
+      return (groupOrValue as SearchGroup[]).map(group => {
+        return {
+          ...group,
+          children: group.children?.filter(child => child.value?.includes(query)),
+        };
+      });
+    }
+
+    // Is an array of strings
+    return (groupOrValue as string[])
       .filter(value => value.includes(query))
       .map((value, i) => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1220,6 +1239,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             : false,
         };
       });
+  };
 
   /**
    * Get recent searches
@@ -1553,15 +1573,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param recentSearchItems List of recent search items, same format as searchItem
    * @param tagName The current tag name in scope
    * @param type Defines the type/state of the dropdown menu items
+   * @param skipDefaultGroup Force hide the default group even without a query
    */
   updateAutoCompleteState(
     searchItems: SearchItem[],
     recentSearchItems: SearchItem[],
     tagName: string,
-    type: ItemType
+    type: ItemType,
+    skipDefaultGroup = false
   ) {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1575,6 +1602,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
+      skipDefaultGroup ? undefined : defaultSearchGroup,
       fieldDefinitionGetter
     );
 
@@ -1587,8 +1615,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1603,18 +1636,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           maxSearchItems,
           queryCharsLeft,
           false,
+          defaultSearchGroup,
           fieldDefinitionGetter
         )
       )
-      .reduce(
+      .reduce<ReturnType<typeof createSearchGroups>>(
         (acc, item) => ({
           searchGroups: [...acc.searchGroups, ...item.searchGroups],
           flatSearchItems: [...acc.flatSearchItems, ...item.flatSearchItems],
           activeSearchItem: -1,
         }),
         {
-          searchGroups: [] as SearchGroup[],
-          flatSearchItems: [] as SearchItem[],
+          searchGroups: [],
+          flatSearchItems: [],
           activeSearchItem: -1,
         }
       );
@@ -1745,6 +1779,34 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         this.doSearch();
       });
 
+      return;
+    }
+
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
+      trackAnalytics('search.key_autocompleted', {
+        organization: this.props.organization,
+        search_operator: replaceText,
+        search_source: this.props.searchSource,
+        item_name: item.title ?? item.value?.split(':')[0],
+        item_kind: item.kind,
+        item_type: item.type,
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+      });
+    }
+
+    if (item.applyFilter) {
+      const [tagKeys, tagType] = this.getTagKeys('');
+      this.updateAutoCompleteState(
+        tagKeys.filter(item.applyFilter),
+        [],
+        '',
+        tagType,
+        true
+      );
       return;
     }
 

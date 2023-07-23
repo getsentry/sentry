@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
@@ -27,17 +27,17 @@ class VstsIssueSync(IssueSyncMixin):
 
     def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
         # default_repo should be the project_id
-        project = self.get_client().get_project(self.instance, default_repo)
+        project = self.get_client(base_url=self.instance).get_project(default_repo)
         return (project["id"], project["name"])
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            projects = client.get_projects(self.instance)
+            projects = client.get_projects()
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
 
@@ -73,11 +73,11 @@ class VstsIssueSync(IssueSyncMixin):
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            item_categories = client.get_work_item_categories(self.instance, project)["value"]
+            item_categories = client.get_work_item_categories(project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         item_type_map = {}
         for item in item_categories:
@@ -166,7 +166,7 @@ class VstsIssueSync(IssueSyncMixin):
         if project_id is None:
             raise ValueError("Azure DevOps expects project")
 
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
 
         title = data["title"]
         description = data["description"]
@@ -174,7 +174,6 @@ class VstsIssueSync(IssueSyncMixin):
 
         try:
             created_item = client.create_work_item(
-                instance=self.instance,
                 project=project_id,
                 item_type=item_type,
                 title=title,
@@ -183,7 +182,7 @@ class VstsIssueSync(IssueSyncMixin):
                 comment=markdown(description),
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {
@@ -194,8 +193,8 @@ class VstsIssueSync(IssueSyncMixin):
         }
 
     def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client()
-        work_item = client.get_work_item(self.instance, issue_id)
+        client = self.get_client(base_url=self.instance)
+        work_item = client.get_work_item(issue_id)
         return {
             "key": str(work_item["id"]),
             "title": work_item["fields"]["System.Title"],
@@ -214,7 +213,7 @@ class VstsIssueSync(IssueSyncMixin):
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         assignee = None
 
         if user and assign is True:
@@ -245,7 +244,7 @@ class VstsIssueSync(IssueSyncMixin):
                 return
 
         try:
-            client.update_work_item(self.instance, external_issue.key, assigned_to=assignee)
+            client.update_work_item(external_issue.key, assigned_to=assignee)
         except (ApiUnauthorized, ApiError):
             self.logger.info(
                 "vsts.failed-to-assign",
@@ -259,14 +258,14 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_status_outbound(
         self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
-        client = self.get_client()
-        work_item = client.get_work_item(self.instance, external_issue.key)
+        client = self.get_client(self.instance)
+        work_item = client.get_work_item(external_issue.key)
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
         vsts_project_name = work_item["fields"]["System.TeamProject"]
 
-        vsts_projects = client.get_projects(self.instance)
+        vsts_projects = client.get_projects()
 
         vsts_project_id = None
         for p in vsts_projects:
@@ -298,7 +297,7 @@ class VstsIssueSync(IssueSyncMixin):
         )
 
         try:
-            client.update_work_item(self.instance, external_issue.key, state=status)
+            client.update_work_item(external_issue.key, state=status)
         except (ApiUnauthorized, ApiError) as error:
             self.logger.info(
                 "vsts.failed-to-change-status",
@@ -320,9 +319,9 @@ class VstsIssueSync(IssueSyncMixin):
         )
 
     def _get_done_statuses(self, project: str) -> Set[str]:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
-            all_states = client.get_work_item_states(self.instance, project)["value"]
+            all_states = client.get_work_item_states(project)["value"]
         except ApiError as err:
             self.logger.info(
                 "vsts.get-done-states.failed",
@@ -337,7 +336,9 @@ class VstsIssueSync(IssueSyncMixin):
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
+        return self.get_client(base_url=self.instance).update_work_item(
+            issue_id, comment=quoted_comment
+        )
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml

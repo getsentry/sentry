@@ -3,6 +3,7 @@ from unittest import mock
 
 from freezegun import freeze_time
 
+from sentry import tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
@@ -26,11 +27,7 @@ class StreamGroupSerializerTestCase(
 
         environment = Environment.get_or_create(group.project, "production")
 
-        from sentry.api.serializers.models.group_stream import tsdb
-
-        with mock.patch(
-            "sentry.api.serializers.models.group_stream.tsdb.get_range", side_effect=tsdb.get_range
-        ) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.backend.get_range) as get_range:
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
@@ -45,8 +42,8 @@ class StreamGroupSerializerTestCase(
             raise Environment.DoesNotExist()
 
         with mock.patch(
-            "sentry.api.serializers.models.group_stream.tsdb.make_series",
-            side_effect=tsdb.make_series,
+            "sentry.tsdb.make_series",
+            side_effect=tsdb.backend.make_series,
         ) as make_series:
             serialize(
                 [group],
@@ -82,7 +79,7 @@ class StreamGroupSerializerTestCase(
             serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()
+        assert serialized["issueCategory"] == str(GroupCategory.PERFORMANCE.name).lower()
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1

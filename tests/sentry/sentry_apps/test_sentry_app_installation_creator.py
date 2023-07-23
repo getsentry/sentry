@@ -6,8 +6,9 @@ from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
 from sentry.sentry_apps import SentryAppInstallationCreator
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
@@ -41,6 +42,15 @@ class TestCreator(TestCase):
         assert install.pk
 
     @responses.activate
+    def test_creates_installation__multiple_runs(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+        install = self.run_creator()
+        assert install.pk
+
+        install2 = self.run_creator()
+        assert install2.pk != install.pk
+
+    @responses.activate
     def test_creates_api_grant(self):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
@@ -51,7 +61,7 @@ class TestCreator(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             hook = ServiceHook.objects.get(organization_id=self.org.id)
 
         assert hook.application_id == self.sentry_app.application.id
@@ -60,7 +70,7 @@ class TestCreator(TestCase):
         assert hook.events == self.sentry_app.events
         assert hook.url == self.sentry_app.webhook_url
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert not ServiceHookProject.objects.all()
 
     @responses.activate

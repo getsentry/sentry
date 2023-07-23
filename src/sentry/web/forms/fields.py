@@ -3,7 +3,7 @@ from django.forms.utils import flatatt
 from django.forms.widgets import TextInput, Widget
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.models import User
 from sentry.utils.email.address import is_valid_email_address

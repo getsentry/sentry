@@ -1,5 +1,5 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {BreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {RawBreadcrumbFrame as TBreadcrumbFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -32,7 +32,7 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
     data: fields.data ?? {},
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
+    type: BreadcrumbType.UI,
   };
 }
 
@@ -87,8 +87,9 @@ export function SlowClickFrame(
   return {
     category: 'ui.slowClickDetected',
     data: fields.data ?? {
+      clickCount: undefined,
       endReason: '',
-      timeAfterClickFs: 5,
+      timeAfterClickMs: 5,
       url: '/',
     },
     message: fields.message,
@@ -107,6 +108,19 @@ export function MutationFrame(
       limit: true,
     },
     message: fields.message,
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: '',
+  };
+}
+
+export function NavFrame(fields: TestableFrame<'navigation'>): MockFrame<'navigation'> {
+  return {
+    category: 'navigation',
+    data: fields.data ?? {
+      from: '',
+      to: '',
+    },
+    message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
     type: '',
   };

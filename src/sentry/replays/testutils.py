@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import datetime
-import typing
 import uuid
 from enum import Enum
+from typing import Any, Dict, List
 
 from sentry.utils import json
 
@@ -18,22 +20,20 @@ class EventType(Enum):
     Plugin = 6
 
 
-SegmentList = typing.Iterable[typing.Dict[str, typing.Any]]
-RRWebNode = typing.Dict[str, typing.Any]
+SegmentList = List[Dict[str, Any]]
+RRWebNode = Dict[str, Any]
 
 
-def sec(timestamp: datetime.datetime):
+def sec(timestamp: datetime.datetime) -> int:
     # sentry data inside rrweb is recorded in seconds
     return int(timestamp.timestamp())
 
 
-def ms(timestamp: datetime.datetime):
+def ms(timestamp: datetime.datetime) -> int:
     return int(timestamp.timestamp()) * 1000
 
 
-def assert_expected_response(
-    response: typing.Dict[str, typing.Any], expected_response: typing.Dict[str, typing.Any]
-) -> None:
+def assert_expected_response(response: dict[str, Any], expected_response: dict[str, Any]) -> None:
     """Assert a received response matches what was expected."""
     # Compare the response structure and values to the expected response.
     for key, value in expected_response.items():
@@ -64,8 +64,8 @@ def mock_expected_response(
     replay_id: str,
     started_at: datetime.datetime,
     finished_at: datetime.datetime,
-    **kwargs: typing.Dict[str, typing.Any],
-) -> typing.Dict[str, typing.Any]:
+    **kwargs: Any,
+) -> dict[str, Any]:
     urls = kwargs.pop("urls", [])
     return {
         "id": replay_id,
@@ -77,6 +77,8 @@ def mock_expected_response(
         "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "duration": (finished_at - started_at).seconds,
+        "count_dead_clicks": kwargs.pop("count_dead_clicks", 0),
+        "count_rage_clicks": kwargs.pop("count_rage_clicks", 0),
         "count_errors": kwargs.pop("count_errors", 1),
         "count_segments": kwargs.pop("count_segments", 1),
         "count_urls": len(urls),
@@ -120,8 +122,8 @@ def mock_replay(
     timestamp: datetime.datetime,
     project_id: str,
     replay_id: str,
-    **kwargs: typing.Dict[str, typing.Any],
-) -> typing.Dict[str, typing.Any]:
+    **kwargs: Any,
+) -> dict[str, Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
     return {
@@ -204,8 +206,8 @@ def mock_replay_click(
     timestamp: datetime.datetime,
     project_id: str,
     replay_id: str,
-    **kwargs: typing.Dict[str, typing.Any],
-) -> typing.Dict[str, typing.Any]:
+    **kwargs: Any,
+) -> dict[str, Any]:
     return {
         "type": "replay_event",
         "start_time": sec(timestamp),
@@ -230,6 +232,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
+                                "is_dead": kwargs.pop("is_dead", 0),
+                                "is_rage": kwargs.pop("is_rage", 0),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
@@ -264,7 +268,9 @@ def mock_segment_init(
     ]
 
 
-def mock_segment_fullsnapshot(timestamp: datetime.datetime, bodyChildNodes) -> SegmentList:
+def mock_segment_fullsnapshot(
+    timestamp: datetime.datetime, bodyChildNodes: list[dict[str, Any]]
+) -> SegmentList:
     bodyNode = mock_rrweb_node(
         tagName="body",
         attributes={
@@ -316,7 +322,7 @@ def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
     ]
 
 
-def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentList:
+def mock_segment_breadcrumb(timestamp: datetime.datetime, payload: dict[str, Any]) -> SegmentList:
     return [
         {
             "type": 5,
@@ -343,16 +349,61 @@ def mock_segment_nagivation(
     )
 
 
+def mock_segment_click(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),
+            "type": "default",
+            "category": "ui.click",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                }
+            },
+        },
+    )
+
+
+def mock_segment_rageclick(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str, clickCount: int
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
+            "type": "default",
+            "category": "ui.multiClick",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                },
+                "clickCount": clickCount,
+            },
+        },
+    )
+
+
 __rrweb_id = 0
 
 
-def next_rrweb_id():
+def next_rrweb_id() -> int:
     global __rrweb_id
     __rrweb_id += 1
     return __rrweb_id
 
 
-def mock_rrweb_node(**kwargs: typing.Dict[str, typing.Any]) -> RRWebNode:
+def mock_rrweb_node(**kwargs: Any) -> RRWebNode:
     id = kwargs.pop("id", next_rrweb_id())
     tagName = kwargs.pop("tagName", None)
     if tagName:

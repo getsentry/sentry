@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -19,19 +19,21 @@ import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -48,23 +50,23 @@ type RouteParams = {
   memberId: string;
 };
 
-type Props = {
+interface Props extends RouteComponentProps<RouteParams, {}> {
   organization: Organization;
-} & RouteComponentProps<RouteParams, {}>;
+}
 
-type State = {
+interface State extends AsyncViewState {
   groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
-} & AsyncView['state'];
+}
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-class OrganizationMemberDetail extends AsyncView<Props, State> {
+class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
   get hasTeamRoles() {
     const {organization} = this.props;
     return organization.features.includes('team-roles');
@@ -80,7 +82,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     return [
       ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],
@@ -157,8 +159,9 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {user} = this.state.member!;
 
     const requests =
-      user?.authenticators.map(auth => removeAuthenticator(this.api, user.id, auth.id)) ??
-      [];
+      user?.authenticators?.map(auth =>
+        removeAuthenticator(this.api, user.id, auth.id)
+      ) ?? [];
 
     try {
       await Promise.all(requests);
@@ -282,15 +285,12 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return <NotFound />;
     }
 
-    const {access, features, orgRoleList} = organization;
+    const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
     const showAuth = !pending;
-    const currentUser = configStore.get('user');
-    const isCurrentUser = currentUser.email === email;
 
     return (
       <Fragment>
@@ -399,9 +399,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
         <OrganizationRoleSelect
           enforceAllowed={false}
-          enforceIdpRoleRestricted={member.flags['idp:role-restricted']}
-          enforceRetired={hasTeamRoles}
-          isCurrentUser={isCurrentUser}
+          enforceRetired={this.hasTeamRoles}
           disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}

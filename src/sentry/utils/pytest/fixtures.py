@@ -139,6 +139,22 @@ DEFAULT_EVENT_DATA = {
 }
 
 
+def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
+    """Pytest decorator for resetting all databases"""
+
+    if func is not None:
+        return pytest.mark.django_db(
+            transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
+        )(func)
+
+    def decorator(function):
+        return pytest.mark.django_db(
+            transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
+        )(function)
+
+    return decorator
+
+
 @pytest.mark.django_db
 @pytest.fixture
 def factories():

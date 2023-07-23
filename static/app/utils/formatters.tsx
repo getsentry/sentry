@@ -19,6 +19,15 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   return displayName;
 }
 
+export const isSemverRelease = (rawVersion: string): boolean => {
+  try {
+    const parsedVersion = new Release(rawVersion);
+    return !!parsedVersion.versionParsed;
+  } catch {
+    return false;
+  }
+};
+
 export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
     const parsedVersion = new Release(rawVersion);
@@ -297,4 +306,8 @@ export function formatAbbreviatedNumber(number: number | string) {
   }
 
   return number.toLocaleString();
+}
+
+export function formatRate(value: number, rateUnit?: string) {
+  return `${value} /${rateUnit ?? 's'}`;
 }

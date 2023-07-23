@@ -1,10 +1,13 @@
+from typing import Optional
+
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import (
     Activity,
     Commit,
@@ -46,14 +49,17 @@ def resolve_group_resolutions(instance, created, **kwargs):
     if not created:
         return
 
-    transaction.on_commit(lambda: clear_expired_resolutions.delay(release_id=instance.id))
+    transaction.on_commit(
+        lambda: clear_expired_resolutions.delay(release_id=instance.id),
+        router.db_for_write(Release),
+    )
 
 
 def remove_resolved_link(link):
     # TODO(dcramer): ideally this would simply "undo" the link change,
     # but we don't know for a fact that the resolution was most recently from
     # the GroupLink
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
         affected = Group.objects.filter(status=GroupStatus.RESOLVED, id=link.group_id).update(
             status=GroupStatus.UNRESOLVED,
@@ -92,11 +98,31 @@ def resolved_in_commit(instance, created, **kwargs):
     except Repository.DoesNotExist:
         repo = None
 
+    if instance.author:
+        with in_test_hide_transaction_boundary():
+            user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
+
+    acting_user: Optional[RpcUser] = None
+
+    self_assign_issue: str = "0"
+    if user_list:
+        acting_user = user_list[0]
+        with in_test_hide_transaction_boundary():
+            self_assign_issue = get_option_from_list(
+                user_option_service.get_many(
+                    filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+                ),
+                key="self_assign_issue",
+                default="0",
+            )
+
     for group in groups:
         try:
             # XXX(dcramer): This code is somewhat duplicated from the
             # project_group_index mutation api
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -105,23 +131,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     linked_id=instance.id,
                 )
 
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
-
-                acting_user = None
-
-                if user_list:
-                    acting_user: RpcUser = user_list[0]
-                    self_assign_issue: str = get_option_from_list(
-                        user_option_service.get_many(
-                            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-                        ),
-                        key="self_assign_issue",
-                        default="0",
-                    )
-
+                if acting_user:
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user
@@ -204,10 +214,14 @@ def resolved_in_pull_request(instance, created, **kwargs):
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
         repo = None
+    if instance.author:
+        user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
 
     for group in groups:
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -215,14 +229,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
                 if user_list:
-                    acting_user: RpcUser = user_list[0]
+                    acting_user = user_list[0]
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=acting_user, acting_user=acting_user
                     )

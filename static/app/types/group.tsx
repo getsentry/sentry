@@ -1,5 +1,6 @@
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -51,6 +52,7 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  CRON = 'cron',
   PROFILE = 'profile',
 }
 
@@ -74,6 +76,7 @@ export enum IssueType {
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
+  PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
 }
 
 export const getIssueTypeFromOccurenceType = (
@@ -88,6 +91,7 @@ export const getIssueTypeFromOccurenceType = (
     1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
     1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   };
   if (!typeId) {
@@ -129,7 +133,10 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
-  values?: string[];
+  /**
+   * Usually values are strings, but a predefined tag can define its SearchGroups
+   */
+  values?: string[] | SearchGroup[];
 };
 
 export type TagCollection = Record<string, Tag>;
@@ -327,9 +334,16 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
+export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
+  data: {
+    // Set for semver releases
+    current_release_version: string;
+  };
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+}
+
 export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
-    current_release_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -408,9 +422,16 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
-interface GroupActivitySetEscalating extends GroupActivityBase {
+export interface GroupActivitySetEscalating extends GroupActivityBase {
   data: {
-    forecast: number;
+    expired_snooze?: {
+      count: number | null;
+      until: Date | null;
+      user_count: number | null;
+      user_window: number | null;
+      window: number | null;
+    };
+    forecast?: number;
   };
   type: GroupActivityType.SET_ESCALATING;
 }
@@ -447,6 +468,7 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen

@@ -5,31 +5,29 @@ from typing import List
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
-    BoundedAutoField,
+    BoundedBigAutoField,
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
@@ -45,14 +43,14 @@ class UserManager(BaseManager, DjangoUserManager):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models import OrganizationMemberMapping
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 
-        org_user_ids = OrganizationMember.objects.filter(organization_id=organization_id).values(
-            "user_id"
-        )
+        org_user_ids = OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id
+        ).values("user_id")
         org_members_with_provider = (
-            OrganizationMember.objects.values("user_id")
+            OrganizationMemberMapping.objects.values("user_id")
             .annotate(org_counts=Count("organization_id"))
             .filter(
                 user_id__in=Subquery(org_user_ids),
@@ -72,7 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -107,7 +105,7 @@ class User(BaseModel, AbstractBaseUser):
             "modifying their account (username, password, etc)."
         ),
     )
-    is_sentry_app = models.NullBooleanField(
+    is_sentry_app = models.BooleanField(
         _("is sentry app"),
         null=True,
         default=None,
@@ -130,13 +128,12 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_("The date the password was changed last."),
     )
 
-    flags = BitField(
-        flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-        ),
-        default=0,
-        null=True,
-    )
+    class flags(TypedClassBitField):
+        # Do we need to ask this user for newsletter consent?
+        newsletter_consent_prompt: bool
+
+        bitfield_default = 0
+        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
 
@@ -165,7 +162,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -174,13 +171,13 @@ class User(BaseModel, AbstractBaseUser):
             return super().delete()
 
     def update(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
@@ -295,7 +292,6 @@ class User(BaseModel, AbstractBaseUser):
             Authenticator,
             AuthIdentity,
             Identity,
-            OrganizationMember,
             OrganizationMemberMapping,
             UserAvatar,
             UserEmail,
@@ -307,14 +303,9 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         organization_ids: List[int]
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            organization_ids = OrganizationMember.objects.filter(user_id=from_user.id).values_list(
-                "organization_id", flat=True
-            )
-        else:
-            organization_ids = OrganizationMemberMapping.objects.filter(
-                user_id=from_user.id
-            ).values_list("organization_id", flat=True)
+        organization_ids = OrganizationMemberMapping.objects.filter(
+            user_id=from_user.id
+        ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(
@@ -332,7 +323,7 @@ class User(BaseModel, AbstractBaseUser):
         for model in model_list:
             for obj in model.objects.filter(user_id=from_user.id):
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(User)):
                         obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass

@@ -1,8 +1,9 @@
 import logging
 import signal
 import uuid
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Callable, Literal, Mapping, MutableMapping, Optional, Union
+from typing import Any, Literal, Mapping, Optional, Union
 
 from arroyo import configure_metrics
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -16,13 +17,12 @@ from arroyo.processing.strategies import (
     RunTaskInThreads,
 )
 from arroyo.types import Commit, Message, Partition, Topic
-from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.post_process_forwarder.synchronized import SynchronizedConsumer
+from sentry.consumers.synchronized import SynchronizedConsumer
 from sentry.utils import metrics
 from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +39,11 @@ class PostProcessForwarder:
     celery task
     """
 
-    def __init__(self, dispatch_function: Callable[[Message[KafkaPayload]], None]) -> None:
-        self.dispatch_function = dispatch_function
+    def __init__(self) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
         self.issue_platform_topic = settings.KAFKA_EVENTSTREAM_GENERIC
         self.assign_transaction_partitions_randomly = True
-        self.__producers: MutableMapping[str, Producer] = {}
 
     def run(
         self,
@@ -81,8 +79,6 @@ class PostProcessForwarder:
 
         def handler(signum: int, frame: Any) -> None:
             consumer.signal_shutdown()
-            for producer in self.__producers.values():
-                producer.flush()
 
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
@@ -101,7 +97,7 @@ class PostProcessForwarder:
     ) -> StreamProcessor[KafkaPayload]:
         configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        cluster_name = get_topic_definition(topic)["cluster"]
 
         consumer = KafkaConsumer(
             build_kafka_consumer_configuration(
@@ -127,18 +123,26 @@ class PostProcessForwarder:
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(self.dispatch_function, concurrency)
+        # Right now PostProcessForwarder depends on eventstream, but with the
+        # unified consumer, this entire PostProcessForwarder class will be
+        # deleted. Leaving us only with a generic
+        # PostProcessForwarderStrategyFactory that works for any sort of snuba
+        # topic (in theory)
+        from sentry.eventstream.kafka.dispatch import EventPostProcessForwarderStrategyFactory
+
+        strategy_factory = EventPostProcessForwarderStrategyFactory(concurrency=concurrency)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
         )
 
 
-class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(
-        self, dispatch_function: Callable[[Message[KafkaPayload]], None], concurrency: int
-    ):
-        self.__dispatch_function = dispatch_function
+class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload], ABC):
+    @abstractmethod
+    def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
+        raise NotImplementedError()
+
+    def __init__(self, concurrency: int):
         self.__concurrency = concurrency
         self.__max_pending_futures = concurrency + 1000
 
@@ -148,7 +152,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskInThreads(
-            self.__dispatch_function,
+            self._dispatch_function,
             self.__concurrency,
             self.__max_pending_futures,
             CommitOffsets(commit),

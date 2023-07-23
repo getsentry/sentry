@@ -1,9 +1,9 @@
-from typing import cast
+from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 __all__ = (
     "BoundedAutoField",
@@ -21,7 +21,7 @@ class BoundedIntegerField(models.IntegerField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
@@ -31,7 +31,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
 class BoundedAutoField(models.AutoField):
@@ -41,7 +41,7 @@ class BoundedAutoField(models.AutoField):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return cast(int, super().get_prep_value(value))
+        return super().get_prep_value(value)
 
 
 if settings.SENTRY_USE_BIG_INTS:
@@ -58,7 +58,7 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return cast(int, super().get_prep_value(value))
+            return super().get_prep_value(value)
 
     class BoundedBigAutoField(models.AutoField):
         description = _("Big Integer")
@@ -68,8 +68,8 @@ if settings.SENTRY_USE_BIG_INTS:
         def db_type(self, connection: BaseDatabaseWrapper) -> str:
             return "bigserial"
 
-        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str:
-            return cast(str, BoundedBigIntegerField().db_type(connection))
+        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str | None:
+            return BoundedBigIntegerField().db_type(connection)
 
         def get_internal_type(self) -> str:
             return "BigIntegerField"
@@ -78,7 +78,7 @@ if settings.SENTRY_USE_BIG_INTS:
             if value:
                 value = int(value)
                 assert value <= self.MAX_VALUE
-            return cast(int, super().get_prep_value(value))
+            return super().get_prep_value(value)
 
 else:
     # we want full on classes for these

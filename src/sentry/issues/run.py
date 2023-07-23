@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 from typing import Mapping
 
 import rapidjson
@@ -11,11 +10,11 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
-    RunTaskWithMultiprocessing,
 )
 from arroyo.types import Commit, Message, Partition
 
-from sentry.snuba.utils import initialize_consumer_state
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +54,9 @@ def create_ingest_occurences_consumer(
     input_block_size: int,
     output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
-    from django.conf import settings
-
-    from sentry.utils.batching_kafka_consumer import create_topics
     from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
-    kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
-    create_topics(kafka_cluster, [topic_name])
+    kafka_cluster = get_topic_definition(topic_name)["cluster"]
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
@@ -110,14 +105,13 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTaskWithMultiprocessing(
-            process_message,
-            CommitOffsets(commit),
-            self.num_processes,
-            self.max_batch_size,
-            self.max_batch_time,
-            self.input_block_size,
-            self.output_block_size,
-            initializer=partial(initialize_consumer_state),
+            function=process_message,
+            next_step=CommitOffsets(commit),
+            num_processes=self.num_processes,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
         )
 
 

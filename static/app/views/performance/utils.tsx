@@ -235,13 +235,15 @@ export function trendsTargetRoute({
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  if (conditions.hasFilter('tpm()')) {
-    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-  } else {
-    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-  }
-  // Metrics don't support duration filters
+  // Trends on metrics don't need these conditions
   if (!organization.features.includes('performance-new-trends')) {
+    // No need to carry over tpm filters to transaction summary
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+    } else {
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+    }
+
     if (conditions.hasFilter('transaction.duration')) {
       modifiedConditions.setFilterValues(
         'transaction.duration',
@@ -323,11 +325,11 @@ export function getPerformanceDuration(milliseconds: number) {
   return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
 }
 
-export function areMultipleProjectsSelected(eventView: EventView) {
-  if (!eventView.project.length) {
+export function getIsMultiProject(projects: readonly number[] | number[]) {
+  if (!projects.length) {
     return true; // My projects
   }
-  if (eventView.project.length === 1 && eventView.project[0] === ALL_ACCESS_PROJECTS) {
+  if (projects.length === 1 && projects[0] === ALL_ACCESS_PROJECTS) {
     return true; // All projects
   }
   return false;
@@ -356,17 +358,24 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProjectID(
+export function getProject(
   eventData: EventData,
   projects: Project[]
-): string | undefined {
+): Project | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
     return undefined;
   }
 
-  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug);
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  return getProject(eventData, projects)?.id;
 }
 
 export function transformTransaction(

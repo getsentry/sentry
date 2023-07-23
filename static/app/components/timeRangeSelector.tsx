@@ -84,6 +84,10 @@ export interface TimeRangeSelectorProps
    */
   end?: DateString;
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -136,6 +140,7 @@ export function TimeRangeSelector({
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
+  maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
   menuWidth,
@@ -201,6 +206,7 @@ export function TimeRangeSelector({
           // on the search query
           timeRangeAutoCompleteFilter(items, search, {
             maxDays: maxPickableDays,
+            maxDateRange,
           });
 
       return filteredItems.map(item => ({
@@ -209,7 +215,15 @@ export function TimeRangeSelector({
         textValue: item.searchKey,
       }));
     },
-    [start, end, utc, search, maxPickableDays, disallowArbitraryRelativeRanges]
+    [
+      start,
+      end,
+      utc,
+      search,
+      maxPickableDays,
+      maxDateRange,
+      disallowArbitraryRelativeRanges,
+    ]
   );
 
   const commitChanges = useCallback(() => {
@@ -385,6 +399,7 @@ export function TimeRangeSelector({
                         });
                       }}
                       maxPickableDays={maxPickableDays}
+                      maxDateRange={maxDateRange}
                     />
                   </AbsoluteDateRangeWrap>
                 )}

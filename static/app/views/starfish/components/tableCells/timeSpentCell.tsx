@@ -1,19 +1,27 @@
 import {Tooltip} from 'sentry/components/tooltip';
+import {formatPercentage} from 'sentry/utils/formatters';
+import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 import {getTooltip} from 'sentry/views/starfish/views/spans/types';
 
 export function TimeSpentCell({
-  formattedTimeSpent,
+  timeSpentPercentage,
   totalSpanTime,
 }: {
-  formattedTimeSpent: string;
+  timeSpentPercentage: number;
   totalSpanTime: number;
 }) {
   const toolTip = getTooltip('timeSpent', totalSpanTime);
+  const percentage = timeSpentPercentage > 1 ? 1 : timeSpentPercentage;
+  const undefinedTimeSpentText = '--%';
   return (
-    <span>
-      <Tooltip isHoverable title={toolTip}>
-        {formattedTimeSpent}
-      </Tooltip>
-    </span>
+    <TextAlignRight>
+      {percentage >= 0 ? (
+        <Tooltip isHoverable title={toolTip} showUnderline>
+          {formatPercentage(percentage)}
+        </Tooltip>
+      ) : (
+        undefinedTimeSpentText
+      )}
+    </TextAlignRight>
   );
 }

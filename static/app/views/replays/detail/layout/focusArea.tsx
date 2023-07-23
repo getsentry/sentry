@@ -1,10 +1,9 @@
-import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
-import IssueList from 'sentry/views/replays/detail/issueList';
+import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace/index';
@@ -29,14 +28,11 @@ function FocusArea({}: Props) {
       );
     case TabKey.TRACE:
       return <Trace organization={organization} replayRecord={replay?.getReplay()} />;
-    case TabKey.ISSUES:
-      if (!replay) {
-        return <Placeholder height="150px" />;
-      }
+    case TabKey.ERRORS:
       return (
-        <IssueList
-          replayId={replay.getReplay()?.id}
-          projectId={replay.getReplay()?.project_id}
+        <ErrorList
+          errorFrames={replay?.getErrorFrames()}
+          startTimestampMs={replay?.getReplay().started_at.getTime() ?? 0}
         />
       );
     case TabKey.DOM:
@@ -51,20 +47,21 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
+          memoryFrames={replay?.getMemoryFrames()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
         />
       );
     case TabKey.CONSOLE:
-    default:
+    default: {
       return (
         <Console
           breadcrumbs={replay?.getConsoleCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
         />
       );
+    }
   }
 }
 

@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.utils import timezone
-from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -94,6 +94,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         dataset_label = request.GET.get("dataset", "discover")
         if dataset_label not in DATASET_OPTIONS:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        sentry_sdk.set_tag("query.dataset", dataset_label)
         return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_dataclass(
@@ -292,6 +293,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif value in DURATION_UNITS:
                 units[key] = value
                 meta[key] = "duration"
+            elif value == "rate":
+                if key in ["eps()", "sps()", "tps()"]:
+                    units[key] = "1/second"
+                elif key in ["epm()", "spm()", "tpm()"]:
+                    units[key] = "1/minute"
+                else:
+                    units[key] = None
             elif value == "duration":
                 units[key] = "millisecond"
             else:
@@ -461,6 +469,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "eps()": "eps(%d)" % rollup,
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
+                    "sps()": "sps(%d)" % rollup,
+                    "spm()": "spm(%d)" % rollup,
                 }
 
                 query_columns = [column_map.get(column, column) for column in columns]

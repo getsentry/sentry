@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,10 +14,10 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthProvider,
@@ -90,14 +90,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -181,10 +181,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
-                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -217,13 +216,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
-            if getattr(member.flags, "idp:role-restricted"):
-                return Response(
-                    {
-                        "role": "This user's org-role is managed through your organization's identity provider."
-                    },
-                    status=403,
-                )
+            # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
 
@@ -281,7 +274,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
             # null. We do this because such a team role would be effectively
@@ -302,14 +295,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(
@@ -359,7 +352,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         audit_data = member.get_audit_log_data()
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
             proj_list = list(

@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectGroupStatsTest(APITestCase):
     @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):
@@ -18,6 +18,7 @@ class ProjectGroupStatsTest(APITestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group1 is not None
         group2 = self.store_event(
             data={
                 "fingerprint": ["group2"],
@@ -25,6 +26,7 @@ class ProjectGroupStatsTest(APITestCase):
             },
             project_id=self.project.id,
         ).group
+        assert group2 is not None
 
         for fingerprint, count in (("group1", 2), ("group2", 4)):
             for _ in range(count):

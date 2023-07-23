@@ -138,8 +138,8 @@ const prismLight = {
   '--prism-selected': '#E9E0EB',
   '--prism-inline-code': '#D25F7C',
   '--prism-inline-code-background': '#F8F9FB',
-  '--prism-highlight-background': '#E8ECF2',
-  '--prism-highlight-accent': '#C7CBD1',
+  '--prism-highlight-background': '#5C78A31C',
+  '--prism-highlight-accent': '#5C78A344',
   '--prism-comment': '#72697C',
   '--prism-punctuation': '#70697C',
   '--prism-property': '#7A6229',
@@ -155,8 +155,8 @@ const prismDark = {
   '--prism-selected': '#865891',
   '--prism-inline-code': '#D25F7C',
   '--prism-inline-code-background': '#F8F9FB',
-  '--prism-highlight-background': '#382F5C',
-  '--prism-highlight-accent': '#D25F7C',
+  '--prism-highlight-background': '#A8A2C31C',
+  '--prism-highlight-accent': '#A8A2C344',
   '--prism-comment': '#8B7A9E',
   '--prism-punctuation': '#B3ACC1',
   '--prism-property': '#EAB944',
@@ -254,24 +254,28 @@ const generateAliases = (colors: BaseColors) => ({
    */
   success: colors.green300,
   successText: colors.green400,
+  successFocus: colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
   errorText: colors.red400,
+  errorFocus: colors.red200,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: colors.red300,
   dangerText: colors.red400,
+  dangerFocus: colors.red200,
 
   /**
    * A color that denotes a warning
    */
   warning: colors.yellow300,
   warningText: colors.yellow400,
+  warningFocus: colors.yellow200,
 
   /**
    * A color that indicates something is disabled where user can not interact or use

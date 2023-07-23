@@ -1,7 +1,7 @@
 from typing import Any, MutableMapping
 
-from django.db import transaction
-from django.template.defaultfilters import slugify
+from django.db import router, transaction
+from django.utils.text import slugify
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
@@ -60,7 +60,7 @@ class DocIntegrationSerializer(Serializer):
     def create(self, validated_data: MutableMapping[str, Any]) -> DocIntegration:
         slug = self._generate_slug(validated_data["name"])
         features = validated_data.pop("features") if validated_data.get("features") else []
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(DocIntegration)):
             doc_integration = DocIntegration.objects.create(slug=slug, **validated_data)
             IntegrationFeature.objects.bulk_create(
                 [

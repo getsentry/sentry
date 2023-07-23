@@ -12,7 +12,7 @@ import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
@@ -21,7 +21,7 @@ from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
-from sentry.snuba.events import Column, Columns
+from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -558,17 +558,17 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         if event_metadata:
             for value in event_metadata.values():
-                value_u = force_text(value, errors="replace")
+                value_u = force_str(value, errors="replace")
                 if value_u not in message:
                     message = f"{message} {value_u}"
 
         if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors="replace")
+            culprit_u = force_str(culprit, errors="replace")
             message = f"{message} {culprit_u}"
 
         return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
 
-    def _get_column_name(self, column: Column) -> str:
+    def _get_column_name(self, column: Columns) -> str:
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
 
@@ -763,6 +763,25 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
+    @memoize
+    def search_message(self) -> str:
+        message = super().search_message
+        # Include values from the occurrence in our search message as well, so that occurrences work
+        # correctly in search.
+        if self.occurrence is not None:
+            message = augment_message_with_occurrence(message, self.occurrence)
+
+        return message
+
+
+def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
+    for attr in ("issue_title", "subtitle", "culprit"):
+        value = getattr(occurrence, attr, "")
+        if value and value not in message:
+            value = force_str(value, errors="replace")
+            message = f"{message} {value}"
+    return message
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
@@ -791,12 +810,10 @@ class EventSubjectTemplateData:
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
-            return cast(str, self.event.organization.slug)
+            return self.event.organization.slug
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title
-            elif self.event.group and self.event.group.issue_category == GroupCategory.PERFORMANCE:
-                return self.event.group.issue_type.description
             else:
                 return self.event.title
 

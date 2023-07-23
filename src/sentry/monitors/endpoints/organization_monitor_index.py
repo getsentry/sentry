@@ -12,10 +12,10 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
@@ -71,15 +71,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve monitors for an organization",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
@@ -175,14 +175,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Create a monitor",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG],
+        parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
             201: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def post(self, request: Request, organization) -> Response:

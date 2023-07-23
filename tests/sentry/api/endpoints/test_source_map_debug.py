@@ -1,7 +1,7 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
+from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -46,7 +46,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ]
 
         for filename, artifact_name, expected in cases:
-            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
+            assert _find_url_prefix(filename, artifact_name) == expected
 
     def test_missing_event(self):
         resp = self.get_error_response(
@@ -190,49 +190,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
-
-    def test_release_has_no_user_agent(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "release": "my-release",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        Release.objects.get(organization=self.organization, version=event.release)
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            frame_idx=0,
-            exception_idx=0,
-        )
-
-        error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
-        assert error["data"] == {
-            "version": "my-release",
-            "filename": "/static/js/main.fa8fe19f.js",
-        }
 
     def test_release_has_no_artifacts(self):
         event = self.store_event(
@@ -523,7 +480,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
-                "dist": "my-dist",
+                "dist": None,
                 "exception": {
                     "values": [
                         {
@@ -547,10 +504,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
         file = File.objects.create(name="application.js", type="release.file")
         fileobj = ContentFile(b"a\na")
         file.putfile(fileobj)
@@ -560,7 +513,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             release_id=release.id,
             file=file,
             name="~/application.js",
-            dist_id=dist.id,
+            dist_id=None,
         )
 
         resp = self.get_success_response(
@@ -750,8 +703,8 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
 
     def test_remix_up_to_date(self):
         event = self.store_event(
@@ -791,5 +744,46 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
+
+    def test_not_part_of_pipeline(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "not_part_of_pipeline"
+        assert error["message"] == "Sentry is not part of your build pipeline"

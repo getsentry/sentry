@@ -14,6 +14,7 @@ from sentry.ingest.consumer_v2.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.pytest.fixtures import django_db_all
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def random_group_id():
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner,
     kafka_producer,
@@ -109,10 +110,10 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         consumer_type=ConsumerType.Events,
         group_id=random_group_id,
         auto_offset_reset="earliest",
-        strict_offset_reset=None,
+        strict_offset_reset=False,
         max_batch_size=2,
         max_batch_time=5,
-        num_processes=1,
+        num_processes=10,
         input_block_size=DEFAULT_BLOCK_SIZE,
         output_block_size=DEFAULT_BLOCK_SIZE,
         force_cluster=None,
@@ -122,10 +123,10 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            transaction_message = eventstore.get_event_by_id(
+            transaction_message = eventstore.backend.get_event_by_id(
                 default_project.id, transaction_event_id
             )
-            message = eventstore.get_event_by_id(default_project.id, event_id)
+            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
             if transaction_message and message:
                 break
@@ -142,7 +143,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["contexts"]["trace"]
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_ingest_topic_can_be_overridden(
     task_runner,
     kafka_admin,
@@ -183,7 +184,7 @@ def test_ingest_topic_can_be_overridden(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            message = eventstore.get_event_by_id(default_project.id, event_id)
+            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
             if message:
                 break

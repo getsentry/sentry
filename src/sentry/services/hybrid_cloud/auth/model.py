@@ -6,8 +6,21 @@
 import base64
 import contextlib
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
+from django.contrib.sessions.backends.base import SessionBase
 from pydantic.fields import Field
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
@@ -24,26 +37,39 @@ class RpcAuthenticatorType(IntEnum):
     API_KEY_AUTHENTICATION = 0
     TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
+    ORG_AUTH_TOKEN_AUTHENTICATION = 3
 
     @classmethod
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
             return RpcAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == OrgAuthTokenAuthentication:
+            return RpcAuthenticatorType.ORG_AUTH_TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
             return TokenAuthentication()
+        if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
+            return OrgAuthTokenAuthentication()
         else:
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
@@ -64,6 +90,10 @@ class RpcAuthentication(BaseAuthentication):
         self.types = types
 
     def authenticate(self, request: Request) -> Optional[Tuple[Any, Any]]:
+        from django.contrib.auth.models import AnonymousUser
+
+        from sentry.models.apikey import is_api_key_auth
+        from sentry.models.orgauthtoken import is_org_auth_token_auth
         from sentry.services.hybrid_cloud.auth.service import auth_service
 
         response = auth_service.authenticate_with(
@@ -72,6 +102,11 @@ class RpcAuthentication(BaseAuthentication):
 
         if response.user is not None:
             return response.user, response.auth
+
+        if response.auth is not None and (
+            is_api_key_auth(response.auth) or is_org_auth_token_auth(response.auth)
+        ):
+            return AnonymousUser(), response.auth
 
         return None
 
@@ -101,12 +136,33 @@ class AuthenticationRequest(RpcModel):
     user_id: Optional[str] = None
     user_hash: Optional[str] = None
     nonce: Optional[str] = None
+
     remote_addr: Optional[str] = None
     signature: Optional[str] = None
     absolute_url: str = ""
     absolute_url_root: str = ""
     path: str = ""
     authorization_b64: Optional[str] = None
+
+    @classmethod
+    def get_attributes_of_session_keys(cls) -> Mapping[str, Any]:
+        return dict(
+            backend="_auth_user_backend",
+            user_id="_auth_user_id",
+            user_hash="_auth_user_hash",
+            nonce="_nonce",
+        )
+
+    def apply_from_session(self, session: SessionBase) -> "AuthenticationRequest":
+        """
+        Copies over attributes from session without changing the existing value for session.accessed
+        Modifies self in place and returns it.
+        """
+        orig = session.accessed
+        for attr, session_key in self.get_attributes_of_session_keys().items():
+            setattr(self, attr, session.get(session_key, None))
+        session.accessed = orig
+        return self
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
@@ -115,17 +171,13 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
-        backend=request.session.get("_auth_user_backend", None),
-        user_id=request.session.get("_auth_user_id", None),
-        user_hash=request.session.get("_auth_user_hash", None),
-        nonce=request.session.get("_nonce", None),
         remote_addr=request.META["REMOTE_ADDR"],
         signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
         authorization_b64=_normalize_to_b64(request.META.get("HTTP_AUTHORIZATION")),
-    )
+    ).apply_from_session(request.session)
 
 
 class AuthenticatedToken(RpcModel):
@@ -207,7 +259,7 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[None, None, None]:
+    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an
@@ -222,7 +274,7 @@ class AuthenticationContext(RpcModel):
         if request is None:
             # Contexts that lack a request
             # Note -- if a request is setup in the env after this context manager, you run the risk of bugs.
-            yield
+            yield request
             return
 
         has_user = hasattr(request, "user")
@@ -234,7 +286,7 @@ class AuthenticationContext(RpcModel):
         request.auth = self.auth
 
         try:
-            yield
+            yield request
         finally:
             if has_user:
                 request.user = old_user
@@ -250,6 +302,7 @@ class AuthenticationContext(RpcModel):
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False
+    accessed: Set[str] = Field(default_factory=set)
 
 
 class RpcAuthProviderFlags(RpcModel):

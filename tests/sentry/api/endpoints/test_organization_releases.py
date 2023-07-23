@@ -1,5 +1,4 @@
 import unittest
-from base64 import b64encode
 from datetime import datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
@@ -8,10 +7,8 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_releases import (
-    ReleaseHeadCommitSerializer,
-    ReleaseSerializerWithProjects,
-)
+from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.locks import locks
@@ -21,7 +18,6 @@ from sentry.models import (
     ApiToken,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -31,6 +27,8 @@ from sentry.models import (
     ReleaseStages,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
@@ -39,6 +37,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import (
     APITestCase,
     ReleaseCommitPatchTest,
@@ -46,8 +45,10 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @region_silo_test(stable=True)
@@ -1626,38 +1627,116 @@ class OrganizationReleaseCreateTest(APITestCase):
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
 
         # test right org, wrong permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_api_key = ApiKey.objects.create(organization_id=org.id, scope_list=["project:read"])
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{bad_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(bad_api_key.key),
         )
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             wrong_org_api_key = ApiKey.objects.create(
                 organization_id=org2.id, scope_list=["project:write"]
             )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(wrong_org_api_key.key),
         )
         assert response.status_code == 403
 
         # test right org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_api_key = ApiKey.objects.create(
                 organization_id=org.id, scope_list=["project:write"]
             )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(good_api_key.key),
         )
         assert response.status_code == 201, response.content
+
+    def test_org_auth_token(self):
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        org2 = self.create_organization()
+
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        release1.add_project(project1)
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+
+        # test right org, wrong permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(bad_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [project1.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {bad_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test wrong org, right permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            wrong_org_token_str = generate_token(org2.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org2.id,
+                name="token 1",
+                token_hashed=hash_token(wrong_org_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [project1.slug]},
+            HTTP_AUTHORIZATION=f"Bearer {wrong_org_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test right org, right permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            good_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                url,
+                data={"version": "1.2.1", "projects": [project1.slug]},
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
+        assert response.status_code == 201, response.content
+
+        # Make sure org token usage was updated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == project1.id
 
     @patch("sentry.tasks.commits.fetch_commits")
     def test_api_token(self, mock_fetch_commits):
@@ -1673,7 +1752,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization_id=org.id, name="getsentry/sentry-plugins", provider="dummy"
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
 
         team1 = self.create_team(organization=org)

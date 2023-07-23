@@ -67,7 +67,6 @@ function GroupHeaderTabs({
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
-  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasReplaySupport = organizationFeatures.has('session-replay');
@@ -139,14 +138,6 @@ function GroupHeaderTabs({
         {t('Merged Issues')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.GROUPING}
-        hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
-        disabled={disabledTabs.includes(Tab.GROUPING)}
-        to={`${baseUrl}grouping/${location.search}`}
-      >
-        {t('Grouping')}
-      </TabList.Item>
-      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
@@ -176,7 +167,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -192,7 +183,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
       ];
@@ -204,7 +194,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
         Tab.USER_FEEDBACK,

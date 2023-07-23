@@ -4,11 +4,13 @@ from datetime import datetime
 import pytz
 from django.urls import reverse
 
-from sentry.api.endpoints.project_release_details import ReleaseSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils import APITestCase
 from sentry.types.activity import ActivityType
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -156,6 +158,44 @@ class UpdateReleaseDetailsTest(APITestCase):
             type=ActivityType.RELEASE.value, project=project, ident=release.version[:64]
         )
         assert activity.exists()
+
+    def test_org_auth_token(self):
+        project = self.create_project(name="foo")
+        project2 = self.create_project(name="bar", organization=project.organization)
+
+        good_token_str = generate_token(project.organization.slug, "")
+        OrgAuthToken.objects.create(
+            organization_id=project.organization.id,
+            name="token 1",
+            token_hashed=hash_token(good_token_str),
+            token_last_characters="ABCD",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+        release.add_project(project2)
+
+        url = reverse(
+            "sentry-api-0-project-release-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.put(
+            url,
+            data={"ref": "master"},
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["version"] == release.version
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == "master"
 
 
 class ReleaseDeleteTest(APITestCase):

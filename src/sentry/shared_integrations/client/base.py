@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from random import random
-from typing import Any, Callable, Mapping, Sequence, Type, Union
+from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -66,7 +67,9 @@ class BaseApiClient(TrackResponseMixin):
         if path.startswith("/"):
             if not self.base_url:
                 raise ValueError(f"Invalid URL: {path}")
-            return f"{self.base_url}{path}"
+            base_url = self.base_url.rstrip("/")
+            path = path.lstrip("/")
+            return f"{base_url}/{path}"
         return path
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -74,6 +77,44 @@ class BaseApiClient(TrackResponseMixin):
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: Literal[True] = ...,
+    ) -> Response:
+        ...
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, str] | None = None,
+        params: Mapping[str, str] | None = None,
+        auth: str | None = None,
+        json: bool = True,
+        allow_text: bool | None = None,
+        allow_redirects: bool | None = None,
+        timeout: int | None = None,
+        ignore_webhook_errors: bool = False,
+        prepared_request: PreparedRequest | None = None,
+        raw_response: bool = ...,
+    ) -> BaseApiResponseX:
+        ...
 
     def _request(
         self,
@@ -174,6 +215,9 @@ class BaseApiClient(TrackResponseMixin):
                     if raw_response:
                         return resp
                     resp.raise_for_status()
+            except RestrictedIPAddress as e:
+                self.track_response_data("restricted_ip_address", span, e)
+                raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
                 raise ApiHostError.from_exception(e) from e

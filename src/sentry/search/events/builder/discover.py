@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from datetime import datetime, timedelta
 from typing import (
@@ -51,7 +53,7 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models import Environment, Organization, Project, Team
 from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
@@ -66,11 +68,13 @@ from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfi
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     SelectType,
     SnubaParams,
     WhereType,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
@@ -91,10 +95,37 @@ class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
 
+    def get_middle(self):
+        """Get the middle for comparison functions"""
+        if self.start is None or self.end is None:
+            raise InvalidSearchQuery("Need both start & end to use percent_change")
+        return self.start + (self.end - self.start) / 2
+
+    def first_half_condition(self):
+        """Create the first half condition for percent_change functions"""
+        return Function(
+            "less",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
+    def second_half_condition(self):
+        """Create the second half condition for percent_change functions"""
+        return Function(
+            "greaterOrEquals",
+            [
+                self.column("timestamp"),
+                Function("toDateTime", [self.get_middle()]),
+            ],
+        )
+
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
+    function_alias_prefix: str | None = None
     spans_metrics_builder = False
 
     def _dataclass_params(
@@ -140,7 +171,7 @@ class QueryBuilder(BaseQueryBuilder):
             else:
                 environments = []
 
-        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
+        user = user_service.get_user(user_id=params["user_id"]) if "user_id" in params else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -188,6 +219,7 @@ class QueryBuilder(BaseQueryBuilder):
         # Currently this is only used for avoiding conflicting values when doing the first query
         # of a top events request
         skip_tag_resolution: bool = False,
+        on_demand_metrics_enabled: bool = False,
     ):
         self.dataset = dataset
 
@@ -203,7 +235,10 @@ class QueryBuilder(BaseQueryBuilder):
         self.transform_alias_to_input_format = transform_alias_to_input_format
         self.raw_equations = equations
         self.use_metrics_layer = use_metrics_layer
+        self.on_demand_metrics_enabled = on_demand_metrics_enabled
         self.auto_fields = auto_fields
+        self.query = query
+        self.groupby_columns = groupby_columns
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
         self.tips: Dict[str, Set[str]] = {
@@ -797,7 +832,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.SnQLFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -1199,7 +1234,7 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def convert_aggregate_filter_to_condition(
-        self, aggregate_filter: event_filter.AggregateFilter
+        self, aggregate_filter: event_search.AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
@@ -1434,7 +1469,9 @@ class QueryBuilder(BaseQueryBuilder):
         alias: Union[str, Any, None] = match.group("alias")
 
         if alias is None:
-            alias = fields.get_function_alias_with_columns(raw_function, arguments)
+            alias = fields.get_function_alias_with_columns(
+                raw_function, arguments, self.function_alias_prefix
+            )
 
         return (function, combinator, arguments, alias)
 
@@ -1468,8 +1505,10 @@ class QueryBuilder(BaseQueryBuilder):
         )
 
     @classmethod
-    def handle_invalid_float(cls, value: float) -> Optional[float]:
-        if math.isnan(value):
+    def handle_invalid_float(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return value
+        elif math.isnan(value):
             return 0
         elif math.isinf(value):
             return None

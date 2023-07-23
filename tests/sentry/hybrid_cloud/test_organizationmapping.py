@@ -1,42 +1,39 @@
 import pytest
 from django.db import IntegrityError
 
-from sentry.models import Organization
+from sentry.models import outbox_context
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TransactionTestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
     def test_create_on_organization_save(self):
-        with exempt_from_silo_limits():
-            self.organization = Organization(
+        with outbox_context(flush=False), assume_test_silo_mode(SiloMode.REGION):
+            organization = self.create_organization(
                 name="test name",
             )
-            self.organization.save()
 
         # Validate that organization mapping has not been created
         with pytest.raises(OrganizationMapping.DoesNotExist):
-            OrganizationMapping.objects.get(organization_id=self.organization.id)
+            OrganizationMapping.objects.get(organization_id=organization.id)
 
         # Drain outbox to ensure mapping is created
         with outbox_runner():
             pass
 
-        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        assert org_mapping.idempotency_key == ""
-        assert self.organization.id == org_mapping.organization_id
-        assert org_mapping.verified is False
-        assert self.organization.slug == org_mapping.slug
-        assert self.organization.name == org_mapping.name
+        org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+        assert organization.id == org_mapping.organization_id
+        assert organization.slug == org_mapping.slug
+        assert organization.name == org_mapping.name
 
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(
@@ -65,16 +62,11 @@ class OrganizationMappingTest(TransactionTestCase):
         assert new_org_mapping.status == self.organization.status
 
     def test_upsert__update_if_found(self):
-        with exempt_from_silo_limits():
-            self.organization = Organization(
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization = self.create_organization(
                 name="test name",
                 slug="foobar",
             )
-
-            self.organization.save()
-
-        with outbox_runner():
-            pass
 
         fixture_org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
@@ -91,7 +83,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert fixture_org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_upsert__duplicate_slug(self):
-        self.organization = Factories.create_organization(slug="alreadytaken")
+        self.organization = self.create_organization(slug="alreadytaken")
 
         with pytest.raises(IntegrityError):
             organization_mapping_service.upsert(

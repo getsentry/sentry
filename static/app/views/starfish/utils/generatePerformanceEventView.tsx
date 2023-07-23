@@ -3,20 +3,20 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {NewQuery, Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
+import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
+import {StarfishType} from 'sentry/views/starfish/types';
 
 const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 export const TIME_SPENT_IN_SERVICE = 'time_spent_percentage()';
 
-export const getDefaultStatsPeriod = (organization: Organization) => {
+const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
     return '14d';
   }
@@ -47,102 +47,29 @@ function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   return conditions.formatString();
 }
 
-function generateGenericPerformanceEventView(
-  location: Location,
-  withStaticFilters: boolean,
-  organization: Organization
-): EventView {
-  const {query} = location;
-
-  const fields = ['transaction', 'http.method', 'tpm()', 'p50()', 'p95()', 'project'];
-
-  const hasStartAndEnd = query.start && query.end;
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction has:http.method',
-    projects: [],
-    fields,
-    version: 2,
-  };
-
-  const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
-  widths[savedQuery.fields.length - 1] = '110';
-  savedQuery.widths = widths;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = getDefaultStatsPeriod(organization);
-  }
-  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
-
-  const searchQuery = decodeScalar(query.query, '');
-  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
-
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-
-  if (query.trendParameter) {
-    // projects and projectIds are not necessary here since trendParameter will always
-    // be present in location and will not be determined based on the project type
-    const trendParameter = getCurrentTrendParameter(location, [], []);
-    if (WEB_VITAL_DETAILS[trendParameter.column]) {
-      eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
-    }
-  }
-
-  return eventView;
-}
-
-export function generatePerformanceEventView(
-  location: Location,
-  _: Project[],
-  {isTrends = false, withStaticFilters = false} = {},
-  organization: Organization
-) {
-  const eventView = generateGenericPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
-  if (isTrends) {
-    return eventView;
-  }
-
-  return eventView;
-}
-
 export function generateWebServiceEventView(
   location: Location,
-  _: Project[],
   {withStaticFilters = false} = {},
-  organization: Organization
+  organization: Organization,
+  selection: PageFilters
 ) {
   const {query} = location;
-  const hasStartAndEnd = query.start && query.end;
-  const orderby = decodeScalar(query.sort, `-time_spent_percentage`);
+  const project = selection.projects[0];
+  const starfishType = STARFISH_TYPE_FOR_PROJECT[project] || StarfishType.BACKEND;
 
-  const fields = [
-    'transaction',
-    'http.method',
-    'tps()',
-    'tps_percent_change()',
-    'p95(transaction.duration)',
-    'percentile_percent_change(transaction.duration,0.95)',
-    'http_error_count()',
-    'http_error_count_percent_change()',
-    'time_spent_percentage()',
-    'sum(transaction.duration)',
-  ];
-
-  const savedQuery: NewQuery = {
-    id: undefined,
-    name: t('Performance'),
-    query: 'event.type:transaction has:http.method transaction.op:http.server',
-    projects: [],
-    fields,
-    version: 2,
-    dataset: DiscoverDatasets.METRICS,
+  const getSavedQuery = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return generateMobileServiceSavedQuery(location);
+      case StarfishType.BACKEND:
+      default:
+        return generateWebServiceSavedQuery(location);
+    }
   };
+
+  const savedQuery = getSavedQuery();
+
+  const hasStartAndEnd = query.start && query.end;
 
   const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
   widths[savedQuery.fields.length - 1] = '110';
@@ -151,7 +78,6 @@ export function generateWebServiceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = getDefaultStatsPeriod(organization);
   }
-  savedQuery.orderby = orderby;
 
   const searchQuery = decodeScalar(query.query, '');
   savedQuery.query = `${savedQuery.query} ${prepareQueryForLandingPage(
@@ -162,4 +88,55 @@ export function generateWebServiceEventView(
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
   return eventView;
+}
+
+export function generateMobileServiceSavedQuery(location: Location) {
+  const {query} = location;
+  const orderby = decodeScalar(query.sort, `-eps`);
+
+  const fields = [
+    'transaction',
+    'eps()',
+    'p75(measurements.frames_slow_rate)',
+    'p75(measurements.time_to_initial_display)',
+  ];
+
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction transaction.op:ui.load',
+    fields,
+    version: 2,
+    dataset: DiscoverDatasets.METRICS,
+  };
+  savedQuery.orderby = orderby;
+
+  return savedQuery;
+}
+
+function generateWebServiceSavedQuery(location: Location) {
+  const {query} = location;
+  const orderby = decodeScalar(query.sort, `-time_spent_percentage`);
+
+  const fields = [
+    'transaction',
+    'http.method',
+    'tps()',
+    'p95(transaction.duration)',
+    'http_error_count()',
+    'time_spent_percentage()',
+    'sum(transaction.duration)',
+  ];
+
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction has:http.method transaction.op:http.server',
+    fields,
+    version: 2,
+    dataset: DiscoverDatasets.METRICS,
+  };
+  savedQuery.orderby = orderby;
+
+  return savedQuery;
 }

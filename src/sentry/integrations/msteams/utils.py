@@ -5,8 +5,8 @@ import logging
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 
-from ...services.hybrid_cloud.integration import integration_service
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
 MSTEAMS_MAX_ITERS = 100
@@ -53,14 +53,16 @@ def get_user_conversation_id(integration: Integration, user_id: str) -> str:
 
 
 def get_channel_id(organization, integration_id, name):
-    try:
-        integration = Integration.objects.get(
-            provider="msteams",
-            organizationintegration__organization_id=organization.id,
-            id=integration_id,
-        )
-    except Integration.DoesNotExist:
+    integrations = integration_service.get_integrations(
+        providers=["msteams"],
+        organization_id=organization.id,
+        integration_ids=[integration_id],
+    )
+    if not integrations:
         return None
+
+    assert len(integrations) == 1, "Found multiple msteams integrations for org!"
+    integration = integrations[0]
 
     team_id = integration.external_id
     client = MsTeamsClient(integration)

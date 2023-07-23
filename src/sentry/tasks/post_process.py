@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
@@ -367,6 +369,12 @@ def handle_group_owners(project, group, issue_owners):
                         )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
+                for go in new_group_owners:
+                    post_save.send_robust(
+                        sender=GroupOwner,
+                        instance=go,
+                        created=True,
+                    )
 
     except UnableToAcquireLock:
         pass
@@ -500,7 +508,7 @@ def post_process_group(
             # instead.
 
             def get_event_raise_exception() -> Event:
-                retrieved = eventstore.get_event_by_id(
+                retrieved = eventstore.backend.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,
@@ -590,6 +598,13 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
+
+        if not is_reprocessed and event.data.get("received"):
+            metrics.timing(
+                "events.time-to-post-process",
+                time() - event.data["received"],
+                instance=event.data["platform"],
+            )
 
 
 def run_post_process_job(job: PostProcessJob):
@@ -703,15 +718,11 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                         event.group.substatus = GroupSubStatus.NEW
                         add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
-                    updated = (
-                        Group.objects.filter(id=event.group.id)
-                        .exclude(substatus=GroupSubStatus.REGRESSED)
-                        .update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
-                    )
-                    if updated:
-                        event.group.status = GroupStatus.UNRESOLVED
-                        event.group.substatus = GroupSubStatus.REGRESSED
-                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                    # we don't need to update the group since that should've already been
+                    # handled on event ingest
+                    event.group.status = GroupStatus.UNRESOLVED
+                    event.group.substatus = GroupSubStatus.REGRESSED
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -1056,6 +1067,32 @@ def fire_error_processed(job: PostProcessJob):
         )
 
 
+def sdk_crash_monitoring(job: PostProcessJob):
+    from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:sdk-crash-detection", event.project.organization):
+        return
+
+    if settings.SDK_CRASH_DETECTION_PROJECT_ID is None:
+        logger.warning(
+            "SDK crash detection is enabled but SDK_CRASH_DETECTION_PROJECT_ID is not set."
+        )
+        return None
+
+    with metrics.timer("post_process.sdk_crash_monitoring.duration"):
+        with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
+            sdk_crash_detection.detect_sdk_crash(
+                event=event,
+                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
+                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
+            )
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -1091,13 +1128,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
-    ],
-    GroupCategory.PERFORMANCE: [
-        process_snoozes,
-        process_inbox_adds,
-        process_rules,
-        # TODO: Uncomment this when we want to send perf issues out via plugins as well
-        # process_plugins,
+        sdk_crash_monitoring,
     ],
 }
 

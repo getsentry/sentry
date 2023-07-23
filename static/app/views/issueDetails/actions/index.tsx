@@ -88,7 +88,7 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const {
@@ -411,18 +411,13 @@ export function Actions(props: Props) {
             disabled: disabled || group.subscriptionDetails?.disabled,
             onAction: onToggleSubscribe,
           },
-          ...(hasEscalatingIssues
-            ? []
-            : [
-                {
-                  key: 'mark-review',
-                  label: t('Mark reviewed'),
-                  disabled: !group.inbox || disabled,
-                  details:
-                    !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-                  onAction: () => onUpdate({inbox: false}),
-                },
-              ]),
+          {
+            key: 'mark-review',
+            label: t('Mark reviewed'),
+            disabled: !group.inbox || disabled,
+            details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+            onAction: () => onUpdate({inbox: false}),
+          },
           {
             key: 'share',
             label: t('Share'),

@@ -396,6 +396,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
         # manually assign the issue to someone else
+        assert self.event.group is not None
         GroupAssignee.objects.assign(self.event.group, self.user)
 
         # ensure the issue was not reassigned
@@ -590,7 +591,8 @@ class ResolveActorsTestCase(TestCase):
         actor2 = None
 
         # A team that's not ours
-        otherteam = Team.objects.exclude(projectteam__project_id=self.project.id)[0]
+        self.create_project(teams=[self.create_team()])
+        otherteam = self.create_team()
         owner3 = Owner("team", otherteam.slug)
         actor3 = None
 

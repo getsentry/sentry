@@ -1,7 +1,7 @@
 import functools
 import logging
 import random
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -47,23 +47,8 @@ def trace_func(**span_kwargs):
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(message: IngestMessage, project: Project) -> None:
-    result = _load_event(message, project)
-    if result is None:
-        return
-
-    data, callback = result
-    callback(_store_event(data))
-
-
-def _load_event(
-    message: IngestMessage, project: Project
-) -> Optional[Tuple[Any, Callable[[str], None]]]:
     """
-    Perform some initial filtering and deserialize the message payload. If the
-    event should be stored, the deserialized payload is returned along with a
-    function that can be called with the event's storage key to resume
-    processing after the event has been persisted and is available to be read by
-    other processing components.
+    Perform some initial filtering and deserialize the message payload.
     """
     payload = message["payload"]
     start_time = float(message["start_time"])
@@ -118,7 +103,7 @@ def _load_event(
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload)
+    data = json.loads(payload, use_rapid_json=True)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
@@ -138,54 +123,47 @@ def _load_event(
     ):
         return
 
-    def dispatch_task(cache_key: str) -> None:
-        if attachments:
-            with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-                attachment_objects = [
-                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                    for attachment in attachments
-                ]
+    with metrics.timer("ingest_consumer._store_event"):
+        cache_key = event_processing_store.store(data)
 
-                attachment_cache.set(
-                    cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
-                )
+    if attachments:
+        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+            attachment_objects = [
+                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                for attachment in attachments
+            ]
 
-        if data.get("type") == "transaction":
-            # No need for preprocess/process for transactions thus submit
-            # directly transaction specific save_event task.
-            save_event_transaction.delay(
+            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+
+    if data.get("type") == "transaction":
+        # No need for preprocess/process for transactions thus submit
+        # directly transaction specific save_event task.
+        save_event_transaction.delay(
+            cache_key=cache_key,
+            data=None,
+            start_time=start_time,
+            event_id=event_id,
+            project_id=project_id,
+        )
+    else:
+        # Preprocess this event, which spawns either process_event or
+        # save_event. Pass data explicitly to avoid fetching it again from the
+        # cache.
+        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+            preprocess_event(
                 cache_key=cache_key,
-                data=None,
+                data=data,
                 start_time=start_time,
                 event_id=event_id,
-                project_id=project_id,
+                project=project,
+                has_attachments=bool(attachments),
             )
-        else:
-            # Preprocess this event, which spawns either process_event or
-            # save_event. Pass data explicitly to avoid fetching it again from the
-            # cache.
-            with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-                preprocess_event(
-                    cache_key=cache_key,
-                    data=data,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project=project,
-                    has_attachments=bool(attachments),
-                )
 
-        # remember for an 1 hour that we saved this event (deduplication protection)
-        cache.set(deduplication_key, "", CACHE_TIMEOUT)
+    # remember for an 1 hour that we saved this event (deduplication protection)
+    cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
-        # emit event_accepted once everything is done
-        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
-
-    return data, dispatch_task
-
-
-def _store_event(data: Any) -> str:
-    with metrics.timer("ingest_consumer._store_event"):
-        return event_processing_store.store(data)
+    # emit event_accepted once everything is done
+    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")
@@ -224,7 +202,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         # their ingestion quota, they are also within the snuba queries quota.
         # Since there is no dead letter queue on this consumer, the only way to
         # prevent the consumer to crash as of now is to ignore the error and proceed.
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
     except RateLimitExceeded as e:
         event = None
         logger.exception(e)
@@ -258,7 +236,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> None:
     start_time = to_datetime(message["start_time"])
-    feedback = json.loads(message["payload"])
+    feedback = json.loads(message["payload"], use_rapid_json=True)
 
     try:
         save_userreport(project, feedback, start_time=start_time)

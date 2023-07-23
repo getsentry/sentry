@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -161,7 +161,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
         assert field_meta["project.name"] == "string"
         assert field_meta["environment"] == "string"
-        assert field_meta["epm()"] == "number"
+        assert field_meta["epm()"] == "rate"
 
     def test_project_id(self):
         self.store_transaction_metric(
@@ -190,7 +190,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
         assert field_meta["project_id"] == "integer"
         assert field_meta["environment"] == "string"
-        assert field_meta["epm()"] == "number"
+        assert field_meta["epm()"] == "rate"
 
     def test_project_dot_id(self):
         self.store_transaction_metric(
@@ -219,7 +219,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
         assert field_meta["project.id"] == "integer"
         assert field_meta["environment"] == "string"
-        assert field_meta["epm()"] == "number"
+        assert field_meta["epm()"] == "rate"
 
     def test_title_alias(self):
         """title is an alias to transaction name"""
@@ -500,6 +500,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert field_meta["user_misery()"] == "number"
             assert field_meta["failure_rate()"] == "percentage"
             assert field_meta["failure_count()"] == "integer"
+            assert field_meta["tpm()"] == "rate"
+
+            assert meta["units"]["tpm()"] == "1/minute"
 
     def test_user_misery_and_team_key_sort(self):
         self.store_transaction_metric(
@@ -2121,47 +2124,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert meta["isMetricsData"]
-
-    def test_os_name_incompatible(self):
-        self.store_transaction_metric(
-            1,
-            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
-            timestamp=self.min_ago,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "os.name",
-                    "p90()",
-                ],
-                "query": "transaction:foo_transaction",
-                "dataset": "metrics",
-            }
-        )
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "os.name is unavailable"
-
-    def test_os_name_falls_back(self):
-        self.store_transaction_metric(
-            1,
-            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
-            timestamp=self.min_ago,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "os.name",
-                    "p75()",
-                ],
-                "query": "transaction:foo_transaction",
-                "dataset": "metricsEnhanced",
-            }
-        )
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]
-        assert not meta["isMetricsData"]
 
     def test_http_error_rate(self):
         self.store_transaction_metric(

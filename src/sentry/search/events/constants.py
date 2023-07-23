@@ -42,6 +42,7 @@ TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
+SPAN_MODULE_ALIAS = "span.module"
 
 
 class ThresholdDict(TypedDict):
@@ -95,7 +96,16 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+RESULT_TYPES = {
+    "duration",
+    "string",
+    "number",
+    "integer",
+    "percentage",
+    "percent_change",
+    "date",
+    "rate",
+}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
@@ -269,24 +279,30 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 SPAN_METRICS_MAP = {
-    "user": "s:transactions/span.user@none",
-    "span.duration": "d:transactions/span.duration@millisecond",
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
 METRICS_GRANULARITIES = [86400, 3600, 60]
+METRICS_GRANULARITY_MAPPING = {"1d": 86400, "1h": 3600, "1m": 60}
 METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
-# These strings will be resolved by the indexer, but aren't available in the dataset
-METRIC_UNAVAILBLE_COLUMNS = {"os.name"}
 
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_DURATION_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
 METRIC_PERCENTILES = {

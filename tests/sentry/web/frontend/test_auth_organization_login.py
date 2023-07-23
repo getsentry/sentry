@@ -1,22 +1,22 @@
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 
 from sentry.auth.authenticators import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
-    Organization,
     OrganizationMember,
     OrganizationOption,
     OrganizationStatus,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -43,7 +43,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
 
         assert resp.context["login_form"]
-        assert resp.context["organization"] == self.organization
+        assert resp.context["organization"] == serialize_rpc_organization(self.organization)
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
@@ -856,11 +856,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     @with_feature({"organizations:create": False})
     def test_basic_auth_flow_as_invited_user(self):
         user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, user_id=user.id)
-        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
-        member.email = "foor@example.com"
-        member.user_id = None
-        member.save()
+        self.create_member(organization=self.organization, email="foor@example.com")
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
@@ -876,11 +872,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_basic_auth_flow_as_invited_user_not_single_org_mode(self):
         user = self.create_user("u2@example.com")
-        self.create_member(organization=self.organization, user_id=user.id)
-        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
-        member.email = "u2@example.com"
-        member.user_id = None
-        member.save()
+        self.create_member(organization=self.organization, email="u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
@@ -1062,9 +1054,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
     def test_org_not_visible(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path, follow=True)
         assert resp.status_code == 200
@@ -1078,7 +1068,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
-        self.auth_provider = AuthProvider.objects.create(
+        self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
         self.path = reverse("sentry-auth-organization", args=[self.organization.slug])
@@ -1119,7 +1109,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
@@ -1155,7 +1145,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
         # Check that OrganizationMember was created as a side effect
@@ -1197,7 +1187,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
             ("/organizations/foo/issues/", 302),
         ]
 
-        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
         member = OrganizationMember.objects.get(

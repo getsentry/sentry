@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -316,7 +316,7 @@ class IncidentCreationTest(TestCase):
                 # This incident will take the identifier we already fetched and
                 # use it, which will cause the database to throw an integrity
                 # error.
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Incident)):
                     incident = Incident.objects.create(
                         self.organization,
                         status=IncidentStatus.OPEN.value,
@@ -460,7 +460,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target == email
 
 
-class AlertRuleTriggerActionActivateTest:
+class AlertRuleTriggerActionActivateBaseTest:
     method = None
 
     def setUp(self):
@@ -487,11 +487,11 @@ class AlertRuleTriggerActionActivateTest:
         )
 
 
-class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
     method = "fire"
 
 
-class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):
+class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
     method = "resolve"
 
 

@@ -6,15 +6,14 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
-from sentry.db.models.manager import OptionManager, Value
-from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models import Organization
 
 
-class OrganizationOptionManager(OptionManager["Organization"]):
+class OrganizationOptionManager(OptionManager["OrganizationOption"]):
     def get_value_bulk(
         self, instances: Sequence[Organization], key: str
     ) -> Mapping[Organization, Any]:
@@ -26,7 +25,11 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         return result
 
     def get_value(
-        self, organization: Organization, key: str, default: Value | None = None
+        self,
+        organization: Organization,
+        key: str,
+        default: Value | None = None,
+        validate: ValidateFunction | None = None,
     ) -> Value:
         result = self.get_all_values(organization)
         return result.get(key, default)
@@ -39,11 +42,14 @@ class OrganizationOptionManager(OptionManager["Organization"]):
         inst.delete()
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
-    def set_value(self, organization: Organization, key: str, value: Value) -> None:
-        self.create_or_update(organization=organization, key=key, values={"value": value})
+    def set_value(self, organization: Organization, key: str, value: Value) -> bool:
+        inst, created = self.create_or_update(
+            organization=organization, key=key, values={"value": value}
+        )
         self.reload_cache(organization.id, "organizationoption.set_value")
+        return bool(created) or inst > 0
 
-    def get_all_values(self, organization: Organization) -> Mapping[str, Value]:
+    def get_all_values(self, organization: Organization | int) -> Mapping[str, Value]:
         if isinstance(organization, models.Model):
             organization_id = organization.id
         else:
@@ -57,11 +63,11 @@ class OrganizationOptionManager(OptionManager["Organization"]):
             else:
                 self._option_cache[cache_key] = result
 
-        # Explicitly typing to satisfy mypy.
-        values: Mapping[str, Value] = self._option_cache.get(cache_key, {})
-        return values
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Value]:
+        from sentry.tasks.relay import schedule_invalidate_project_config
+
         if update_reason != "organizationoption.get_all_values":
             schedule_invalidate_project_config(
                 organization_id=organization_id, trigger=update_reason

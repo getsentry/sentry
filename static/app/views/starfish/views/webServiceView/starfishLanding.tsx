@@ -1,59 +1,89 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import EndpointDetail, {
-  EndpointDataRow,
-} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
+import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {ReleaseSelector} from 'sentry/views/starfish/components/releaseSelector';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
+import {StarfishType} from 'sentry/views/starfish/types';
+import {MobileStarfishView} from 'sentry/views/starfish/views/mobileServiceView';
 
 import {StarfishView} from './starfishView';
-
-type WebServiceViewState = {
-  selectedRow?: EndpointDataRow;
-};
 
 type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   router: InjectedRouter;
   selection: PageFilters;
   withStaticFilters: boolean;
 };
 
+export type BaseStarfishViewProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
 export function StarfishLanding(props: Props) {
+  const project = props.selection.projects[0];
+  const starfishType = STARFISH_TYPE_FOR_PROJECT[project] || StarfishType.BACKEND;
+
   const pageFilters: React.ReactNode = (
-    <PageFilterBar condensed>
-      <ProjectPageFilter />
-      <DatePageFilter alignDropdown="left" />
-    </PageFilterBar>
+    <Fragment>
+      <PageFilterBar condensed>
+        <StarfishProjectSelector />
+        <StarfishDatePicker />
+      </PageFilterBar>
+      {starfishType === StarfishType.MOBILE && (
+        <PageFilterBar condensed>
+          <ReleaseSelector selectorKey="release1" selectorName={t('Release 1')} />
+          <ReleaseSelector selectorKey="release2" selectorName={t('Release 2')} />
+        </PageFilterBar>
+      )}
+    </Fragment>
   );
 
-  const [state, setState] = useState<WebServiceViewState>({selectedRow: undefined});
-  const unsetSelectedEndpoint = () => setState({selectedRow: undefined});
-  const {selectedRow} = state;
-  const setSelectedEndpoint = (row: EndpointDataRow) => setState({selectedRow: row});
+  const getStarfishView = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return MobileStarfishView;
+      case StarfishType.BACKEND:
+      default:
+        return StarfishView;
+    }
+  };
+
+  const getStarfishPageTitle = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return t('Mobile Application');
+      case StarfishType.BACKEND:
+      default:
+        return t('Web Service');
+    }
+  };
+
+  const StarfishComponent = getStarfishView();
 
   return (
     <Layout.Page>
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Starfish')}</Layout.Title>
+            <Layout.Title>{getStarfishPageTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -65,14 +95,7 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              <StarfishView {...props} onSelect={setSelectedEndpoint} />
-              <EndpointDetail
-                row={selectedRow}
-                onClose={unsetSelectedEndpoint}
-                eventView={props.eventView}
-                organization={props.organization}
-                location={props.location}
-              />
+              <StarfishComponent {...props} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

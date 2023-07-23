@@ -4,12 +4,13 @@ import abc
 import contextlib
 import functools
 import itertools
-import sys
 import threading
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
 from django.conf import settings
+
+from sentry.utils.env import in_test_environment
 
 
 class SiloMode(Enum):
@@ -49,7 +50,7 @@ class SiloMode(Enum):
         cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
         silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
         """
-        if "pytest" in sys.modules:
+        if in_test_environment():
             assert (
                 single_process_silo_mode_state.mode is None
             ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
@@ -118,18 +119,13 @@ class SiloLimit(abc.ABC):
         """
         raise NotImplementedError
 
-    def is_available(self, extra_modes: Iterable[SiloMode] = ()) -> bool:
+    def is_available(self) -> bool:
         current_mode = SiloMode.get_current_mode()
-        return (
-            current_mode == SiloMode.MONOLITH
-            or current_mode in self.modes
-            or current_mode in extra_modes
-        )
+        return current_mode == SiloMode.MONOLITH or current_mode in self.modes
 
     def create_override(
         self,
         original_method: Callable[..., Any],
-        extra_modes: Iterable[SiloMode] = (),
     ) -> Callable[..., Any]:
         """Create a method that conditionally overrides another method.
 
@@ -137,7 +133,6 @@ class SiloLimit(abc.ABC):
         is in one of the allowed silo modes.
 
         :param original_method: the method being conditionally overridden
-        :param extra_modes: modes to allow in addition to self.modes
         :return: the conditional method object
         """
 
@@ -146,7 +141,7 @@ class SiloLimit(abc.ABC):
             # using `override_settings` or a similar context can change the value of
             # settings.SILO_MODE effectively. Otherwise, availability would be
             # immutably determined when the decorator is first evaluated.
-            is_available = self.is_available(extra_modes)
+            is_available = self.is_available()
 
             if is_available:
                 return original_method(*args, **kwargs)
@@ -154,7 +149,7 @@ class SiloLimit(abc.ABC):
                 handler = self.handle_when_unavailable(
                     original_method,
                     SiloMode.get_current_mode(),
-                    itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes),
+                    itertools.chain([SiloMode.MONOLITH], self.modes),
                 )
                 return handler(*args, **kwargs)
 

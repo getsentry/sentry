@@ -15,19 +15,17 @@
 - name: 'Trigger: Revert'
   color: 'A0CABD'
   description: 'add to a merged PR to revert it (skips CI)'
+- name: 'Trigger: Silo db'
+  color: 'A0CABD'
+  description: 'Trigger tests with split databases that simulate hybrid cloud data separation in postgres'
 - name: 'Trigger: Visual Snapshot'
   color: 'A0CABD'
   description: 'add to a PR to run a visual snapshot diff'
 
-# Unito - notion.so/52d10dbfad474328850319e48b057a5b
+# Unito - www.notion.so/52d10dbfad474328850319e48b057a5b
 - name: 'Sync: Jira'
   color: 'A0CABD'
   description: 'apply to auto-create a Jira shadow ticket'
-
-# Dependabot
-- name: dependencies
-  color: 'ffffff'
-  description: Pull requests that update a dependency file
 
 # Scopes
 - name: 'Scope: Backend'
@@ -36,32 +34,6 @@
 - name: 'Scope: Frontend'
   color: '3C74DD'
   description: Automatically applied to PRs that change frontend components
-
-# Status for use with stalebot and routing/triage
-- name: 'Status: Backlog'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: In Progress'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: Invalid'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Investigating'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Needs More Information'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Stale'
-  color: '8D5494'
-  description: stalebot will close after another week of inactivity
-- name: 'Status: Unrouted'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Untriaged'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
 
 # Issue type
 - name: 'Type: Bug'
@@ -192,18 +164,26 @@
 - name: 'Waiting for: Community'
   color: '8D5494'
 
-# Product Areas - notion.so/sentry/473791bae5bf43399d46093050b77bf0
+# Product Areas - www.notion.so/sentry/473791bae5bf43399d46093050b77bf0
 - name: 'Product Area: Unknown'
   color: '8D5494'
 - name: 'Product Area: Sign In'
   color: '8D5494'
 - name: 'Product Area: Issues'
   color: '8D5494'
+- name: 'Product Area: Issues - Source Maps'
+  color: '8D5494'
 - name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
 - name: 'Product Area: Projects'
   color: '8D5494'
 - name: 'Product Area: Performance'
+  color: '8D5494'
+- name: 'Product Area: Starfish'
+  color: '8D5494'
+- name: 'Product Area: Starfish - API'
+  color: '8D5494'
+- name: 'Product Area: Starfish - Database'
   color: '8D5494'
 - name: 'Product Area: Profiling'
   color: '8D5494'
@@ -245,6 +225,8 @@
   color: '8D5494'
 - name: 'Product Area: Settings - Developer Settings'
   color: '8D5494'
+- name: 'Product Area: Settings - Spend Allocation'
+  color: '8D5494'
 - name: 'Product Area: Settings - Spike Protection'
   color: '8D5494'
 - name: 'Product Area: Help'
@@ -255,99 +237,6 @@
   color: '8D5494'
 - name: 'Product Area: Other'
   color: '8D5494'
-
-# Teams
-- name: 'Team: Backend'
-  color: '8D5494'
-  description: app-backend
-- name: 'Team: Core UI'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Design'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Dev Infrastructure'
-  color: '8D5494'
-  description: dev-infra
-- name: 'Team: Discover & Dashboards'
-  color: '8D5494'
-  description: discover-n-dashboards
-- name: 'Team: Ecosystem'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Emerging Technology'
-  color: '8D5494'
-  description: team-emerging-technology
-- name: 'Team: Enterprise'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Front End'
-  color: '8D5494'
-  description: app-frontend
-- name: 'Team: Growth'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Infrastructure'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Ingest'
-  color: '8D5494'
-  description: owners-ingest
-- name: 'Team: Issue Experience'
-  color: '8D5494'
-- name: 'Team: Issue Platform'
-  color: '8D5494'
-- name: 'Team: Mobile Developer Experience'
-  color: '8D5494'
-  description: team-mdx
-- name: 'Team: Mobile Platform'
-  color: '8D5494'
-  description: team-mobile
-- name: 'Team: Native Platform'
-  color: '8D5494'
-  description: owners-native
-- name: 'Team: Open Source'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Ops'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Performance'
-  color: '8D5494'
-  description: 'team-performance'
-- name: 'Team: Revenue'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Search & Storage'
-  color: '8D5494'
-  description: sns
-- name: 'Team: Security'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Stacktrace'
-  color: '8D5494'
-  description: owners-stacktrace
-- name: 'Team: Support'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Telemetry Experience'
-  color: '8D5494'
-  description: telemetry-experience
-- name: 'Team: Web SDKs - Backend'
-  color: '8D5494'
-  description: team-web-sdk-backend
-- name: 'Team: Web SDKs - Frontend'
-  color: '8D5494'
-  description: team-web-sdk-frontend
-- name: 'Team: Workflow'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Crons'
-  color: '8D5494'
-  description: ''
-- name: 'Team: Profiling'
-  color: '8D5494'
-  description: ''
 
 # Deploy types
 - name: 'Deploy: Monitored'
@@ -412,6 +301,9 @@
   color: '584774'
   description: ''
 - name: 'Platform: Python'
+  color: '584774'
+  description: ''
+- name: 'Platform: React Native'
   color: '584774'
   description: ''
 - name: 'Platform: Ruby'

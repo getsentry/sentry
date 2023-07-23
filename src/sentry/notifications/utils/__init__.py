@@ -23,15 +23,13 @@ from urllib.parse import parse_qs, urlparse
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import integrations
-from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.issues.grouptype import (
-    GroupCategory,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
@@ -43,7 +41,6 @@ from sentry.models import (
     Environment,
     EventError,
     Group,
-    GroupHash,
     GroupLink,
     Integration,
     Organization,
@@ -54,11 +51,11 @@ from sentry.models import (
     Rule,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -201,12 +198,13 @@ def get_group_settings_link(
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    return str(
-        organization.absolute_url(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
+    return organization.absolute_url(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
+
+
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
+    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
 
 
 @dataclass
@@ -278,9 +276,7 @@ def has_alert_integration(project: Project) -> bool:
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
     provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(
-        organizationintegration__organization_id=org.id, provider__in=provider_keys
-    ).exists():
+    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
     # check plugins
@@ -299,20 +295,6 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
         text_body = interface.to_string(event)
         interface_list.append((interface.get_title(), mark_safe(body), text_body))
     return interface_list
-
-
-def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
-    """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
-    value = "no value"
-    if not problem:
-        return value
-    if not problem.op and problem.desc:
-        value = problem.desc
-    if problem.op and not problem.desc:
-        value = problem.op
-    if problem.op and problem.desc:
-        value = f"{problem.op} - {problem.desc}"
-    return value
 
 
 def get_span_evidence_value(
@@ -363,32 +345,6 @@ def occurrence_perf_to_email_html(context: Any) -> Any:
     return render_to_string("sentry/emails/transactions.html", context)
 
 
-def perf_to_email_html(
-    spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem = None,
-    event: Event = None,
-) -> Any:
-    """Generate the email HTML for a performance issue alert"""
-    if not problem:
-        return ""
-
-    context = PerformanceProblemContext.from_problem_and_spans(problem, spans, event)
-
-    return render_to_string("sentry/emails/transactions.html", context.to_dict())
-
-
-def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
-    """Get the matching performance problem for a given event"""
-    problems = get_problems([event])
-    if not problems:
-        return None
-
-    for problem in problems:
-        if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
-            return problem.problem
-    return None
-
-
 def get_spans(
     entries: List[Dict[str, Union[List[Dict[str, Union[str, float]]], str]]]
 ) -> Optional[List[Dict[str, Union[str, float]]]]:
@@ -405,29 +361,14 @@ def get_spans(
     return spans
 
 
-def get_span_and_problem(
-    event: Event,
-) -> tuple[Optional[List[Dict[str, Union[str, float]]]], Optional[EventPerformanceProblem]]:
-    """Get a given event's spans and performance problem"""
-    entries = get_entries(event, None)
-    spans = get_spans(entries[0]) if len(entries) else None
-    matched_problem = get_matched_problem(event)
-    return (spans, matched_problem)
-
-
 def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
-    if isinstance(event, GroupEvent) and event.occurrence is not None:
-        evidence_data = event.occurrence.evidence_data
-        if not evidence_data:
-            return ""
+    evidence_data = event.occurrence.evidence_data
+    if not evidence_data:
+        return ""
 
-        context = evidence_data
-        return occurrence_perf_to_email_html(context)
-    else:
-        # get spans and matched_problem
-        spans, matched_problem = get_span_and_problem(event)
-        return perf_to_email_html(spans, matched_problem, event)
+    context = evidence_data
+    return occurrence_perf_to_email_html(context)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
@@ -451,16 +392,9 @@ def generic_email_html(context: Any) -> Any:
 
 def get_performance_issue_alert_subtitle(event: Event) -> str:
     """Generate the issue alert subtitle for performance issues"""
-    repeating_span_value = ""
-    if isinstance(event, GroupEvent) and event.occurrence is not None:
-        repeating_span_value = event.occurrence.evidence_data.get("repeating_spans_compact", "")
-    else:
-        spans, matched_problem = get_span_and_problem(event)
-        if spans and matched_problem:
-            _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-            repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
-
-    return repeating_span_value.replace("`", '"')
+    return cast(
+        str, event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
+    )
 
 
 def get_notification_group_title(
@@ -469,11 +403,6 @@ def get_notification_group_title(
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title: str = event.occurrence.issue_title
         return issue_title
-    elif group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = group.issue_type.description
-        transaction = get_performance_issue_alert_subtitle(event)
-        title = f"{issue_type}: {transaction}"
-        return (title[: max_length - 2] + "..") if len(title) > max_length else title
     else:
         event_title: str = event.title
         return event_title
@@ -490,6 +419,23 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     split = participants_by_provider.split_participants_and_context()
     for (provider, participants, extra_context) in split:
         notify(provider, notification, participants, shared_context, extra_context)
+
+
+def get_replay_id(event: Event | GroupEvent) -> str | None:
+    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    if (
+        isinstance(event, GroupEvent)
+        and event.occurrence is not None
+        and event.occurrence.evidence_data
+    ):
+        evidence_replay_id = (
+            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
+        )
+
+        if evidence_replay_id:
+            return evidence_replay_id
+
+    return replay_id
 
 
 @dataclass
@@ -553,7 +499,7 @@ class PerformanceProblemContext:
 
     def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum: float = 0.0
+        sum = 0.0
         for span in spans:
             if span:
                 sum += self.get_span_duration(span).total_seconds() * 1000

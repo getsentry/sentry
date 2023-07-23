@@ -13,9 +13,9 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, ISSUE_ALERT_PARAMS
+from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.models import Project, Rule
 from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
@@ -55,12 +55,12 @@ class RuleGroupHistorySerializer(Serializer):
 class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve a group firing history for an issue alert",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.PROJECT_SLUG, ISSUE_ALERT_PARAMS],
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, IssueAlertParams],
         responses={
             200: RuleGroupHistorySerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=IssueAlertExamples.GENERIC_SUCCESS_RESPONSE,
     )

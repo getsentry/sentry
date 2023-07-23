@@ -24,7 +24,7 @@ describe('SlowestFunctionsWidget', function () {
       statusCode: 400,
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -43,13 +43,12 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'is_application:1',
-          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
+          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -66,12 +65,14 @@ describe('SlowestFunctionsWidget', function () {
         data: [
           {
             'project.id': 1,
+            fingerprint: 123,
             package: 'foo',
             function: 'bar',
             'sum()': 150,
           },
           {
             'project.id': 1,
+            fingerprint: 456,
             package: 'baz',
             function: 'qux',
             'sum()': 100,
@@ -81,8 +82,7 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'is_application:1',
-          field: ['project.id', 'package', 'function', 'count()', 'sum()'],
+          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
         }),
       ],
     });
@@ -94,7 +94,6 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'is_application:1',
           field: ['project.id', 'sum()'],
           project: [1],
         }),
@@ -126,7 +125,7 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'is_application:1 project.id:1 package:foo function:bar',
+          query: 'project.id:1 fingerprint:123',
           field: ['transaction', 'count()', 'sum()', 'examples()'],
         }),
       ],
@@ -157,13 +156,13 @@ describe('SlowestFunctionsWidget', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          query: 'is_application:1 project.id:1 package:baz function:qux',
+          query: 'project.id:1 fingerprint:456',
           field: ['transaction', 'count()', 'sum()', 'examples()'],
         }),
       ],
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

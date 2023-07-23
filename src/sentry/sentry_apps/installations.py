@@ -4,7 +4,7 @@ import dataclasses
 import datetime
 from functools import cached_property
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import analytics, audit_log
@@ -30,7 +30,7 @@ class SentryAppInstallationTokenCreator:
     generate_audit: bool = False
 
     def run(self, user: User, request: Request | None = None) -> ApiToken:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()
             self._create_sentry_app_installation_token(api_token=api_token)
@@ -102,12 +102,13 @@ class SentryAppInstallationCreator:
     notify: bool = True
 
     def run(self, *, user: User, request: Request | None) -> SentryAppInstallation:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ApiGrant)):
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
-            self._create_service_hooks(install=install)
-            install.is_new = True
             self.audit(request=request)
+
+        self._create_service_hooks(install=install)
+        install.is_new = True
 
         if self.notify:
             installation_webhook.delay(install.id, user.id)

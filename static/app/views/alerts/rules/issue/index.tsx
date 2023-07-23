@@ -1,4 +1,4 @@
-import {ChangeEvent, ReactNode} from 'react';
+import {ChangeEvent, Fragment, ReactNode} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
@@ -33,7 +33,8 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
@@ -70,7 +71,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getProjectOptions} from '../utils';
@@ -102,9 +103,10 @@ const ACTION_MATCH_OPTIONS_MIGRATED = [
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
-  actionMatch: 'all',
+  actionMatch: 'any',
   filterMatch: 'all',
   actions: [],
+  // note we update the default conditions in onLoadAllEndpointsSuccess
   conditions: [],
   filters: [],
   name: '',
@@ -143,7 +145,7 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   configs: {
     actions: IssueAlertRuleActionTemplate[];
     conditions: IssueAlertRuleConditionTemplate[];
@@ -174,7 +176,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
 
-class IssueRuleEditor extends AsyncView<Props, State> {
+class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
   isUnmounted = false;
@@ -185,11 +187,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
+    super.componentDidMount();
     this.fetchPreview();
   }
 
   componentWillUnmount() {
+    super.componentWillUnmount();
     this.isUnmounted = true;
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
@@ -271,7 +275,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},
@@ -327,10 +331,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {rule} = this.state;
+    const {
+      params: {ruleId},
+    } = this.props;
     if (rule) {
       ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
         addErrorMessage(detail, {append: true})
       );
+    }
+    if (!ruleId) {
+      // now that we've loaded all the possible conditions, we can populate the
+      // value of conditions for a new alert
+      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
+      this.handleChange('conditions', [
+        {
+          id,
+          label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          name: 'A new issue is created',
+        },
+      ]);
     }
   }
 
@@ -1263,6 +1282,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             this.hasError('conditions') && (
                               <StyledAlert type="error">
                                 {detailedError?.conditions[0]}
+                                {(detailedError?.conditions[0] || '').startsWith(
+                                  'You may not exceed'
+                                ) && (
+                                  <Fragment>
+                                    {' '}
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/#alert-limits">
+                                      {t('View Docs')}
+                                    </ExternalLink>
+                                  </Fragment>
+                                )}
                               </StyledAlert>
                             )
                           }

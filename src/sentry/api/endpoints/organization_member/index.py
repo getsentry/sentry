@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import F, Q
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -57,7 +57,10 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
-            emails=[email], is_active=True, organization_id=self.context["organization"].id
+            emails=[email],
+            is_active=True,
+            organization_id=self.context["organization"].id,
+            is_verified=False,
         )
         queryset = OrganizationMember.objects.filter(
             Q(email=email) | Q(user_id__in=[u.id for u in users]),
@@ -132,7 +135,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in tokens.items():
                 if key == "email":
                     email_user_ids = user_service.get_many_by_email(
-                        emails=value, organization_id=organization.id
+                        emails=value, organization_id=organization.id, is_verified=False
                     )
                     queryset = queryset.filter(
                         Q(email__in=value) | Q(user_id__in=[u.id for u in email_user_ids])
@@ -190,7 +193,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
-                    query_user_ids = user_service.get_many_ids(filter=dict(query=value))
+                    query_user_ids = user_service.get_many_ids(
+                        filter=dict(query=value, organization_id=organization.id)
+                    )
                     queryset = queryset.filter(
                         Q(user_id__in=query_user_ids) | Q(email__icontains=value)
                     )
@@ -262,7 +267,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             # remove any invitation requests for this email before inviting
             existing_invite = OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -283,7 +288,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

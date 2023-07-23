@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from typing import TypedDict
 from unittest.mock import MagicMock, Mock, patch
 
+from django.http import HttpResponse, JsonResponse
 from django.http.request import HttpHeaders
 from django.test import RequestFactory, override_settings
 from requests import Response
@@ -19,16 +23,31 @@ from sentry.silo.util import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 
-def create_cgi_header_name(header: str):
-    """
-    Django requests cannot be initialized without request factory, and headers for those requests
-    must follow the CGI spec. This means _ (instead of -) and prefixed with 'HTTP_'
+class SiloHttpHeaders(TypedDict, total=False):
+    HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: str
+    HTTP_X_SENTRY_SUBNET_SIGNATURE: str
 
-    https://docs.djangoproject.com/en/4.0/topics/testing/tools/#making-requests
-    """
-    return f"{HttpHeaders.HTTP_PREFIX}{header.replace('-','_')}"
+
+def test_ensure_http_headers_match() -> None:
+    headers = SiloHttpHeaders(
+        HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="hello",
+        HTTP_X_SENTRY_SUBNET_SIGNATURE="world",
+    )
+
+    def cgi_header(s: str) -> str:
+        """
+        Django requests cannot be initialized without request factory, and headers for those requests
+        must follow the CGI spec. This means _ (instead of -) and prefixed with 'HTTP_'
+
+        https://docs.djangoproject.com/en/4.0/topics/testing/tools/#making-requests
+        """
+        return f"{HttpHeaders.HTTP_PREFIX}{s.replace('-','_')}".upper()
+
+    expected = {cgi_header(s) for s in (PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER)}
+    assert set(headers) == expected
 
 
 @control_silo_test(stable=True)
@@ -55,10 +74,10 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             identifier=str(self.org_integration.id),
             request_body=b"",
         )
-        self.valid_header_kwargs = {
-            create_cgi_header_name(PROXY_SIGNATURE_HEADER): signature,
-            create_cgi_header_name(PROXY_OI_HEADER): str(self.org_integration.id),
-        }
+        self.valid_header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
         self.valid_request = self.factory.get(self.path, **self.valid_header_kwargs)
 
     @patch.object(InternalIntegrationProxyEndpoint, "client")
@@ -77,16 +96,15 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
         mock_client._request = MagicMock(return_value=mock_response)
+        mock_client.should_delegate = MagicMock(return_value=False)
 
-        assert not mock_should_operate.called
-        assert not mock_client._request.called
         proxy_response = self.client.get(self.path, **self.valid_header_kwargs)
         assert mock_should_operate.called
         assert mock_client._request.called
 
         assert proxy_response.content == mock_response.content
         assert proxy_response.status_code == mock_response.status_code
-        assert proxy_response._reason_phrase == mock_response.reason
+        assert proxy_response.reason_phrase == mock_response.reason
         assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
@@ -94,15 +112,15 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_sender(self):
         # Missing header data
-        header_kwargs = {}
+        header_kwargs = SiloHttpHeaders()
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_sender(request)
 
         # Bad header data
-        header_kwargs = {
-            create_cgi_header_name(PROXY_SIGNATURE_HEADER): "data",
-            create_cgi_header_name(PROXY_OI_HEADER): "present",
-        }
+        header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_SIGNATURE="data",
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="present",
+        )
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_sender(request)
 
@@ -118,9 +136,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         # Invalid organization integration
         self.org_integration.update(status=ObjectStatus.DISABLED)
-        header_kwargs = {
-            create_cgi_header_name(PROXY_OI_HEADER): str(self.org_integration.id),
-        }
+        header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_request(request)
 
@@ -142,3 +160,55 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         request = self.factory.get(self.path, **header_kwargs)
         assert self.endpoint_cls._validate_request(request)
+
+    @patch.object(Integration, "get_installation")
+    @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
+    def test_proxy_with_client_delegate(self, mock_get_installation):
+        expected_proxy_payload = {
+            "args": ["hello"],
+            "kwargs": {"function_name": "lambdaE"},
+            "function_name": "get_function",
+        }
+
+        class TestProxyClient(IntegrationProxyClient):
+            integration_name = "test_proxy_client"
+
+            def __init__(self, org_integration_id: int | None) -> None:
+                super().__init__(org_integration_id=org_integration_id)
+
+            def should_delegate(self) -> bool:
+                return True
+
+            def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
+                assert expected_proxy_payload == request.data
+                return JsonResponse(
+                    data={
+                        "function_name": "get_function",
+                        "return_response": {"hello": "world"},
+                    },
+                    status=200,
+                )
+
+        mock_get_installation().get_client = MagicMock(
+            return_value=TestProxyClient(org_integration_id=self.org_integration.id)
+        )
+
+        signature = encode_subnet_signature(
+            secret=self.secret,
+            path="",
+            identifier=str(self.org_integration.id),
+            request_body=json.dumps(expected_proxy_payload).encode("utf-8"),
+        )
+        headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
+        proxy_response = self.client.post(
+            f"{PROXY_BASE_PATH}/", **headers, data=expected_proxy_payload, format="json"
+        )
+
+        actual_response_payload = json.loads(proxy_response.content)
+        assert actual_response_payload == {
+            "function_name": "get_function",
+            "return_response": {"hello": "world"},
+        }

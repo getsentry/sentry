@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import jsonschema
 import pytz
@@ -36,7 +36,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.locks import locks
-from sentry.models import Environment, Organization, Rule, RuleSource, RuleStatus
+from sentry.models import Environment, Organization, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -68,12 +68,18 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
+MAX_SLUG_LENGTH = 50
+
 
 class MonitorLimitsExceeded(Exception):
     pass
 
 
 class MonitorEnvironmentLimitsExceeded(Exception):
+    pass
+
+
+class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
@@ -139,7 +145,7 @@ class MonitorStatus:
     def as_choices(cls):
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
-            # 'active' state, since for a monitor environmnent to be created
+            # 'active' state, since for a monitor environment to be created
             # some checkins must have been sent.
             (cls.ACTIVE, "active"),
             # The DISABLED state is denormalized off of the parent Monitor.
@@ -262,7 +268,7 @@ class Monitor(Model):
                     self,
                     self.name,
                     organization_id=self.organization_id,
-                    max_length=50,
+                    max_length=MAX_SLUG_LENGTH,
                 )
         return super().save(*args, **kwargs)
 
@@ -272,7 +278,7 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin_without_margin(self, last_checkin):
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
@@ -280,8 +286,8 @@ class Monitor(Model):
         )
         return next_checkin
 
-    def get_next_scheduled_checkin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin_without_margin(last_checkin)
+    def get_next_scheduled_checkin_with_margin(self, last_checkin):
+        next_checkin = self.get_next_scheduled_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -310,7 +316,7 @@ class Monitor(Model):
                 project_id=self.project_id,
                 id=alert_rule_id,
                 source=RuleSource.CRON_MONITOR,
-                status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                status=ObjectStatus.ACTIVE,
             ).first()
             if alert_rule:
                 return alert_rule
@@ -326,7 +332,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data = {}
+            alert_rule_data: Dict[str, Optional[Any]] = dict()
 
             # Build up alert target data
             targets = []
@@ -340,6 +346,15 @@ class Monitor(Model):
                         }
                     )
             alert_rule_data["targets"] = targets
+
+            environment, alert_rule_environment_id = None, alert_rule.environment_id
+            if alert_rule_environment_id:
+                try:
+                    environment = Environment.objects.get(id=alert_rule_environment_id).name
+                except Environment.DoesNotExist:
+                    pass
+
+            alert_rule_data["environment"] = environment
 
             return alert_rule_data
 
@@ -380,6 +395,7 @@ class MonitorCheckIn(Model):
     # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
     timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
+    trace_id = UUIDField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -388,6 +404,9 @@ class MonitorCheckIn(Model):
         db_table = "sentry_monitorcheckin"
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
+            models.Index(fields=["monitor_environment", "date_added", "status"]),
+            models.Index(fields=["timeout_at", "status"]),
+            models.Index(fields=["trace_id"]),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
@@ -432,6 +451,9 @@ class MonitorEnvironmentManager(BaseManager):
         if not environment_name:
             environment_name = "production"
 
+        if not Environment.is_valid_name(environment_name):
+            raise MonitorEnvironmentValidationFailed("Environment name too long")
+
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
@@ -465,7 +487,16 @@ class MonitorEnvironment(Model):
     def get_audit_log_data(self):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
+    def get_last_successful_checkin(self):
+        return (
+            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
+            .order_by("-date_added")
+            .first()
+        )
+
+    def mark_failed(
+        self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
+    ):
         from sentry.signals import monitor_environment_failed
 
         if last_checkin is None:
@@ -486,7 +517,7 @@ class MonitorEnvironment(Model):
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
+                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -498,7 +529,6 @@ class MonitorEnvironment(Model):
         if self.monitor.status == ObjectStatus.DISABLED:
             return True
 
-        group_type, level = get_group_type_and_level(reason)
         current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         use_issue_platform = False
@@ -506,41 +536,61 @@ class MonitorEnvironment(Model):
             organization = Organization.objects.get(id=self.monitor.organization_id)
             use_issue_platform = features.has(
                 "organizations:issue-platform", organization=organization
-            ) and features.has("organizations:crons-issue-platform", organization=organization)
+            )
         except Organization.DoesNotExist:
             pass
 
         if use_issue_platform:
+            from sentry.grouping.utils import hash_from_values
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
+
+            if not occurrence_context:
+                occurrence_context = {}
+
+            occurrence_data = get_occurrence_data(reason, **occurrence_context)
+
+            # Get last successful check-in to show in evidence display
+            last_successful_checkin_timestamp = "None"
+            last_successful_checkin = self.get_last_successful_checkin()
+            if last_successful_checkin:
+                last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
                 project_id=self.monitor.project_id,
                 event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-                type=group_type,
-                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
-                subtitle="",
+                fingerprint=[
+                    hash_from_values(["monitor", str(self.monitor.guid), occurrence_data["reason"]])
+                ],
+                type=occurrence_data["group_type"],
+                issue_title=f"Monitor failure: {self.monitor.name}",
+                subtitle=occurrence_data["subtitle"],
                 evidence_display=[
-                    IssueEvidence(name="Failure reason", value=reason, important=True),
+                    IssueEvidence(
+                        name="Failure reason", value=occurrence_data["reason"], important=True
+                    ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
-                        name="Last check-in", value=last_checkin.isoformat(), important=False
+                        name="Last successful check-in",
+                        value=last_successful_checkin_timestamp,
+                        important=False,
                     ),
                 ],
                 evidence_data={},
-                culprit="",
+                culprit=occurrence_data["reason"],
                 detection_time=current_timestamp,
-                level=level,
+                level=occurrence_data["level"],
             )
 
             produce_occurrence_to_kafka(
                 occurrence,
                 {
+                    "contexts": {"monitor": get_monitor_environment_context(self)},
                     "environment": self.environment.name,
                     "event_id": occurrence.event_id,
+                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
                     "platform": "other",
                     "project_id": self.monitor.project_id,
                     "received": current_timestamp.isoformat(),
@@ -582,7 +632,7 @@ class MonitorEnvironment(Model):
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
@@ -590,13 +640,30 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_group_type_and_level(reason: str):
+def get_occurrence_data(reason: str, **kwargs):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed, "warning"
+        expected_time = kwargs.get("expected_time", "the expected time")
+        return {
+            "group_type": MonitorCheckInMissed,
+            "level": "warning",
+            "reason": "missed_checkin",
+            "subtitle": f"No check-in reported on {expected_time}.",
+        }
     elif reason == MonitorFailure.DURATION:
-        return MonitorCheckInTimeout, "error"
+        timeout = kwargs.get("timeout", 30)
+        return {
+            "group_type": MonitorCheckInTimeout,
+            "level": "error",
+            "reason": "duration",
+            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
+        }
 
-    return MonitorCheckInFailure, "error"
+    return {
+        "group_type": MonitorCheckInFailure,
+        "level": "error",
+        "reason": "error",
+        "subtitle": "An error occurred during the latest check-in.",
+    }
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

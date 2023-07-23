@@ -10,13 +10,13 @@ import {
   useSourceMapDebug,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
-import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
+import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
@@ -51,6 +51,7 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isANR?: boolean;
@@ -61,16 +62,24 @@ type Props = {
    */
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Frames that are hidden under the most recent non-InApp frame
+   */
+  isSubFrame?: boolean;
+  lockAddress?: string;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
   onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   organization?: Organization;
   platform?: PlatformType;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
   showingAbsoluteAddress?: boolean;
+  threadId?: number;
   timesRepeated?: number;
 };
 
@@ -268,16 +277,69 @@ export class DeprecatedLine extends Component<Props, State> {
     return null;
   }
 
+  renderShowHideToggle() {
+    const hiddenFrameCount = this.props.hiddenFrameCount;
+    const isShowFramesToggleExpanded = this.props.isShowFramesToggleExpanded;
+    if (hiddenFrameCount) {
+      return (
+        <ToggleButton
+          analyticsEventName="Stacktrace Frames: toggled"
+          analyticsEventKey="stacktrace_frames.toggled"
+          analyticsParams={{
+            frame_count: hiddenFrameCount,
+            is_frame_expanded: isShowFramesToggleExpanded,
+          }}
+          size="xs"
+          borderless
+          onClick={e => {
+            this.props.onShowFramesToggle?.(e);
+          }}
+        >
+          {isShowFramesToggleExpanded
+            ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+            : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+        </ToggleButton>
+      );
+    }
+    return null;
+  }
+
   renderDefaultLine() {
-    const {isHoverPreviewed, debugFrames, data, isANR} = this.props;
+    const {
+      isHoverPreviewed,
+      debugFrames,
+      data,
+      isANR,
+      threadId,
+      lockAddress,
+      isSubFrame,
+      hiddenFrameCount,
+    } = this.props;
     const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
     const anrCulprit =
-      isANR && analyzeFrameForRootCause(data, getCurrentThread(this.props.event));
+      isANR &&
+      analyzeFrameForRootCause(
+        data,
+        getThreadById(this.props.event, threadId),
+        lockAddress
+      );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title" data-test-id="title">
-          <DefaultLineTitleWrapper>
+        <DefaultLine
+          className="title"
+          data-test-id="title"
+          isSubFrame={!!isSubFrame}
+          hasToggle={!!hiddenFrameCount}
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
+          isNotInApp={!data.inApp}
+        >
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
@@ -297,7 +359,14 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          {stacktraceChangesEnabled ? this.renderShowHideToggle() : null}
+          {!data.inApp ? (
+            stacktraceChangesEnabled ? null : (
+              <Tag>{t('System')}</Tag>
+            )
+          ) : (
+            <Tag type="info">{t('In App')}</Tag>
+          )}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -316,14 +385,27 @@ export class DeprecatedLine extends Component<Props, State> {
       isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
+      isSubFrame,
+      hiddenFrameCount,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
     const packageStatus = this.packageStatus();
+    const organization = this.props.organization;
+    const stacktraceChangesEnabled = !!organization?.features.includes(
+      'issue-details-stacktrace-improvements'
+    );
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table" data-test-id="title">
+        <DefaultLine
+          className="title as-table"
+          data-test-id="title"
+          stacktraceChangesEnabled={stacktraceChangesEnabled}
+          isSubFrame={!!isSubFrame}
+          hasToggle={!!hiddenFrameCount}
+          isNotInApp={!data.inApp}
+        >
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
@@ -362,8 +444,19 @@ export class DeprecatedLine extends Component<Props, State> {
               isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
-          {this.renderExpander()}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          <DefaultLineTitleWrapper
+            stacktraceChangesEnabled={stacktraceChangesEnabled && !data.inApp}
+          >
+            {this.renderExpander()}
+          </DefaultLineTitleWrapper>
+
+          {!data.inApp ? (
+            stacktraceChangesEnabled ? null : (
+              <Tag>{t('System')}</Tag>
+            )
+          ) : (
+            <Tag type="info">{t('In App')}</Tag>
+          )}
         </DefaultLine>
       </StrictClick>
     );
@@ -437,10 +530,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')<{stacktraceChangesEnabled: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
@@ -476,10 +571,21 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   }
 `;
 
-const DefaultLine = styled('div')`
+const DefaultLine = styled('div')<{
+  hasToggle: boolean;
+  isNotInApp: boolean;
+  isSubFrame: boolean;
+  stacktraceChangesEnabled: boolean;
+}>`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: ${p =>
+    p.stacktraceChangesEnabled && p.isNotInApp && !p.hasToggle
+      ? `1fr ${space(2)}`
+      : `1fr auto ${space(2)}`};
   align-items: center;
+  column-gap: ${space(1)};
+  background: ${p =>
+    p.stacktraceChangesEnabled && p.isSubFrame ? `${p.theme.surface100} !important` : ''};
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
@@ -488,7 +594,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }
@@ -519,4 +624,15 @@ const IconWrapper = styled('div')`
 
 const SuspectFrameTag = styled(Tag)`
   margin-right: ${space(1)};
+`;
+
+const ToggleButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-weight: normal;
+  padding: ${space(0.25)} ${space(0.5)};
+
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;

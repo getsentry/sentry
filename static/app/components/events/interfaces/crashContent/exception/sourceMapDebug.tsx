@@ -54,13 +54,6 @@ function getErrorMessage(
     }
     return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
   }
-  function getMigrationGuide() {
-    if (docPlatform === 'react-native') {
-      return 'https://docs.sentry.io/platforms/react-native/migration/';
-    }
-    return 'https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#upgrading-from-6x-to-7x';
-  }
-
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
 
   switch (error.type) {
@@ -89,20 +82,6 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
-        },
-      ];
-    case SourceMapProcessingIssueType.MISSING_USER_AGENT:
-      return [
-        {
-          title: t('Sentry not part of release pipeline'),
-          desc: tct(
-            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your [init]. The value for this event is [version].",
-            {
-              init: sentryInit,
-              version: <code>{error.data.version}</code>,
-            }
-          ),
-          docsLink: defaultDocsLink,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -174,16 +153,14 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
-    case SourceMapProcessingIssueType.SDK_OUT_OF_DATE:
+    case SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE:
       return [
         {
-          title: t('SDK Out of Date'),
+          title: t('Sentry not part of build pipeline'),
           desc: t(
-            "We're not able to un-minify your application's source code, because your SDK %s is out of date with version %s. Please update it to the latest version.",
-            error.data.sdkName,
-            error.data.sdkVersion
+            'Integrate Sentry into your build pipeline using a tool like Webpack or the CLI.'
           ),
-          docsLink: error.data.showMigrationGuide ? getMigrationGuide() : undefined,
+          docsLink: defaultDocsLink,
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:

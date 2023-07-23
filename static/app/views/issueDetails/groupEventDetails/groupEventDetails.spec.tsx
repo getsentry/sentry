@@ -258,6 +258,10 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
 
   MockApiClient.addMockResponse({
     url: `/customers/org-slug/policies/`,
@@ -383,15 +387,17 @@ describe('groupEventDetails', () => {
   it('renders the Function Evidence and Resources section for Profile Issues', async function () {
     const props = makeDefaultMockData();
     const group: Group = TestStubs.Group({
-      issueCategory: IssueCategory.PROFILE,
+      issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
     const transaction = TestStubs.Event({
       entries: [],
       occurrence: {
         evidenceDisplay: [],
-        evidenceData: {},
-        type: 2000,
+        evidenceData: {
+          templateName: 'profile',
+        },
+        type: 2001,
       },
     });
 

@@ -36,11 +36,23 @@
     "properties": {
       "by": {
         "type": "object",
-        "description": "These are key/value pairs, the key being the requested `groupBy` property with its corresponding value."
+        "description": "These are key/value pairs, the key being the requested `groupBy` property with its corresponding value.",
+        "properties": {
+          "session.status": {
+            "type": "string",
+            "description": "Example `groupBy` property"
+          }
+        }
       },
       "totals": {
         "type": "object",
-        "description": "These are key/value pairs, the key being the requested `field`, and the value the corresponding total over the requested time frame."
+        "description": "These are key/value pairs, the key being the requested `field`, and the value the corresponding total over the requested time frame.",
+        "properties": {
+          "sum(session)": {
+            "type": "integer",
+            "description": "Example `field` value"
+          }
+        }
       },
       "series": {
         "type": "object",

@@ -55,6 +55,7 @@ from sentry.models import (
 )
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -239,7 +240,7 @@ class GroupSerializerBase(Serializer, ABC):
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
         user_ids = {r[-1] for r in release_resolutions.values()}
-        user_ids.update(r.actor_id for r in ignore_items.values())
+        user_ids.update(r.actor_id for r in ignore_items.values() if r.actor_id is not None)
         if user_ids:
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": user_ids, "is_active": True},
@@ -473,7 +474,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
         if not item_list:
-            return
+            return None
 
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
@@ -726,6 +727,14 @@ class GroupSerializerBase(Serializer, ABC):
             ):
                 return True
 
+        if (
+            request
+            and user.is_anonymous
+            and hasattr(request, "auth")
+            and is_org_auth_token_auth(request.auth)
+        ):
+            return request.auth.organization_id == organization_id
+
         return (
             user.is_authenticated
             and OrganizationMember.objects.filter(
@@ -762,7 +771,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

@@ -10,12 +10,15 @@ import {GenericPerformanceWidgetDataType} from './types';
 export interface ChartDefinition {
   dataType: GenericPerformanceWidgetDataType;
   fields: string[];
-
+  // Additional fields to get requested but are not directly used in visualization.
   title: string;
-  titleTooltip: string; // The first field in the list will be treated as the primary field in most widgets (except for special casing).
 
+  titleTooltip: string;
+  // The first field in the list will be treated as the primary field in most widgets (except for special casing).
   allowsOpenInDiscover?: boolean;
-  chartColor?: string; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
+
+  chartColor?: string;
+  secondaryFields?: string[]; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
 
   vitalStops?: {
     meh: number;
@@ -41,6 +44,7 @@ export enum PerformanceWidgetSetting {
   WORST_FCP_VITALS = 'worst_fcp_vitals',
   WORST_CLS_VITALS = 'worst_cls_vitals',
   WORST_FID_VITALS = 'worst_fid_vitals',
+  MOST_CHANGED = 'most_changed',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
   MOST_RELATED_ERRORS = 'most_related_errors',
@@ -259,7 +263,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
     title: t('Slow HTTP Ops'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
-    fields: [`p75(spans.http)`],
+    fields: [`p75(spans.http)`, 'p75(spans.db)'],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
@@ -280,7 +284,7 @@ export const WIDGET_DEFINITIONS: ({
   [PerformanceWidgetSetting.SLOW_DB_OPS]: {
     title: t('Slow DB Ops'),
     titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
-    fields: [`p75(spans.db)`],
+    fields: [`p75(spans.db)`, 'p75(spans.http)'],
     dataType: GenericPerformanceWidgetDataType.LINE_LIST,
     chartColor: WIDGET_PALETTE[0],
   },
@@ -328,6 +332,15 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: t(
       'This compares the baseline (%s) of the past with the present.',
       'regressed'
+    ),
+    fields: [],
+    dataType: GenericPerformanceWidgetDataType.TRENDS,
+  },
+  [PerformanceWidgetSetting.MOST_CHANGED]: {
+    title: t('Most Changed'),
+    titleTooltip: t(
+      'This compares the baseline (%s) of the past with the present.',
+      'changed'
     ),
     fields: [],
     dataType: GenericPerformanceWidgetDataType.TRENDS,

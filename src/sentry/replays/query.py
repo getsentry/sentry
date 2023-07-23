@@ -22,7 +22,6 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -74,24 +73,24 @@ def query_replays_collection(
     paginators = make_pagination_values(limit, offset)
 
     # Attempt to eager return with subquery.
-    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
-        try:
-            response = query_replays_dataset_with_subquery(
-                project_ids=project_ids,
-                start=start,
-                end=end,
-                fields=fields,
-                environments=environment,
-                search_filters=search_filters,
-                sort=sort,
-                pagination=paginators,
-                tenant_ids=tenant_ids,
-            )
-            return response["data"]
-        except ParseError:
-            # Subquery could not continue because it found search filters which required
-            # aggregation to satisfy.
-            pass
+
+    try:
+        response = query_replays_dataset_with_subquery(
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            fields=fields,
+            environments=environment,
+            search_filters=search_filters,
+            sort=sort,
+            pagination=paginators,
+            tenant_ids=tenant_ids,
+        )
+        return response["data"]
+    except ParseError:
+        # Subquery could not continue because it found search filters which required
+        # aggregation to satisfy.
+        pass
 
     response = query_replays_dataset(
         project_ids=project_ids,
@@ -513,13 +512,23 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "count_errors", "count_segments", "count_urls", "activity"},
+    numeric_keys={
+        "duration",
+        "count_errors",
+        "count_segments",
+        "count_urls",
+        "count_dead_clicks",
+        "count_rage_clicks",
+        "activity",
+    },
 )
 
 
 class ReplayQueryConfig(QueryConfig):
     # Numeric filters.
     duration = Number()
+    count_dead_clicks = Number()
+    count_rage_clicks = Number()
     count_errors = Number(query_alias="count_errors")
     count_segments = Number(query_alias="count_segments")
     count_urls = Number(query_alias="count_urls")
@@ -609,8 +618,6 @@ class ReplaySubqueryConfig(QueryConfig):
     sdk_version = String(field_alias="sdk.version")
     started_at = String(is_filterable=False)
 
-    tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
-
     # we have to explicitly define the rest of the fields as invalid fields or else
     # they will be parsed as tags for the subquery
     releases = InvalidField()
@@ -629,6 +636,8 @@ class ReplaySubqueryConfig(QueryConfig):
     count_errors = InvalidField(query_alias="count_errors")
     count_segments = InvalidField(query_alias="count_segments")
     count_urls = InvalidField(query_alias="count_urls")
+    count_dead_clicks = InvalidField()
+    count_rage_clicks = InvalidField()
     activity = InvalidField()
     error_ids = InvalidField(query_alias="errorIds")
     error_id = InvalidField(query_alias="errorIds")
@@ -760,6 +769,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "count_errors": ["count_errors"],
     "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
+    "count_dead_clicks": ["count_dead_clicks"],
+    "count_rage_clicks": ["count_rage_clicks"],
     "is_archived": ["is_archived"],
     "activity": ["activity", "count_errors", "count_urls"],
     "user": ["user_id", "user_email", "user_username", "user_ip"],
@@ -876,6 +887,12 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Function("length", parameters=[Column("urls")])],
         alias="count_urls",
     ),
+    "count_dead_clicks": Function(
+        "sum", parameters=[Column("click_is_dead")], alias="count_dead_clicks"
+    ),
+    "count_rage_clicks": Function(
+        "sum", parameters=[Column("click_is_rage")], alias="count_rage_clicks"
+    ),
     "is_archived": Function(
         "ifNull",
         parameters=[
@@ -989,7 +1006,7 @@ def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
-def _extract_children(expression: ParenExpression) -> Generator[None, None, str]:
+def _extract_children(expression: ParenExpression) -> Generator[str, None, None]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child

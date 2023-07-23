@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -35,8 +35,8 @@ MOCKED_DERIVED_METRICS_2.update(
 pytestmark = pytest.mark.sentry_metrics
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
+def _indexer_record(org_id: int, string: str) -> None:
+    indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
 @region_silo_test(stable=True)
@@ -133,7 +133,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] "
+            == f"The following metrics ['{SessionMRI.CRASH_FREE_RATE.value}'] "
             f"do not exist in the dataset"
         )
 
@@ -256,12 +256,12 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
             project_id=self.project.id,
             type="counter",
             name="metric_foo_doe",
-            timestamp=(time.time() // 60 - 2) * 60,
+            timestamp=int(time.time() // 60 - 2) * 60,
             tags={
                 "release": "foow",
             },
             value=5,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         response = self.get_success_response(
             self.organization.slug,

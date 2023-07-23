@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import pytest
 import responses
-from django.utils.encoding import force_bytes
 
 from sentry.models import (
     ArtifactBundle,
@@ -21,7 +20,6 @@ from sentry.models import (
 )
 from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -184,7 +182,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             },
         }
 
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("hello world"))
+        mock_fetch_by_url.return_value.body = "\n".join("hello world").encode()
         mock_fetch_by_url.return_value.encoding = None
         mock_fetch_by_url.return_value.headers = {}
 
@@ -237,7 +235,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -284,7 +282,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = INVALID_BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         event = self.post_and_retrieve_event(data)
@@ -343,7 +341,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         mock_discover_sourcemap.return_value = BASE64_SOURCEMAP
 
         mock_fetch_by_url.return_value.url = "http://example.com/test.min.js"
-        mock_fetch_by_url.return_value.body = force_bytes("\n".join("<generated source>"))
+        mock_fetch_by_url.return_value.body = "\n".join("<generated source>").encode()
         mock_fetch_by_url.return_value.encoding = None
 
         mock_from_bytes.side_effect = Exception()
@@ -517,6 +515,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
@@ -644,95 +645,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion_ab_test(self, process_with_symbolicator):
-        self.project.update_option("sentry:scrape_javascript", False)
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
-        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
-            with open(get_fixture_path(file), "rb") as f:
-                f1 = File.objects.create(
-                    name=file,
-                    type="release.file",
-                    headers={},
-                )
-                f1.putfile(f)
-
-            ReleaseFile.objects.create(
-                name=f"http://example.com/{f1.name}",
-                release_id=release.id,
-                organization_id=self.project.organization_id,
-                file=f1,
-            )
-
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                },
-                                # NOTE: Intentionally source is not retrieved from this HTML file
-                                {
-                                    "function": 'function: "HTMLDocument.<anonymous>"',
-                                    "abs_path": "http//example.com/index.html",
-                                    "filename": "index.html",
-                                    "lineno": 283,
-                                    "colno": 17,
-                                    "in_app": False,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
-
-        with override_options({"symbolicator.sourcemaps-processing-ab-test": 1.0}):
-            event = self.post_and_retrieve_event(data)
-
-        assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
-        ]
-
-        exception = event.interfaces["exception"]
-        frame_list = exception.values[0].stacktrace.frames
-
-        frame = frame_list[0]
-        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        expected = "\treturn a + b; // fôo"
-        assert frame.context_line == expected
-        assert frame.post_context == ["}", ""]
-
-        raw_frame_list = exception.values[0].raw_stacktrace.frames
-        raw_frame = raw_frame_list[0]
-        assert not raw_frame.pre_context
-        assert (
-            raw_frame.context_line
-            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
-            'divide(a,b){"use strict";try{return multip {snip}'
-        )
-        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
-        assert raw_frame.lineno == 1
-
-        # Since we couldn't expand source for the 2nd frame, both
-        # its raw and original form should be identical
-        assert raw_frame_list[1] == frame_list[1]
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_sourcemap_embedded_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -799,6 +711,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
@@ -866,6 +781,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 1
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.abs_path == "app:///nofiles.js"
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
@@ -873,6 +791,70 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}"]
         else:
             assert frame.post_context == ["}", ""]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_urlencoded_files(self, process_with_symbolicator):
+        if not process_with_symbolicator:
+            return
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        for file, name in [
+            ("file.min.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js"),
+            ("file.wc.sourcemap.js", "~/_next/static/chunks/pages/foo/[bar]-1234.js.map"),
+        ]:
+            with open(get_fixture_path(file), "rb") as f:
+                headers = {"sourcemap": name + ".map"} if name.endswith(".js") else {}
+                file_obj = File.objects.create(name=name, type="release.file", headers=headers)
+                file_obj.putfile(f)
+            ReleaseFile.objects.create(
+                name=name,
+                release_id=release.id,
+                organization_id=project.organization_id,
+                file=file_obj,
+            )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "app:///_next/static/chunks/pages/foo/%5Bbar%5D-1234.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert len(frame_list) == 1
+        frame = frame_list[0]
+        assert frame.data["resolved_with"] == "release-old"
+        assert frame.data["symbolicated"]
+
+        assert frame.function == "multiply"
+        assert frame.filename == "file2.js"
+        assert frame.lineno == 3
+        assert frame.colno == 2
 
     @requires_symbolicator
     @pytest.mark.symbolicator
@@ -937,6 +919,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
 
         expected = "\treturn a + b; // fôo"
@@ -966,6 +951,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1119,6 +1107,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1127,6 +1118,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1280,6 +1274,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1288,6 +1285,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1633,6 +1633,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1641,6 +1644,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2101,6 +2107,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "debug-id"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2109,6 +2118,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "debug-id"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2120,6 +2132,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
         frame = frame_list[2]
+        if process_with_symbolicator:
+            assert "resolved_with" not in frame.data
+            assert "symbolicated" not in frame.data
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2266,6 +2281,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             frame_list = exception.values[0].stacktrace.frames
 
             frame = frame_list[0]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "debug-id"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a + b; // fôo"
             if process_with_symbolicator:
@@ -2274,6 +2292,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 assert frame.post_context == ["}", ""]
 
             frame = frame_list[1]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "debug-id"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a * b;"
             assert frame.post_context == [
@@ -2697,6 +2718,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2705,6 +2729,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2849,6 +2876,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             frame_list = exception.values[0].stacktrace.frames
 
             frame = frame_list[0]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "release"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a + b; // fôo"
             if process_with_symbolicator:
@@ -2857,6 +2887,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 assert frame.post_context == ["}", ""]
 
             frame = frame_list[1]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "release"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a * b;"
             assert frame.post_context == [

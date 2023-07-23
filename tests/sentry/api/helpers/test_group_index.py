@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.update import (
+    handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
@@ -25,6 +26,8 @@ from sentry.models import (
     GroupSubscription,
     add_group_to_inbox,
 )
+from sentry.models.actor import ActorTuple
+from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -183,14 +186,14 @@ class UpdateGroupsTest(TestCase):
         for data in [
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved", "substatus": "ongoing"},
                 "expected_substatus": GroupSubStatus.ONGOING,
@@ -259,6 +262,102 @@ class UpdateGroupsTest(TestCase):
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
+
+
+class MergeGroupsTest(TestCase):
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_simple(self, mock_handle_merge: MagicMock):
+        group_ids = [self.create_group().id, self.create_group().id]
+        project = self.project
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        request.GET = {"id": group_ids, "project": [project.id]}
+
+        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {project.id: project}
+        assert call_args[2] == self.user
+
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_multiple_projects(self, mock_handle_merge: MagicMock):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        projects = [project1, project2]
+        project_ids = [project.id for project in projects]
+
+        group_ids = [
+            self.create_group(project1).id,
+            self.create_group(project2).id,
+        ]
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        request.GET = {"id": group_ids, "project": project_ids}
+
+        response = update_groups(
+            request, group_ids, projects, self.organization.id, search_fn=Mock()
+        )
+
+        assert response.data == {"detail": "Merging across multiple projects is not supported"}
+        assert mock_handle_merge.call_count == 0
+
+    def test_metrics(self):
+        for referer, expected_referer_tag in [
+            ("https://sentry.io/organizations/dogsaregreat/issues/", "issue stream"),
+            ("https://dogsaregreat.sentry.io/issues/", "issue stream"),
+            (
+                "https://sentry.io/organizations/dogsaregreat/issues/12311121/similar/",
+                "similar issues tab",
+            ),
+            (
+                "https://dogsaregreat.sentry.io/issues/12311121/similar/",
+                "similar issues tab",
+            ),
+            (
+                "https://sentry.io/organizations/dogsaregreat/some/other/path/",
+                "unknown",
+            ),
+            (
+                "https://dogsaregreat.sentry.io/some/other/path/",
+                "unknown",
+            ),
+            (
+                "",
+                "unknown",
+            ),
+        ]:
+
+            group_ids = [
+                self.create_group(platform="javascript").id,
+                self.create_group(platform="javascript").id,
+            ]
+            project = self.project
+
+            request = self.make_request(method="PUT")
+            request.user = self.user
+            request.data = {"merge": 1}
+            request.GET = {"id": group_ids, "project": [project.id]}
+            request.META = {"HTTP_REFERER": referer}
+
+            with patch("sentry.api.helpers.group_index.update.metrics.incr") as mock_metrics_incr:
+                update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+
+                mock_metrics_incr.assert_any_call(
+                    "grouping.merge_issues",
+                    sample_rate=1.0,
+                    tags={
+                        "platform": "javascript",
+                        "referer": expected_referer_tag,
+                    },
+                )
 
 
 class TestHandleIsSubscribed(TestCase):
@@ -376,3 +475,56 @@ class TestHandleIsPublic(TestCase):
             group=self.group, type=ActivityType.SET_PUBLIC.value
         ).exists()
         assert share_id is None
+
+
+class TestHandleAssignedTo(TestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    @patch("sentry.analytics.record")
+    def test_assigned_to(self, mock_record: Mock) -> None:
+        assigned_to = handle_assigned_to(
+            ActorTuple.from_actor_identifier(self.user.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+        assert assigned_to == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.username,
+            "type": "user",
+        }
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=False,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_unassign(self, mock_record: Mock) -> None:
+        assigned_to = handle_assigned_to(
+            None, None, None, self.group_list, self.project_lookup, self.user
+        )
+
+        assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+        assert assigned_to is None
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=True,
+        )

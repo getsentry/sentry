@@ -12,7 +12,6 @@ type GroupEventHeaderProps = {
   event: Event;
   group: Group;
   project: Project;
-  hasReplay?: boolean;
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {

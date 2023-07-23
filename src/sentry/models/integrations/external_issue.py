@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.db.models import QuerySet
@@ -18,6 +18,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
+    from django.db.models.query import _QuerySet
+
     from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
@@ -43,9 +45,10 @@ class ExternalIssueManager(BaseManager):
 
     def get_linked_issues(
         self, event: Event, integration: RpcIntegration
-    ) -> QuerySet[ExternalIssue]:  # pyright: ignore
+    ) -> QuerySet[ExternalIssue]:
         from sentry.models import GroupLink
 
+        assert event.group is not None
         return self.filter(
             id__in=GroupLink.objects.filter(
                 project_id=event.group.project_id,
@@ -55,7 +58,9 @@ class ExternalIssueManager(BaseManager):
             integration_id=integration.id,
         )
 
-    def get_linked_issue_ids(self, event: Event, integration: RpcIntegration) -> Sequence[str]:
+    def get_linked_issue_ids(
+        self, event: Event, integration: RpcIntegration
+    ) -> _QuerySet[ExternalIssue, str]:
         return self.get_linked_issues(event, integration).values_list("key", flat=True)
 
     def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:

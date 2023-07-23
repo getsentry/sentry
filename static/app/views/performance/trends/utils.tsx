@@ -3,8 +3,9 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, Project} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -115,6 +116,16 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  neutral: {
+    lighter: theme.yellow200,
+    default: theme.yellow300,
+  },
+  // TODO remove this once backend starts sending
+  // TrendChangeType.IMPROVED as change type
+  improvement: {
+    lighter: theme.green200,
+    default: theme.green300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -131,6 +142,8 @@ export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
+
+const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
 
 export function resetCursors() {
   const cursors = {};
@@ -236,14 +249,12 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: OrganizationSummary,
-  isProjectOnly?: boolean
+  canUseMetricsTrends: boolean = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
-  const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...transactionField, 'project'].map(field => ({
+  const fields = ['transaction', 'project'].map(field => ({
     field,
   })) as Field[];
 
@@ -264,14 +275,20 @@ export function modifyTrendView(
     );
   }
 
-  if (!organization.features.includes('performance-new-trends')) {
+  if (!canUseMetricsTrends) {
     trendView.query = getLimitTransactionItems(trendView.query);
   } else {
     const query = new MutableSearch(trendView.query);
-    // remove metrics-incompatible filters
-    if (query.hasFilter('transaction.duration')) {
-      query.removeFilter('transaction.duration');
+    if (query.freeText.length > 0) {
+      const parsedFreeText = query.freeText.join(' ');
+
+      // the query here is a user entered condition, no need to escape it
+      query.setFilterValues('transaction', [wrapQueryInWildcards(parsedFreeText)], false);
+      query.freeText = [];
     }
+    query.tokens = query.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS.includes(token.key)
+    );
     trendView.query = query.formatString();
   }
 
@@ -434,6 +451,6 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
 
 export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   const query = new MutableSearch(trendView.query);
-  query.setFilterValues('tpm()', ['>0.01']);
+  query.setFilterValues('tpm()', ['>0.1']);
   trendView.query = query.formatString();
 }

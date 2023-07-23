@@ -5,9 +5,7 @@ from sentry.api.serializers import Serializer
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.notifications.helpers import get_fallback_settings
-from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -24,7 +22,7 @@ class NotificationSettingsSerializer(Serializer):
         item_list: Iterable[Union["Team", "User"]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union["Team", "User"], Mapping[str, Iterable[Any]]]:
+    ) -> MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
@@ -48,38 +46,30 @@ class NotificationSettingsSerializer(Serializer):
             user_ids=list(user_map.keys()),
         )
 
-        results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
+        result: MutableMapping[Union[Team, User], MutableMapping[str, Set[Any]]] = defaultdict(
             lambda: defaultdict(set)
         )
+        for _, team in team_map.items():
+            result[team]["settings"] = set()
+        for _, user in user_map.items():
+            result[user]["settings"] = set()
 
         for notifications_setting in notifications_settings:
-            target = None
             if notifications_setting.user_id:
-                target = user_map[notifications_setting.user_id]
-            if notifications_setting.team_id:
-                target = team_map[notifications_setting.team_id]
-            if target:
-                results[target]["settings"].add(notifications_setting)
+                target_user = user_map[notifications_setting.user_id]
+                result[target_user]["settings"].add(notifications_setting)
+            elif notifications_setting.team_id:
+                target_team = team_map[notifications_setting.team_id]
+                result[target_team]["settings"].add(notifications_setting)
             else:
                 raise ValueError(
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
                 )
-
-        for recipient in item_list:
-            # This works because both User and Team models implement `get_projects`.
-            results[recipient]["projects"] = recipient.get_projects()
-
-            if isinstance(recipient, Team):
-                results[recipient]["organizations"] = {recipient.organization}
-
-            if isinstance(recipient, User):
-                results[recipient]["organizations"] = user.get_orgs()
-
-        return results
+        return result
 
     def serialize(
         self,
-        obj: Union["Team", "User"],
+        obj: Union[Team, User],
         attrs: Mapping[str, Iterable[Any]],
         user: User,
         **kwargs: Any,
@@ -110,27 +100,13 @@ class NotificationSettingsSerializer(Serializer):
         :param kwargs: The same `kwargs` as `get_attrs`.
         :returns A mapping. See example.
         """
-        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
 
-        project_ids = {_.id for _ in attrs["projects"]}
-        organization_ids = {_.id for _ in attrs["organizations"]}
-
-        data = get_fallback_settings(
-            types_to_serialize,
-            project_ids,
-            organization_ids,
-            recipient=RpcActor.from_object(obj),
-        )
+        data: MutableMapping[
+            str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
-            # Filter out invalid notification settings.
-            if (n.scope_str == "project" and n.scope_identifier not in project_ids) or (
-                n.scope_str == "organization" and n.scope_identifier not in organization_ids
-            ):
-                continue
-
             # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
         return data

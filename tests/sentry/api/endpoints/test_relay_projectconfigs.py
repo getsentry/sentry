@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -11,6 +14,7 @@ from sentry.models import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
 from sentry.utils import json, safe
+from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -100,7 +104,7 @@ def no_internal_networks(monkeypatch):
     monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
     call_endpoint, default_project
 ):
@@ -117,7 +121,7 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_internal_relays_should_receive_full_configs(
     call_endpoint, default_project, default_projectkey
 ):
@@ -158,12 +162,12 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
     # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
@@ -181,7 +185,7 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
         assert dynamic_sampling == {"rules": [], "rulesV2": []}
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
@@ -189,7 +193,7 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     assert status_code == 403
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
     call_endpoint, default_project
 ):
@@ -202,7 +206,7 @@ def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_co
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
     call_endpoint, add_org_key, relay, default_project
 ):
@@ -218,7 +222,7 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_trusted_external_relays_should_receive_minimal_configs(
     relay, add_org_key, call_endpoint, default_project, default_projectkey
 ):
@@ -256,7 +260,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "config", "quotas") is None
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_untrusted_external_relays_should_not_receive_configs(
     call_endpoint, default_project, no_internal_networks
 ):
@@ -272,12 +276,12 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
 @pytest.fixture
 def projectconfig_cache_set(monkeypatch):
-    calls = []
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.set_many", calls.append)
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_relay_projectconfig_cache_minimal_config(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
@@ -292,7 +296,7 @@ def test_relay_projectconfig_cache_minimal_config(
     assert not projectconfig_cache_set
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_relay_projectconfig_cache_full_config(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
@@ -317,7 +321,7 @@ def test_relay_projectconfig_cache_full_config(
     assert redis_cfg == http_cfg
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
     wrong_id = max(p.id for p in Project.objects.all()) + 1
 
@@ -331,7 +335,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_relay_disabled_project(
     call_endpoint, default_project, projectconfig_cache_set, task_runner
 ):
@@ -347,3 +351,22 @@ def test_relay_disabled_project(
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
+
+
+@pytest.mark.django_db
+def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
+    """
+    Test health check filter (aka ignoreTransactions)
+    """
+    relay.save()
+
+    default_project.update_option("filters:filtered-transaction", "1")
+    result, status_code = call_endpoint(full_config=True)
+
+    assert status_code < 400
+
+    filter_settings = safe.get_path(
+        result, "configs", str(default_project.id), "config", "filterSettings"
+    )
+    assert filter_settings is not None
+    assert "ignoreTransactions" in filter_settings

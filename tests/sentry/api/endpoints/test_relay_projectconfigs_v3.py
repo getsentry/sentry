@@ -1,14 +1,24 @@
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 from uuid import uuid4
 
 import pytest
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import django_db_all
+
+
+@pytest.fixture(autouse=True)
+def disable_auto_on_commit():
+    simulated_transaction_watermarks.state["default"] = -1
+    with in_test_hide_transaction_boundary():
+        yield
 
 
 @pytest.fixture
@@ -67,7 +77,8 @@ def call_endpoint(client, relay, private_key, default_projectkey):
 @pytest.fixture
 def projectconfig_cache_get_mock_config(monkeypatch):
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_cache.get", lambda *args, **kwargs: {"is_mock_config": True}
+        "sentry.relay.projectconfig_cache.backend.get",
+        lambda *args, **kwargs: {"is_mock_config": True},
     )
 
 
@@ -78,13 +89,14 @@ def single_mock_proj_cached(monkeypatch):
             return {"is_mock_config": True}
         return None
 
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache_get)
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.get", cache_get)
 
 
 @pytest.fixture
 def projectconfig_debounced_cache(monkeypatch):
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced", lambda *args, **kargs: True
+        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced",
+        lambda *args, **kargs: True,
     )
 
 
@@ -92,11 +104,11 @@ def projectconfig_debounced_cache(monkeypatch):
 def project_config_get_mock(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig("mock_project", is_mock_config=True),
+        lambda *args, **kwargs: ProjectConfig(sentinel.mock_project, is_mock_config=True),
     )
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_return_full_config_if_in_cache(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
@@ -108,7 +120,7 @@ def test_return_full_config_if_in_cache(
     }
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_return_partial_config_if_in_cache(
     monkeypatch,
     call_endpoint,
@@ -129,7 +141,7 @@ def test_return_partial_config_if_in_cache(
     assert result == expected
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_proj_in_cache_and_another_pending(
     call_endpoint, default_projectkey, single_mock_proj_cached
 ):
@@ -144,7 +156,7 @@ def test_proj_in_cache_and_another_pending(
 
 
 @patch("sentry.tasks.relay.build_project_config.delay")
-@pytest.mark.django_db
+@django_db_all
 def test_enqueue_task_if_config_not_cached_not_queued(
     schedule_mock,
     call_endpoint,
@@ -157,7 +169,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
 
 
 @patch("sentry.tasks.relay.build_project_config.delay")
-@pytest.mark.django_db
+@django_db_all
 def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
     call_endpoint,
@@ -170,8 +182,8 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     assert task_mock.call_count == 0
 
 
-@patch("sentry.relay.projectconfig_cache.set_many")
-@pytest.mark.django_db
+@patch("sentry.relay.projectconfig_cache.backend.set_many")
+@django_db_all
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
     default_projectkey,

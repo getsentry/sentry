@@ -4,19 +4,20 @@ import {Location, LocationDescriptorObject} from 'history';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
+  GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -24,32 +25,29 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  t('Change'),
   DataTitles.p95,
-  t('Change'),
   DataTitles.errorCount,
-  t('Change'),
   DataTitles.timeSpent,
 ];
 
 type Props = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
+};
+
+export type TableColumnHeader = GridColumnHeader<keyof TableDataRow> & {
+  column?: TableColumn<keyof TableDataRow>['column']; // TODO - remove this once gridEditable is properly typed
 };
 
 function EndpointList({eventView, location, organization, setError}: Props) {
@@ -68,7 +66,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderBodyCell(
     tableData: TableData | null,
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     dataRow: TableDataRow,
     _deltaColumnMap: Record<string, string>
   ): React.ReactNode {
@@ -93,13 +91,19 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             organization.slug
           }/starfish/endpoint-overview/?${qs.stringify({
             endpoint: dataRow.transaction,
-            method: dataRow['http.method'],
+            'http.method': dataRow['http.method'],
             statsPeriod: eventView.statsPeriod,
             project: eventView.project,
             start: eventView.start,
             end: eventView.end,
           })}`}
           style={{display: `block`, width: `100%`}}
+          onClick={() => {
+            trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {
+              organization,
+              endpoint: dataRow.transaction,
+            });
+          }}
         >
           {prefix}
           {dataRow.transaction}
@@ -111,63 +115,17 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <Tooltip
-          title={tct('Total time spent by endpoint is [cumulativeTime])', {
-            cumulativeTime: (
-              <Duration seconds={cumulativeTime / 1000} fixedDigits={2} abbreviation />
-            ),
-          })}
-          containerDisplayMode="block"
-          position="top"
-        >
-          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
-        </Tooltip>
+        <TimeSpentCell
+          timeSpentPercentage={cumulativeTimePercentage}
+          totalSpanTime={cumulativeTime}
+        />
       );
     }
 
+    // TODO: This can be removed if/when the backend returns this field's type
+    // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return (
-        <NumberContainer>
-          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
-        </NumberContainer>
-      );
-    }
-
-    if (
-      [
-        'percentile_percent_change(transaction.duration,0.95)',
-        'http_error_count_percent_change()',
-      ].includes(field)
-    ) {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
-      return (
-        <NumberContainer>
-          <PercentChangeCell trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </PercentChangeCell>
-        </NumberContainer>
-      );
-    }
-
-    if (field === 'tps_percent_change()') {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue > 0 ? 'good' : deltaValue < 0 ? 'bad' : 'neutral';
-
-      return (
-        <NumberContainer>
-          <PercentChangeCell trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </PercentChangeCell>
-        </NumberContainer>
-      );
+      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
     }
 
     if (field === 'project') {
@@ -205,15 +163,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       });
     }
 
-    return (
-      column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => renderBodyCell(tableData, column, dataRow, deltaColumnMap);
+    return (column: TableColumnHeader, dataRow: TableDataRow): React.ReactNode =>
+      renderBodyCell(tableData, column, dataRow, deltaColumnMap);
   }
 
   function renderHeadCell(
     tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
+    column: TableColumnHeader,
     title: React.ReactNode
   ): React.ReactNode {
     let align: Alignments = 'right';
@@ -221,7 +177,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       align = 'left';
     }
     const field = {
-      field: column.column.kind === 'equation' ? (column.key as string) : column.name,
+      field: column.column?.kind === 'equation' ? (column.key as string) : column.name,
       width: column.width,
     };
 
@@ -257,6 +213,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAnalytics('starfish.web_service_view.endpoint_list.header.clicked', {
+            organization,
+            direction: currentSortKind === 'desc' ? 'asc' : 'desc',
+            header: title || field.field,
+          });
+        }}
       />
     );
 
@@ -265,7 +228,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
   function renderHeadCellWithMeta(tableMeta: TableData['meta']) {
     const newColumnTitles = COLUMN_TITLES;
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+    return (column: TableColumnHeader, index: number): React.ReactNode =>
       renderHeadCell(tableMeta, column, newColumnTitles[index]);
   }
 
@@ -283,6 +246,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
   const columnOrder = eventView
@@ -323,8 +291,8 @@ function EndpointList({eventView, location, organization, setError}: Props) {
               columnSortBy={columnSortBy}
               grid={{
                 onResizeColumn: handleResizeColumn,
-                renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
-                renderBodyCell: renderBodyCellWithData(tableData) as any,
+                renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                renderBodyCell: renderBodyCellWithData(tableData),
               }}
               location={location}
             />
@@ -338,18 +306,6 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 }
 
 export default EndpointList;
-
-export const PercentChangeCell = styled('div')<{
-  trendDirection: 'good' | 'bad' | 'neutral';
-}>`
-  color: ${p =>
-    p.trendDirection === 'good'
-      ? p.theme.successText
-      : p.trendDirection === 'bad'
-      ? p.theme.errorText
-      : p.theme.subText};
-  float: right;
-`;
 
 const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};

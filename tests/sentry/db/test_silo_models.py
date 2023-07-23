@@ -1,15 +1,16 @@
+from __future__ import annotations
+
+from django.db.models import Model
+
 from sentry.api.serializers.base import registry
-from sentry.models import OrganizationMember, User
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
     validate_no_cross_silo_foreign_keys,
 )
 
-decorator_exemptions = set()
-fk_exemptions = {
-    (OrganizationMember, User),
-}
+decorator_exemptions: set[type[Model]] = set()
+fk_exemptions: set[tuple[type[Model], type[Model]]] = set()
 
 
 def test_models_have_silos():

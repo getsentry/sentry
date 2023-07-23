@@ -211,6 +211,33 @@ export const getIntegrationIcon = (
   }
 };
 
+export const getIntegrationSourceUrl = (
+  integrationType: string,
+  sourceUrl: string,
+  lineNo: number | null
+) => {
+  switch (integrationType) {
+    case 'bitbucket':
+    case 'bitbucket_server':
+      return `${sourceUrl}#lines-${lineNo}`;
+    case 'vsts':
+      const url = new URL(sourceUrl);
+      if (lineNo) {
+        url.searchParams.set('line', lineNo.toString());
+        url.searchParams.set('lineEnd', (lineNo + 1).toString());
+        url.searchParams.set('lineStartColumn', '1');
+        url.searchParams.set('lineEndColumn', '1');
+        url.searchParams.set('lineStyle', 'plain');
+        url.searchParams.set('_a', 'contents');
+      }
+      return url.toString();
+    case 'github':
+    case 'github_enterprise':
+    default:
+      return `${sourceUrl}#L${lineNo}`;
+  }
+};
+
 export function getCodeOwnerIcon(
   provider: CodeOwner['provider'],
   iconSize: IconSize = 'md'

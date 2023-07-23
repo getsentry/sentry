@@ -1,33 +1,30 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/checkInTimeline';
+import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
-} from 'sentry/views/monitors/components/overviewTimeline/timelineScrubber';
+} from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
 
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowData} from './utils';
+import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
 interface Props {
   monitorList: Monitor[];
-  monitorListPageLinks?: string | null;
 }
 
 export function OverviewTimeline({monitorList}: Props) {
@@ -47,7 +44,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const rollup = Math.floor(
-    (timeWindowData[timeWindow].elapsedMinutes * 60) / timelineWidth
+    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
   );
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -72,7 +69,6 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <ListFilters>
-        <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
         <SegmentedControl<TimeWindow>
           value={timeWindow}
           onChange={handleResolutionChange}
@@ -92,25 +88,29 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
       <GridLineOverlay
+        showCursor={!isLoading}
         timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}
       />
 
       {monitorList.map(monitor => (
-        <Fragment key={monitor.id}>
+        <TimelineRow key={monitor.id}>
           <MonitorDetails monitor={monitor} />
           {isLoading || !monitorStats ? (
-            <Placeholder />
+            <TimelinePlaceholder />
           ) : (
-            <CheckInTimeline
-              bucketedData={monitorStats[monitor.slug]}
-              end={nowRef.current}
-              start={start}
-              width={timelineWidth}
-            />
+            <div>
+              <CheckInTimeline
+                timeWindow={timeWindow}
+                bucketedData={monitorStats[monitor.slug]}
+                end={nowRef.current}
+                start={start}
+                width={timelineWidth}
+              />
+            </div>
           )}
-        </Fragment>
+        </TimelineRow>
       ))}
     </MonitorListPanel>
   );
@@ -135,15 +135,27 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 1fr;
 `;
 
+const TimelineRow = styled('div')`
+  display: contents;
+
+  &:nth-child(odd) > * {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:hover > * {
+    background: ${p => p.theme.backgroundTertiary};
+  }
+
+  > * {
+    transition: background 50ms ease-in-out;
+  }
+`;
+
 const DetailsContainer = styled(Link)`
   color: ${p => p.theme.textColor};
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
   border-radius: 0;
-
-  &:hover {
-    color: unset;
-  }
 `;
 
 const Name = styled('h3')`
@@ -168,4 +180,8 @@ const TimelineWidthTracker = styled('div')`
   width: 100%;
   grid-row: 1;
   grid-column: 2;
+`;
+
+const TimelinePlaceholder = styled(Placeholder)`
+  align-self: center;
 `;

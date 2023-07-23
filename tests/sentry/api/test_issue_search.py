@@ -24,6 +24,7 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.search.utils import get_teams_for_users
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
@@ -180,6 +181,34 @@ class ConvertJavaScriptConsoleTagTest(TestCase):
 
 @region_silo_test(stable=True)
 class ConvertQueryValuesTest(TestCase):
+    def test_valid_assign_me_converter(self):
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
+        expected = value_converters["assigned_to"](
+            [filters[0].value.raw_value], [self.project], self.user, None
+        )
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == expected
+
+    def test_valid_assign_me_no_converter(self):
+        search_val = SearchValue("me")
+        filters = [SearchFilter(SearchKey("something"), "=", search_val)]
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == search_val.raw_value
+
+    def test_valid_assign_my_teams_converter(self):
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("my_teams"))]
+        expected = value_converters["assigned_to"](
+            [filters[0].value.raw_value], [self.project], self.user, None
+        )
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == expected
+
+    def test_valid_assign_my_teams_no_converter(self):
+        search_val = SearchValue("my_teams")
+        filters = [SearchFilter(SearchKey("something"), "=", search_val)]
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == search_val.raw_value
+
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
         expected = value_converters["assigned_to"](
@@ -308,6 +337,11 @@ class ConvertActorOrNoneValueTest(TestCase):
         assert convert_actor_or_none_value(
             ["me"], [self.project], self.user, None
         ) == convert_user_value(["me"], [self.project], self.user, None)
+
+    def test_my_team(self):
+        assert convert_actor_or_none_value(
+            ["my_teams"], [self.project], self.user, None
+        ) == get_teams_for_users([self.project], [self.user])
 
     def test_none(self):
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]

@@ -19,7 +19,11 @@ const DEFAULT_CONTEXT = {
  */
 export const RouteAnalyticsContext = createContext<{
   previousUrl: string;
-  setDisableRouteAnalytics: () => void;
+  /**
+   * Enable/disable route analytics manually
+   * @param disabled - defaults to true
+   */
+  setDisableRouteAnalytics: (disabled?: boolean) => void;
   setEventNames: (evetKey: string, eventName: string) => void;
   setOrganization: (organization: Organization) => void;
   setRouteAnalyticsParams: (params: Record<string, any>) => void;

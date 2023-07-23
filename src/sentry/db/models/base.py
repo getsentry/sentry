@@ -202,14 +202,14 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
+    def __call__(self, model_class: Type[ModelClass]) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
 
         setattr(
             model_class,
             "objects",
-            create_silo_limited_copy(getattr(model_class, "objects"), self, self.read_only),
+            create_silo_limited_copy(getattr(model_class, "objects"), self),
         )
 
         # On the model (not manager) class itself, find all methods that are tagged

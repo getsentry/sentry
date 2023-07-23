@@ -156,11 +156,11 @@ export interface Thread {
 }
 
 export type Lock = {
-  address: string | null;
-  class_name: string | null;
-  package_name: string | null;
-  thread_id: number | null;
   type: LockType;
+  address?: string | null;
+  class_name?: string | null;
+  package_name?: string | null;
+  thread_id?: number | null;
 };
 
 export enum LockType {
@@ -191,6 +191,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
@@ -288,7 +289,7 @@ export enum EntryType {
   RESOURCES = 'resources',
 }
 
-type EntryDebugMeta = {
+export type EntryDebugMeta = {
   data: {
     images: Array<Image | null>;
   };
@@ -314,7 +315,7 @@ export type EntryException = {
   type: EntryType.EXCEPTION;
 };
 
-type EntryStacktrace = {
+export type EntryStacktrace = {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
 };
@@ -332,22 +333,35 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export type EntryRequest = {
+export interface EntryRequestDataDefault {
+  apiTarget: null;
+  method: string;
+  url: string;
+  cookies?: [key: string, value: string][];
+  data?: string | null | Record<string, any> | [key: string, value: any][];
+  env?: Record<string, string>;
+  fragment?: string | null;
+  headers?: [key: string, value: string][];
+  inferredContentType?:
+    | null
+    | 'application/json'
+    | 'application/x-www-form-urlencoded'
+    | 'multipart/form-data';
+  query?: [key: string, value: string][] | string;
+}
+
+export interface EntryRequestDataGraphQl
+  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+  apiTarget: 'graphql';
   data: {
-    method: string;
-    url: string;
-    cookies?: [key: string, value: string][];
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    env?: Record<string, string>;
-    fragment?: string | null;
-    headers?: [key: string, value: string][];
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-    query?: [key: string, value: string][] | string;
+    query: string;
+    variables: Record<string, string | number | null>;
+    operationName?: string;
   };
+}
+
+export type EntryRequest = {
+  data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
 };
 
@@ -616,6 +630,11 @@ export interface BrowserContext {
   version: string;
 }
 
+export interface ResponseContext {
+  data: unknown;
+  type: 'response';
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -629,7 +648,9 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  profile?: ProfileContext;
   replay?: ReplayContext;
+  response?: ResponseContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;

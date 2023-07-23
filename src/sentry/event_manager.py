@@ -19,7 +19,6 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Type,
     TypedDict,
     Union,
     cast,
@@ -29,10 +28,10 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, transaction
+from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from pytz import UTC
 
 from sentry import (
@@ -55,15 +54,8 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventtypes import (
-    CspEvent,
-    DefaultEvent,
-    ErrorEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    HpkpEvent,
-    TransactionEvent,
-)
+from sentry.eventtypes import EventType
+from sentry.eventtypes.transaction import TransactionEvent
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -129,6 +121,7 @@ from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -392,7 +385,6 @@ class EventManager:
         start_time: Optional[int] = None,
         cache_key: Optional[str] = None,
         skip_send_first_transaction: bool = False,
-        auto_upgrade_grouping: bool = False,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -425,6 +417,10 @@ class EventManager:
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
 
+        # After calling _pull_out_data we get some keys in the job like the platform
+        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
+            _pull_out_data([job], projects)
+
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
@@ -441,7 +437,22 @@ class EventManager:
             jobs = save_generic_events([job], projects)
 
             return jobs[0]["event"]
+        else:
+            metric_tags = {"platform": job["event"].platform or "unknown"}
+            # This metric allows differentiating from all calls to the `event_manager.save` metric
+            # and adds support for differentiating based on platforms
+            with metrics.timer("event_manager.save_error_events", tags=metric_tags):
+                return self.save_error_events(project, job, projects, metric_tags, raw, cache_key)
 
+    def save_error_events(
+        self,
+        project: Project,
+        job: Job,
+        projects: ProjectsMapping,
+        metric_tags: Dict[str, str],
+        raw: bool = False,
+        cache_key: Optional[str] = None,
+    ) -> Event:
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -451,8 +462,8 @@ class EventManager:
 
         is_reprocessed = is_reprocessed_event(job["data"])
 
-        with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
-            _pull_out_data(jobs, projects)
+        # This metric can be used to track how many error events there are per platform
+        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -478,19 +489,9 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        try:
-            secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-            secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-            if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-                with metrics.timer("event_manager.secondary_grouping"):
-                    secondary_event = copy.deepcopy(job["event"])
-                    loader = SecondaryGroupingConfigLoader()
-                    secondary_grouping_config = loader.get_config_dict(project)
-                    secondary_hashes = _calculate_event_grouping(
-                        project, secondary_event, secondary_grouping_config
-                    )
-        except Exception:
-            sentry_sdk.capture_exception()
+        if _check_to_run_secondary_grouping(project):
+            with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -508,9 +509,10 @@ class EventManager:
                     job["event"].data.data, project
                 )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
-            "event_manager.calculate_event_grouping"
-        ):
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -650,7 +652,7 @@ class EventManager:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
 
-        metric_tags = {"from_relay": "_relay_processed" in job["data"]}
+        metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
         metrics.timing(
             "events.latency",
@@ -670,10 +672,44 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if auto_upgrade_grouping and _project_should_update_grouping(project):
+        if _project_should_update_grouping(project):
             _auto_update_grouping(project)
 
         return job["event"]
+
+
+def _check_to_run_secondary_grouping(project: Project) -> bool:
+    result = False
+    # These two values are basically always set
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
+        result = True
+    return result
+
+
+def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
+    """Calculate secondary hash for event using a fallback grouping config for a period of time.
+    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
+    when the customer changes the grouping config.
+    This causes extra load in save_event processing.
+    """
+    secondary_hashes = None
+    try:
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.secondary_calculate_event_grouping",
+        ):
+            secondary_event = copy.deepcopy(job["event"])
+            loader = SecondaryGroupingConfigLoader()
+            secondary_grouping_config = loader.get_config_dict(project)
+            secondary_hashes = _calculate_event_grouping(
+                project, secondary_event, secondary_grouping_config
+            )
+    except Exception:
+        sentry_sdk.capture_exception()
+
+    return secondary_hashes
 
 
 def _project_should_update_grouping(project: Project) -> bool:
@@ -752,6 +788,8 @@ def _run_background_grouping(project: Project, job: Job) -> None:
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
+    Update every job in the list with required information and store it in the nodestore.
+
     A bunch of (probably) CPU bound stuff.
     """
 
@@ -764,7 +802,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
         transaction_name = data.get("transaction")
         if transaction_name:
-            transaction_name = force_text(transaction_name)
+            transaction_name = force_str(transaction_name)
         job["transaction"] = transaction_name
 
         key_id = None if data is None else data.get("key_id")
@@ -778,7 +816,9 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         job["dist"] = data.get("dist")
         job["environment"] = environment = data.get("environment")
         job["recorded_timestamp"] = data.get("timestamp")
+        # Stores the event in the nodestore
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
+        # Overwrite the data key with the event's updated data
         job["data"] = data = event.data.data
 
         event._project_cache = project = projects[job["project_id"]]
@@ -914,11 +954,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
-                    options.get("dynamic-sampling:boost-latest-release")
-                    and features.has(
+                    features.has(
                         "organizations:dynamic-sampling", projects[project_id].organization
                     )
-                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -1179,17 +1217,17 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
         incrs = []
         frequencies = []
         records = []
-        incrs.append((tsdb.models.project, job["project_id"]))
+        incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
         release = job["release"]
         environment = job["environment"]
         user = job["user"]
 
         for group_info in job["groups"]:
-            incrs.append((tsdb.models.group, group_info.group.id))
+            incrs.append((TSDBModel.group, group_info.group.id))
             frequencies.append(
                 (
-                    tsdb.models.frequent_environments_by_group,
+                    TSDBModel.frequent_environments_by_group,
                     {group_info.group.id: {environment.id: 1}},
                 )
             )
@@ -1197,30 +1235,32 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             if group_info.group_release:
                 frequencies.append(
                     (
-                        tsdb.models.frequent_releases_by_group,
+                        TSDBModel.frequent_releases_by_group,
                         {group_info.group.id: {group_info.group_release.id: 1}},
                     )
                 )
             if user:
                 records.append(
-                    (tsdb.models.users_affected_by_group, group_info.group.id, (user.tag_value,))
+                    (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
                 )
 
         if release:
-            incrs.append((tsdb.models.release, release.id))
+            incrs.append((TSDBModel.release, release.id))
 
         if user:
             project_id = job["project_id"]
-            records.append((tsdb.models.users_affected_by_project, project_id, (user.tag_value,)))
+            records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
 
         if incrs:
-            tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
 
         if records:
-            tsdb.record_multi(records, timestamp=event.datetime, environment_id=environment.id)
+            tsdb.backend.record_multi(
+                records, timestamp=event.datetime, environment_id=environment.id
+            )
 
         if frequencies:
-            tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
+            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 @metrics.wraps("save_event.nodestore_save_many")
@@ -1279,7 +1319,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        eventstream.insert(
+        eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,
@@ -1315,11 +1355,9 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("event_manager.get_event_instance")
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
-    event_id = data.get("event_id")
-
-    return eventstore.create_event(
+    return eventstore.backend.create_event(
         project_id=project_id,
-        event_id=event_id,
+        event_id=data.get("event_id"),
         group_id=None,
         data=EventDict(data, skip_renormalization=True),
     )
@@ -1394,17 +1432,6 @@ def _get_event_user_impl(
     return euser
 
 
-EventType = Union[
-    DefaultEvent,
-    ErrorEvent,
-    CspEvent,
-    HpkpEvent,
-    ExpectCTEvent,
-    ExpectStapleEvent,
-    TransactionEvent,
-]
-
-
 def get_event_type(data: Mapping[str, Any]) -> EventType:
     return eventtypes.get(data.get("type", "default"))()
 
@@ -1435,7 +1462,7 @@ def materialize_metadata(
 def get_culprit(data: Mapping[str, Any]) -> str:
     """Helper to calculate the default culprit"""
     return str(
-        force_text(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
+        force_str(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
     )
 
 
@@ -1446,7 +1473,7 @@ def _save_aggregate(
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     migrate_off_hierarchical: Optional[bool] = False,
-    **kwargs: dict[str, Any],
+    **kwargs: Any,
 ) -> Optional[GroupInfo]:
     project = event.project
 
@@ -1507,7 +1534,9 @@ def _save_aggregate(
             op="event_manager.create_group_transaction"
         ) as span, metrics.timer(
             "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic():
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
@@ -1703,7 +1732,7 @@ def _find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
-def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> Group:
+def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
@@ -1878,7 +1907,7 @@ def _process_existing_aggregate(
     return bool(is_regression)
 
 
-Attachment = Type[CachedAttachment]
+Attachment = CachedAttachment
 
 
 def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
@@ -1894,7 +1923,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
 
     project = job["event"].project
 
-    quotas.refund(
+    quotas.backend.refund(
         project,
         key=job["project_key"],
         timestamp=job["start_time"],
@@ -1931,7 +1960,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         )
 
     if attachment_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
@@ -2055,7 +2084,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
     if refund_quantity:
-        quotas.refund(
+        quotas.backend.refund(
             project,
             key=job["project_key"],
             timestamp=job["start_time"],
@@ -2281,10 +2310,13 @@ class PerformanceJob(TypedDict, total=False):
 
 
 def _save_grouphash_and_group(
-    project: Project, event: Event, new_grouphash: str, **group_kwargs: dict[str, Any]
+    project: Project,
+    event: Event,
+    new_grouphash: str,
+    **group_kwargs: Any,
 ) -> Tuple[Group, bool]:
     group = None
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
         if created:
             group = _create_group(project, event, **group_kwargs)
@@ -2346,7 +2378,6 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
             except KeyError:
                 continue
 
-    _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
@@ -2384,7 +2415,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
             except KeyError:
                 continue
 
-    _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)

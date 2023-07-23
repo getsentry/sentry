@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set, cast
+from typing import Any, Callable, Dict, List, Mapping, Optional, Set
 
 from snuba_sdk import OrderBy
 
@@ -52,6 +52,6 @@ class DatasetConfig(abc.ABC):
             if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore
                 return field_type
             else:
-                return cast(str, argument.get_type(value))
+                return argument.get_type(value)
 
         return result_type_fn

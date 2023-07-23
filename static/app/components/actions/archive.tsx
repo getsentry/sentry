@@ -5,8 +5,9 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {GroupStatusResolution, GroupSubstatus, ResolutionStatus} from 'sentry/types';
 
 interface ArchiveActionProps {
@@ -115,8 +116,15 @@ function ArchiveActions({
     <ButtonBar className={className} merged>
       <ArchiveButton
         size={size}
-        tooltipProps={{delay: 1000, disabled}}
-        title={t('Archive issue until a high number of events are seen.')}
+        tooltipProps={{delay: 1000, disabled, isHoverable: true}}
+        title={tct(
+          'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
+          {
+            docs: (
+              <ExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/" />
+            ),
+          }
+        )}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
@@ -134,7 +142,14 @@ function ArchiveActions({
             disabled={disabled}
           />
         )}
-        menuTitle={t('Archive')}
+        menuTitle={
+          <MenuWrapper>
+            {t('Archive')}
+            <StyledExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/escalating-issues/">
+              {t('Read the docs')}
+            </StyledExternalLink>
+          </MenuWrapper>
+        }
         items={dropdownItems}
         isDisabled={disabled}
       />
@@ -153,4 +168,14 @@ const DropdownTrigger = styled(Button)`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusRight};
   border-left: none;
+`;
+
+const MenuWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  font-weight: normal;
 `;

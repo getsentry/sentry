@@ -25,6 +25,7 @@ api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null
@@ -47,6 +48,7 @@ api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null

@@ -30,8 +30,8 @@ export function TextCondition({
               // Double %% escapes
               'Percent of sessions affected by an issue is %s%% higher in %s compared to %s ago',
               condition.value,
-              condition.comparisonInterval,
-              condition.interval
+              condition.interval,
+              condition.comparisonInterval
             )}
           </Fragment>
         );
@@ -42,8 +42,8 @@ export function TextCondition({
             // Double %% escapes
             'Number of events in an issue is %s%% higher in %s compared to %s ago',
             condition.value,
-            condition.comparisonInterval,
-            condition.interval
+            condition.interval,
+            condition.comparisonInterval
           )}
         </Fragment>
       );
@@ -61,7 +61,7 @@ export function TextCondition({
   }
   if (
     condition.id === REAPPEARED_EVENT_CONDITION &&
-    organization.features.includes('escalating-issues-ui')
+    organization.features.includes('escalating-issues')
   ) {
     return (
       <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>

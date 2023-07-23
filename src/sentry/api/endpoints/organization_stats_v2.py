@@ -12,9 +12,9 @@ from typing_extensions import TypedDict
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
-from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
@@ -66,7 +66,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     groupBy = serializers.MultipleChoiceField(
-        list(GROUPBY_MAP.keys()),
+        choices=list(GROUPBY_MAP.keys()),
         required=True,
         help_text=(
             "can pass multiple groupBy parameters to group by multiple, e.g. `groupBy=project&groupBy=outcome` to group by multiple dimensions. "
@@ -96,7 +96,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment"),
+        ("error", "transaction", "attachment", "replays", "profiles"),
         required=False,
         help_text=(
             "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
@@ -142,12 +142,12 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
             401: RESPONSE_UNAUTHORIZED,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )

@@ -69,6 +69,19 @@ const SIZE_DATA_KEYS = [
   'http.response_transfer_size',
 ];
 
+const HIDDEN_DATA_KEYS = [
+  'http.request.redirect_start',
+  'http.request.fetch_start',
+  'http.request.domain_lookup_start',
+  'http.request.domain_lookup_end',
+  'http.request.connect_start',
+  'http.request.secure_connection_start',
+  'http.request.connection_end',
+  'http.request.request_start',
+  'http.request.response_start',
+  'http.request.response_end',
+];
+
 type TransactionResult = {
   id: string;
   'project.name': string;
@@ -88,6 +101,10 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
 };
 
+function isSpanKeyVisible(key: string) {
+  return !HIDDEN_DATA_KEYS.includes(key);
+}
+
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
@@ -99,7 +116,7 @@ function SpanDetail(props: Props) {
     // Run on mount.
 
     const {span, organization, event} = props;
-    if ('type' in span) {
+    if (!('op' in span)) {
       return;
     }
 
@@ -390,7 +407,7 @@ function SpanDetail(props: Props) {
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     const unknownKeys = Object.keys(span).filter(key => {
-      return !rawSpanKeys.has(key as any);
+      return isSpanKeyVisible(key) && !rawSpanKeys.has(key as any);
     });
 
     const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -522,11 +539,13 @@ function SpanDetail(props: Props) {
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) => (
-                <Row title={key} key={key}>
-                  {maybeStringify(value)}
-                </Row>
-              ))}
+              {map(nonSizeKeys, (value, key) =>
+                isSpanKeyVisible(key) ? (
+                  <Row title={key} key={key}>
+                    {maybeStringify(value)}
+                  </Row>
+                ) : null
+              )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
                   {maybeStringify(span[key])}

@@ -27,11 +27,14 @@ from sentry.incidents.serializers import (
 from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -85,7 +88,17 @@ class TestAlertRuleSerializer(TestCase):
 
     @cached_property
     def context(self):
-        return {"organization": self.organization, "access": self.access, "user": self.user}
+        return {
+            "organization": self.organization,
+            "access": self.access,
+            "user": self.user,
+            "installations": app_service.get_installed_for_organization(
+                organization_id=self.organization.id
+            ),
+            "integrations": integration_service.get_integrations(
+                organization_id=self.organization.id
+            ),
+        }
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -94,7 +107,7 @@ class TestAlertRuleSerializer(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def setup_slack_integration(self):
         self.integration = Integration.objects.create(
             external_id="1",
@@ -441,7 +454,7 @@ class TestAlertRuleSerializer(TestCase):
         # and that the rule is not created.
         base_params = self.valid_params.copy()
         base_params["name"] = "Aun1qu3n4m3"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="1",
                 provider="slack",
@@ -651,7 +664,7 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         # Reload user for actor
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
         assert alert_rule.owner == get_actor_for_user(self.user)
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
@@ -855,7 +868,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
-            {"nonFieldErrors": ["User does not exist"]},
+            {"nonFieldErrors": ["User does not belong to this organization"]},
         )
         other_user = self.create_user()
         self.run_fail_validation_test(

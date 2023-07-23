@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import uuid4
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models import (
     BaseManager,
@@ -48,11 +48,11 @@ class ApiToken(Model, HasApiScopes):
     __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __str__(self):
-        return force_text(self.token)
+        return force_str(self.token)
 
     @classmethod
     def from_grant(cls, grant):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(cls)):
             return cls.objects.create(
                 application=grant.application, user=grant.user, scope_list=grant.get_scopes()
             )

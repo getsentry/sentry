@@ -197,6 +197,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
+        data["snooze"] = False
         return data
 
 

@@ -1,18 +1,16 @@
 from typing import Iterable
 
-import pytest
-from django.db import ProgrammingError, transaction
-
 from sentry.models import (
     ActorTuple,
     Environment,
     EnvironmentProject,
+    ExternalIssue,
+    GroupLink,
     NotificationSetting,
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
     ProjectOwnership,
-    ProjectTeam,
     RegionScheduledDeletion,
     Release,
     ReleaseProject,
@@ -22,12 +20,14 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.actor import get_actor_for_user
+from sentry.models.projectteam import ProjectTeam
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
@@ -35,7 +35,7 @@ from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test(stable=True)
-class ProjectTest(TestCase):
+class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -256,6 +256,60 @@ class ProjectTest(TestCase):
         assert rule3.owner is not None
         assert rule4.owner is not None
 
+    def test_transfer_to_organization_external_issues(self):
+        from_org = self.create_organization()
+        to_org = self.create_organization()
+
+        project = self.create_project(organization=from_org)
+        group = self.create_group(project=project)
+        other_project = self.create_project(organization=from_org)
+        other_group = self.create_group(project=other_project)
+
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            name="Jira",
+            external_id="jira:1",
+        )
+        ext_issue = ExternalIssue.objects.create(
+            organization_id=from_org.id,
+            integration_id=self.integration.id,
+            key="123",
+        )
+        other_ext_issue = ExternalIssue.objects.create(
+            organization_id=from_org.id,
+            integration_id=self.integration.id,
+            key="124",
+        )
+        group_link = GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=ext_issue.id,
+        )
+        other_group_link = GroupLink.objects.create(
+            group_id=other_group.id,
+            project_id=other_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=other_ext_issue.id,
+        )
+
+        project.transfer_to(organization=to_org)
+        project.refresh_from_db()
+        other_project.refresh_from_db()
+        ext_issue.refresh_from_db()
+        other_ext_issue.refresh_from_db()
+        group_link.refresh_from_db()
+        other_group_link.refresh_from_db()
+
+        assert project.organization_id == to_org.id
+        assert ext_issue.organization_id == to_org.id
+        assert group_link.project_id == project.id
+
+        assert other_project.organization_id == from_org.id
+        assert other_ext_issue.organization_id == from_org.id
+        assert other_group_link.project_id == other_project.id
+
     def test_get_absolute_url(self):
         url = self.project.get_absolute_url()
         assert (
@@ -374,9 +428,8 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.project, users
-        )[ExternalProviders.EMAIL]
+        recipients = NotificationSetting.objects.filter_to_accepting_recipients(self.project, users)
+        actual_recipients = recipients[ExternalProviders.EMAIL]
         expected_recipients = {
             RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
         }
@@ -391,7 +444,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         self.run_test({user}, {user})
 
@@ -401,7 +454,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         self.run_test({user}, set())
 
@@ -411,13 +464,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
             project=self.project,
         )
         self.run_test({user}, {user})
@@ -428,13 +481,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
             project=self.project,
         )
         self.run_test({user}, set())
@@ -445,7 +498,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_global_enabled),
+            user_id=user_global_enabled.id,
         )
 
         user_global_disabled = self.create_user()
@@ -453,7 +506,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_global_disabled),
+            user_id=user_global_disabled.id,
         )
 
         user_project_enabled = self.create_user()
@@ -461,13 +514,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_project_enabled),
+            user_id=user_project_enabled.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_project_enabled),
+            user_id=user_project_enabled.id,
             project=self.project,
         )
 
@@ -476,13 +529,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_project_disabled),
+            user_id=user_project_disabled.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_project_disabled),
+            user_id=user_project_disabled.id,
             project=self.project,
         )
         self.run_test(
@@ -498,13 +551,6 @@ class FilterToSubscribedUsersTest(TestCase):
 
 @region_silo_test
 class ProjectDeletionTest(TestCase):
-    def test_cannot_delete_with_queryset(self):
-        proj = self.create_project()
-        assert Project.objects.exists()
-        with pytest.raises(ProgrammingError), transaction.atomic():
-            Project.objects.filter(id=proj.id).delete()
-        assert Project.objects.exists()
-
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()
         user = self.create_user()

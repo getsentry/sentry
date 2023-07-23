@@ -7,12 +7,14 @@ __all__ = (
     "parse_query",
     "resolve_tags",
     "translate_meta_results",
+    "QUERY_PROJECT_LIMIT",
 )
 
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -35,7 +37,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import WhereType
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -83,6 +85,8 @@ from sentry.snuba.metrics.utils import (
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
+
+QUERY_PROJECT_LIMIT = 10
 
 
 def parse_field(field: str, allow_mri: bool = False) -> MetricField:
@@ -149,9 +153,10 @@ FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
     org_id: int,
     input_: Any,
+    projects: Sequence[Project],
     is_tag_value: bool = False,
     allowed_tag_keys: Optional[Dict[str, str]] = None,
 ) -> Any:
@@ -167,6 +172,7 @@ def resolve_tags(
                 use_case_id,
                 org_id,
                 item,
+                projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
             )
@@ -185,6 +191,7 @@ def resolve_tags(
                 use_case_id,
                 org_id,
                 input_.parameters[0],
+                projects,
                 allowed_tag_keys=allowed_tag_keys,
             )
         elif input_.function == "isNull":
@@ -195,12 +202,14 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
+                        projects,
                         allowed_tag_keys=allowed_tag_keys,
                     ),
                     resolve_tags(
                         use_case_id,
                         org_id,
                         "",
+                        projects,
                         is_tag_value=True,
                         allowed_tag_keys=allowed_tag_keys,
                     ),
@@ -222,6 +231,7 @@ def resolve_tags(
                         use_case_id,
                         org_id,
                         input_.parameters[0],
+                        projects,
                         allowed_tag_keys=new_allowed_tag_keys,
                     ),
                     input_.parameters[1],  # We directly pass the regex.
@@ -232,7 +242,9 @@ def resolve_tags(
                 function=input_.function,
                 parameters=input_.parameters
                 and [
-                    resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                    resolve_tags(
+                        use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys
+                    )
                     for item in input_.parameters
                 ],
             )
@@ -247,20 +259,21 @@ def resolve_tags(
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
         return resolve_tags(
-            use_case_id, org_id, input_.conditions[1], allowed_tag_keys=allowed_tag_keys
+            use_case_id, org_id, input_.conditions[1], projects, allowed_tag_keys=allowed_tag_keys
         )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=Op.EQ,
                 rhs=resolve_tags(
                     use_case_id,
                     org_id,
                     "",
+                    projects,
                     is_tag_value=True,
                     allowed_tag_keys=allowed_tag_keys,
                 ),
@@ -287,21 +300,25 @@ def resolve_tags(
             except KeyError:
                 raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
 
-            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            rhs_ids = get_project_ids(org_id, projects, rhs_slugs)
+
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys
+                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
                 ),
                 op=op,
                 rhs=rhs_ids,
             )
         return Condition(
-            lhs=resolve_tags(use_case_id, org_id, input_.lhs, allowed_tag_keys=allowed_tag_keys),
+            lhs=resolve_tags(
+                use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
+            ),
             op=input_.op,
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
                 input_.rhs,
+                projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
             ),
@@ -310,7 +327,7 @@ def resolve_tags(
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
             conditions=[
-                resolve_tags(use_case_id, org_id, item, allowed_tag_keys=allowed_tag_keys)
+                resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
             ]
         )
@@ -352,6 +369,32 @@ def resolve_tags(
         return input_
 
     raise InvalidParams("Unable to resolve conditions")
+
+
+def get_project_ids(
+    org_id: int, projects: Sequence[Project], rhs_slugs: Sequence[str]
+) -> Sequence[str]:
+    projects_in_where_clause = Project.objects.filter(slug__in=rhs_slugs, organization_id=org_id)
+
+    if len(projects_in_where_clause) >= QUERY_PROJECT_LIMIT:
+        sentry_sdk.capture_message("Too many projects in query where clause", level="warning")
+
+    passed_project_slugs = [p.slug for p in projects]
+    invalid_project_slugs = []
+
+    for project in projects_in_where_clause:
+        if project.slug not in passed_project_slugs:
+            invalid_project_slugs.append(project.slug)
+
+    if len(invalid_project_slugs) > 0:
+        raise InvalidParams(
+            f"Invalid project slugs: '{', '.join(invalid_project_slugs)}' in query. Project "
+            f"slugs must be one of '{', '.join(passed_project_slugs)}' defined in the top-level filters"
+        )
+
+    rhs_ids = [p.id for p in projects_in_where_clause]
+
+    return rhs_ids
 
 
 def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[Dict[str, str]]) -> bool:
@@ -483,13 +526,13 @@ class QueryDefinition:
     @staticmethod
     def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
-            return
+            return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
     def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
-            return
+            return None
         return Offset(paginator_kwargs["offset"])
 
 
@@ -520,7 +563,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
+def parse_tag(use_case_id: UseCaseID, org_id: int, tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags_raw[", "").replace("tags[", "").replace("]", ""))
     return reverse_resolve(use_case_id, org_id, tag_key)
 
@@ -683,7 +726,7 @@ class SnubaQueryBuilder:
         self,
         projects: Sequence[Project],
         metrics_query: MetricsQuery,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -695,7 +738,7 @@ class SnubaQueryBuilder:
     @staticmethod
     def generate_snql_for_action_by_fields(
         metric_action_by_field: MetricActionByField,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
@@ -835,7 +878,7 @@ class SnubaQueryBuilder:
         if metric_condition_filters:
             where.extend(metric_condition_filters)
 
-        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions)
+        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
 
@@ -908,7 +951,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
 
-            if self._use_case_id == UseCaseKey.PERFORMANCE:
+            if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
@@ -1082,7 +1125,7 @@ class SnubaResultConverter:
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         self._organization_id = organization_id
         self._intervals = intervals

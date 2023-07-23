@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -24,6 +24,9 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
@@ -104,7 +107,10 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
-                    user_ids = {u.id for u in user_service.get_many_by_email(emails=[value])}
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=[value], is_verified=False)
+                    }
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
@@ -113,7 +119,10 @@ class OrganizationIndexEndpoint(Endpoint):
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    user_ids = {u.id for u in user_service.get_many_by_email(emails=value)}
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
                     queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
@@ -207,8 +216,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
             try:
 
-                with transaction.atomic():
-                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
+                with transaction.atomic(router.db_for_write(Organization)):
+                    org = create_organization_with_outbox_message(
+                        create_options={"name": result["name"], "slug": result.get("slug")}
+                    )
                     om = OrganizationMember.objects.create(
                         organization_id=org.id,
                         user_id=request.user.id,
@@ -222,9 +233,8 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
-                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
                 org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__
+                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
                 )
 
                 self.create_audit_entry(
@@ -252,7 +262,7 @@ class OrganizationIndexEndpoint(Endpoint):
             if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
-                    organization=org,
+                    organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )

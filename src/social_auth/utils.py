@@ -1,5 +1,4 @@
 import logging
-import random
 from importlib import import_module
 from urllib.parse import parse_qs as urlparse_parse_qs
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
@@ -8,13 +7,6 @@ from urllib.request import urlopen
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
-
-try:
-    random = random.SystemRandom()
-    using_sysrandom = True
-except NotImplementedError:
-    using_sysrandom = False
-
 
 LEAVE_CHARS = getattr(settings, "SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS", 4)
 
@@ -59,10 +51,8 @@ def backend_setting(backend, name, default=None):
         return default
 
 
-logger = None
-if not logger:
-    logger = logging.getLogger("SocialAuth")
-    logger.setLevel(logging.DEBUG)
+logger = logging.getLogger("SocialAuth")
+logger.setLevel(logging.DEBUG)
 
 
 def log(level, *args, **kwargs):
@@ -88,6 +78,7 @@ def ctype_to_model(val):
     if isinstance(val, dict) and "pk" in val and "ctype" in val:
         ctype = ContentType.objects.get_for_id(val["ctype"])
         ModelClass = ctype.model_class()
+        assert ModelClass is not None
         val = ModelClass.objects.get(pk=val["pk"])
     return val
 

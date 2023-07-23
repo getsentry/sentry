@@ -20,7 +20,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -63,6 +64,7 @@ import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
+  FOR_REVIEW_QUERIES,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
@@ -139,16 +141,6 @@ type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
-};
-
-type BetterPriorityEndpointParams = Partial<EndpointParams> & {
-  eventHalflifeHours?: number;
-  hasStacktrace?: number;
-  issueHalflifeHours?: number;
-  logLevel?: number;
-  norm?: boolean;
-  relativeVolume?: number;
-  v2?: boolean;
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -303,7 +295,6 @@ class IssueListOverview extends Component<Props, State> {
     if (location.query.sort) {
       return location.query.sort as string;
     }
-
     return DEFAULT_ISSUE_STREAM_SORT;
   }
 
@@ -332,29 +323,6 @@ class IssueListOverview extends Component<Props, State> {
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
-  }
-
-  getBetterPriorityParams(): BetterPriorityEndpointParams {
-    const query = this.props.location.query ?? {};
-    const {
-      eventHalflifeHours,
-      hasStacktrace,
-      issueHalflifeHours,
-      logLevel,
-      norm,
-      v2,
-      relativeVolume,
-    } = query;
-
-    return {
-      eventHalflifeHours,
-      hasStacktrace,
-      issueHalflifeHours,
-      logLevel,
-      norm,
-      v2,
-      relativeVolume,
-    };
   }
 
   getEndpointParams = (): EndpointParams => {
@@ -388,10 +356,8 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
-    const mergedParams = {...params, ...this.getBetterPriorityParams()};
-
     // only include defined values.
-    return pickBy(mergedParams, v => defined(v)) as EndpointParams;
+    return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
   getSelectedProjectIds = (): string[] => {
@@ -771,8 +737,7 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        const hasEscalatingIssues =
-          organization.features.includes('escalating-issues-ui');
+        const hasEscalatingIssues = organization.features.includes('escalating-issues');
         this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
@@ -846,21 +811,7 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       sort,
     });
-    if (sort === IssueSortOptions.BETTER_PRIORITY) {
-      this.transitionTo({
-        sort,
-        statsPeriod: '7d',
-        logLevel: 0,
-        hasStacktrace: 0,
-        eventHalflifeHours: 4,
-        issueHalflifeHours: 24 * 7,
-        v2: false,
-        norm: false,
-        relativeVolume: 1,
-      });
-    } else {
-      this.transitionTo({sort});
-    }
+    this.transitionTo({sort});
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -900,7 +851,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   transitionTo = (
-    newParams: Partial<EndpointParams> | Partial<BetterPriorityEndpointParams> = {},
+    newParams: Partial<EndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
@@ -931,8 +882,10 @@ class IssueListOverview extends Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
-    // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
+    if (
+      query.sort === IssueSortOptions.INBOX &&
+      !FOR_REVIEW_QUERIES.includes(query.query || '')
+    ) {
       delete query.sort;
     }
 

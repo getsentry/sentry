@@ -30,7 +30,7 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def build_config(self, state):
         pass
@@ -52,11 +52,11 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
     def setUp(self):
         super().setUp()
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization_id=self.organization.id
         )
         AuthIdentity.objects.create(
-            auth_provider=self.auth_provider,
+            auth_provider=auth_provider,
             user=self.user,
             ident="oauth_external_id_1234",
         )

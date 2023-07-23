@@ -48,25 +48,6 @@ export function removeSpace(query = '') {
   return query;
 }
 
-/**
- * Given a query, and the current cursor position, return the string-delimiting
- * index of the search term designated by the cursor.
- */
-export function getLastTermIndex(query: string, cursor: number) {
-  // TODO: work with quoted-terms
-  const cursorOffset = query.slice(cursor).search(/\s|$/);
-  return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-}
-
-/**
- * Returns an array of query terms, including incomplete terms
- *
- * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
- */
-export function getQueryTerms(query: string, cursor: number) {
-  return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-}
-
 function getTitleForType(type: ItemType) {
   if (type === ItemType.TAG_VALUE) {
     return t('Values');
@@ -105,6 +86,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
     case 'is':
       return <IconToggle size="xs" />;
     case 'assigned':
+    case 'assigned_or_suggested':
     case 'bookmarks':
       return <IconUser size="xs" />;
     case 'firstSeen':
@@ -121,7 +103,7 @@ const filterSearchItems = (
   recentSearchItems?: SearchItem[],
   maxSearchItems?: number,
   queryCharsLeft?: number
-) => {
+): {recentSearchItems: SearchItem[] | undefined; searchItems: SearchItem[]} => {
   if (maxSearchItems && maxSearchItems > 0) {
     searchItems = searchItems.filter(
       (value: SearchItem, index: number) =>
@@ -152,12 +134,12 @@ const filterSearchItems = (
       return [newItem];
     });
     searchItems = searchItems.filter(
-      (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
+      value => !value.value || value.value.length <= queryCharsLeft
     );
 
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
+        value => !value.value || value.value.length <= queryCharsLeft
       );
     }
   }
@@ -165,28 +147,72 @@ const filterSearchItems = (
   return {searchItems, recentSearchItems};
 };
 
+interface SearchGroups {
+  activeSearchItem: number;
+  flatSearchItems: SearchItem[];
+  searchGroups: SearchGroup[];
+}
+
+function isSearchGroup(searchItem: SearchItem | SearchGroup): searchItem is SearchGroup {
+  return (
+    (searchItem as SearchGroup).children !== undefined && searchItem.type === 'header'
+  );
+}
+
+function isSearchGroupArray(items: SearchItem[] | SearchGroup[]): items is SearchGroup[] {
+  // Typescript doesn't like that there's no shared properties between SearchItem and SearchGroup
+  return (items as any[]).every(isSearchGroup);
+}
+
 export function createSearchGroups(
-  searchItems: SearchItem[],
+  searchGroupItems: SearchItem[] | SearchGroup[],
   recentSearchItems: SearchItem[] | undefined,
   tagName: string,
   type: ItemType,
   maxSearchItems?: number,
   queryCharsLeft?: number,
   isDefaultState?: boolean,
+  defaultSearchGroup?: SearchGroup,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
-) {
-  const fieldDefinition = fieldDefinitionGetter(tagName);
-
-  const activeSearchItem = 0;
-  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
-    filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
-
+): SearchGroups {
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
     type: invalidTypes.includes(type) ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
-    children: [...filteredSearchItems],
+    children: [],
   };
+
+  if (isSearchGroupArray(searchGroupItems)) {
+    // Autocomplete item has provided its own search groups
+    const searchGroups = searchGroupItems
+      .map(group => {
+        const {searchItems: filteredSearchItems} = filterSearchItems(
+          group.children,
+          recentSearchItems,
+          maxSearchItems,
+          queryCharsLeft
+        );
+        return {...group, children: filteredSearchItems};
+      })
+      .filter(group => group.children.length > 0);
+    return {
+      // Fallback to the blank search group when "no items found"
+      searchGroups: searchGroups.length ? searchGroups : [searchGroup],
+      flatSearchItems: searchGroups.flatMap(item => item.children ?? []),
+      activeSearchItem: -1,
+    };
+  }
+
+  const fieldDefinition = fieldDefinitionGetter(tagName);
+
+  const activeSearchItem = 0;
+  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
+    filterSearchItems(
+      searchGroupItems,
+      recentSearchItems,
+      maxSearchItems,
+      queryCharsLeft
+    );
 
   const recentSearchGroup: SearchGroup | undefined =
     filteredRecentSearchItems && filteredRecentSearchItems.length > 0
@@ -197,6 +223,8 @@ export function createSearchGroups(
           children: [...filteredRecentSearchItems],
         }
       : undefined;
+
+  searchGroup.children = filteredSearchItems;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
@@ -227,9 +255,14 @@ export function createSearchGroups(
   if (isDefaultState) {
     // Recent searches first in default state.
     return {
-      searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
+      searchGroups: [
+        ...(recentSearchGroup ? [recentSearchGroup] : []),
+        ...(defaultSearchGroup ? [defaultSearchGroup] : []),
+        searchGroup,
+      ],
       flatSearchItems: [
         ...(recentSearchItems ? recentSearchItems : []),
+        ...(defaultSearchGroup ? defaultSearchGroup.children : []),
         ...flatSearchItems,
       ],
       activeSearchItem: -1,
@@ -462,11 +495,11 @@ export const getSearchGroupWithItemMarkedActive = (
   searchGroups: SearchGroup[],
   currentItem: SearchItem,
   active: boolean
-) => {
+): SearchGroup[] => {
   return searchGroups.map(group => ({
     ...group,
     children: group.children?.map(item => {
-      if (item.value === currentItem.value) {
+      if (item.value === currentItem.value && item.type === currentItem.type) {
         return {
           ...item,
           active,
@@ -477,7 +510,7 @@ export const getSearchGroupWithItemMarkedActive = (
         return {
           ...item,
           children: item.children.map(child => {
-            if (child.value === currentItem.value) {
+            if (child.value === currentItem.value && item.type === currentItem.type) {
               return {
                 ...child,
                 active,
@@ -504,7 +537,7 @@ export const filterKeysFromQuery = (
 ): string[] =>
   tagKeys
     .flatMap(key => {
-      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
+      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '').toLocaleLowerCase();
       const definition = fieldDefinitionGetter(keyWithoutFunctionPart);
       const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
 
@@ -658,4 +691,12 @@ export function getAutoCompleteGroupForInvalidWildcard(searchText: string) {
       type: ItemType.INVALID_QUERY_WITH_WILDCARD,
     },
   ];
+}
+
+export function escapeTagValue(value: string): string {
+  // Wrap in quotes if there is a space
+  const isArrayTag = value.startsWith('[') && value.endsWith(']') && value.includes(',');
+  return (value.includes(' ') || value.includes('"')) && !isArrayTag
+    ? `"${value.replace(/"/g, '\\"')}"`
+    : value;
 }

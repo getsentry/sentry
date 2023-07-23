@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
@@ -42,7 +42,7 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
         user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
             "user_id", flat=True
         )
-        return user_service.get_many(filter={"user_ids": user_ids})
+        return user_service.get_many(filter={"user_ids": list(user_ids)})
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
 
@@ -122,7 +122,7 @@ def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
     else:
         user_id = user.id
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Actor)):
             actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.

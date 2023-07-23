@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
@@ -8,13 +10,16 @@ from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    TokenAuthentication,
+)
 from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
-from sentry.utils.types import Any
 
 
 def get_user(request):
@@ -40,8 +45,7 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                    UserIP.log(user, request.META["REMOTE_ADDR"])
+                UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
 
@@ -50,8 +54,8 @@ class AuthenticationMiddleware(MiddlewareMixin):
     @property
     def impl(self) -> Any:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return RequestAuthenticationMiddleware()
-        return HybridCloudAuthenticationMiddleware()
+            return RequestAuthenticationMiddleware(self.get_response)
+        return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: Request):
         return self.impl.process_request(request)
@@ -72,28 +76,30 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
         if user is not None:
             request.user = user
             request.user_from_signed_request = True
-        elif auth and auth[0].lower() == TokenAuthentication.token_name:
-            try:
-                result = TokenAuthentication().authenticate(request=request)
-            except AuthenticationFailed:
-                result = None
-            if result:
-                request.user, request.auth = result
-            else:
-                # default to anonymous user and use IP ratelimit
-                request.user = SimpleLazyObject(lambda: get_user(request))
-        elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
-            try:
-                result = ApiKeyAuthentication().authenticate(request=request)
-            except AuthenticationFailed:
-                result = None
-            if result:
-                request.user, request.auth = result
-            else:
-                # default to anonymous user and use IP ratelimit
-                request.user = SimpleLazyObject(lambda: get_user(request))
-        else:
-            request.user = SimpleLazyObject(lambda: get_user(request))
+            return
+
+        if auth:
+            for authenticator_class in [
+                TokenAuthentication,
+                OrgAuthTokenAuthentication,
+                ApiKeyAuthentication,
+            ]:
+                authenticator = authenticator_class()
+                if not authenticator.accepts_auth(auth):
+                    continue
+                try:
+                    result = authenticator.authenticate(request)
+                except AuthenticationFailed:
+                    result = None
+                if result:
+                    request.user, request.auth = result
+                else:
+                    # default to anonymous user and use IP ratelimit
+                    request.user = SimpleLazyObject(lambda: get_user(request))
+                return
+
+        # default to anonymous user and use IP ratelimit
+        request.user = SimpleLazyObject(lambda: get_user(request))
 
     def process_exception(self, request: Request, exception):
         if isinstance(exception, AuthUserPasswordExpired):
@@ -108,6 +114,10 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
 
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
         request.user_from_signed_request = auth_result.user_from_signed_request
+
+        # Simulate accessing attributes on the session to trigger side effects related to doing so.
+        for attr in auth_result.accessed:
+            request.session[attr]
 
         if auth_result.auth is not None:
             request.auth = auth_result.auth

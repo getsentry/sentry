@@ -1,9 +1,12 @@
-import logging
+from __future__ import annotations
 
-from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+import logging
+from typing import Any
+
+from django.db import router, transaction
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
@@ -13,13 +16,14 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -62,7 +66,10 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyProxyClient(
+            org_integration_id=self.org_integration.id,
+            integration_key=integration_key,
+        )
 
     def get_organization_config(self):
         fields = [
@@ -90,7 +97,7 @@ class PagerDutyIntegration(IntegrationInstallation):
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PagerDutyService)):
                 existing_service_items = PagerDutyService.objects.filter(
                     organization_integration_id=self.org_integration.id
                 )
@@ -115,6 +122,8 @@ class PagerDutyIntegration(IntegrationInstallation):
                         organization_integration_id=self.org_integration.id,
                         service_name=service_name,
                         integration_key=key,
+                        integration_id=self.model.id,
+                        organization_id=self.organization_id,
                     )
 
     def get_config_data(self):
@@ -146,7 +155,12 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
@@ -156,12 +170,14 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
             logger.exception("The PagerDuty post_install step failed.")
             return
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(PagerDutyService)):
             for service in services:
                 PagerDutyService.objects.create_or_update(
                     organization_integration_id=org_integration.id,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
+                    organization_id=organization.id,
+                    integration_id=integration.id,
                 )
 
     def build_integration(self, state):
@@ -188,7 +204,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

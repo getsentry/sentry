@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry import options
 from sentry.api import client
@@ -78,7 +78,7 @@ def default_plugin_config(plugin, project, request):
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
-                    options.set(key, value)
+                    options.set(key, value, channel=options.UpdateChannel.APPLICATION)
 
             messages.add_message(
                 request, messages.SUCCESS, _("Your settings were saved successfully.")
@@ -114,7 +114,7 @@ def default_issue_plugin_config(plugin, project, form_data):
         if project:
             ProjectOption.objects.set_value(project, key, value)
         else:
-            options.set(key, value)
+            options.set(key, value, channel=options.UpdateChannel.APPLICATION)
 
 
 def default_plugin_options(plugin, project):

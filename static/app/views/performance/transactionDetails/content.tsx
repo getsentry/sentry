@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -58,9 +58,9 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State> {
+class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -77,7 +77,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const {eventSlug} = params;
 
@@ -299,15 +299,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      {(organization.features.includes('dashboards-mep') ||
-                        organization.features.includes('mep-rollout-flag')) && (
-                        <EventCustomPerformanceMetrics
-                          event={event}
-                          location={location}
-                          organization={organization}
-                          source={EventDetailPageSource.PERFORMANCE}
-                        />
-                      )}
+                      <EventCustomPerformanceMetrics
+                        event={event}
+                        location={location}
+                        organization={organization}
+                        source={EventDetailPageSource.PERFORMANCE}
+                      />
                       <TagsTable
                         event={event}
                         query={query}

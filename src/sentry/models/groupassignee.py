@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -17,13 +18,15 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import issue_assigned
+from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
     from sentry.services.hybrid_cloud.user import RpcUser
+
+logger = logging.getLogger(__name__)
 
 
 class GroupAssigneeManager(BaseManager):
@@ -73,8 +76,11 @@ class GroupAssigneeManager(BaseManager):
             affected = True
 
         if affected:
-            issue_assigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            transaction.on_commit(
+                lambda: issue_assigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                ),
+                router.db_for_write(GroupAssignee),
             )
             data = {
                 "assignee": str(assigned_to.id),
@@ -131,6 +137,10 @@ class GroupAssigneeManager(BaseManager):
                 "organizations:integrations-issue-sync", group.organization, actor=acting_user
             ):
                 sync_group_assignee_outbound(group, None, assign=False)
+
+            issue_unassigned.send_robust(
+                project=group.project, group=group, user=acting_user, sender=self.__class__
+            )
 
 
 @region_silo_only_model

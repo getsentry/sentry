@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Set, cast
+from typing import Iterable, List, MutableMapping, Set
 
 from sentry.constants import ObjectStatus
 from sentry.models import (
@@ -9,10 +9,10 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectTeam,
     Team,
     TeamStatus,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,
@@ -20,10 +20,10 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
     RpcOrganizationSummary,
-    RpcProject,
     RpcTeam,
     RpcTeamMember,
 )
+from sentry.services.hybrid_cloud.project.serial import serialize_project
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -35,11 +35,8 @@ def unescape_flag_name(flag_name: str) -> str:
 
 
 def _serialize_member_flags(member: OrganizationMember) -> RpcOrganizationMemberFlags:
-    return cast(
-        RpcOrganizationMemberFlags,
-        RpcOrganizationMemberFlags.serialize_by_field_name(
-            member.flags, name_transform=unescape_flag_name, value_transform=bool
-        ),
+    return RpcOrganizationMemberFlags.serialize_by_field_name(
+        member.flags, name_transform=unescape_flag_name, value_transform=bool
     )
 
 
@@ -93,19 +90,17 @@ def summarize_member(member: OrganizationMember) -> RpcOrganizationMemberSummary
 
 
 def _serialize_flags(org: Organization) -> RpcOrganizationFlags:
-    return cast(
-        RpcOrganizationFlags,
-        RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool),
-    )
+    return RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool)
 
 
-def _serialize_team(team: Team) -> RpcTeam:
+def serialize_rpc_team(team: Team) -> RpcTeam:
     return RpcTeam(
         id=team.id,
         status=team.status,
         organization_id=team.organization_id,
         slug=team.slug,
         org_role=team.org_role,
+        name=team.name,
     )
 
 
@@ -125,16 +120,6 @@ def _serialize_team_member(
     return result
 
 
-def _serialize_project(project: Project) -> RpcProject:
-    return RpcProject(
-        id=project.id,
-        slug=project.slug,
-        name=project.name,
-        organization_id=project.organization_id,
-        status=project.status,
-    )
-
-
 def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     return RpcOrganizationSummary(
         slug=org.slug,
@@ -143,7 +128,7 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     )
 
 
-def serialize_organization(org: Organization) -> RpcOrganization:
+def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,
         id=org.id,
@@ -155,6 +140,6 @@ def serialize_organization(org: Organization) -> RpcOrganization:
 
     projects: List[Project] = Project.objects.filter(organization=org)
     teams: List[Team] = Team.objects.filter(organization=org)
-    rpc_org.projects.extend(_serialize_project(project) for project in projects)
-    rpc_org.teams.extend(_serialize_team(team) for team in teams)
+    rpc_org.projects.extend(serialize_project(project) for project in projects)
+    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
     return rpc_org

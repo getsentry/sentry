@@ -114,8 +114,8 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             alert_rule=metric_alert_rule,
             title="Something bad happened",
         )
-        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
+        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
 
@@ -156,6 +156,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
@@ -170,7 +171,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
         assert len(events) == 0

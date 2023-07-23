@@ -323,7 +323,7 @@ function RuleNode({
 
     if (
       data.id === REAPPEARED_EVENT_CONDITION &&
-      organization.features.includes('escalating-issues-ui')
+      organization.features.includes('escalating-issues')
     ) {
       label = t('The issue changes state from archived to escalating');
     }
@@ -582,7 +582,7 @@ function RuleNode({
                       {...deps}
                       sentryAppInstallationUuid={sentryAppInstallationUuid}
                       config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt}
+                      appName={node.prompt ?? node.label}
                       onSubmitSuccess={updateParentFromSentryAppRule}
                       resetValues={data}
                     />

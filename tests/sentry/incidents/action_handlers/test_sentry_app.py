@@ -24,16 +24,16 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
 
-    @responses.activate
-    def run_test(self, incident, method):
-        from sentry.rules.actions.notify_event_service import build_incident_attachment
-
-        action = self.create_alert_rule_trigger_action(
+        self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=self.sentry_app,
         )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.rules.actions.notify_event_service import build_incident_attachment
 
         responses.add(
             method=responses.POST,
@@ -43,7 +43,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             body=json.dumps({"ok": "true"}),
         )
 
-        handler = SentryAppActionHandler(action, incident, self.project)
+        handler = SentryAppActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -54,6 +54,27 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
             )
             in data
         )
+
+    @responses.activate
+    def test_rule_snoozed(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        self.snooze_rule(alert_rule=alert_rule)
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/webhook",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
+
+        handler = SentryAppActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 0
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

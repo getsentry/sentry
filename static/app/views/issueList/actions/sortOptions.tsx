@@ -1,8 +1,11 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
+import {
+  FOR_REVIEW_QUERIES,
+  getSortLabel,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 type Props = {
   onSelect: (sort: string) => void;
@@ -18,8 +21,6 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('First time the issue occurred.');
     case IssueSortOptions.PRIORITY:
       return t('Recent issues trending upward.');
-    case IssueSortOptions.BETTER_PRIORITY:
-      return t('Issues you care about.');
     case IssueSortOptions.FREQ:
       return t('Number of events.');
     case IssueSortOptions.USER:
@@ -31,17 +32,12 @@ function getSortTooltip(key: IssueSortOptions) {
 }
 
 function IssueListSortOptions({onSelect, sort, query}: Props) {
-  const organization = useOrganization();
-  const hasBetterPrioritySort = organization.features.includes(
-    'issue-list-better-priority-sort'
-  );
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
-    ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
+    ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.PRIORITY,
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []),
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

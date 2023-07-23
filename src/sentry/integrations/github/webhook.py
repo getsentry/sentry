@@ -6,7 +6,7 @@ import logging
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -14,18 +14,13 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    Organization,
-    PullRequest,
-    Repository,
-)
+from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.plugins.providers.integration_repository import get_integration_repository_provider
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -34,12 +29,17 @@ from sentry.services.hybrid_cloud.integration.model import (
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
+
+
+def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
+    external_id: str | None = event.get("installation", {}).get("id")
+    return f"{host}:{external_id}" if host else external_id
 
 
 class Webhook:
@@ -56,9 +56,7 @@ class Webhook:
         raise NotImplementedError
 
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
-        external_id = event.get("installation", {}).get("id")
-        if host:
-            external_id = f"{host}:{external_id}"
+        external_id = get_github_external_id(event=event, host=host)
 
         integration, installs = integration_service.get_organization_contexts(
             external_id=external_id, provider=self.provider
@@ -87,12 +85,30 @@ class Webhook:
                 )
             }
 
+            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
                 external_id=str(event["repository"]["id"]),
             )
-            for repo in repos:
+
+            if not repos.exists():
+                provider = get_integration_repository_provider(integration)
+
+                config = {
+                    "integration_id": integration.id,
+                    "external_id": str(event["repository"]["id"]),
+                    "identifier": event.get("repository", {}).get("full_name", None),
+                }
+
+                for org in orgs.values():
+                    if features.has("organizations:auto-repo-linking", org):
+                        provider.create_repository(config, org)
+                        metrics.incr("github.webhook.create_repository")
+
+                repos = repos.all()
+
+            for repo in repos.exclude(status=ObjectStatus.HIDDEN):
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
@@ -188,14 +204,10 @@ class PushEventWebhook(Webhook):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = options.get("github-app.id")
-        return external_id
+        return options.get("github-app.id")
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
-        # Explicitly typing to satisfy mypy.
-        should_ignore: bool = GitHubRepositoryProvider.should_ignore_commit(commit["message"])
-        return should_ignore
+        return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(
         self,
@@ -269,7 +281,9 @@ class PushEventWebhook(Webhook):
                                     gh_username_cache[gh_username] = author_email
                                     if commit_author is not None:
                                         try:
-                                            with transaction.atomic():
+                                            with transaction.atomic(
+                                                router.db_for_write(CommitAuthor)
+                                            ):
                                                 commit_author.update(
                                                     email=author_email, external_id=external_id
                                                 )
@@ -305,15 +319,16 @@ class PushEventWebhook(Webhook):
 
                 if update_kwargs:
                     try:
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(CommitAuthor)):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
             else:
                 author = authors[author_email]
 
+            author.preload_users()
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,
@@ -348,9 +363,7 @@ class PullRequestEventWebhook(Webhook):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = options.get("github-app.id")
-        return external_id
+        return options.get("github-app.id")
 
     def _handle(
         self,
@@ -417,6 +430,7 @@ class PullRequestEventWebhook(Webhook):
                 },
             )
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
@@ -451,11 +465,9 @@ class GitHubWebhookBase(Endpoint):
             raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
-        # Explicitly typing to satisfy mypy.
-        is_valid: bool = constant_time_compare(expected, signature)
-        return is_valid
+        return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -492,7 +504,7 @@ class GitHubWebhookBase(Endpoint):
         if not handler:
             logger.error(
                 "github.webhook.missing-handler",
-                extra={"event": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
             return HttpResponse(status=204)
 
@@ -528,7 +540,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "installation": InstallationEventWebhook,
     }
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -536,9 +548,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         return super().dispatch(request, *args, **kwargs)
 
     def get_secret(self) -> str | None:
-        # Explicitly typing to satisfy mypy.
-        secret: str = options.get("github-app.webhook-secret")
-        return secret
+        return options.get("github-app.webhook-secret")
 
     def post(self, request: Request) -> HttpResponse:
         return self.handle(request)

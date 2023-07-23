@@ -5,8 +5,11 @@ export type ReplayEventParameters = {
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
+    finished_at_delta: number; // Log the change (positive number==later date) in finished_at
     project_platform: string;
     replay_errors: number;
+    replay_id: string;
+    started_at_delta: number; // Log the change (negative number==earlier date) in started_at
     total_errors: number;
   };
   'replay.details-layout-changed': {
@@ -39,10 +42,6 @@ export type ReplayEventParameters = {
   };
   'replay.details-time-spent': {
     seconds: number;
-    user_email: string;
-  };
-  'replay.details-viewed': {
-    referrer: undefined | string;
     user_email: string;
   };
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
@@ -102,7 +101,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resized-panel': 'Resized Replay Details Panel',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
-  'replay.details-viewed': 'Viewed Replay Details',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',

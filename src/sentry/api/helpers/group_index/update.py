@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from urllib.parse import urlparse
 
 import rest_framework
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -25,6 +27,7 @@ from sentry.issues.update_inbox import update_inbox
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    Actor,
     ActorTuple,
     Group,
     GroupAssignee,
@@ -83,7 +86,7 @@ def handle_discard(
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
@@ -110,7 +113,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group
+    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -121,10 +124,6 @@ def self_subscribe_and_assign_issue(
             user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
 
-        user_options = user_option_service.get_many(
-            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-        )
-        self_assign_issue = "0" if len(user_options) <= 0 else user_options[0].value
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
     return None
@@ -223,6 +222,13 @@ def update_groups(
     project_lookup = {p.id: p for p in projects}
 
     acting_user = user if user.is_authenticated else None
+    self_assign_issue = "0"
+    if acting_user:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+        )
+        if user_options:
+            self_assign_issue = user_options[0].value
 
     if search_fn and not group_ids:
         try:
@@ -369,7 +375,7 @@ def update_groups(
             except IndexError:
                 release = None
         for group in group_list:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Group)):
                 resolution = None
                 created = None
                 if release:
@@ -508,7 +514,7 @@ def update_groups(
                 )
                 result["inbox"] = None
 
-                assigned_to = self_subscribe_and_assign_issue(acting_user, group)
+                assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
                 if assigned_to is not None:
                     result["assignedTo"] = assigned_to
 
@@ -560,7 +566,7 @@ def update_groups(
             "organizations:escalating-issues", group_list[0].organization
         )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
             #                we should centralize the logic for validating and defaulting substatus values
             #                and refactor pre_save and the above new_substatus assignment to account for this
@@ -612,48 +618,14 @@ def update_groups(
         pass
 
     if "assignedTo" in result:
-        assigned_actor = result["assignedTo"]
-        assigned_by = (
-            data.get("assignedBy")
-            if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
-            else None
+        result["assignedTo"] = handle_assigned_to(
+            result["assignedTo"],
+            data.get("assignedBy"),
+            data.get("integration"),
+            group_list,
+            project_lookup,
+            acting_user,
         )
-        extra = (
-            {"integration": data.get("integration")}
-            if data.get("integration")
-            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
-            else dict()
-        )
-        if assigned_actor:
-            for group in group_list:
-                resolved_actor: RpcUser | Team = assigned_actor.resolve()
-
-                assignment = GroupAssignee.objects.assign(
-                    group, resolved_actor, acting_user, extra=extra
-                )
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=assignment["updated_assignment"],
-                )
-            result["assignedTo"] = serialize(
-                assigned_actor.resolve(), acting_user, ActorSerializer()
-            )
-
-        else:
-            for group in group_list:
-                GroupAssignee.objects.deassign(group, acting_user)
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=True,
-                )
 
     handle_has_seen(
         result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
@@ -679,6 +651,27 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
+        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+        metrics.incr(
+            "grouping.merge_issues",
+            sample_rate=1.0,
+            tags={
+                # We assume that if someone's merging groups, they're from the same platform
+                "platform": group_list[0].platform or "unknown",
+                # TODO: It's probably cleaner to just send this value from the front end
+                "referer": (
+                    "issue stream"
+                    if re.search(issue_stream_regex, referer)
+                    else "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                ),
+            },
+        )
 
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
@@ -819,3 +812,55 @@ def handle_is_public(
                 )
 
     return share_id
+
+
+def handle_assigned_to(
+    assigned_actor: str,
+    assigned_by: str,
+    integration: str,
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
+    acting_user: User | None,
+) -> Actor | None:
+    """
+    Handle the assignedTo field on a group update.
+
+    This sets a new assignee or removes existing assignees, and logs the
+    manual.issue_assignment analytic.
+    """
+    assigned_by = (
+        assigned_by if assigned_by in ["assignee_selector", "suggested_assignee"] else None
+    )
+    extra = (
+        {"integration": integration}
+        if integration in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+        else dict()
+    )
+    if assigned_actor:
+        for group in group_list:
+            resolved_actor: RpcUser | Team = assigned_actor.resolve()
+
+            assignment = GroupAssignee.objects.assign(
+                group, resolved_actor, acting_user, extra=extra
+            )
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=assignment["updated_assignment"],
+            )
+        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
+    else:
+        for group in group_list:
+            GroupAssignee.objects.deassign(group, acting_user)
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=True,
+            )
+        return None

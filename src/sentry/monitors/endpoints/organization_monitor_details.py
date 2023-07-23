@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -15,13 +15,19 @@ from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
+from sentry.models import (
+    RegionScheduledDeletion,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    ScheduledDeletion,
+)
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import create_alert_rule, update_alert_rule
@@ -38,15 +44,15 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization, project, monitor) -> Response:
@@ -66,8 +72,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Update a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -75,7 +81,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(self, request: Request, organization, project, monitor) -> Response:
@@ -145,16 +151,16 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Delete a monitor or monitor environments",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
@@ -162,7 +168,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         Delete a monitor or monitor environments.
         """
         environment_names = request.query_params.getlist("environment")
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             if environment_names:
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
@@ -190,7 +196,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
-                alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
+
+                # Mark rule for deletion if present and monitor is being deleted
+                monitor = monitor_objects.first()
+                alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
                 if alert_rule_id:
                     rule = (
                         Rule.objects.filter(
@@ -199,16 +208,27 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         )
                         .exclude(
                             status__in=[
-                                RuleStatus.PENDING_DELETION,
-                                RuleStatus.DELETION_IN_PROGRESS,
+                                ObjectStatus.PENDING_DELETION,
+                                ObjectStatus.DELETION_IN_PROGRESS,
                             ]
                         )
                         .first()
                     )
                     if rule:
-                        rule.update(status=RuleStatus.PENDING_DELETION)
+                        rule.update(status=ObjectStatus.PENDING_DELETION)
                         RuleActivity.objects.create(
                             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                        )
+                        scheduled_rule = RegionScheduledDeletion.schedule(
+                            rule, days=0, actor=request.user
+                        )
+                        self.create_audit_entry(
+                            request=request,
+                            organization=project.organization,
+                            target_object=rule.id,
+                            event=audit_log.get_event_id("RULE_REMOVE"),
+                            data=rule.get_audit_log_data(),
+                            transaction_id=scheduled_rule,
                         )
 
             # create copy of queryset as update will remove objects

@@ -13,6 +13,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
+from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -80,6 +81,10 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.IN_PROGRESS
             assert checkin.date_updated > checkin.date_added
+            timeout_at = checkin.date_updated.replace(second=0, microsecond=0) + timedelta(
+                minutes=TIMEOUT
+            )
+            assert checkin.timeout_at == timeout_at
 
     def test_passing(self):
         monitor = self._create_monitor()
@@ -107,6 +112,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             assert (
                 checkin.monitor_environment.environment.name == monitor_environment.environment.name
             )
+            assert checkin.timeout_at is None
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
             assert monitor_environment.next_checkin > checkin.date_added
@@ -209,6 +215,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
     def test_invalid_duration(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="dev")
+        # test explicit invalid durations
         for path_func in self._get_path_functions():
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
@@ -235,6 +242,19 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
                 resp.data["duration"][0]
                 == f"Ensure this value is less than or equal to {BoundedPositiveIntegerField.MAX_VALUE}."
             )
+
+        # test implicit invalid durations
+        for path_func in self._get_path_functions():
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added - timedelta(weeks=52),
+            )
+
+            path = path_func(monitor.guid, checkin.guid)
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
+            assert resp.data["duration"][0] == "Check-in has is too old to update"
 
     def test_latest_returns_last_unfinished(self):
         monitor = self._create_monitor()

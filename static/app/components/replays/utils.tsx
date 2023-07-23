@@ -1,6 +1,5 @@
-import {Crumb} from 'sentry/types/breadcrumbs';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {ReplaySpan} from 'sentry/views/replays/types';
+import type {ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -96,43 +95,36 @@ export function countColumns(durationMs: number, width: number, minWidth: number
  * This function groups crumbs into columns based on the number of columns available
  * and the timestamp of the crumb.
  */
-export function getCrumbsByColumn(
-  startTimestampMs: number,
+export function getFramesByColumn(
   durationMs: number,
-  crumbs: Crumb[],
+  frames: ReplayFrame[],
   totalColumns: number
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnCrumbPairs = crumbs.map(breadcrumb => {
-    const {timestamp} = breadcrumb;
-    const timestampMilliSeconds = +new Date(String(timestamp));
-    const sinceStart = isNaN(timestampMilliSeconds)
-      ? 0
-      : timestampMilliSeconds - startTimestampMs;
-
+  const columnFramePairs = frames.map(frame => {
     const columnPositionCalc =
-      Math.floor((sinceStart / safeDurationMs) * (totalColumns - 1)) + 1;
+      Math.floor((frame.offsetMs / safeDurationMs) * (totalColumns - 1)) + 1;
 
     // Should start at minimum in the first column
     const column = Math.max(1, columnPositionCalc);
 
-    return [column, breadcrumb] as [number, Crumb];
+    return [column, frame] as [number, ReplayFrame];
   });
 
-  const crumbsByColumn = columnCrumbPairs.reduce<Map<number, Crumb[]>>(
-    (map, [column, breadcrumb]) => {
+  const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
+    (map, [column, frame]) => {
       if (map.has(column)) {
-        map.get(column)?.push(breadcrumb);
+        map.get(column)?.push(frame);
       } else {
-        map.set(column, [breadcrumb]);
+        map.set(column, [frame]);
       }
       return map;
     },
     new Map()
   );
 
-  return crumbsByColumn;
+  return framesByColumn;
 }
 
 type FlattenedSpanRange = {
@@ -147,12 +139,7 @@ type FlattenedSpanRange = {
   /**
    * Number of spans that got flattened into this range
    */
-  spanCount: number;
-  /**
-   * ID of the original span that created this range
-   */
-  spanId: string;
-  //
+  frameCount: number;
   /**
    * Absolute time in ms when the span starts
    */
@@ -167,45 +154,39 @@ function doesOverlap(a: FlattenedSpanRange, b: FlattenedSpanRange) {
   return bStartsWithinA || bEndsWithinA;
 }
 
-export function flattenSpans(rawSpans: ReplaySpan[]): FlattenedSpanRange[] {
-  if (!rawSpans.length) {
+export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
+  if (!frames.length) {
     return [];
   }
 
-  const spans = rawSpans.map(span => {
-    const startTimestamp = span.startTimestamp * 1000;
-
-    // `endTimestamp` is at least msPerPixel wide, otherwise it disappears
-    const endTimestamp = span.endTimestamp * 1000;
+  const [first, ...rest] = frames.map((span): FlattenedSpanRange => {
     return {
-      spanCount: 1,
-      // spanId: span.span_id,
-      startTimestamp,
-      endTimestamp,
-      duration: endTimestamp - startTimestamp,
-    } as FlattenedSpanRange;
+      frameCount: 1,
+      startTimestamp: span.timestampMs,
+      endTimestamp: span.endTimestampMs,
+      duration: span.endTimestampMs - span.timestampMs,
+    };
   });
 
-  const [firstSpan, ...restSpans] = spans;
-  const flatSpans = [firstSpan];
+  const flattened = [first];
 
-  for (const span of restSpans) {
+  for (const span of rest) {
     let overlap = false;
-    for (const fspan of flatSpans) {
-      if (doesOverlap(fspan, span)) {
+    for (const range of flattened) {
+      if (doesOverlap(range, span)) {
         overlap = true;
-        fspan.spanCount += 1;
-        fspan.startTimestamp = Math.min(fspan.startTimestamp, span.startTimestamp);
-        fspan.endTimestamp = Math.max(fspan.endTimestamp, span.endTimestamp);
-        fspan.duration = fspan.endTimestamp - fspan.startTimestamp;
+        range.frameCount += 1;
+        range.startTimestamp = Math.min(range.startTimestamp, span.startTimestamp);
+        range.endTimestamp = Math.max(range.endTimestamp, span.endTimestamp);
+        range.duration = range.endTimestamp - range.startTimestamp;
         break;
       }
     }
     if (!overlap) {
-      flatSpans.push(span);
+      flattened.push(span);
     }
   }
-  return flatSpans;
+  return flattened;
 }
 
 /**

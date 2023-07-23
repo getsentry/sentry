@@ -2,35 +2,54 @@ import sys
 from typing import Any, Optional, Set
 
 import click
-import yaml
+from yaml import safe_dump, safe_load
 
-from sentry.runner.decorators import configuration
+from sentry.runner.decorators import configuration, log_options
 
 # These messages are produced more than once and referenced in tests.
 # This is the reason they are constants.
 DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
+DB_VALUE = "Value of option %s on DB:"
 CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option %s updated."
+UPDATE_MSG = "[UPDATE] Option %s updated. Old value: \n%s\nNew value: \n%s"
+SET_MSG = "[SET] Option %s set to value: \n%s"
 UNSET_MSG = "[UNSET] Option %s unset."
 
 
-def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bool) -> None:
+def _attempt_update(
+    key: str, value: Any, drifted_options: Set[str], dry_run: bool, hide_drift: bool
+) -> None:
     """
     Updates the option if it is not drifted and if we are not in dry
     run mode.
     """
+    import logging
+
     from sentry import options
 
+    logger = logging.getLogger("sentry.options_automator")
+
+    opt = options.lookup_key(key)
+
+    db_value = options.get(key)
+    db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
         click.echo(DRIFT_MSG % key)
+        logger.error("Option %s drifted and cannot be updated.", key)
+        if not hide_drift:
+            click.echo(DB_VALUE % key)
+            # This is yaml instead of the python representation as the
+            # expected flow, in this case, is to use the output of this
+            # line to copy paste it in the config map.
+            click.echo(safe_dump(db_value_to_print))
         return
 
-    if options.get(key) == value:
+    last_update_channel = options.get_last_update_channel(key)
+    if db_value == value:
         # This script is making changes with UpdateChannel.AUTOMATOR
         # channel. Thus, if the laast update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
-        last_update_channel = options.get_last_update_channel(key)
         if last_update_channel is None:
             # Here we are trying to set an option with a value that
             # is equal to its default. There are valid cases for this
@@ -40,7 +59,7 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
             # the DB and then change the default value.
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(UPDATE_MSG % key)
+            click.echo(SET_MSG % (key, value))
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
@@ -50,7 +69,10 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-    click.echo(UPDATE_MSG % key)
+    if last_update_channel is not None:
+        click.echo(UPDATE_MSG % (key, db_value, value))
+    else:
+        click.echo(SET_MSG % (key, value))
 
 
 @click.group()
@@ -60,9 +82,15 @@ def _attempt_update(key: str, value: Any, drifted_options: Set[str], dry_run: bo
     help="Prints the updates without applying them.",
 )
 @click.option("-f", "--file", help="File name to load. If not provided assume stdin.")
+@click.option(
+    "--hide-drift",
+    is_flag=True,
+    help="Hide the actual value of the option on DB when detecting drift.",
+)
+@log_options()
 @click.pass_context
 @configuration
-def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
+def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
@@ -101,7 +129,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
     ctx.obj["dry_run"] = dry_run
 
     with open(file) if file is not None else sys.stdin as stream:
-        options_to_update = yaml.safe_load(stream)
+        options_to_update = safe_load(stream)
 
     options_to_update = options_to_update["options"]
     ctx.obj["options_to_update"] = options_to_update
@@ -119,6 +147,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str]) -> None:
             drifted_options.add(key)
 
     ctx.obj["drifted_options"] = drifted_options
+    ctx.obj["hide_drift"] = hide_drift
 
 
 @configoptions.command()
@@ -135,7 +164,9 @@ def patch(ctx) -> None:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
     for key, value in ctx.obj["options_to_update"].items():
-        _attempt_update(key, value, ctx.obj["drifted_options"], dry_run)
+        _attempt_update(
+            key, value, ctx.obj["drifted_options"], dry_run, bool(ctx.obj["hide_drift"])
+        )
 
 
 @configoptions.command()
@@ -160,7 +191,11 @@ def sync(ctx):
     for opt in all_options:
         if opt.name in options_to_update:
             _attempt_update(
-                opt.name, options_to_update[opt.name], ctx.obj["drifted_options"], dry_run
+                opt.name,
+                options_to_update[opt.name],
+                ctx.obj["drifted_options"],
+                dry_run,
+                bool(ctx.obj["hide_drift"]),
             )
         else:
             if options.isset(opt.name):

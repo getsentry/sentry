@@ -1,8 +1,8 @@
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import features
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -67,7 +67,7 @@ class DiscoverSavedQuery(Model):
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
     def set_projects(self, project_ids):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)):
             DiscoverSavedQueryProject.objects.filter(discover_saved_query=self).exclude(
                 project__in=project_ids
             ).delete()
@@ -99,9 +99,7 @@ class TeamKeyTransactionModelManager(BaseManager):
         if project is None:
             return
 
-        if features.has("organizations:dynamic-sampling", project.organization) and options.get(
-            "dynamic-sampling:enabled-biases"
-        ):
+        if features.has("organizations:dynamic-sampling", project.organization):
             from sentry.dynamic_sampling import RuleType, get_enabled_user_biases
 
             # check if option is enabled

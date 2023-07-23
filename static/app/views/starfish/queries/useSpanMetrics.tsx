@@ -1,82 +1,55 @@
 import {Location} from 'history';
-import moment, {Moment} from 'moment';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
+const {SPAN_GROUP} = SpanMetricsFields;
+
 export type SpanMetrics = {
-  [metric: string]: number;
+  [metric: string]: number | string;
+  'http_error_count()': number;
+  'p95(span.self_time)': number;
+  'span.op': string;
+  'sps()': number;
+  'time_spent_percentage()': number;
+};
+
+export type SpanSummaryQueryFilters = {
+  'transaction.method'?: string;
+  transactionName?: string;
 };
 
 export const useSpanMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: {transactionName?: string} = {},
+  span: Pick<IndexedSpan, 'group'>,
+  queryFilters: SpanSummaryQueryFilters,
   fields: string[] = [],
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
 
-  const filters: string[] = [];
-  if (queryFilters.transactionName) {
-    filters.push(`transaction = ${queryFilters.transactionName}`);
-  }
-
-  const query = span
-    ? getQuery(span, startTime, endTime, dateFilters, queryFilters.transactionName)
-    : '';
-  const eventView = span
-    ? getEventView(span, location, queryFilters.transactionName, fields)
-    : undefined;
+  const enabled =
+    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery<SpanMetrics[]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
+    enabled,
     referrer,
   });
 
-  return {isLoading, data: data[0] ?? {}};
+  return {...result, data: result?.data?.[0] ?? {}, isEnabled: enabled};
 };
-
-function getQuery(
-  span: {group: string},
-  startTime: Moment,
-  endTime: Moment,
-  dateFilters: string,
-  transaction?: string
-) {
-  return `
-    SELECT
-    count() as count,
-    min(timestamp) as "first_seen()",
-    max(timestamp) as "last_seen()",
-    quantile(0.95)(exclusive_time) as "p95(span.duration)",
-    sum(exclusive_time) as "sum(span.duration)",
-    divide(count(), ${
-      moment(endTime ?? undefined).unix() - moment(startTime).unix()
-    }) as "spm()"
-    FROM spans_experimental_starfish
-    WHERE group_id = '${span.group}'
-    ${dateFilters}
-    ${transaction ? `AND transaction = '${transaction}'` : ''}
-  `;
-}
 
 function getEventView(
   span: {group: string},
   location: Location,
-  transaction?: string,
+  queryFilters?: SpanSummaryQueryFilters,
   fields: string[] = []
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
@@ -84,12 +57,17 @@ function getEventView(
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
-        transaction ? ` transaction:${transaction}` : ''
+      query: `${SPAN_GROUP}:${cleanGroupId}${
+        queryFilters?.transactionName
+          ? ` transaction:${queryFilters?.transactionName}`
+          : ''
+      }${
+        queryFilters?.['transaction.method']
+          ? ` transaction.method:${queryFilters?.['transaction.method']}`
+          : ''
       }`,
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

@@ -1,3 +1,5 @@
+from typing import Any, Callable, Dict
+
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
@@ -23,9 +25,8 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
-
-    is_modifier = False
-    is_updater = False
+    _is_modifier: bool
+    _is_updater: bool
 
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
@@ -94,9 +95,6 @@ class FlagAction(Action):
             return self.flag == component.contributes
 
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
-        # Grouping is not stored on the frame
-        if self.key == "group":
-            return
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
@@ -136,7 +134,7 @@ class FlagAction(Action):
 class VarAction(Action):
     range = None
 
-    _VALUE_PARSERS = {
+    _VALUE_PARSERS: Dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,
         "invert-stacktrace": get_rule_bool,

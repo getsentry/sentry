@@ -1,20 +1,22 @@
 import {useCallback, useMemo} from 'react';
 
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import type {Organization} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
   CONSOLE = 'console',
   DOM = 'dom',
+  ERRORS = 'errors',
+  MEMORY = 'memory',
   NETWORK = 'network',
   TRACE = 'trace',
-  ISSUES = 'issues',
-  MEMORY = 'memory',
 }
 
-function isReplayTab(tab: string): tab is TabKey {
+function isReplayTab(tab: string, _organization: Organization): tab is TabKey {
   return Object.values<string>(TabKey).includes(tab);
 }
 
@@ -37,22 +39,25 @@ function useDefaultTab() {
 
 function useActiveReplayTab() {
   const defaultTab = useDefaultTab();
+  const organization = useOrganization();
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
   const paramValue = getParamValue()?.toLowerCase() ?? '';
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue) ? (paramValue as TabKey) : defaultTab),
-      [paramValue, defaultTab]
+      () => (isReplayTab(paramValue, organization) ? (paramValue as TabKey) : defaultTab),
+      [organization, paramValue, defaultTab]
     ),
     setActiveTab: useCallback(
       (value: string) => {
         setParamValue(
-          isReplayTab(value.toLowerCase()) ? value.toLowerCase() : defaultTab
+          isReplayTab(value.toLowerCase(), organization)
+            ? value.toLowerCase()
+            : defaultTab
         );
       },
-      [setParamValue, defaultTab]
+      [organization, setParamValue, defaultTab]
     ),
   };
 }

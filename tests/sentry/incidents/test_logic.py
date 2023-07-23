@@ -639,6 +639,23 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "transaction.duration:>=1000",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @cached_property
@@ -944,6 +961,29 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
+
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "custom metric alert",
+            "",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Metrics,
+        )
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
+
+        alert_rule = update_alert_rule(
+            alert_rule, name="updated alert", query="transaction.duration:>=100"
+        )
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
@@ -1325,6 +1365,8 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1539,6 +1581,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1877,3 +1921,40 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         # now this should win over the new critical
         self.run_test([trigger_w, trigger_c], [action_w, other_action_w])
+
+
+class TestCustomMetricAlertRule(TestCase):
+    @patch("sentry.incidents.logic.features.has", return_value=True)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config, mocked_feature_has):
+        self.create_alert_rule()
+
+        mocked_schedule_invalidate_project_config.assert_not_called()
+
+    @patch("sentry.incidents.logic.features.has", return_value=True)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_alert_rule(
+        self, mocked_schedule_invalidate_project_config, mocked_feature_has
+    ):
+        self.create_alert_rule(
+            projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
+            query="transaction.duration:>=100",
+        )
+
+        mocked_schedule_invalidate_project_config.assert_called_once_with(
+            trigger="alerts:create-on-demand-metric", project_id=self.project.id
+        )
+
+    @patch("sentry.incidents.logic.features.has", return_value=False)
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_turned_off(
+        self, mocked_schedule_invalidate_project_config, mocked_feature_has
+    ):
+        self.create_alert_rule(
+            projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
+            query="transaction.duration:>=100",
+        )
+
+        mocked_schedule_invalidate_project_config.assert_not_called()

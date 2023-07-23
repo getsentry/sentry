@@ -4,7 +4,6 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
@@ -12,13 +11,10 @@ import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhanc
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 
-import {
-  generateWebServiceEventView,
-  getDefaultStatsPeriod,
-} from '../../utils/generatePerformanceEventView';
+import {generateWebServiceEventView} from '../../utils/generatePerformanceEventView';
 
 import {StarfishLanding} from './starfishLanding';
 
@@ -31,17 +27,16 @@ type Props = {
 function WebServiceView({selection, location, router}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const {projects} = useProjects();
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateWebServiceEventView(
     location,
-    projects,
     {
       withStaticFilters,
     },
-    organization
+    organization,
+    selection
   );
 
   useEffect(() => {
@@ -53,38 +48,20 @@ function WebServiceView({selection, location, router}: Props) {
     if (!isEqual(previousDateTime, selection.datetime)) {
       loadOrganizationTags(api, organization.slug, selection);
     }
-  }, [
-    selection.datetime,
-    previousDateTime,
-    selection,
-    api,
-    organization,
-    location,
-    projects,
-  ]);
+  }, [selection.datetime, previousDateTime, selection, api, organization, location]);
 
   return (
-    <SentryDocumentTitle title={t('Starfish')} orgSlug={organization.slug}>
-      <PageFiltersContainer
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: getDefaultStatsPeriod(organization),
-          },
-        }}
-      >
+    <SentryDocumentTitle title={t('Service Overview')} orgSlug={organization.slug}>
+      <StarfishPageFiltersContainer>
         <StarfishLanding
           router={router}
           eventView={eventView}
           organization={organization}
           location={location}
-          projects={projects}
           selection={selection}
           withStaticFilters={withStaticFilters}
         />
-      </PageFiltersContainer>
+      </StarfishPageFiltersContainer>
     </SentryDocumentTitle>
   );
 }

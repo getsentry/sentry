@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -6,7 +7,9 @@ from sentry import options
 from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.configoptions import (
     CHANNEL_UPDATE_MSG,
+    DB_VALUE,
     DRIFT_MSG,
+    SET_MSG,
     UNSET_MSG,
     UPDATE_MSG,
     configoptions,
@@ -18,7 +21,7 @@ class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
     @pytest.fixture(autouse=True, scope="class")
-    def register_options(self) -> None:
+    def register_options(self) -> Generator[None, None, None]:
         options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -28,12 +31,27 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+        yield
+
+        options.unregister("readonly_option")
+        options.unregister("int_option")
+        options.unregister("str_option")
+        options.unregister("map_option")
+        options.unregister("list_option")
+        options.unregister("drifted_option")
+        options.unregister("change_channel_option")
+        options.unregister("to_unset_option")
+
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
+        # These options represent a scenario where we set options otherwise
+        # unset.
         options.delete("int_option")
-        options.delete("str_option")
         options.delete("map_option")
         options.delete("list_option")
+        # This is the scenario where we change the value of a previously set
+        # option.
+        options.set("str_option", "old value", channel=UpdateChannel.AUTOMATOR)
         # This option will test the drift scenario. We set it to a different
         # value with respect to the file.
         options.set("drifted_option", [1, 2, 3], channel=UpdateChannel.CLI)
@@ -63,23 +81,41 @@ class ConfigOptionsTest(CliTestCase):
         def assert_not_set() -> None:
             self._clean_cache()
             assert not options.isset("int_option")
-            assert not options.isset("str_option")
             assert not options.isset("map_option")
             assert not options.isset("list_option")
 
         def assert_output(rv):
             assert rv.exit_code == 0, rv.output
-            output = "\n".join(
+
+            # The script produces log lines when DRIFT is detected. This
+            # makes it easier to surface these as Sentry errors.
+            # This also means the output is polluted with a log line
+            # because reconfiguring the logger in the test is quite tricky
+            # as it is initialized at the beginning of the test.
+            # So we just split the output in two and check each part
+            # independently.
+            output_before_log = "\n".join(
                 [
-                    UPDATE_MSG % "int_option",
-                    UPDATE_MSG % "str_option",
-                    UPDATE_MSG % "map_option",
-                    UPDATE_MSG % "list_option",
+                    SET_MSG % ("int_option", 40),
+                    UPDATE_MSG % ("str_option", "old value", "new value"),
+                    SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                    SET_MSG % ("list_option", [1, 2]),
                     DRIFT_MSG % "drifted_option",
+                ]
+            )
+
+            output_after_log = "\n".join(
+                [
+                    DB_VALUE % "drifted_option",
+                    "- 1",
+                    "- 2",
+                    "- 3",
+                    "",
                     CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
-            assert output in rv.output
+            assert output_before_log in rv.output
+            assert output_after_log in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -131,19 +167,29 @@ class ConfigOptionsTest(CliTestCase):
             "sync",
         )
         assert rv.exit_code == 0, rv.output
-        output = "\n".join(
+        output_before_log = "\n".join(
             [
-                UPDATE_MSG % "int_option",
-                UPDATE_MSG % "str_option",
-                UPDATE_MSG % "map_option",
-                UPDATE_MSG % "list_option",
+                SET_MSG % ("int_option", 40),
+                UPDATE_MSG % ("str_option", "old value", "new value"),
+                SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                SET_MSG % ("list_option", [1, 2]),
                 DRIFT_MSG % "drifted_option",
+            ]
+        )
+        output_after_log = "\n".join(
+            [
+                DB_VALUE % "drifted_option",
+                "- 1",
+                "- 2",
+                "- 3",
+                "",
                 CHANNEL_UPDATE_MSG % "change_channel_option",
                 UNSET_MSG % "to_unset_option",
             ]
         )
 
-        assert output in rv.output
+        assert output_before_log in rv.output
+        assert output_after_log in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"

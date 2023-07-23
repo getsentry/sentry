@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import posixpath
 from typing import Any, Callable, Optional, Set
 
-from symbolic import ParseDebugIdError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import ParseDebugIdError
 
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
@@ -195,7 +198,8 @@ def _merge_system_info(data, system_info):
 
 def _merge_full_response(data, response):
     data["platform"] = "native"
-    if response.get("crashed") is not None:
+    # Specifically for Unreal events: Do not overwrite the level as it has already been set in Relay when merging the context.
+    if response.get("crashed") is not None and data.get("level") is None:
         data["level"] = "fatal" if response["crashed"] else "info"
 
     if response.get("system_info"):
@@ -203,11 +207,11 @@ def _merge_full_response(data, response):
 
     os = get_os_from_event(data)
 
-    images = []
+    images: list[dict[str, Any]] = []
     set_path(data, "debug_meta", "images", value=images)
 
     for complete_image in response["modules"]:
-        image = {}
+        image: dict[str, Any] = {}
         _merge_image(image, complete_image, os, data)
         images.append(image)
 
@@ -228,7 +232,7 @@ def _merge_full_response(data, response):
     if response.get("crash_reason"):
         data_exception["type"] = response["crash_reason"]
 
-    data_threads = []
+    data_threads: list[dict[str, Any]] = []
     if response["stacktraces"]:
         data["threads"] = {"values": data_threads}
     else:
@@ -264,7 +268,7 @@ def _merge_full_response(data, response):
             data_stacktrace["registers"] = complete_stacktrace["registers"]
 
         for complete_frame in reversed(complete_stacktrace["frames"]):
-            new_frame = {}
+            new_frame: dict[str, Any] = {}
             _merge_frame(new_frame, complete_frame)
             data_stacktrace["frames"].append(new_frame)
 
@@ -410,7 +414,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
-        complete_frames_by_idx = {}
+        complete_frames_by_idx: dict[int, list[dict[str, Any]]] = {}
         for complete_frame in complete_stacktrace.get("frames") or ():
             complete_frames_by_idx.setdefault(complete_frame["original_index"], []).append(
                 complete_frame
@@ -453,6 +457,8 @@ def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, 
         return process_applecrashreport
     elif is_native_event(data):
         return process_native_stacktraces
+    else:
+        return None
 
 
 def get_required_attachment_types(data) -> Set[str]:

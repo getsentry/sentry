@@ -1,11 +1,12 @@
-from typing import Callable, List, cast
+from __future__ import annotations
+
+from typing import Any, Callable
 from uuid import uuid4
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -13,13 +14,12 @@ from sentry.testutils.performance_issues.event_generators import (
     get_event,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
+from sentry.utils.performance_issues.base import DetectorType, parameterize_url
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
-    parameterize_url,
+    NPlusOneAPICallsDetector,
     without_query_params,
 )
 from sentry.utils.performance_issues.performance_detection import (
-    DetectorType,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -31,36 +31,31 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = NPlusOneAPICallsDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_event(self, description_maker: Callable[[int], str]) -> Event:
+    def create_event(self, description_maker: Callable[[int], str]) -> dict[str, Any]:
         duration_threshold = (
-            self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["duration_threshold"] + 1
+            self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["duration_threshold"] + 1
         )
-        count = self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
+        count = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
         hash = uuid4().hex[:16]
 
-        event = cast(
-            Event,
-            create_event(
-                [
-                    create_span(
-                        "http.client",
-                        duration_threshold,
-                        description_maker(i),
-                        hash=hash,
-                    )
-                    for i in range(count)
-                ]
-            ),
+        return create_event(
+            [
+                create_span(
+                    "http.client",
+                    duration_threshold,
+                    description_maker(i),
+                    hash=hash,
+                )
+                for i in range(count)
+            ]
         )
-
-        return event
 
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
@@ -150,7 +145,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         project = self.create_project()
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
 
-        detector = NPlusOneAPICallsDetector(self.settings, event)
+        detector = NPlusOneAPICallsDetector(self._settings, event)
 
         assert not detector.is_creation_allowed_for_organization(project.organization)
 
@@ -170,7 +165,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"n_plus_one_api_calls_detection_rate": 0.0},
+            value={"n_plus_one_api_calls_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)

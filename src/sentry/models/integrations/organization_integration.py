@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import List
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -11,8 +13,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_regions_for_orgs
 
 
@@ -49,7 +50,9 @@ class OrganizationIntegration(DefaultFieldsModel):
         ]
 
     def delete(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationIntegration)), flush=False
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)

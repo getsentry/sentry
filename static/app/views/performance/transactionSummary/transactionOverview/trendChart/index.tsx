@@ -15,6 +15,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -65,6 +66,10 @@ function TrendChart({
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
+
+  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+  const shouldGetBreakpoint =
+    withBreakpoint && !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -139,9 +144,9 @@ function TrendChart({
   modifyTrendView(
     trendView,
     location,
-    TrendChangeType.REGRESSION,
+    TrendChangeType.ANY,
     projects,
-    organization
+    shouldGetBreakpoint
   );
 
   function transformTimeseriesData(
@@ -170,14 +175,14 @@ function TrendChart({
   return (
     <Fragment>
       {header}
-      {withBreakpoint ? (
+      {shouldGetBreakpoint ? (
         // queries events-trends-statsv2 for breakpoint data (feature flag only)
         <TrendsDiscoverQuery
           eventView={trendView}
           orgSlug={organization.slug}
           location={location}
           limit={1}
-          withBreakpoint={withBreakpoint}
+          withBreakpoint
         >
           {({isLoading, trendsData}) => {
             const events = normalizeTrends(
@@ -187,7 +192,7 @@ function TrendChart({
             // keep trend change type as regression until the backend can support passing the type
             const selectedTransaction = getSelectedTransaction(
               location,
-              TrendChangeType.REGRESSION,
+              TrendChangeType.ANY,
               events
             );
 
@@ -221,7 +226,7 @@ function TrendChart({
               <Content
                 series={timeSeriesMetricsData}
                 errored={!trendsData && !isLoading}
-                loading={isLoading}
+                loading={isLoading || isCardinalityCheckLoading}
                 reloading={isLoading}
                 timeFrame={metricsTimeFrame}
                 withBreakpoint
@@ -276,7 +281,7 @@ function TrendChart({
               <Content
                 series={timeseriesData}
                 errored={errored}
-                loading={loading}
+                loading={loading || isCardinalityCheckLoading}
                 reloading={reloading}
                 timeFrame={timeFrame}
                 {...contentCommonProps}

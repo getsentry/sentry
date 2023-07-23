@@ -4,8 +4,10 @@ import uuid
 import pytest
 
 from sentry.event_manager import _save_aggregate
-from sentry.eventstore.models import CalculatedHashes, Event
+from sentry.eventstore.models import Event
+from sentry.grouping.result import CalculatedHashes
 from sentry.models import Group, GroupHash
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -25,15 +27,47 @@ def fast_save(default_project, task_runner):
                     hashes=["a" * 32, "b" * 32],
                     hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
                     tree_labels=[
-                        [{"function": "foo"}],
-                        [{"function": "bar"}],
-                        [{"function": "baz"}],
-                        [{"function": "bam"}],
+                        [
+                            {
+                                "function": "foo",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "bar",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "baz",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "bam",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
                     ],
                 ),
                 release=None,
                 metadata={},
-                received_timestamp=None,
+                received_timestamp=0,
                 level=10,
                 culprit="",
             )
@@ -52,7 +86,7 @@ def _assoc_hash(group, hash):
     gh.save()
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_move_all_events(default_project, fast_save):
     group_info = fast_save("f")
 
@@ -97,7 +131,7 @@ def test_move_all_events(default_project, fast_save):
     assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_partial_move(default_project, fast_save):
     group_info = fast_save("f")
     assert group_info.is_new

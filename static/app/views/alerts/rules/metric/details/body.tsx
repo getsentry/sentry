@@ -11,14 +11,18 @@ import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {AlertRuleStatus, Incident} from '../../../types';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
@@ -158,6 +162,9 @@ export default class DetailsBody extends Component<Props> {
       ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
     };
 
+    const isSnoozed = rule.snooze;
+    const ruleActionCategory = getAlertRuleActionCategory(rule);
+
     return (
       <Fragment>
         {selectedIncident &&
@@ -172,6 +179,22 @@ export default class DetailsBody extends Component<Props> {
           )}
         <Layout.Body>
           <Layout.Main>
+            {isSnoozed && (
+              <Alert showIcon>
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            )}
             <StyledPageTimeRangeSelector
               organization={organization}
               relative={timePeriod.period ?? ''}
@@ -194,6 +217,7 @@ export default class DetailsBody extends Component<Props> {
               interval={this.getInterval()}
               query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
+              isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
             />
             <DetailWrapper>
               <ActivityWrapper>

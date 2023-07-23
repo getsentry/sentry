@@ -14,14 +14,13 @@ from arroyo.processing.strategies import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
     RunTask,
-    RunTaskWithMultiprocessing,
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
-from sentry.snuba.utils import initialize_consumer_state
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +54,13 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         callable = partial(process_message, self.dataset, self.topic, self.logical_topic)
         if self.multi_proc:
             return RunTaskWithMultiprocessing(
-                callable,
-                CommitOffsets(commit),
-                self.num_processes,
-                self.max_batch_size,
-                self.max_batch_time,
-                self.input_block_size,
-                self.output_block_size,
-                initializer=initialize_consumer_state,
+                function=callable,
+                next_step=CommitOffsets(commit),
+                num_processes=self.num_processes,
+                max_batch_size=self.max_batch_size,
+                max_batch_time=self.max_batch_time,
+                input_block_size=self.input_block_size,
+                output_block_size=self.output_block_size,
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
@@ -120,11 +118,10 @@ def get_query_subscription_consumer(
     output_block_size: int,
     multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
-    from django.conf import settings
 
     from sentry.utils import kafka_config
 
-    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name = kafka_config.get_topic_definition(topic)["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
 
     initialize_metrics(group_id=group_id)

@@ -22,7 +22,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -30,14 +30,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -54,7 +47,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -62,14 +55,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -93,7 +79,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -112,6 +98,12 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     jest
@@ -146,14 +138,7 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -179,7 +164,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -189,13 +174,14 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -235,14 +221,7 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -278,7 +257,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -288,13 +267,14 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -334,14 +314,7 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -368,7 +341,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -379,14 +352,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -414,7 +380,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -425,14 +391,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -441,7 +400,7 @@ describe('Onboarding', function () {
     );
 
     // Select the React platform
-    await userEvent.click(screen.getByTestId('platform-javascript-react'));
+    await userEvent.click(screen.getByTestId('platform-javascript-vue'));
 
     // Click on 'configure SDK' button
     await userEvent.click(screen.getByRole('button', {name: 'Configure SDK'}));

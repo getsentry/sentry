@@ -3,27 +3,30 @@ import styled from '@emotion/styled';
 
 import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import LoadingMask from 'sentry/components/loadingMask';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
   name: string;
   version: undefined | string;
   className?: string;
+  showVersion?: boolean;
 };
 
 const LazyContextIcon = lazy(
   () => import('sentry/components/events/contextSummary/contextIcon')
 );
 
-const ContextIcon = styled(({className, name, version}: Props) => {
+const ContextIcon = styled(({className, name, version, showVersion}: Props) => {
   const icon = generateIconName(name, version);
 
   const title = (
     <CountTooltipContent>
-      <dt>Name:</dt>
+      <dt>{t('Name:')}</dt>
       <dd>{name}</dd>
-      {version ? <dt>Version:</dt> : null}
+      {version ? <dt>{t('Version:')}</dt> : null}
       {version ? <dd>{version}</dd> : null}
     </CountTooltipContent>
   );
@@ -32,7 +35,7 @@ const ContextIcon = styled(({className, name, version}: Props) => {
       <Suspense fallback={<LoadingMask />}>
         <LazyContextIcon name={icon} size="sm" />
       </Suspense>
-      {version ? version : null}
+      {showVersion ? (version ? version : null) : undefined}
     </Tooltip>
   );
 })`
@@ -40,15 +43,6 @@ const ContextIcon = styled(({className, name, version}: Props) => {
   gap: ${space(1)};
   font-variant-numeric: tabular-nums;
   align-items: center;
-`;
-
-const CountTooltipContent = styled('dl')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(1)} ${space(3)};
-  text-align: left;
-  align-items: center;
-  margin-bottom: 0;
 `;
 
 export default ContextIcon;

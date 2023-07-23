@@ -79,7 +79,7 @@ describe('ArchivedBox', function () {
   });
   it('handles archived until escalating', function () {
     const org_with_escalating = TestStubs.Organization({
-      features: ['escalating-issues-ui'],
+      features: ['escalating-issues'],
     });
     render(
       <ArchivedBox
@@ -99,7 +99,7 @@ describe('ArchivedBox', function () {
   });
   it('tracks analytics when issue status docs is clicks', async function () {
     const org_with_escalating = TestStubs.Organization({
-      features: ['escalating-issues-ui'],
+      features: ['escalating-issues'],
     });
     render(
       <ArchivedBox

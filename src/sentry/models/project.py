@@ -4,19 +4,19 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import projectoptions
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
@@ -25,19 +25,24 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    OptionManager,
+    Value,
     region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models import OptionMixin
+from sentry.models.grouplink import GroupLink
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.integrationdocs import integration_doc_exists
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -45,6 +50,8 @@ if TYPE_CHECKING:
     from sentry.models import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+
+MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
 
 
 class ProjectManager(BaseManager):
@@ -64,7 +71,7 @@ class ProjectManager(BaseManager):
             projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         return self.filter(
             status=ObjectStatus.ACTIVE,
@@ -103,7 +110,7 @@ class ProjectManager(BaseManager):
 
 
 @region_silo_only_model
-class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -133,31 +140,45 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
-    flags = BitField(
-        flags=(
-            ("has_releases", "This Project has sent release data"),
-            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
-            ("has_transactions", "This Project has sent transactions"),
-            ("has_alert_filters", "This Project has filters"),
-            ("has_sessions", "This Project has sessions"),
-            ("has_profiles", "This Project has sent profiles"),
-            ("has_replays", "This Project has sent replays"),
-            ("spike_protection_error_currently_active", "spike_protection_error_currently_active"),
-            (
-                "spike_protection_transaction_currently_active",
-                "spike_protection_transaction_currently_active",
-            ),
-            (
-                "spike_protection_attachment_currently_active",
-                "spike_protection_attachment_currently_active",
-            ),
-            ("has_minified_stack_trace", "This Project has event with minified stack trace"),
-            ("has_cron_monitors", "This Project has cron monitors"),
-            ("has_cron_checkins", "This Project has sent check-ins"),
-        ),
-        default=10,
-        null=True,
-    )
+
+    class flags(TypedClassBitField):
+        # This Project has sent release data
+        has_releases: bool
+        # This Project has issue alerts targeting
+        has_issue_alerts_targeting: bool
+
+        # This Project has sent transactions
+        has_transactions: bool
+
+        # This Project has filters
+        has_alert_filters: bool
+
+        # This Project has sessions
+        has_sessions: bool
+
+        # This Project has sent profiles
+        has_profiles: bool
+
+        # This Project has sent replays
+        has_replays: bool
+
+        # spike_protection_error_currently_active
+        spike_protection_error_currently_active: bool
+
+        spike_protection_transaction_currently_active: bool
+        spike_protection_attachment_currently_active: bool
+
+        # This Project has event with minified stack trace
+        has_minified_stack_trace: bool
+
+        # This Project has cron monitors
+        has_cron_monitors: bool
+
+        # This Project has sent check-ins
+        has_cron_checkins: bool
+
+        bitfield_default = 10
+        bitfield_null = True
 
     objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
@@ -222,15 +243,19 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                 return True
         return False
 
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        return projectoptions.set(self, *args, **kwargs)
+    @property
+    def option_manager(self) -> OptionManager:
+        from sentry.models import ProjectOption
 
-    def get_option(self, *args, **kwargs):
-        return projectoptions.get(self, *args, **kwargs)
+        return ProjectOption.objects
 
-    def delete_option(self, *args, **kwargs):
-        return projectoptions.delete(self, *args, **kwargs)
+    def update_option(self, key: str, value: Value) -> bool:
+        projectoptions.update_rev_for_option(self)
+        return super().update_option(key, value)
+
+    def delete_option(self, key: str) -> None:
+        projectoptions.update_rev_for_option(self)
+        super().delete_option(key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)
@@ -300,13 +325,14 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         from sentry.models import (
             Environment,
             EnvironmentProject,
-            ProjectTeam,
+            ExternalIssue,
             RegionScheduledDeletion,
             ReleaseProject,
             ReleaseProjectEnvironment,
             Rule,
         )
         from sentry.models.actor import ACTOR_TYPES
+        from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id
@@ -315,7 +341,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         self.organization = organization
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 self.update(organization=organization)
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization, max_length=50)
@@ -367,7 +393,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
-        rules = Rule.objects.filter(owner_id__isnull=False, project=self)
+        rules = Rule.objects.filter(owner_id__isnull=False, project=self).select_related("owner")
         for rule in list(chain(alert_rules, rules)):
             actor = rule.owner
             is_member = False
@@ -405,11 +431,27 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
+        # Manually move over external issues to the new org
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
+            "linked_id", flat=True
+        )
+
+        for external_issues in chunked(
+            RangeQuerySetWrapper(
+                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                step=1000,
+            ),
+            1000,
+        ):
+            for ei in external_issues:
+                ei.organization_id = organization.id
+            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
+
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
             return False
@@ -450,19 +492,14 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import (
-            EnvironmentProject,
-            ProjectOption,
-            ProjectOwnership,
-            ProjectTeam,
-            Rule,
-        )
+        from sentry.models import EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        from sentry.models.projectteam import ProjectTeam
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
         project = Project.objects.get(id=project_id)
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Project)):
                 for model in model_list:
                     # remove all previous project settings
                     model.objects.filter(project_id=self.id).delete()
@@ -491,7 +528,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value or value == "other":
+        if not value or value == "other" or value in MIGRATED_GETTING_STARTD_DOCS:
             return True
         return integration_doc_exists(value)
 
@@ -509,7 +546,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
             Project.outbox_for_update(self.id, self.organization_id).save()
             return super().delete(**kwargs)
 

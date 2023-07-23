@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import reduce
-from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from sentry_relay import parse_release as parse_release_relay
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -504,7 +504,7 @@ def handle_operator_negation(operator: str) -> Tuple[str, bool]:
     return operator, negated
 
 
-def parse_semver(version, operator) -> Optional[SemverFilter]:
+def parse_semver(version, operator) -> SemverFilter:
     """
     Attempts to parse a release version using our semver syntax. version should be in
     format `<package_name>@<version>` or `<version>`, where package_name is a string and
@@ -564,7 +564,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
 
 key_conversion_map: Mapping[
     str,
-    Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[any]]],
+    Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[Any]]],
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
@@ -585,7 +585,7 @@ def convert_search_filter_to_snuba_query(
     search_filter: SearchFilter,
     key: Optional[str] = None,
     params: Optional[Mapping[str, Union[int, str, datetime]]] = None,
-) -> Optional[Sequence[any]]:
+) -> Optional[Sequence[Any]]:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
@@ -595,7 +595,7 @@ def convert_search_filter_to_snuba_query(
         name = f"tags[{name}]"
 
     if name in NO_CONVERSION_FIELDS:
-        return
+        return None
     elif name in key_conversion_map:
         return key_conversion_map[name](search_filter, name, params)
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():

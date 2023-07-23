@@ -5,13 +5,12 @@ import Avatar from 'sentry/components/avatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/header/errorCount';
 import {formatTime} from 'sentry/components/replays/utils';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete} from 'sentry/icons';
+import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -52,12 +51,18 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  showUrl,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  showUrl: boolean;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    pathname: `/replays/${replay.id}/`,
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
@@ -91,7 +96,7 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
@@ -191,6 +196,7 @@ export function OSCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -209,6 +215,7 @@ export function BrowserCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -225,13 +232,50 @@ export function DurationCell({replay}: Props) {
   );
 }
 
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      {replay.count_rage_clicks ? (
+        <Count>{replay.count_rage_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      {replay.count_dead_clicks ? (
+        <Count>{replay.count_dead_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
 export function ErrorCountCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      <ErrorCount countErrors={replay.count_errors} />
+      {replay.count_errors ? (
+        <ErrorCount>
+          <IconFire />
+          {replay.count_errors}
+        </ErrorCount>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }
@@ -259,6 +303,17 @@ const Item = styled('div')<{isArchived?: boolean}>`
   gap: ${space(1)};
   padding: ${space(1.5)};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+`;
+
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const ErrorCount = styled(Count)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

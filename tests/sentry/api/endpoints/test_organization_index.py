@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -26,14 +30,19 @@ class OrganizationsListTest(OrganizationIndexTest):
 
     def test_show_all_with_superuser(self):
         org = self.organization  # force creation
+        org2 = self.create_organization()
         user = self.create_user(is_superuser=True)
         self.login_as(user=user, superuser=True)
 
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(org.id)
+        assert {r["id"] for r in response.data} == {str(org.id), str(org2.id)}
 
     def test_show_all_without_superuser(self):
+        self.organization  # force creation
+        self.create_organization()
+        user = self.create_user()
+        self.login_as(user=user)
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 0
 
@@ -176,7 +185,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
-        data = {"name": "hello world"}
+        data: dict[str, Any] = {"name": "hello world"}
         with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
             self.get_success_response(**data)
 
@@ -202,7 +211,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
 
         # TODO(HC) Re-enable this check once organization mapping stabilizes
-        # with exempt_from_silo_limits():
+        # with assume_test_silo_mode(SiloMode.CONTROL):
         #     assert OrganizationMapping.objects.filter(
         #         organization_id=organization_id,
         #         slug=data["slug"],
@@ -225,7 +234,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=org_member)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -243,7 +252,8 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.login_as(self.no_2fa_user)
         self.assert_redirected_to_2fa()
 
-        TotpInterface().enroll(self.no_2fa_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_new_member_must_enable_2fa(self):
@@ -253,15 +263,18 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
 
         self.assert_redirected_to_2fa()
 
-        TotpInterface().enroll(new_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(new_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
-        TotpInterface().enroll(self.no_2fa_user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
-        Authenticator.objects.get(user=self.no_2fa_user).delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.assert_redirected_to_2fa()
 
     def test_superuser_can_access_org_home(self):

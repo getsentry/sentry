@@ -25,6 +25,7 @@ CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
 class UserSocialAuth(models.Model):
     """Social Auth association model"""
 
+    id = models.AutoField(primary_key=True)
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth", on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
@@ -198,4 +199,5 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def user_model(cls):
-        return apps.get_model(*AUTH_USER_MODEL.split("."))
+        db, name = AUTH_USER_MODEL.split(".")
+        return apps.get_model(db, name)

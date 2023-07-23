@@ -1,4 +1,4 @@
-# Running Sentry in Hybrid Cloud (Updated 10/2022)
+# Running Sentry in Hybrid Cloud (Updated 06/2023)
 
 ## Background on Silos
 
@@ -12,43 +12,54 @@ For SaaS deployment, we want to introduce sensitive data residency as part of th
 
 To set up the region silos locally, you'll need to make a few changes:
 
-In `~/.sentry/sentry.conf.py`, add the following:
-
+1. Set up your local configuration in `~/.sentry/sentry.conf.py`:
+```python
+SENTRY_SUBNET_SECRET = 'secretsecretsecret' # Used for silos to verify HTTP requests coming from one another
+SENTRY_MONOLITH_REGION = "us" # Default region for organizations created while in monolith mode
+```
+>  💡 If you're using ngrok, you'll need to add the following as well:
 ```python
 from sentry.types.region import Region, RegionCategory
 SENTRY_REGION_CONFIG = (
     Region(
-        "region",
-        1,
-        "https://<YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io",
-        RegionCategory.MULTI_TENANT
+        name="us", # user-friendly name of the region silo
+        snowflake_id=1, # globally unique identifier of the region silo
+        address="https://us.yourusername.ngrok.io", # full web address of the region silo
+        category=RegionCategory.MULTI_TENANT, # MULTI_TENANT = many customers, SINGLE_TENTANT = single customer
+        api_token="dev-region-silo-token" # An internal token used by the RPC for service calls
     ),
-    ...
 )
-SENTRY_CONTROL_ADDRESS = "https://<YOUR-CONTROL-NGROK-SUBDOMAIN>.ngrok.io"
+SENTRY_CONTROL_ADDRESS = "https://yourusername.ngrok.io"
 ```
-Explanation:
-- `SENTRY_REGION_CONFIG`: A tuple of Region objects that describe the regions
-- `Region() -> "region"`: The user-friendly name of the region silo (e.g. `us-west`)
-- `Region() -> 1`: The unique numerical ID of the the region silo
-- `Region() -> "https://<YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io"`: The server address of the region silo
-- `Region() -> RegionCategory`: Denotes the type of region silo that indicates how many customer organizations are being served from there. `MULTI_TENANT` indicates multiple organizations, `SINGLE_TENANT` indicates only one organization.
-- You can add as many regions as you like, but they'll each require a separate instance of Sentry running to emulate production
-- `SENTRY_CONTROL_ADDRESS`: The server address of the control silo
+
+1. Create the split databases for the two silo modes with `make create-db`
+2. Split your local database with `bin/split-silo-database`
+
+Example Output:
+```sh
+$ bin/split-silo-database
+> Could not find silo assignment for django_admin_log
+> Could not find silo assignment for auth_permission
+> Could not find silo assignment for auth_group
+> Could not find silo assignment for django_content_type
+> Could not find silo assignment for django_session
+> Could not find silo assignment for django_site
+> 8 OrganizationMapping record(s) have been updated from '--monolith--' to 'us'
+>> Dumping tables from sentry database
+>> Building control database from dump file
+>> Dumping tables from sentry database
+>> Building region database from dump file
+```
 
 ## Running the Silos
 
-To spin up the silos, you'll need to bind one of the servers to a different port.
-```shell
-SENTRY_SILO_MODE=CONTROL sentry devserver
+To spin up the silos, run:
+
+```sh
+SENTRY_USE_SILOS=1 sentry devserver
 ```
 
-```shell
-SENTRY_DEVSERVER_BIND=localhost:8002 SENTRY_SILO_MODE=REGION SENTRY_REGION=region sentry devserver
-```
-The `SENTRY_REGION` should match the `Region() -> name` that you declare in `sentry.conf.py`.
-
-To set up ngrok, modify your `ngrok.yml` (`ngrok config edit`) to contain:
+If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
 
 ```yml
 version: "2"
@@ -56,41 +67,16 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
     control-silo:
         proto: http
-        hostname: <YOUR-CONTROL-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8000
+        hostname: yourusername.ngrok.io
+        addr: 8001
     region-silo:
         proto: http
-        hostname: <YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8002
+        hostname: us.yourusername.ngrok.io
+        addr: 8011
 ```
 
 Now you can spin up all the tunnels in the file with:
-```
+
+```sh
 ngrok start --all
-```
-
-## Using Silo Clients
-
-To make a **synchronous request** to another Sentry Silo, simply import the client of the silo you'd like to make a request to and provide approriate credentials:
-
-```python
-from sentry.silo.client import RegionSiloClient
-
-
-region = get_region_for_organization(organization)
-client = RegionSiloClient(region) # For RegionSiloClient, provide the region
-response = client.get(
-    "/organizations/slug/some-endpoint/",
-    headers={"some header": "some value"}
-    data={"some": "payload"}
-)
-print(response.json) # {'some': 'response'}
-```
-
-> Note: Protected endpoints may not work as expected while we figure out how API credentials work across silos.
-
-To directly **proxy a request synchronously** you can provide the request as follows:
-
-```python
-response = client.proxy_request(self.request)
 ```

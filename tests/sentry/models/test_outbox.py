@@ -1,11 +1,15 @@
 import dataclasses
+import functools
+import threading
 from datetime import datetime, timedelta
-from typing import ContextManager
+from typing import Any, Callable, ContextManager
 from unittest.mock import call, patch
 
 import pytest
+import pytz
 import responses
 from django.conf import settings
+from django.db import connections
 from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
@@ -14,24 +18,35 @@ from rest_framework import status
 from sentry.models import (
     ControlOutbox,
     Organization,
-    OrganizationMapping,
     OrganizationMember,
     OutboxCategory,
+    OutboxFlushError,
     OutboxScope,
     RegionOutbox,
     User,
     WebhookProviderIdentifier,
+    outbox_context,
 )
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.types.region import Region, RegionCategory, get_local_region
+
+
+def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
+    def wrapper(*args: Any, **kwds: Any) -> Any:
+        try:
+            return c(*args, **kwds)
+        finally:
+            for connection in connections.all():
+                connection.close()
+
+    functools.update_wrapper(wrapper, c)
+    return wrapper
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -52,74 +67,49 @@ class ControlOutboxTest(TestCase):
     region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def test_creating_user_outboxes(self):
-        with exempt_from_silo_limits():
-            org = Factories.create_organization()
-
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            org_mapping.region_name = "a"
-            org_mapping.save()
-
-            org2 = Factories.create_organization()
-
-            org_mapping2 = OrganizationMapping.objects.get(organization_id=org2.id)
-            org_mapping2.region_name = "b"
-            org_mapping2.save()
-
-            user1 = Factories.create_user()
-            organization_service.add_organization_member(
-                organization_id=org.id,
-                default_org_role=org.default_role,
-                user_id=user1.id,
-            )
-
-            organization_service.add_organization_member(
-                organization_id=org2.id,
-                default_org_role=org2.default_role,
-                user_id=user1.id,
-            )
-
-        for outbox in User.outboxes_for_user_update(user1.id):
-            outbox.save()
-
-        assert ControlOutbox.objects.count() > 0
-
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             org = Factories.create_organization()
 
         user1 = Factories.create_user()
         user2 = Factories.create_user()
-        organization_service.add_organization_member(
-            organization_id=org.id,
-            default_org_role=org.default_role,
-            user_id=user1.id,
-        )
-        organization_service.add_organization_member(
-            organization_id=org.id,
-            default_org_role=org.default_role,
-            user_id=user2.id,
-        )
 
-        for inst in User.outboxes_for_user_update(user1.id):
-            inst.save()
-        for inst in User.outboxes_for_user_update(user2.id):
-            inst.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            expected_region_name = get_local_region().name
+            om = OrganizationMember.objects.create(
+                organization_id=org.id,
+                user_id=user1.id,
+                role=org.default_role,
+            )
+            om.outbox_for_update().drain_shard()
 
-        for inst in ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.SLACK,
-            region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
-            request=request,
-        ):
-            inst.save()
+            om = OrganizationMember.objects.create(
+                organization_id=org.id,
+                user_id=user2.id,
+                role=org.default_role,
+            )
+            om.outbox_for_update().drain_shard()
 
-        for inst in ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
-            region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
-            request=request,
-        ):
-            inst.save()
+        with outbox_context(flush=False):
+            for inst in User.outboxes_for_user_update(user1.id):
+                inst.save()
+            for inst in User.outboxes_for_user_update(user2.id):
+                inst.save()
+
+            for inst in ControlOutbox.for_webhook_update(
+                webhook_identifier=WebhookProviderIdentifier.SLACK,
+                region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
+                request=request,
+            ):
+                inst.save()
+
+            for inst in ControlOutbox.for_webhook_update(
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
+                request=request,
+            ):
+                inst.save()
 
         shards = {
             (row["shard_scope"], row["shard_identifier"], row["region_name"])
@@ -127,8 +117,8 @@ class ControlOutboxTest(TestCase):
         }
 
         assert shards == {
-            (OutboxScope.USER_SCOPE.value, user1.id, settings.SENTRY_MONOLITH_REGION),
-            (OutboxScope.USER_SCOPE.value, user2.id, settings.SENTRY_MONOLITH_REGION),
+            (OutboxScope.USER_SCOPE.value, user1.id, expected_region_name),
+            (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.SLACK,
@@ -175,7 +165,8 @@ class ControlOutboxTest(TestCase):
         assert outbox.payload["body"] == '{"installation": {"id": "github:1"}}'
 
         # After saving, data shouldn't mutate
-        outbox.save()
+        with outbox_context(flush=False):
+            outbox.save()
         outbox = ControlOutbox.objects.all().first()
         assert outbox.payload["method"] == "POST"
         assert outbox.payload["path"] == "/extensions/github/webhook/?query=test"
@@ -198,7 +189,8 @@ class ControlOutboxTest(TestCase):
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
-            outbox.save()
+            with outbox_context(flush=False):
+                outbox.save()
 
             assert ControlOutbox.objects.filter(id=outbox.id).exists()
             outbox.drain_shard()
@@ -218,11 +210,12 @@ class ControlOutboxTest(TestCase):
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
-            outbox.save()
+            with outbox_context(flush=False):
+                outbox.save()
 
             assert ControlOutbox.objects.filter(id=outbox.id).exists()
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                with raises(ApiError):
+                with raises(OutboxFlushError):
                     outbox.drain_shard()
                 assert mock_response.call_count == 1
                 assert ControlOutbox.objects.filter(id=outbox.id).exists()
@@ -233,13 +226,148 @@ class ControlOutboxTest(TestCase):
 
 
 @region_silo_test(stable=True)
+class OutboxDrainTest(TransactionTestCase):
+    def test_drain_shard_not_flush_all__upper_bound(self):
+        outbox1 = Organization.outbox_for_update(org_id=1)
+        outbox2 = Organization.outbox_for_update(org_id=1)
+
+        with outbox_context(flush=False):
+            outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does not include outboxes created after starting process.
+        with outbox_context(flush=False):
+            outbox2.save()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_drain_shard_not_flush_all__concurrent_processing(self, mock_process_region_outbox):
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread_1.start()
+
+        # This concurrent process will block on, and not duplicate, the effort of the first thread.
+        processing_thread_2 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
+
+    def test_drain_shard_flush_all__upper_bound(self):
+        outbox1 = Organization.outbox_for_update(org_id=1)
+        outbox2 = Organization.outbox_for_update(org_id=1)
+
+        with outbox_context(flush=False):
+            outbox1.save()
+        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        processing_thread = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
+        )
+        processing_thread.start()
+
+        barrier.wait()
+
+        # Does include outboxes created after starting process.
+        with outbox_context(flush=False):
+            outbox2.save()
+        barrier.wait()
+
+        # Next iteration
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread.join(timeout=1)
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+    @patch("sentry.models.outbox.process_region_outbox.send")
+    def test_drain_shard_flush_all__concurrent_processing__cooperation(
+        self, mock_process_region_outbox
+    ):
+        outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
+        outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
+
+        with outbox_context(flush=False):
+            outbox1.save()
+            outbox2.save()
+
+        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        processing_thread_1 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
+        )
+        processing_thread_1.start()
+
+        processing_thread_2 = threading.Thread(
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
+        )
+
+        barrier.wait()
+        processing_thread_2.start()
+        barrier.wait()
+        barrier.wait()
+        barrier.wait()
+
+        processing_thread_1.join()
+        processing_thread_2.join()
+
+        assert not RegionOutbox.objects.filter(id=outbox1.id).first()
+        assert not RegionOutbox.objects.filter(id=outbox2.id).first()
+
+        assert mock_process_region_outbox.call_count == 2
+
+
+@region_silo_test(stable=True)
 class RegionOutboxTest(TestCase):
     def test_creating_org_outboxes(self):
-        Organization.outbox_for_update(10).save()
-        OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
+        with outbox_context(flush=False):
+            Organization.outbox_for_update(10).save()
+            OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
         assert RegionOutbox.objects.count() == 2
 
-        with exempt_from_silo_limits(), outbox_runner():
+        with outbox_runner():
             # drain outboxes
             pass
         assert RegionOutbox.objects.count() == 0
@@ -248,12 +376,13 @@ class RegionOutboxTest(TestCase):
     def test_concurrent_coalesced_object_processing(self, mock_metrics):
         # Two objects coalesced
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
-        outbox.save()
-        OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+        with outbox_context(flush=False):
+            outbox.save()
+            OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
 
-        # Unrelated
-        OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
-        OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
+            # Unrelated
+            OrganizationMember(organization_id=1, id=2).outbox_for_update().save()
+            OrganizationMember(organization_id=2, id=2).outbox_for_update().save()
 
         assert len(list(RegionOutbox.find_scheduled_shards())) == 2
 
@@ -264,7 +393,8 @@ class RegionOutboxTest(TestCase):
             assert outbox.select_coalesced_messages().count() == 2
 
             # concurrent write of coalesced object update.
-            OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
+            with outbox_context(flush=False):
+                OrganizationMember(organization_id=1, id=1).outbox_for_update().save()
             assert RegionOutbox.objects.count() == 5
             assert outbox.select_coalesced_messages().count() == 3
 
@@ -298,7 +428,7 @@ class RegionOutboxTest(TestCase):
                 mock_process_region_outbox.side_effect = raise_exception
                 mock_process_region_outbox.reset_mock()
                 with self.tasks():
-                    with raises(ValueError):
+                    with raises(OutboxFlushError):
                         enqueue_outbox_jobs()
                     assert mock_process_region_outbox.call_count == 1
 
@@ -314,10 +444,12 @@ class RegionOutboxTest(TestCase):
                     payload=None,
                     object_identifier=org,
                     shard_identifier=org,
+                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                 )
 
-            Organization.outbox_for_update(org_id=10001).save()
-            Organization.outbox_for_update(org_id=10002).save()
+            with outbox_context(flush=False):
+                Organization.outbox_for_update(org_id=10001).save()
+                Organization.outbox_for_update(org_id=10002).save()
 
             start_time = datetime(2022, 10, 1, 0)
             with freeze_time(start_time):
@@ -339,12 +471,17 @@ class RegionOutboxTest(TestCase):
                 assert_called_for_org(10001)
                 ensure_converged()
 
-                # Concurrently added items still follow the largest retry schedule
-                Organization.outbox_for_update(10002).save()
+                # Concurrently added items will favor a newer scheduling time,
+                # but eventually converges.
+                with outbox_context(flush=False):
+                    Organization.outbox_for_update(10002).save()
+                run_with_error()
                 ensure_converged()
 
     def test_outbox_converges(self):
-        with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:
+        with patch(
+            "sentry.models.outbox.process_region_outbox.send"
+        ) as mock_process_region_outbox, outbox_context(flush=False):
             Organization.outbox_for_update(10001).save()
             Organization.outbox_for_update(10001).save()
 
@@ -365,11 +502,12 @@ class RegionOutboxTest(TestCase):
         org1 = Factories.create_organization()
         org2 = Factories.create_organization()
 
-        Organization.outbox_for_update(org1.id).save()
-        Organization.outbox_for_update(org2.id).save()
+        with outbox_context(flush=False):
+            Organization.outbox_for_update(org1.id).save()
+            Organization.outbox_for_update(org2.id).save()
 
-        OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
-        OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
+            OrganizationMember(organization_id=org1.id, id=1).outbox_for_update().save()
+            OrganizationMember(organization_id=org2.id, id=2).outbox_for_update().save()
 
         shards = {
             (row["shard_scope"], row["shard_identifier"])
@@ -379,3 +517,49 @@ class RegionOutboxTest(TestCase):
             (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),
             (OutboxScope.ORGANIZATION_SCOPE.value, org2.id),
         }
+
+    def test_scheduling_with_future_outbox_time(self):
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+            assert RegionOutbox.objects.count() == 1
+
+            assert RegionOutbox.find_scheduled_shards().count() == 0  # type: ignore
+
+            with outbox_runner():
+                pass
+
+            # Since the event is sometime in the future, we expect the single
+            #  outbox message not to be processed
+            assert RegionOutbox.objects.count() == 1
+
+    def test_scheduling_with_past_and_future_outbox_times(self):
+        with outbox_runner():
+            pass
+
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        with freeze_time(start_time):
+            future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
+            future_scheduled_outbox.save()
+            assert future_scheduled_outbox.scheduled_for > start_time
+
+            past_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
+            past_scheduled_outbox.save()
+            assert past_scheduled_outbox.scheduled_for < start_time
+            assert RegionOutbox.objects.count() == 2
+
+            assert RegionOutbox.find_scheduled_shards().count() == 1  # type: ignore
+
+            with outbox_runner():
+                pass
+
+            # We expect the shard to be drained if at *least* one scheduled
+            # message is in the past.
+            assert RegionOutbox.objects.count() == 0

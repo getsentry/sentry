@@ -52,7 +52,7 @@ function EventOrGroupExtraDetails({
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount = organization.features.includes('session-replay');
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   return (
     <GroupExtra>

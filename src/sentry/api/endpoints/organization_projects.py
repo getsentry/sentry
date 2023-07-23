@@ -13,9 +13,9 @@ from sentry.api.serializers.models.project import (
     OrganizationProjectResponse,
     ProjectSummarySerializer,
 )
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import CURSOR_QUERY_PARAM, GLOBAL_PARAMS
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, Team
@@ -31,7 +31,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GLOBAL_PARAMS.ORG_SLUG, CURSOR_QUERY_PARAM],
+        parameters=[GlobalParams.ORG_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -39,7 +39,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )

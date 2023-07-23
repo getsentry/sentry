@@ -12,6 +12,7 @@ from typing import (
     FrozenSet,
     Mapping,
     MutableMapping,
+    NoReturn,
     Optional,
     Sequence,
     Type,
@@ -19,11 +20,13 @@ from typing import (
 from urllib.request import Request
 
 from sentry import audit_log
-from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
-from sentry.models import ExternalActor, Identity, Integration, Organization, Team
+from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -38,9 +41,11 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
+    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -186,7 +191,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
 
     @classmethod
     def get_installation(
-        cls, model: M, organization_id: int, **kwargs: Any
+        cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any
     ) -> IntegrationInstallation:
         if cls.integration_cls is None:
             raise NotImplementedError
@@ -202,14 +207,17 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(
-        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
     ) -> None:
         pass
 
     def create_audit_log_entry(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         request: Request,
         action: str,
         extra: Optional[Any] = None,
@@ -291,7 +299,7 @@ class IntegrationInstallation:
 
     logger = logging.getLogger("sentry.integrations")
 
-    def __init__(self, model: M, organization_id: int) -> None:
+    def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
         self._org_integration: RpcOrganizationIntegration | None
@@ -338,11 +346,9 @@ class IntegrationInstallation:
         )
 
     def get_config_data(self) -> Mapping[str, str]:
-        # Explicitly typing to satisfy mypy.
         if not self.org_integration:
             return {}
-        config_data: Mapping[str, str] = self.org_integration.config
-        return config_data
+        return self.org_integration.config
 
     def get_dynamic_display_information(self) -> Optional[Mapping[str, Any]]:
         return None
@@ -351,11 +357,20 @@ class IntegrationInstallation:
         # Return the api client for a given provider
         raise NotImplementedError
 
-    def get_default_identity(self) -> Identity:
+    def get_default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
-        if not self.org_integration:
+        if self.org_integration is None or self.org_integration.default_auth_id is None:
             raise Identity.DoesNotExist
-        return Identity.objects.get(id=self.org_integration.default_auth_id)
+        identity = identity_service.get_identity(
+            filter={"id": self.org_integration.default_auth_id}
+        )
+        if identity is None:
+            with configure_scope() as scope:
+                scope.set_tag("integration_provider", self.model.get_provider().name)
+                scope.set_tag("org_integration_id", self.org_integration.id)
+                scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            raise Identity.DoesNotExist
+        return identity
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:
         return data.get("message", "unknown error")
@@ -374,9 +389,7 @@ class IntegrationInstallation:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
-            # Explicitly typing to satisfy mypy.
-            message: str = exc.text
-            return message
+            return exc.text
         elif isinstance(exc, UnsupportedResponseType):
             return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
@@ -388,7 +401,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
@@ -406,11 +419,12 @@ class IntegrationInstallation:
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        raise NotImplementedError
+
     @property
     def metadata(self) -> IntegrationMetadata:
-        # Explicitly typing to satisfy mypy.
-        _metadata: IntegrationMetadata = self.model.metadata
-        return _metadata
+        return self.model.metadata
 
     def uninstall(self) -> None:
         """

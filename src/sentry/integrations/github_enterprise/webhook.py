@@ -4,17 +4,17 @@ import hashlib
 import hmac
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
+    get_github_external_id,
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import json
@@ -28,12 +28,18 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
+def get_host(request: HttpRequest) -> str | None:
+    # XXX: There's lots of customers that are giving us an IP rather than a host name
+    # Use HTTP_X_REAL_IP in a follow up PR (#42405)
+    return request.META.get("HTTP_X_GITHUB_ENTERPRISE_HOST")
+
+
 def get_installation_metadata(event, host):
     if not host:
         return
-
+    external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
-        external_id="{}:{}".format(host, event["installation"]["id"]),
+        external_id=external_id,
         provider="github_enterprise",
     )
     if integration is None:
@@ -94,7 +100,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -107,15 +113,12 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         else:
             return None
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
         with configure_scope() as scope:
             meta = request.META
-            try:
-                # XXX: There's lost of customers that are giving us an IP rather than a host name
-                # Use HTTP_X_REAL_IP in a follow up PR
-                host = meta["HTTP_X_GITHUB_ENTERPRISE_HOST"]
-            except KeyError:
+            host = get_host(request=request)
+            if not host:
                 logger.warning("github_enterprise.webhook.missing-enterprise-host")
                 logger.exception("Missing enterprise host.")
                 return HttpResponse(status=400)
@@ -181,12 +184,12 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         return self.handle(request)

@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from base64 import b64encode
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
+import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
-from django.db import IntegrityError
+from django.db import router
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -13,9 +17,9 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -25,13 +29,16 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
+    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
-from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.silo import SiloMode, unguarded_write
+from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -135,7 +142,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # make sure options are not cached the first time to get predictable number of database queries
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             sentry_options.delete("system.rate-limit")
             sentry_options.delete("store.symbolicate-event-lpq-always")
             sentry_options.delete("store.symbolicate-event-lpq-never")
@@ -195,7 +202,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -239,7 +246,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
@@ -250,23 +257,37 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=0.5
-        ):
-            response = self.get_success_response(org.slug)
-            assert response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(org.slug)
+                assert response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=1.0
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=None
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
+
+        with self.feature({"organizations:dynamic-sampling": False}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
@@ -345,6 +366,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "aiSuggestedSolution": False,
+            "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -414,6 +436,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
 
     @responses.activate
     @patch(
@@ -641,7 +664,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ]
 
         initial_settings = {"trustedRelays": initial_trusted_relays}
-        changed_settings = {"trustedRelays": []}
+        changed_settings: dict[str, Any] = {"trustedRelays": []}
 
         with self.feature("organizations:relay"):
             self.get_success_response(self.organization.slug, **initial_settings)
@@ -770,10 +793,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with outbox_runner():
-            pass
-
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
@@ -787,10 +807,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
-        # Ensure that the organization update has been flushed
-        with outbox_runner():
-            pass
-
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 
@@ -801,8 +817,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             slug=desired_slug, name="collision-imminent"
         )
 
-        # Drain the initial slug creation to ensure a mapping exists for the new org
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
         colliding_org_mapping = OrganizationMapping.objects.get(
             organization_id=org_with_colliding_slug.id
         )
@@ -810,14 +824,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
         org_with_colliding_slug.slug = "unique-slug"
-        org_with_colliding_slug.save()
+        with outbox_context(flush=False):
+            org_with_colliding_slug.save()
 
         self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        with pytest.raises(IntegrityError):
+        with pytest.raises(OutboxFlushError):
             Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
 
         organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
@@ -880,7 +895,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
@@ -889,7 +904,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -897,9 +912,43 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with unguarded_write(using=router.db_for_write(Organization)):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
+
+    def test_published_sentry_app(self):
+        """Test that we do not allow an organization who has a published sentry app to be deleted"""
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_sentry_app(
+            organization=org,
+            scopes=["project:write"],
+            published=True,
+        )
+        self.login_as(self.user)
+        self.get_error_response(org.slug, status_code=400)
 
 
 @region_silo_test
@@ -936,22 +985,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
-        self.auth_provider = AuthProvider.objects.create(
+        auth_provider = AuthProvider.objects.create(
             provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
-        self.auth_provider.flags.allow_unlinked = True
-        self.auth_provider.save()
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
@@ -1023,9 +1072,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
         self.get_success_response(self.org_2fa.slug)
-
-
-from sentry.api.endpoints.organization_details import TrustedRelaySerializer
 
 
 def test_trusted_relays_option_serialization():

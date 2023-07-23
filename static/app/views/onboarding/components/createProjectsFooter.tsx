@@ -64,14 +64,12 @@ export function CreateProjectsFooter({
       let createProjectForPlatform: OnboardingSelectedSDK | undefined = undefined;
 
       if (selectedFramework) {
-        createProjectForPlatform = projects.find(
-          p => p.platform === selectedFramework.key
-        )
+        createProjectForPlatform = projects.find(p => p.slug === selectedFramework.key)
           ? undefined
           : selectedFramework;
       } else {
         createProjectForPlatform = projects.find(
-          p => p.platform === onboardingContext.data.selectedSDK?.key
+          p => p.slug === onboardingContext.data.selectedSDK?.key
         )
           ? undefined
           : onboardingContext.data.selectedSDK;

@@ -1,94 +1,90 @@
 import {Location} from 'history';
-import moment, {Moment} from 'moment';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
-  'p50(span.duration)': number;
-  'p95(span.duration)': number;
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
+  'p50(span.self_time)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'sps()': number;
+  'sps_percent_change()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
+  'transaction.method': string;
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  transactions?: string[],
-  _referrer = 'span-transaction-metrics'
+  span: Pick<IndexedSpan, 'group'>,
+  options: {sorts?: Sort[]; transactions?: string[]},
+  _referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const query = span
-    ? getQuery(span, startTime, endTime, dateFilters, transactions ?? [])
-    : '';
-  const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
+  const {transactions, sorts} = options;
 
-  const {isLoading, data} = useSpansQuery<SpanTransactionMetrics[]>({
+  const eventView = getEventView(span, location, transactions ?? [], sorts);
+
+  return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
+    enabled: Boolean(span),
+    limit: 25,
+    referrer: _referrer,
   });
-
-  return {isLoading, data};
 };
 
-function getQuery(
+function getEventView(
   span: {group: string},
-  startTime: Moment,
-  endTime: Moment,
-  dateFilters: string,
-  transactions: string[]
+  location: Location,
+  transactions: string[],
+  sorts?: Sort[]
 ) {
-  return `
-    SELECT
-      transaction,
-      quantile(0.5)(exclusive_time) as "p50(span.duration)",
-      quantile(0.95)(exclusive_time) as "p95(span.duration)",
-      sum(exclusive_time) as "sum(span.self_time)",
-      divide(count(), ${
-        moment(endTime ?? undefined).unix() - moment(startTime).unix()
-      }) as "spm()"
-    FROM spans_experimental_starfish
-    WHERE group_id = '${span.group}'
-    ${dateFilters}
-    AND transaction IN ('${transactions.join("','")}')
-    GROUP BY transaction
-  `;
-}
-
-function getEventView(span: {group: string}, location: Location, transactions: string[]) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
-  return EventView.fromNewQueryWithLocation(
+  const search = new MutableSearch('');
+  search.addFilterValues(SPAN_GROUP, [cleanGroupId]);
+  search.addFilterValues('transaction.op', ['http.server']);
+
+  if (transactions.length > 0) {
+    search.addFilterValues('transaction', transactions);
+  }
+
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
-        transactions.length > 0 ? ` transaction:[${transactions.join(',')}]` : ''
-      }`,
+      query: search.formatString(),
       fields: [
         'transaction',
+        'transaction.method',
         'sps()',
-        'sum(span.duration)',
-        'p95(span.duration)',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage(local)',
+        'transaction.op',
+        'http_error_count()',
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }

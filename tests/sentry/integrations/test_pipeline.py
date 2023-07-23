@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.db import router
+
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -13,9 +15,11 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.silo.base import SiloMode
+from sentry.signals import receivers_raise_on_send
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -55,10 +59,13 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = Integration.objects.create(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        for org in na_orgs:
-            integration.add_organization(org)
-            mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            mapping.update(region_name="na")
+        with receivers_raise_on_send(), outbox_runner(), unguarded_write(
+            using=router.db_for_write(OrganizationMapping)
+        ):
+            for org in na_orgs:
+                integration.add_organization(org)
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name="na")
 
     def test_with_data(self, *args):
         data = {
@@ -134,7 +141,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # Installing organization is from the same region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.update(region_name="na")
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(region_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
@@ -149,7 +158,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # Installing organization is from a different region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.update(region_name="eu")
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
@@ -405,7 +416,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",

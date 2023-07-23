@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
@@ -10,9 +11,10 @@ from sentry import nodestore
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
-from sentry.eventstream.kafka import KafkaEventStream
+from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -23,12 +25,13 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 @region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
-        super().setUp()
-
+    @pytest.fixture(autouse=True)
+    def patch_get_producer(self):
         self.kafka_eventstream = KafkaEventStream()
         self.producer_mock = Mock()
-        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
+
+        with patch.object(KafkaEventStream, "get_producer", return_value=self.producer_mock):
+            yield
 
     def __build_event(self, timestamp):
         raw_event = {
@@ -98,7 +101,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
@@ -135,7 +138,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             == 1
         )
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
@@ -153,7 +156,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             selected_columns=["event_id"],
@@ -163,7 +166,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         assert len(result["data"]) == 1
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
@@ -186,7 +189,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.__produce_event(*insert_args, **insert_kwargs)
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             start=now - timedelta(days=1),
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_ids"],
@@ -220,7 +223,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             exc_info=True,
         )
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
 
         now = datetime.utcnow()
@@ -238,6 +241,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
+            "group_states": [],
         }
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
@@ -248,10 +252,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert version == 2
         assert type_ == "insert"
         occurrence_data = group_event.occurrence.to_dict()
-        del occurrence_data["evidence_data"]
-        del occurrence_data["evidence_display"]
-        assert payload1["occurrence_id"] == occurrence_data.get("id")
-        assert payload1["occurrence_data"] == occurrence_data
+        occurrence_data_no_evidence = {
+            k: v
+            for k, v in occurrence_data.items()
+            if k not in {"evidence_data", "evidence_display"}
+        }
+        assert payload1["occurrence_id"] == occurrence_data["id"]
+        assert payload1["occurrence_data"] == occurrence_data_no_evidence
         assert payload1["group_id"] == self.group.id
 
         query = Query(
@@ -279,7 +286,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["group_id"] == self.group.id
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
@@ -310,7 +317,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_errors"
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_transaction_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
@@ -336,7 +343,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
 
-    @patch("sentry.eventstream.insert", autospec=True)
+    @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issue_platform_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
@@ -366,6 +373,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert body["queue"] == "post_process_issue_platform"
 
     def test_insert_generic_event_contexts(self):
+        create_default_projects()
         es = SnubaProtocolEventStream()
 
         profile_message = load_data("generic-event-profiling")
@@ -380,11 +388,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
             event_data,
         )
+        assert group_info is not None
 
         event = Event(
             event_id=occurrence.event_id,
             project_id=project_id,
-            data=nodestore.get(Event.generate_node_id(project_id, occurrence.event_id)),
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
         )
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence

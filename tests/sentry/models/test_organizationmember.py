@@ -3,11 +3,12 @@ from unittest.mock import patch
 
 import pytest
 from django.core import mail
+from django.db import router
 from django.utils import timezone
+from rest_framework.serializers import ValidationError
 
 from sentry import roles
 from sentry.auth import manager
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import (
     INVITE_DAYS_VALID,
@@ -19,11 +20,12 @@ from sentry.models import (
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -83,7 +85,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     @patch("sentry.utils.email.MessageBuilder")
     def test_send_sso_unlink_email(self, builder):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user = self.create_user(email="foo@example.com")
             user.password = ""
             user.save()
@@ -177,7 +179,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         member = self.create_member(user_id=user.id, organization_id=org.id)
         self.assert_org_member_mapping(org_member=member)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             ap = AuthProvider.objects.create(
                 organization_id=org.id, provider="sentry_auth_provider", config={}
             )
@@ -190,29 +192,29 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         # ensure that even if the outbox sends a general, non delete update, it doesn't cascade
         # the delete to auth identity objects.
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert qs.exists()
 
         with outbox_runner():
             member.delete()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert not qs.exists()
             self.assert_org_member_mapping_not_exists(org_member=member)
 
     def test_delete_expired_SCIM_enabled(self):
         organization = self.create_organization()
         org3 = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(
@@ -287,7 +289,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         member.approve_invite()
         member.save()
-        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         member = OrganizationMember.objects.get(id=member.id)
         assert member.invite_approved
@@ -489,7 +490,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),
@@ -512,3 +513,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert roles[0][1].id == "owner"
         assert roles[-1][0] == manager_team.slug
         assert roles[-1][1].id == "manager"
+
+    def test_cannot_demote_last_owner(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            member = self.create_member(organization=org, role="owner", user=self.create_user())
+
+            member.role = "manager"
+            member.save()

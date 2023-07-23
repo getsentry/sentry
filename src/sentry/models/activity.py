@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 from django.conf import settings
 from django.db import models
 from django.db.models import F
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -90,12 +91,12 @@ class Activity(Model):
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
     # index on (type, ident)
-    type = BoundedPositiveIntegerField(choices=CHOICES)
+    type: models.Field[int | ActivityType, int] = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
     objects = ActivityManager()
 
@@ -132,14 +133,24 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models import Group
+
             self.group.update(num_comments=F("num_comments") + 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models import Group
+
             self.group.update(num_comments=F("num_comments") - 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)

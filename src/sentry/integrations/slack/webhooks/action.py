@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List, Mapping, MutableMapping, Sequence
 
 import requests as requests_
+import sentry_sdk
 from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,11 +22,11 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -80,7 +81,7 @@ def update_group(
     request: Request,
 ) -> Response:
     if not group.organization.has_access(user):
-        raise ApiClient.ApiError(
+        raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
 
@@ -124,9 +125,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     XXX(epurkhiser): Used in coordination with construct_reply.
      Bot posted messages will not have the type at all.
     """
-    # Explicitly typing to satisfy mypy.
-    is_message: bool = data.get("original_message", {}).get("type") == "message"
-    return is_message
+    return data.get("original_message", {}).get("type") == "message"
 
 
 @region_silo_endpoint
@@ -431,6 +430,11 @@ class SlackActionEndpoint(Endpoint):
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
+        # Set organization scope
+
+        bind_org_context_from_integration(slack_request.integration.id)
+        sentry_sdk.set_tag("integration_id", slack_request.integration.id)
+
         # Actions list may be empty when receiving a dialog response.
 
         action_option = self.get_action_option(slack_request=slack_request)
@@ -459,7 +463,7 @@ class SlackActionEndpoint(Endpoint):
 
         notifications_service.bulk_update_settings(
             external_provider=ExternalProviders.SLACK,
-            actor=RpcActor.from_object(identity_user),
+            user_id=identity_user.id,
             notification_type_to_value_map=NOTIFICATION_SETTINGS_ALL_SOMETIMES,
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)

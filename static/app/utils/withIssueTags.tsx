@@ -1,9 +1,14 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
+import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
+import {IconStar, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, TagCollection, Team, User} from 'sentry/types';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {Organization, TagCollection, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {
@@ -25,11 +30,15 @@ const getUsername = ({isManaged, username, email}: User) => {
   return !isManaged && username ? username : email;
 };
 
-type WrappedComponentState = {
-  tags: TagCollection;
-  teams: Team[];
-  users: User[];
-};
+function convertToSearchItem(value: string) {
+  const escapedValue = escapeTagValue(value);
+  return {
+    value: escapedValue,
+    desc: value,
+    type: ItemType.TAG_VALUE,
+  };
+}
+
 /**
  * HOC for getting tags and many useful issue attributes as 'tags' for use
  * in autocomplete selectors or condition builders.
@@ -38,82 +47,69 @@ function withIssueTags<Props extends WithIssueTagsProps>(
   WrappedComponent: React.ComponentType<Props>
 ) {
   function ComponentWithTags(props: Omit<Props, keyof WithIssueTagsProps> & HocProps) {
-    const [state, setState] = useState<WrappedComponentState>({
-      tags: TagStore.getIssueTags(props.organization),
-      users: MemberListStore.getAll(),
-      teams: TeamStore.getAll(),
-    });
+    const {teams} = useLegacyStore(TeamStore);
+    const {members} = useLegacyStore(MemberListStore);
+    const [tags, setTags] = useState<TagCollection>(
+      TagStore.getIssueTags(props.organization)
+    );
 
-    const setAssigned = useCallback((newState: Partial<WrappedComponentState>) => {
-      setState(oldState => {
-        const usernames: string[] = newState.users
-          ? newState.users.map(getUsername)
-          : oldState.users.map(getUsername);
+    const issueTags = useMemo((): TagCollection => {
+      const usernames: string[] = members.map(getUsername);
+      const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
+      const nonMemberTeams = teams
+        .filter(team => !team.isMember)
+        .map(team => `#${team.slug}`);
 
-        const teamnames: string[] = (newState.teams ? newState.teams : oldState.teams)
-          .filter(team => team.isMember)
-          .map(team => `#${team.slug}`);
+      const meAndMyTeams = ['my_teams', '[me, my_teams, none]'];
+      const suggestedAssignees: string[] = ['me', ...meAndMyTeams, ...userTeams];
+      const assigndValues: SearchGroup[] | string[] =
+        props.organization.features.includes('issue-search-shortcuts')
+          ? [
+              {
+                title: t('Suggested Values'),
+                type: 'header',
+                icon: <IconStar size="xs" />,
+                children: suggestedAssignees.map(convertToSearchItem),
+              },
+              {
+                title: t('All Values'),
+                type: 'header',
+                icon: <IconUser size="xs" />,
+                children: [
+                  ...usernames.map(convertToSearchItem),
+                  ...nonMemberTeams.map(convertToSearchItem),
+                ],
+              },
+            ]
+          : [...suggestedAssignees, ...usernames, ...nonMemberTeams];
 
-        const allAssigned = ['[me, none]', ...usernames, ...teamnames];
-        allAssigned.unshift('me');
-        usernames.unshift('me');
-
-        return {
-          ...oldState,
-          ...newState,
-          tags: {
-            ...oldState.tags,
-            ...newState.tags,
-            assigned: {
-              ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
-              values: allAssigned,
-            },
-            bookmarks: {
-              ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
-              values: usernames,
-            },
-            assigned_or_suggested: {
-              ...(newState.tags?.assigned_or_suggested ??
-                oldState.tags.assigned_or_suggested ??
-                {}),
-              values: allAssigned,
-            },
-          },
-        };
-      });
-    }, []);
-
-    // Listen to team store updates and cleanup listener on unmount
-    useEffect(() => {
-      const unsubscribeTeam = TeamStore.listen(() => {
-        setAssigned({teams: TeamStore.getAll()});
-      }, undefined);
-
-      return () => unsubscribeTeam();
-    }, [setAssigned]);
+      return {
+        ...tags,
+        assigned: {
+          ...tags.assigned,
+          values: assigndValues,
+        },
+        bookmarks: {
+          ...tags.bookmarks,
+          values: ['me', ...usernames],
+        },
+        assigned_or_suggested: {
+          ...tags.assigned_or_suggested,
+          values: assigndValues,
+        },
+      };
+    }, [props.organization, teams, members, tags]);
 
     // Listen to tag store updates and cleanup listener on unmount
     useEffect(() => {
       const unsubscribeTags = TagStore.listen(() => {
-        setAssigned({tags: TagStore.getIssueTags(props.organization)});
+        setTags(TagStore.getIssueTags(props.organization));
       }, undefined);
 
       return () => unsubscribeTags();
-    }, [props.organization, setAssigned]);
+    }, [props.organization, setTags]);
 
-    // Listen to member store updates and cleanup listener on unmount
-    useEffect(() => {
-      const unsubscribeMembers = MemberListStore.listen(
-        ({members}: typeof MemberListStore.state) => {
-          setAssigned({users: members});
-        },
-        undefined
-      );
-
-      return () => unsubscribeMembers();
-    }, [setAssigned]);
-
-    return <WrappedComponent {...(props as Props)} tags={state.tags} />;
+    return <WrappedComponent {...(props as Props)} tags={issueTags} />;
   }
   ComponentWithTags.displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
   return ComponentWithTags;

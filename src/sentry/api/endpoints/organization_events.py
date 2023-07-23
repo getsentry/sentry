@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.parameters import GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -57,6 +57,19 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
     Referrer.API_TRACE_VIEW_HOVER_CARD.value,
     Referrer.API_ISSUES_ISSUE_EVENTS.value,
+    Referrer.API_STARFISH_ENDPOINT_LIST.value,
+    Referrer.API_STARFISH_GET_SPAN_ACTIONS.value,
+    Referrer.API_STARFISH_GET_SPAN_DOMAINS.value,
+    Referrer.API_STARFISH_GET_SPAN_OPERATIONS.value,
+    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS.value,
+    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN.value,
+    Referrer.API_STARFISH_SPAN_LIST.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_P95.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PANEL.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_TRANSACTIONS.value,
+    Referrer.API_STARFISH_SPAN_TRANSACTION_METRICS.value,
+    Referrer.API_STARFISH_TOTAL_TIME.value,
 }
 
 ALLOWED_EVENTS_GEO_REFERRERS = {
@@ -155,23 +168,23 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
-            GLOBAL_PARAMS.END,
-            GLOBAL_PARAMS.ENVIRONMENT,
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT,
-            GLOBAL_PARAMS.START,
-            GLOBAL_PARAMS.STATS_PERIOD,
-            VISIBILITY_PARAMS.FIELD,
-            VISIBILITY_PARAMS.PER_PAGE,
-            VISIBILITY_PARAMS.QUERY,
-            VISIBILITY_PARAMS.SORT,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.FIELD,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsResponseDict", discover.EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOTFOUND,
+            404: api_constants.RESPONSE_NOT_FOUND,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )

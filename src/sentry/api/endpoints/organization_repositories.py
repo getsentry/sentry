@@ -81,6 +81,8 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         elif status:
             queryset = queryset.none()
+        elif status is None:
+            queryset = queryset.exclude(status=ObjectStatus.HIDDEN)
 
         return self.paginate(
             request=request,

@@ -8,12 +8,13 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -83,9 +84,9 @@ type State = {
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
-export class IntegrationListDirectory extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+export class IntegrationListDirectory extends DeprecatedAsyncComponent<
+  Props & DeprecatedAsyncComponent['props'],
+  State & DeprecatedAsyncComponent['state']
 > {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
@@ -170,7 +171,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${organization.slug}/config/integrations/`],
@@ -372,6 +373,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     });
   };
 
+  getCategoryLabel = (value: string) => {
+    if (value === 'api') {
+      return 'API';
+    }
+    return startCase(value);
+  };
+
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -503,7 +511,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                     {value: '', label: t('All Categories')},
                     ...categoryList.map(category => ({
                       value: category,
-                      label: startCase(category),
+                      label: this.getCategoryLabel(category),
                     })),
                   ]}
                 />

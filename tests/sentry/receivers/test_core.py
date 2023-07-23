@@ -1,10 +1,10 @@
-from django.apps import apps
 from django.conf import settings
+from django.db import router
 from django.test.utils import override_settings
 
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import Organization, Project, ProjectKey, Team, User
+from sentry.models import Organization, OrganizationMapping, Project, ProjectKey, Team, User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
+from sentry.silo import unguarded_write
 from sentry.testutils import TestCase
 
 
@@ -12,13 +12,14 @@ class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
-        with in_test_psql_role_override("postgres"):
-            Organization.objects.all().delete()
+        Organization.objects.all().delete()
+
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            OrganizationMapping.objects.all().delete()
         Team.objects.filter(slug="sentry").delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
-        config = apps.get_app_config("sentry")
 
-        create_default_projects(config)
+        create_default_projects()
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
         assert project.public is False
         assert project.name == "Internal"
@@ -36,17 +37,16 @@ class CreateDefaultProjectsTest(TestCase):
         }
 
         # ensure that we don't hit an error here
-        create_default_projects(config)
+        create_default_projects()
 
     @override_settings(SENTRY_PROJECT=1)
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(slug="sentry").delete()
             Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
-        config = apps.get_app_config("sentry")
 
-        create_default_projects(config)
+        create_default_projects()
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
         assert project.public is False
@@ -65,17 +65,16 @@ class CreateDefaultProjectsTest(TestCase):
         }
 
         # ensure that we don't hit an error here
-        create_default_projects(config)
+        create_default_projects()
 
     def test_no_sentry_project(self):
         with self.settings(SENTRY_PROJECT=None):
             User.objects.filter(is_superuser=True).delete()
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write(using=router.db_for_write(Team)):
                 Team.objects.filter(slug="sentry").delete()
                 Project.objects.filter(id=DEFAULT_SENTRY_PROJECT_ID).delete()
-            config = apps.get_app_config("sentry")
 
-            create_default_projects(config)
+            create_default_projects()
 
             project = Project.objects.get(id=DEFAULT_SENTRY_PROJECT_ID)
             assert project.public is False
@@ -94,4 +93,4 @@ class CreateDefaultProjectsTest(TestCase):
             }
 
             # ensure that we don't hit an error here
-            create_default_projects(config)
+            create_default_projects()

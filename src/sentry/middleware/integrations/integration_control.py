@@ -6,12 +6,34 @@ from typing import Mapping, Type
 
 from sentry.silo import SiloMode
 
-from .parsers import GithubRequestParser, JiraRequestParser, SlackRequestParser
+from .parsers import (
+    BitbucketRequestParser,
+    BitbucketServerRequestParser,
+    GithubEnterpriseRequestParser,
+    GithubRequestParser,
+    GitlabRequestParser,
+    JiraRequestParser,
+    JiraServerRequestParser,
+    MsTeamsRequestParser,
+    SlackRequestParser,
+    VstsRequestParser,
+)
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_PARSERS = [GithubRequestParser, JiraRequestParser, SlackRequestParser]
+ACTIVE_PARSERS = [
+    BitbucketRequestParser,
+    BitbucketServerRequestParser,
+    GithubEnterpriseRequestParser,
+    GithubRequestParser,
+    GitlabRequestParser,
+    JiraRequestParser,
+    JiraServerRequestParser,
+    MsTeamsRequestParser,
+    SlackRequestParser,
+    VstsRequestParser,
+]
 
 
 class IntegrationControlMiddleware:

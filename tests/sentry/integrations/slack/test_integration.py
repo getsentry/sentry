@@ -18,7 +18,7 @@ from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
@@ -353,7 +353,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user3_identity.user.email == "ialreadyexist@example.com"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SlackIntegrationConfigTest(TestCase):
     def setUp(self):
         self.integration = Integration.objects.create(provider="slack", name="Slack", metadata={})

@@ -2,7 +2,7 @@ from hashlib import sha1
 from unittest.mock import patch
 from uuid import uuid4
 
-from sentry.buffer import Buffer
+from sentry.buffer.base import Buffer
 from sentry.models import (
     Activity,
     Commit,
@@ -25,8 +25,9 @@ from sentry.models import (
     add_group_to_inbox,
 )
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -165,24 +166,27 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
         OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
+
+        author = CommitAuthor.objects.create(
+            organization_id=group.organization.id, name=user.name, email=user.email
+        )
+        author.preload_users()
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
-            author=CommitAuthor.objects.create(
-                organization_id=group.organization.id, name=user.name, email=user.email
-            ),
+            author=author,
         )
 
         self.assertResolvedFromCommit(group, commit)
@@ -204,17 +208,14 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             email = UserEmail.objects.get_primary_email(user=user)
             email.is_verified = True
             email.save()
-            repo = Repository.objects.create(
-                name="example", organization_id=self.group.organization.id
-            )
-            OrganizationMember.objects.create(
-                organization=group.project.organization, user_id=user.id
-            )
             UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
+
+        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
+        OrganizationMember.objects.create(organization=group.project.organization, user_id=user.id)
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),

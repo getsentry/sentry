@@ -8,8 +8,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, User
-from sentry.notifications.helpers import get_providers_for_recipient
-from sentry.services.hybrid_cloud.actor import RpcActor
 
 
 @control_silo_endpoint
@@ -33,7 +31,6 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         """
 
         type_option = validate_type_option(request.GET.get("type"))
-        v2_format = request.GET.get("v2") == "1"
 
         notification_preferences = serialize(
             user,
@@ -41,14 +38,6 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
             NotificationSettingsSerializer(),
             type=type_option,
         )
-
-        if v2_format:
-            return Response(
-                {
-                    "providers": list(map(lambda x: x.name, get_providers_for_recipient(user))),
-                    "preferences": notification_preferences,
-                }
-            )
 
         return Response(notification_preferences)
 
@@ -89,8 +78,6 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         """
 
         notification_settings = validate(request.data, user=user)
-        NotificationSetting.objects.update_settings_bulk(
-            notification_settings, actor=RpcActor.from_orm_user(user)
-        )
+        NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

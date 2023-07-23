@@ -5,7 +5,7 @@ from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -15,6 +15,7 @@ from sentry_sdk.api import push_scope
 from sentry import analytics, audit_log
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import (
     ApiApplication,
     ApiToken,
@@ -83,10 +84,9 @@ class SentryAppUpdater:
     allowed_origins: List[str] | None = None
     popularity: int | None = None
     features: List[str] | None = None
-    # user = Param("sentry.models.User")
 
     def run(self, user: User) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(User)):
             self._update_name()
             self._update_author()
             self._update_features(user=user)
@@ -100,9 +100,9 @@ class SentryAppUpdater:
             self._update_overview()
             self._update_allowed_origins()
             new_schema_elements = self._update_schema()
-            self._update_service_hooks()
             self._update_popularity(user=user)
             self.sentry_app.save()
+        self._update_service_hooks()
         self.record_analytics(user, new_schema_elements)
         return self.sentry_app
 
@@ -274,7 +274,7 @@ class SentryAppCreator:
             ), "Internal apps should not require installation verification"
 
     def run(self, *, user: User, request: Request | None = None) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
             api_app = self._create_api_application(proxy=proxy)
@@ -355,7 +355,7 @@ class SentryAppCreator:
         # sentry apps must have at least one feature
         # defaults to 'integrations-api'
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(IntegrationFeature)):
                 IntegrationFeature.objects.create(
                     target_id=sentry_app.id,
                     target_type=IntegrationTypes.SENTRY_APP.value,

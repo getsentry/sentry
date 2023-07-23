@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import List, Optional
+
+from django.db import router
 
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
@@ -7,6 +9,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -47,21 +50,34 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         # return serialize_organization_mapping(org_mapping)
         return None
 
+    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
+        try:
+            org_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        except OrganizationMapping.DoesNotExist:
+            return None
+        return serialize_organization_mapping(org_mapping)
+
+    def get_many(self, *, organization_ids: List[int]) -> List[RpcOrganizationMapping]:
+        org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+        return [serialize_organization_mapping(om) for om in org_mappings]
+
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!
-        try:
-            OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
-        except OrganizationMapping.DoesNotExist:
-            pass
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            try:
+                OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
+            except OrganizationMapping.DoesNotExist:
+                pass
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
     ) -> RpcOrganizationMapping:
-        org_mapping, _created = OrganizationMapping.objects.update_or_create(
-            organization_id=organization_id, defaults=update
-        )
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
+            org_mapping, _created = OrganizationMapping.objects.update_or_create(
+                organization_id=organization_id, defaults=update
+            )
 
-        return serialize_organization_mapping(org_mapping)
+            return serialize_organization_mapping(org_mapping)
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
         try:

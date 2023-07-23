@@ -18,8 +18,9 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -143,9 +144,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
-            public=True
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            enabled_dsn = ProjectKey.get_default(
+                project=Project.objects.get(id=project_id)
+            ).get_dsn(public=True)
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
@@ -253,9 +255,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
-            public=True
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            enabled_dsn = ProjectKey.get_default(
+                project=Project.objects.get(id=project_id)
+            ).get_dsn(public=True)
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
@@ -379,7 +382,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         org = self.organization
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(org.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            installation = integration.get_installation(org.id)
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)

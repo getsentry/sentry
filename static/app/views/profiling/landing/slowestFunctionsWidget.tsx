@@ -1,14 +1,14 @@
-import {CSSProperties, Fragment, useMemo, useState} from 'react';
+import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -17,23 +17,61 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const MAX_FUNCTIONS = 3;
+import {
+  Accordion,
+  AccordionItem,
+  ContentContainer,
+  HeaderContainer,
+  HeaderTitleLegend,
+  StatusContainer,
+  Subtitle,
+  WidgetContainer,
+} from './styles';
 
-export function SlowestFunctionsWidget() {
+const MAX_FUNCTIONS = 3;
+const DEFAULT_CURSOR_NAME = 'slowFnCursor';
+
+interface SlowestFunctionsWidgetProps {
+  cursorName?: string;
+  header?: ReactNode;
+  userQuery?: string;
+  widgetHeight?: string;
+}
+
+export function SlowestFunctionsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
+  header,
+  userQuery,
+  widgetHeight,
+}: SlowestFunctionsWidgetProps) {
+  const location = useLocation();
+
   const [expandedIndex, setExpandedIndex] = useState(0);
 
-  const query = useMemo(() => {
-    const conditions = new MutableSearch('');
-    conditions.setFilterValues('is_application', ['1']);
-    return conditions.formatString();
-  }, []);
+  const slowFnCursor = useMemo(
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
+  );
+
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
@@ -42,13 +80,12 @@ export function SlowestFunctionsWidget() {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
+    cursor: slowFnCursor,
   });
 
-  const hasFunctions = useMemo(() => {
-    return (functionsQuery.data?.data?.length || 0) > 0;
-  }, [functionsQuery.data]);
+  const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
@@ -57,7 +94,7 @@ export function SlowestFunctionsWidget() {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
     // make sure to query for the projects from the top functions
     projects: functionsQuery.isFetched
@@ -70,30 +107,38 @@ export function SlowestFunctionsWidget() {
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
+  const isLoading = functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading);
+  const isError = functionsQuery.isError || totalsQuery.isError;
+
   return (
-    <Container>
+    <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        <StyledHeaderTitleLegend>{t('Suspect Functions')}</StyledHeaderTitleLegend>
+        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        <StyledPagination
+          pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
+          size="xs"
+          onCursor={handleCursor}
+        />
       </HeaderContainer>
       <ContentContainer>
-        {(functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading)) && (
-          <StatusContainer height="100%">
+        {isLoading && (
+          <StatusContainer>
             <LoadingIndicator />
           </StatusContainer>
         )}
-        {(functionsQuery.isError || totalsQuery.isError) && (
-          <StatusContainer height="100%">
+        {isError && (
+          <StatusContainer>
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </StatusContainer>
         )}
-        {functionsQuery.isFetched && !hasFunctions && (
+        {!isError && !isLoading && !hasFunctions && (
           <EmptyStateWarning>
             <p>{t('No functions found')}</p>
           </EmptyStateWarning>
         )}
-        {functionsQuery.isFetched && totalsQuery.isFetched && (
-          <Accordion>
+        {hasFunctions && totalsQuery.isFetched && (
+          <StyledAccordion>
             {(functionsQuery.data?.data ?? []).map((f, i) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
@@ -101,24 +146,26 @@ export function SlowestFunctionsWidget() {
               const projectTotalDuration = projectEntry?.['sum()'] ?? f['sum()'];
               return (
                 <SlowestFunctionEntry
-                  key={`${f.package}-${f.function}`}
+                  key={`${f['project.id']}-${f.package}-${f.function}`}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => setExpandedIndex(i)}
                   func={f}
                   totalDuration={projectTotalDuration as number}
+                  query={userQuery ?? ''}
                 />
               );
             })}
-          </Accordion>
+          </StyledAccordion>
         )}
       </ContentContainer>
-    </Container>
+    </WidgetContainer>
   );
 }
 
 interface SlowestFunctionEntryProps {
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
+  query: string;
   setExpanded: () => void;
   totalDuration: number;
 }
@@ -128,6 +175,7 @@ const BARS = 10;
 function SlowestFunctionEntry({
   func,
   isExpanded,
+  query,
   setExpanded,
   totalDuration,
 }: SlowestFunctionEntryProps) {
@@ -139,17 +187,16 @@ function SlowestFunctionEntry({
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
-  const query = useMemo(() => {
-    const conditions = new MutableSearch('');
-
-    conditions.setFilterValues('is_application', ['1']);
+  const userQuery = useMemo(() => {
+    const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    conditions.setFilterValues('package', [String(func.package)]);
-    conditions.setFilterValues('function', [String(func.function)]);
+    // it is more efficient to filter on the fingerprint
+    // than it is to filter on the package + function
+    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
 
     return conditions.formatString();
-  }, [func]);
+  }, [func, query]);
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
     fields: functionTransactionsFields,
@@ -158,16 +205,22 @@ function SlowestFunctionEntry({
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: 5,
     enabled: isExpanded,
   });
 
   return (
-    <AccordionItemContainer>
-      <AccordionItem>
-        {project && <IdBadge project={project} avatarSize={16} hideName />}
-        <FunctionName>{func.function}</FunctionName>
+    <Fragment>
+      <StyledAccordionItem>
+        {project && (
+          <Tooltip title={project.name}>
+            <IdBadge project={project} avatarSize={16} hideName />
+          </Tooltip>
+        )}
+        <FunctionName>
+          <Tooltip title={func.package}>{func.function}</Tooltip>
+        </FunctionName>
         <Tooltip
           title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
             count: <Count value={func['count()'] as number} />,
@@ -186,16 +239,16 @@ function SlowestFunctionEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
-            <StatusContainer height="140px">
+            <StatusContainer>
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </StatusContainer>
           )}
           {functionTransactionsQuery.isLoading && (
-            <StatusContainer height="140px">
+            <StatusContainer>
               <LoadingIndicator />
             </StatusContainer>
           )}
@@ -224,7 +277,19 @@ function SlowestFunctionEntry({
                       framePackage: func.package as string,
                     },
                   });
-                  transactionCol = <Link to={target}>{transactionCol}</Link>;
+                  transactionCol = (
+                    <Link
+                      to={target}
+                      onClick={() => {
+                        trackAnalytics('profiling_views.go_to_flamegraph', {
+                          organization,
+                          source: 'profiling.global_suspect_functions',
+                        });
+                      }}
+                    >
+                      {transactionCol}
+                    </Link>
+                  );
                 }
 
                 return (
@@ -248,12 +313,13 @@ function SlowestFunctionEntry({
           )}
         </Fragment>
       )}
-    </AccordionItemContainer>
+    </Fragment>
   );
 }
 
 const functionsFields = [
   'project.id',
+  'fingerprint',
   'package',
   'function',
   'count()',
@@ -275,56 +341,18 @@ const functionTransactionsFields = [
 
 type FunctionTransactionField = (typeof functionTransactionsFields)[number];
 
-const Container = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  padding-top: ${space(2)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
-  position: relative;
-`;
-
-const Subtitle = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: inline-block;
-`;
-
-const ContentContainer = styled('div')`
-  flex: 1 1 auto;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const Accordion = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+const StyledPagination = styled(Pagination)`
   margin: 0;
-  list-style-type: none;
+`;
+
+const StyledAccordion = styled(Accordion)`
   display: flex;
   flex-direction: column;
 `;
 
-const AccordionItemContainer = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const AccordionItem = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`
@@ -332,8 +360,11 @@ const FunctionName = styled(TextOverflow)`
 `;
 
 const TransactionsList = styled('div')`
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 65% 10% 25%;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: 18px auto auto auto auto auto;
+  column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};
 `;
 
@@ -351,11 +382,4 @@ const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: ${p => p.align};
   padding: ${space(0.5)} 0px;
-`;
-
-const StatusContainer = styled('div')<{height: string}>`
-  height: ${p => p.height};
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;

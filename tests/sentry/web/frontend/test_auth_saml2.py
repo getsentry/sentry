@@ -3,7 +3,6 @@ from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
-import pytest
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -11,12 +10,13 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
-from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
+from sentry.silo import SiloMode
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 dummy_provider_config = {
     "idp": {
@@ -44,7 +44,6 @@ class DummySAML2Provider(SAML2Provider):
         return dummy_provider_config
 
 
-@pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
 @control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
@@ -52,9 +51,11 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     def setUp(self):
         self.user = self.create_user("rick@onehundredyears.com")
-        self.org = self.create_organization(owner=self.user, name="saml2-org")
-        self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, config=dummy_provider_config, organization_id=self.org.id
+        self.organization = self.create_organization(owner=self.user, name="saml2-org")
+        self.auth_provider_inst = AuthProvider.objects.create(
+            provider=self.provider_name,
+            config=dummy_provider_config,
+            organization_id=self.organization.id,
         )
 
         # The system.url-prefix, which is used to generate absolute URLs, must
@@ -115,7 +116,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_sp_initiated_login(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True})
 
@@ -130,7 +131,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_sp_initiated_customer_domain(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True}, HTTP_HOST="saml2-org.testserver")
 
@@ -146,7 +147,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_sp_initiated_login_customer_domain_feature(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
-            user_id=self.user.id, auth_provider=self.auth_provider, ident="1234"
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
         self.client.post(self.login_path, {"init": True})
 
@@ -209,10 +210,11 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_setup(self, auth_log):
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        assert self.organization.flags.require_2fa.is_set
 
-        self.auth_provider.delete()
+        self.auth_provider_inst.delete()
         self.login_as(self.user)
 
         data = {"init": True, "provider": self.provider_name}
@@ -233,7 +235,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert messages[1].startswith("SSO has been configured for your organization")
 
         # require 2FA disabled when saml is enabled
-        org = Organization.objects.get(id=self.org.id)
+        org = Organization.objects.get(id=self.organization.id)
         assert not org.flags.require_2fa.is_set
 
         event = AuditLogEntry.objects.get(
@@ -242,11 +244,11 @@ class AuthSAML2Test(AuthProviderTestCase):
         audit_log_event = audit_log.get(event.event)
         assert "require_2fa to False when enabling SSO" in audit_log_event.render(event)
         auth_log.info.assert_called_once_with(
-            "Require 2fa disabled during sso setup", extra={"organization_id": self.org.id}
+            "Require 2fa disabled during sso setup", extra={"organization_id": self.organization.id}
         )
 
     def test_auth_idp_initiated_no_provider(self):
-        self.auth_provider.delete()
+        self.auth_provider_inst.delete()
         auth = self.accept_auth(follow=True)
 
         assert auth.status_code == 200

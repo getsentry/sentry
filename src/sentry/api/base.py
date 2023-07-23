@@ -5,36 +5,43 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
-from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
-from sentry.api import permissions
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import (
+    absolute_uri,
+    is_using_customer_domain,
+    is_valid_origin,
+    origin_from_request,
+)
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -54,6 +61,7 @@ from ..utils.pagination_factory import (
     get_cursor,
     get_paginator,
 )
+from .utils import generate_organization_url
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -63,7 +71,12 @@ CURSOR_LINK_HEADER = (
     '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 )
 
-DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
+DEFAULT_AUTHENTICATION = (
+    TokenAuthentication,
+    OrgAuthTokenAuthentication,
+    ApiKeyAuthentication,
+    SessionAuthentication,
+)
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
@@ -115,7 +128,7 @@ def allow_cors_options(func):
         # to be sent.
         basehost = options.get("system.base-hostname")
         if basehost and origin:
-            if origin.endswith(basehost):
+            if origin.endswith(("://" + basehost, "." + basehost)):
                 response["Access-Control-Allow-Credentials"] = "true"
 
         return response
@@ -125,14 +138,16 @@ def allow_cors_options(func):
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[permissions.BasePermission]] = (NoPermission,)
+    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
     public: Optional[HTTP_METHODS_SET] = None
 
-    rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: RateLimitConfig | dict[
+        str, dict[RateLimitCategory, RateLimit]
+    ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
 
     def get_authenticators(self) -> List[BaseAuthentication]:
@@ -150,7 +165,7 @@ class Endpoint(APIView):
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
             auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type:
+            if auth_type is not None:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:
@@ -176,7 +191,12 @@ class Endpoint(APIView):
             mutable_query_dict.pop("cursor")
             querystring = mutable_query_dict.urlencode()
 
-        base_url = request.build_absolute_uri(urlquote(request.path))
+        url_prefix = (
+            generate_organization_url(request.subdomain)
+            if is_using_customer_domain(request)
+            else None
+        )
+        base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
         if querystring is not None:
             base_url = f"{base_url}?{querystring}"
@@ -567,11 +587,11 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request):
+def resolve_region(request: Request) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
-    if subdomain in {"us", "eu"}:
+    if is_region_name(subdomain):
         return subdomain
     return None
 
@@ -593,9 +613,8 @@ class EndpointSiloLimit(SiloLimit):
     def create_override(
         self,
         original_method: Callable[..., Any],
-        extra_modes: Iterable[SiloMode] = (),
     ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method, extra_modes)
+        limiting_override = super().create_override(original_method)
 
         def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
             if SiloMode.single_process_silo_mode():
