@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime
+
 from django.db import IntegrityError, router
 
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
@@ -36,9 +38,12 @@ class DatabaseBackedLogService(LogService):
                 ),
             )
             with unguarded_write(router.db_for_write(User)):
-                User.objects.filter(id=event.user_id, last_active__lt=event.last_seen).update(
-                    last_active=event.last_seen
-                )
+                # It greatly simplifies testing not to be too aggressive on updating the last_active due to many
+                # comparisons with serializers.
+                User.objects.filter(
+                    id=event.user_id,
+                    last_active__lt=(event.last_seen - datetime.timedelta(minutes=1)),
+                ).update(last_active=event.last_seen)
 
     def find_last_log(
         self, *, organization_id: int | None, target_object_id: int | None, event: int | None
