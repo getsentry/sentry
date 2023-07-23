@@ -51,6 +51,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
@@ -275,9 +276,7 @@ def has_alert_integration(project: Project) -> bool:
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
     provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(
-        organizationintegration__organization_id=org.id, provider__in=provider_keys
-    ).exists():
+    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
     # check plugins
