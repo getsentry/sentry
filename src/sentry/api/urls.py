@@ -107,6 +107,7 @@ from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
+from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
@@ -2597,7 +2598,7 @@ INTERNAL_URLS = [
     ),
     re_path(
         # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy/\S+$",
+        r"^integration-proxy/\S*$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
     ),
@@ -2686,6 +2687,11 @@ urlpatterns = [
         r"^api-applications/(?P<app_id>[^\/]+)/$",
         ApiApplicationDetailsEndpoint.as_view(),
         name="sentry-api-0-api-application-details",
+    ),
+    re_path(
+        r"^api-applications/(?P<app_id>[^\/]+)/rotate-secret/$",
+        ApiApplicationRotateSecretEndpoint.as_view(),
+        name="sentry-api-0-api-application-rotate-secret",
     ),
     re_path(
         r"^api-authorizations/$",

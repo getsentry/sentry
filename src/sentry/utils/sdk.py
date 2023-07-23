@@ -436,6 +436,13 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    # exclude monitors with sub-minute schedules from using crons
+    exclude_beat_tasks = [
+        "flush-buffers",
+        "sync-options",
+        "schedule-digests",
+    ]
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -444,7 +451,7 @@ def configure_sdk():
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(signals_spans=False),
-            CeleryIntegration(monitor_beat_tasks=True),
+            CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

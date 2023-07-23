@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Generator, Iterator, List, Mapping, Optional, Protocol, Tuple
+from typing import Any, Iterator, List, Mapping, Optional, Protocol, Tuple
 
 import sentry_sdk
 from snuba_sdk import (
@@ -24,7 +24,6 @@ from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     MAX_ORGS_PER_QUERY,
-    MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
     RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
@@ -325,83 +324,6 @@ class GetActiveOrgs:
         return ret_val
 
 
-# TODO this is obsolete replace it's usages with GetActiveOrgs
-def get_active_orgs_with_projects_counts(
-    max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
-) -> Generator[List[int], None, None]:
-    """
-    Fetch organisations in batches.
-    A batch will return at max max_orgs elements
-    It will accumulate org ids in the list until either it accumulates max_orgs or the
-    number of projects in the already accumulated orgs is more than max_projects or there
-    are no more orgs
-    """
-    start_time = time.time()
-    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
-    offset = 0
-    last_result: List[Tuple[int, int]] = []
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("uniq", [Column("project_id")], "num_projects"),
-                    Column("org_id"),
-                ],
-                groupby=[
-                    Column("org_id"),
-                ],
-                where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=1)),
-                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                    Condition(Column("metric_id"), Op.EQ, metric_id),
-                ],
-                granularity=Granularity(3600),
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                ],
-            )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
-        )["data"]
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
-        if more_results:
-            data = data[:-1]
-        for row in data:
-            last_result.append((row["org_id"], row["num_projects"]))
-
-        first_idx = 0
-        count_projects = 0
-        for idx, (org_id, num_projects) in enumerate(last_result):
-            count_projects += num_projects
-            if idx - first_idx >= max_orgs - 1 or count_projects >= max_projects:
-                # we got to the number of elements desired
-                yield [o for o, _ in last_result[first_idx : idx + 1]]
-                first_idx = idx + 1
-                count_projects = 0
-
-        # keep what is left unused from last_result for the next iteration or final result
-        last_result = last_result[first_idx:]
-        if not more_results:
-            break
-    else:
-        log_query_timeout(
-            query="get_active_orgs_with_projects_counts", offset=offset, timeout_seconds=MAX_SECONDS
-        )
-
-    if len(last_result) > 0:
-        yield [org_id for org_id, _ in last_result]
-
-
 @dataclass(frozen=True)
 class OrganizationDataVolume:
     """
@@ -414,10 +336,10 @@ class OrganizationDataVolume:
     # total number of transactions
     total: int
     # number of transactions indexed (i.e. stored)
-    indexed: int
+    indexed: Optional[int]
 
     def is_valid_for_recalibration(self):
-        return self.total > 0 and self.indexed > 0
+        return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 
 class GetActiveOrgsVolumes:
@@ -431,25 +353,30 @@ class GetActiveOrgsVolumes:
         max_orgs: int = MAX_ORGS_PER_QUERY,
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
+        include_keep=True,
     ):
-
+        self.include_keep = include_keep
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
-        decision_string_id = indexer.resolve_shared_org("decision")
-        decision_tag = f"tags_raw[{decision_string_id}]"
 
-        self.keep_count_column = Function(
-            "sumIf",
-            [
-                Column("value"),
-                Function(
-                    "equals",
-                    [Column(decision_tag), "keep"],
-                ),
-            ],
-            alias="keep_count",
-        )
+        if self.include_keep:
+            decision_string_id = indexer.resolve_shared_org("decision")
+            decision_tag = f"tags_raw[{decision_string_id}]"
+
+            self.keep_count_column = Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [Column(decision_tag), "keep"],
+                    ),
+                ],
+                alias="keep_count",
+            )
+        else:
+            self.keep_count_column = None
 
         self.offset = 0
         self.last_result: List[OrganizationDataVolume] = []
@@ -468,16 +395,20 @@ class GetActiveOrgsVolumes:
             # we have enough in the cache to satisfy the current iteration
             return self._get_from_cache()
 
+        select = [
+            Function("sum", [Column("value")], "total_count"),
+            Column("org_id"),
+        ]
+
+        if self.include_keep:
+            select.append(self.keep_count_column)
+
         if self.has_more_results:
             # not enough for the current iteration and data still in the db top it up from db
             query = (
                 Query(
                     match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("sum", [Column("value")], "total_count"),
-                        Column("org_id"),
-                        self.keep_count_column,
-                    ],
+                    select=select,
                     groupby=[
                         Column("org_id"),
                     ],
@@ -512,9 +443,10 @@ class GetActiveOrgsVolumes:
                 data = data[:-1]
             self.log_state.num_rows_total += len(data)
             for row in data:
+                keep_count = row["keep_count"] if self.include_keep else None
                 self.last_result.append(
                     OrganizationDataVolume(
-                        org_id=row["org_id"], total=row["total_count"], indexed=row["keep_count"]
+                        org_id=row["org_id"], total=row["total_count"], indexed=keep_count
                     )
                 )
 
@@ -553,6 +485,7 @@ class GetActiveOrgsVolumes:
         else:
             ret_val = self.last_result
             self.last_result = []
+        self.log_state.num_orgs += len(ret_val)
         return ret_val
 
 

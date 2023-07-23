@@ -67,6 +67,7 @@ class SentryAppsTest(APITestCase):
         has_features: bool = False,
         mask_secret: bool = False,
     ) -> None:
+        assert sentry_app.application is not None
         data = {
             "allowedOrigins": [],
             "author": sentry_app.author,

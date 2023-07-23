@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import pytest
 from rest_framework import status
 
@@ -74,7 +78,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 @control_silo_test(stable=True)
 class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "PUT"
-    payload = {
+    payload: dict[str, Any] = {
         "name": "Enemy",
         "author": "Imagine Dragons",
         "description": "An opening theme song 👀",

@@ -267,6 +267,25 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.HIDDEN
 
+    def test_put_hide_repo_with_commits(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example", organization_id=org.id, external_id="abc123"
+        )
+        Commit.objects.create(repository_id=repo.id, key="a" * 40, organization_id=org.id)
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+
+        with self.tasks():
+            response = self.client.put(url, data={"status": "hidden"})
+            assert response.status_code == 200
+
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.status == ObjectStatus.HIDDEN
+        assert len(Commit.objects.filter(repository_id=repo.id)) == 0
+
     def test_put_cancel_deletion_duplicate_exists(self):
         self.login_as(user=self.user)
 

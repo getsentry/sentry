@@ -156,6 +156,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 

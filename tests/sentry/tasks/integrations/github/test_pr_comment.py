@@ -630,8 +630,9 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.expired_pr.save()
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
-    def test_comment_reactions_task(self, get_jwt):
+    def test_comment_reactions_task(self, mock_metrics, get_jwt):
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
@@ -668,6 +669,8 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         stored_reactions = comment_reactions["reactions"]
         del stored_reactions["url"]
         assert self.comment.reactions == stored_reactions
+
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
@@ -769,3 +772,25 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.comment_reactions.rate_limited_error"
         )
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_task_api_error_404(self, mock_metrics, get_jwt):
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            status=404,
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions is None
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.not_found_error")
