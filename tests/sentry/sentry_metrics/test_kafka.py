@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 
 from arroyo.backends.kafka import KafkaPayload
@@ -18,8 +17,6 @@ project_id = 1
 metric_name = "my_metric"
 values = [2, 3]
 tags = {"a": "b"}
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sentry.conf.server")
 
 
 def test_produce_set() -> None:
