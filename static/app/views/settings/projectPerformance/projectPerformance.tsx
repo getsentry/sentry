@@ -40,8 +40,9 @@ export const retentionPrioritiesLabels = {
 };
 
 export const allowedDurationValues: number[] = [
-  50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000,
-  5000, 6000, 7000, 8000, 9000, 10000,
+  50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500,
+  3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500,
+  10000,
 ]; // In milliseconds
 
 export const allowedPercentageValues: number[] = [
@@ -611,9 +612,9 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             help: t(
               'Setting the value to 100ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
             ),
-            tickValues: [0, allowedDurationValues.slice(0, 19).length - 1],
+            tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
             showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(0, 19),
+            allowedValues: allowedDurationValues.slice(0, 23),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
             ),

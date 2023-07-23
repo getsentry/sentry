@@ -250,7 +250,7 @@ describe('projectPerformance', function () {
     {
       title: 'Consecutive DB Queries',
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-      allowedValues: allowedDurationValues.slice(0, 19),
+      allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
       newValue: 5000,
       sliderIndex: 8,
