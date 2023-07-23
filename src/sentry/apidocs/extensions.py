@@ -1,10 +1,11 @@
-from typing import Any, Dict, List, Optional, Union, get_type_hints
+from typing import Any, Dict, List, Optional, Type, Union, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint  # type: ignore
+from sentry.services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -30,6 +31,11 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
         self, auto_schema: AutoSchema
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         return {"type": "http", "scheme": "bearer"}
+
+    def _matches(cls, target: Type[Any]) -> bool:
+        if isinstance(target, RpcAuthentication):
+            return RpcAuthenticatorType.TOKEN_AUTHENTICATION in target.types
+        return super()._matches(target)
 
 
 class SentryResponseSerializerExtension(OpenApiSerializerExtension):
