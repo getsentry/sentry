@@ -1281,7 +1281,10 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DISABLE_ERRORS_AND_WARNINGS": False,
         "COMPONENT_SPLIT_REQUEST": False,
         "COMPONENT_SPLIT_PATCH": False,
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.TokenAuthentication"],
+        "AUTHENTICATION_WHITELIST": [
+            "sentry.api.authentication.TokenAuthentication",
+            "sentry.services.hybrid_cloud.auth.model.RpcAuthentication",
+        ],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
         "DESCRIPTION": "Sentry Public API",
