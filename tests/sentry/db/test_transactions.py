@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -174,6 +175,34 @@ class FakeRegionService:
 @no_silo_test(stable=True)
 class TestDelegatedByOpenTransaction(TestCase):
     def test_selects_mode_in_transaction_or_default(self):
+        service: Any = silo_mode_delegation(
+            {
+                SiloMode.CONTROL: lambda: FakeControlService(),
+                SiloMode.REGION: lambda: FakeRegionService(),
+                SiloMode.MONOLITH: lambda: FakeRegionService(),
+            }
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            assert service.a() == FakeControlService().a()
+            with transaction.atomic(router.db_for_write(User)):
+                assert service.a() == FakeControlService().a()
+
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            assert service.a() == FakeRegionService().a()
+            with transaction.atomic(router.db_for_write(Organization)):
+                assert service.a() == FakeRegionService().a()
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            assert service.a() == FakeRegionService().a()
+            with transaction.atomic(router.db_for_write(User)):
+                assert service.a() == FakeControlService().a()
+
+
+@no_silo_test(stable=True)
+class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
+    @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
+    def test_selects_mode_in_transaction_or_default(self, patch):
         service: Any = silo_mode_delegation(
             {
                 SiloMode.CONTROL: lambda: FakeControlService(),
