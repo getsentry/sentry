@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Type, Union, get_type_hints
+from typing import Any, Dict, List, Optional, Union, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -32,11 +32,29 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         return {"type": "http", "scheme": "bearer"}
 
-    @classmethod
-    def _matches(cls, target: Type[Any]) -> bool:
-        if isinstance(target, RpcAuthentication):
-            return RpcAuthenticatorType.TOKEN_AUTHENTICATION in target.types
-        return super()._matches(target)
+
+class RpcTokenAuthExtension(OpenApiAuthenticationExtension):
+    """
+    Extension that adds what scopes are needed to access an endpoint to the
+    OpenAPI Schema.
+    """
+
+    target_class = "sentry.services.hybrid_cloud.auth.model.RpcAuthentication"
+    name = "auth_token"
+
+    def matches(self, t: RpcAuthenticatorType) -> bool:
+        return isinstance(self.target, RpcAuthentication) and t in self.target.types
+
+    def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
+        if not self.matches(RpcAuthenticatorType.TOKEN_AUTHENTICATION):
+            return {}
+
+        return TokenAuthExtension(self.target).get_security_requirement(auto_schema)
+
+    def get_security_definition(
+        self, auto_schema: AutoSchema
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        return {"type": "http", "scheme": "bearer"}
 
 
 class SentryResponseSerializerExtension(OpenApiSerializerExtension):
