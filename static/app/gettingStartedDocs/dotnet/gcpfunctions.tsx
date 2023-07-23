@@ -135,7 +135,6 @@ public Task HandleAsync(HttpContext context)
               link: (
                 <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Google.Cloud.Functions" />
               ),
-              code: <code />,
             })}
           </ListItem>
           <ListItem>
