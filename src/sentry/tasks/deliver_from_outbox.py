@@ -18,7 +18,7 @@ def enqueue_outbox_jobs(**kwargs):
                     processed = True
                     drain_outbox_shard.delay(
                         outbox_name=outbox_name,
-                        **(next_outbox.key_from(outbox_name.sharding_columns)),
+                        **(next_outbox.key_from(outbox_model.sharding_columns)),
                     )
 
     return processed
