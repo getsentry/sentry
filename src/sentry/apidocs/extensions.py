@@ -32,6 +32,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         return {"type": "http", "scheme": "bearer"}
 
+    @classmethod
     def _matches(cls, target: Type[Any]) -> bool:
         if isinstance(target, RpcAuthentication):
             return RpcAuthenticatorType.TOKEN_AUTHENTICATION in target.types
