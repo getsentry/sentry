@@ -55,7 +55,7 @@ class InviteRequestBase(APITestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationInviteRequestGetTest(InviteRequestBase):
     def test_get_invalid(self):
         self.login_as(user=self.user)
@@ -107,7 +107,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
