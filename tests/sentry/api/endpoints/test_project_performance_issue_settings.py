@@ -14,7 +14,7 @@ PERFORMANCE_ISSUE_FEATURES = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectPerformanceIssueSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-issue-settings"
 

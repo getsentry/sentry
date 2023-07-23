@@ -333,7 +333,10 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     )
     def test_floating_repo(self, mock_build_repository_config):
         repo = Repository.objects.create(
-            organization_id=self.org.id, name="getsentry/sentry", status=2
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            status=2,
+            external_id="my_external_id",
         )
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data

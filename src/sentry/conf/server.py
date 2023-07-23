@@ -659,9 +659,6 @@ CELERY_ALWAYS_EAGER = False
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
 
-# Complain about bad use of pickle in PickledObjectField
-PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -3496,6 +3493,7 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     # RPC authentication and address information
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",

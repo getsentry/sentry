@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from difflib import unified_diff
 from io import StringIO
@@ -151,18 +152,21 @@ ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 DEFAULT_COMPARATORS: ComparatorMap = {
     "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
     "sentry.userrole": [DateUpdatedComparator("date_updated")],
     "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
-    "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
 }
 
 
 def validate(
-    expect: JSONData, actual: JSONData, comparators: ComparatorMap = DEFAULT_COMPARATORS
+    expect: JSONData,
+    actual: JSONData,
+    comparators: ComparatorMap = DEFAULT_COMPARATORS,
 ) -> ComparatorFindings:
     """Ensures that originally imported data correctly matches actual outputted data, and produces a
-    list of reasons why not when it doesn't"""
+    list of reasons why not when it doesn't.
+    """
 
     def json_lines(obj: JSONData) -> list[str]:
         """Take a JSONData object and pretty-print it as JSON."""
@@ -175,6 +179,11 @@ def validate(
     for model in expect:
         id = InstanceID(model["model"], model["pk"])
         exp_models[id] = model
+
+    # Because we may be scrubbing data from the objects as we compare them, we may (optionally) make
+    # deep copies to start to avoid potentially mangling the input data.
+    expect = deepcopy(expect)
+    actual = deepcopy(actual)
 
     # Ensure that the actual JSON contains no duplicates - we assume that the expected JSON did not.
     for model in actual:
