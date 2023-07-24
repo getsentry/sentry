@@ -49,6 +49,7 @@ def _remove_container_if_exists(docker_client, container_name):
 @pytest.fixture(scope="session")
 def relay_server_setup(live_server, tmpdir_factory):
     # colima (container runtime) can only see ~ and /tmp/colima for mounts
+    os.makedirs("/tmp/colima", exist_ok=True)
     config_path = tempfile.mkdtemp(dir="/tmp/colima/")
 
     parsed_live_server_url = urlparse(live_server.url)
