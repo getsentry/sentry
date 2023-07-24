@@ -126,7 +126,6 @@ export function SpanGroupBreakdown({
         </Header>
         <VisuallyCompleteWithData id="WSV.SpanGroupBreakdown" hasData={data.length > 0}>
           <Chart
-            statsPeriod="24h"
             height={340}
             showLegend
             data={
@@ -136,8 +135,6 @@ export function SpanGroupBreakdown({
             durationUnit={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
             }
-            start=""
-            end=""
             errored={errored}
             loading={isTimeseriesLoading}
             utc={false}

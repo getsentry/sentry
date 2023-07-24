@@ -58,7 +58,7 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
@@ -162,11 +162,8 @@ export default function EndpointOverview() {
                 }
               />
               <Chart
-                statsPeriod={eventView.statsPeriod}
                 height={80}
                 data={[percentileData]}
-                start={eventView.start as string}
-                end={eventView.end as string}
                 loading={loading}
                 utc={false}
                 grid={{
@@ -203,11 +200,8 @@ export default function EndpointOverview() {
                 }
               />
               <Chart
-                statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
                 data={[throughputResults]}
-                start=""
-                end=""
                 loading={loading}
                 utc={false}
                 isLineChart
@@ -248,11 +242,8 @@ export default function EndpointOverview() {
                 }
               />
               <Chart
-                statsPeriod={eventView.statsPeriod}
                 height={80}
                 data={[results[1]]}
-                start={eventView.start as string}
-                end={eventView.end as string}
                 loading={loading}
                 utc={false}
                 grid={{
