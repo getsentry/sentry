@@ -37,7 +37,7 @@ class DiscordClient(IntegrationProxyClient):
             org_integration_id = infer_org_integration(
                 integration_id=integration_id, ctx_logger=logger
             )
-        super().__init__(org_integration_id, verify_ssl, logging_context)
+        super().__init__(integration_id, org_integration_id, verify_ssl, logging_context)
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
