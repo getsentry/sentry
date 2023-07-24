@@ -29,9 +29,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {
-  SpanMetrics,
   SpanSummaryQueryFilters,
   useSpanMetrics,
 } from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -51,9 +49,6 @@ import {
   isAValidSort,
   SpanTransactionsTable,
 } from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
-
-const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} =
-  SpanMetricsFields;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -84,39 +79,50 @@ function SpanSummaryPage({params, location}: Props) {
     groupId,
     queryFilter,
     [
-      SPAN_OP,
-      SPAN_DESCRIPTION,
-      SPAN_ACTION,
-      SPAN_DOMAIN,
+      SpanMetricsFields.SPAN_OP,
+      SpanMetricsFields.SPAN_DESCRIPTION,
+      SpanMetricsFields.SPAN_ACTION,
+      SpanMetricsFields.SPAN_DOMAIN,
       'count()',
       'sps()',
-      `sum(${SPAN_SELF_TIME})`,
-      `p95(${SPAN_SELF_TIME})`,
+      `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
+      `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
       'http_error_count()',
     ],
     'api.starfish.span-summary-page-metrics'
   );
 
-  const span = Object.assign({group: groupId}, spanMetrics as SpanMetrics & SpanMeta);
+  const span = {
+    ...spanMetrics,
+    [SpanMetricsFields.SPAN_GROUP]: groupId,
+  } as {
+    [SpanMetricsFields.SPAN_OP]: string;
+    [SpanMetricsFields.SPAN_DESCRIPTION]: string;
+    [SpanMetricsFields.SPAN_ACTION]: string;
+    [SpanMetricsFields.SPAN_DOMAIN]: string;
+    [SpanMetricsFields.SPAN_GROUP]: string;
+  };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`p95(${SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
+      [`p95(${SpanMetricsFields.SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.[SPAN_OP]?.startsWith('db') ? 'Queries' : 'Requests',
+    seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
+      ? 'Queries'
+      : 'Requests',
     data: spanMetricsSeriesData?.['sps()'].data,
   };
 
-  const title = getDescriptionLabel(span, true);
-  const spanDescriptionCardTitle = getDescriptionLabel(span);
+  const title = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP], true);
+  const spanDescriptionCardTitle = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP]);
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -164,12 +170,14 @@ function SpanSummaryPage({params, location}: Props) {
                     <StarfishDatePicker />
                   </FilterOptionsContainer>
                   <BlockContainer>
-                    {span?.[SPAN_OP]?.startsWith('db') &&
-                      span?.[SPAN_OP] !== 'db.redis' && (
-                        <Block title={t('Table')}>{span?.[SPAN_DOMAIN]}</Block>
+                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db') &&
+                      span?.[SpanMetricsFields.SPAN_OP] !== 'db.redis' && (
+                        <Block title={t('Table')}>
+                          {span?.[SpanMetricsFields.SPAN_DOMAIN]}
+                        </Block>
                       )}
                     <Block
-                      title={getThroughputTitle(span?.[SPAN_OP])}
+                      title={getThroughputTitle(span?.[SpanMetricsFields.SPAN_OP])}
                       description={tct('Throughput of this [spanType] per second', {
                         spanType: spanDescriptionCardTitle,
                       })}
@@ -188,10 +196,12 @@ function SpanSummaryPage({params, location}: Props) {
                       )}
                     >
                       <DurationCell
-                        milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                        milliseconds={
+                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                        }
                       />
                     </Block>
-                    {span?.[SPAN_OP]?.startsWith('http') && (
+                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
                       <Block
                         title={t('5XX Responses')}
                         description={t('5XX responses in this span')}
@@ -207,13 +217,15 @@ function SpanSummaryPage({params, location}: Props) {
                     >
                       <TimeSpentCell
                         timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                        totalSpanTime={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+                        totalSpanTime={
+                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                        }
                       />
                     </Block>
                   </BlockContainer>
                 </BlockContainer>
 
-                {span?.[SPAN_DESCRIPTION] && (
+                {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
                   <BlockContainer>
                     <Block>
                       <Panel>
@@ -229,7 +241,9 @@ function SpanSummaryPage({params, location}: Props) {
                     </Block>
 
                     <Block>
-                      <ChartPanel title={getThroughputChartTitle(span?.[SPAN_OP])}>
+                      <ChartPanel
+                        title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                      >
                         <Chart
                           statsPeriod="24h"
                           height={140}
@@ -254,7 +268,11 @@ function SpanSummaryPage({params, location}: Props) {
                         <Chart
                           statsPeriod="24h"
                           height={140}
-                          data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
+                          data={[
+                            spanMetricsSeriesData?.[
+                              `p95(${SpanMetricsFields.SPAN_SELF_TIME})`
+                            ],
+                          ]}
                           start=""
                           end=""
                           loading={areSpanMetricsSeriesLoading}
@@ -266,7 +284,7 @@ function SpanSummaryPage({params, location}: Props) {
                       </ChartPanel>
                     </Block>
 
-                    {span?.[SPAN_OP]?.startsWith('http') && (
+                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
                       <Block>
                         <ChartPanel title={DataTitles.errorCount}>
                           <Chart
@@ -297,7 +315,7 @@ function SpanSummaryPage({params, location}: Props) {
                 )}
 
                 <SampleList
-                  groupId={span.group}
+                  groupId={span[SpanMetricsFields.SPAN_GROUP]}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />
@@ -392,8 +410,7 @@ const DescriptionTitle = styled('h4')`
 
 export default SpanSummaryPage;
 
-const getDescriptionLabel = (spanMeta: SpanMeta, title?: boolean) => {
-  const spanOp = spanMeta[SPAN_OP];
+const getDescriptionLabel = (spanOp: string, title?: boolean) => {
   if (spanOp?.startsWith('http')) {
     return title ? t('URL Request Summary') : t('URL Request');
   }
