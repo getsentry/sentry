@@ -5,6 +5,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Organization, Team
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
@@ -106,9 +107,10 @@ def get_integrations_by_channel_by_recipient(
             channels_to_integrations = _get_channel_and_integration_by_user(
                 recipient.id, organization, provider
             )
-        elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
+        elif recipient.actor_type == ActorType.TEAM:
+            actor = Actor.objects.get(team_id=recipient.id, type=ACTOR_TYPES["team"])
             channels_to_integrations = _get_channel_and_integration_by_team(
-                recipient.actor_id, organization, provider
+                actor.id, organization, provider
             )
         if channels_to_integrations is not None:
             output[recipient] = channels_to_integrations

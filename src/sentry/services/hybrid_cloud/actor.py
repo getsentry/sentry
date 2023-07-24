@@ -7,13 +7,13 @@ from collections import defaultdict
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Iterable, List, MutableMapping, Optional, Union
 
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import ACTOR_TYPES, Actor, get_actor_for_user, get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import Actor, Team, User
+    from sentry.models import Team, User
 
 
 class ActorType(str, Enum):
@@ -82,15 +82,14 @@ class RpcActor(RpcModel):
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
             missing = set(user_ids)
-            for user_id in user_ids:
-                missing.remove(user_id)
-                result.append(RpcActor(id=user_id, actor_type=ActorType.USER))
+            actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
+            for actor in actors:
+                missing.remove(actor.user_id)
+                result.append(RpcActor(id=actor.user_id, actor_type=ActorType.USER))
             if len(missing):
                 for user_id in missing:
                     actor = get_actor_for_user(user_id)
-                    result.append(
-                        RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
-                    )
+                    result.append(RpcActor(id=actor.user_id, actor_type=ActorType.USER))
         return result
 
     @classmethod

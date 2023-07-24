@@ -12,11 +12,9 @@ def test_many_from_object_users():
     assert len(actors) == len(users)
     assert all([isinstance(a, RpcActor) for a in actors])
     assert actors[0].id == users[0].id
-    assert actors[0].actor_id
     assert actors[0].actor_type == ActorType.USER
 
     assert actors[1].id == users[1].id
-    assert actors[1].actor_id
     assert actors[1].actor_type == ActorType.USER
 
 
@@ -30,11 +28,9 @@ def test_many_from_object_rpc_users():
     assert len(actors) == len(rpc_users)
     assert all([isinstance(a, RpcActor) for a in actors])
     assert actors[0].id == rpc_users[0].id
-    assert actors[0].actor_id
     assert actors[0].actor_type == ActorType.USER
 
     assert actors[1].id == rpc_users[1].id
-    assert actors[1].actor_id
     assert actors[1].actor_type == ActorType.USER
 
 
@@ -46,8 +42,6 @@ def test_many_from_object_users_missing_actors():
 
     actors = RpcActor.many_from_object(users)
     assert len(actors) == len(users)
-    assert actors[0].actor_id
-    assert actors[1].actor_id
 
     actors = Actor.objects.filter(type=ACTOR_TYPES["user"])
     assert len(actors) == 2, "Actors should be generated"
@@ -65,13 +59,11 @@ def test_many_from_object_teams():
     assert len(actors) == 2
     assert actors[0].id == teams[0].id
     assert actors[0].actor_type == ActorType.TEAM
-    assert actors[0].actor_id
     assert actors[0].slug
 
     assert len(actors) == 2
     assert actors[1].id == teams[1].id
     assert actors[1].actor_type == ActorType.TEAM
-    assert actors[1].actor_id
     assert actors[1].slug
 
 
@@ -87,11 +79,9 @@ def test_many_from_object_mixed():
     assert len(actors) == 2
     assert actors[0].id == teams[0].id
     assert actors[0].actor_type == ActorType.TEAM
-    assert actors[0].actor_id
     assert actors[0].slug
 
     assert len(actors) == 2
     assert actors[1].id == teams[1].id
     assert actors[1].actor_type == ActorType.TEAM
-    assert actors[1].actor_id
     assert actors[1].slug

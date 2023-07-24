@@ -115,13 +115,14 @@ class BaseNotification(abc.ABC):
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
-            "actor_id": recipient.actor_id,
             "id": recipient.id,
             "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
         if recipient.actor_type == ActorType.USER:
             params["user_id"] = recipient.id
+        if recipient.actor_type == ActorType.TEAM:
+            params["team_id"] = recipient.id
         return params
 
     def get_custom_analytics_params(self, recipient: RpcActor) -> Mapping[str, Any]:
