@@ -267,13 +267,20 @@ class Endpoint(APIView):
         if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
             return
 
-        if not len(request.body):
-            return
+        # originally, the body would not be read until after the endpoint was invoked, but with hybrid cloud
+        # the authentication step moves up a layer and forces the read in the non rest work http end point.  In that case,
+        # if we're still handling json, we can just copy the json_body over directly.  Reading from the body would
+        # otherwise result in test failures.
+        if hasattr(request, "_data"):
+            request.json_body = request.data
+        else:
+            if not len(request.body):
+                return
 
-        try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
-            return
+            try:
+                request.json_body = json.loads(request.body)
+            except json.JSONDecodeError:
+                return
 
     def initialize_request(self, request: Request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
