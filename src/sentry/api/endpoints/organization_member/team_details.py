@@ -211,7 +211,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             data=omt.get_audit_log_data(),
         )
 
-        return Response(serialize(team, request.user, TeamSerializer()), status=201)
+        return Response(
+            serialize(team, request.user, TeamSerializer(expand=["externalTeams"])), status=201
+        )
 
     def put(
         self,
@@ -315,4 +317,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(serialize(team, request.user, TeamSerializer()), status=200)
+        return Response(
+            serialize(team, request.user, TeamSerializer(expand=["externalTeams"])), status=200
+        )
