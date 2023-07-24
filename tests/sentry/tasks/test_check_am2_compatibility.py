@@ -1,5 +1,9 @@
+import pytest
+
 from sentry.tasks.check_am2_compatibility import run_compatibility_check_async
 from sentry.testutils import TestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class CheckAM2CompatibilityTest(TestCase):

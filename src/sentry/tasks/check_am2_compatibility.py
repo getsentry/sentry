@@ -16,6 +16,9 @@ from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
+# The time range over which the check script queries the data for determining the compatibility state.
+QUERY_TIME_RANGE_IN_DAYS = 1
+
 # List of minimum SDK versions that support Performance at Scale.
 # The list is defined here:
 # https://docs.sentry.io/product/performance/performance-at-scale/getting-started
@@ -327,7 +330,7 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
+            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
             "end": datetime.now(tz=pytz.UTC),
         }
 
@@ -352,7 +355,7 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
+            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
             "end": datetime.now(tz=pytz.UTC),
         }
 
@@ -415,7 +418,7 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization.id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
+            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
             "end": datetime.now(tz=pytz.UTC),
         }
 
