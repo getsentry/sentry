@@ -73,7 +73,6 @@ export enum SourceMapProcessingIssueType {
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
-  NOT_PART_OF_PIPELINE = 'not_part_of_pipeline',
   DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
 }
 

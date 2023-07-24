@@ -154,16 +154,6 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
-    case SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE:
-      return [
-        {
-          title: t('Sentry not part of build pipeline'),
-          desc: t(
-            'Integrate Sentry into your build pipeline using a tool like Webpack or the CLI.'
-          ),
-          docsLink: defaultDocsLink,
-        },
-      ];
     // Need to return something but this does not need to follow the pattern since it uses a different alert
     case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
       return [{title: 'Debug Id but no Sourcemaps'}];
