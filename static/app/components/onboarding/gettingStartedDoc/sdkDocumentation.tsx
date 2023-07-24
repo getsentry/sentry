@@ -79,6 +79,9 @@ export const migratedDocs = [
   'android',
   'ionic',
   'unity',
+  'apple',
+  'apple-ios',
+  'apple-macos',
 ];
 
 type SdkDocumentationProps = {
