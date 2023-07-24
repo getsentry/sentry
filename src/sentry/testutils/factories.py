@@ -948,7 +948,6 @@ class Factories:
         sentry_app = Factories.create_sentry_app(
             name="Org Token",
             organization=organization,
-            # webhook_url="https://example.com",
             scopes=scopes,
         )
 
