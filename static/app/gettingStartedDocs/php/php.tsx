@@ -39,7 +39,7 @@ export const steps = ({
     configurations: [
       {
         language: 'php',
-        code: `\Sentry\init(['dsn' => '${dsn}' ]);`,
+        code: `\\Sentry\\init(['dsn' => '${dsn}' ]);`,
       },
     ],
   },
