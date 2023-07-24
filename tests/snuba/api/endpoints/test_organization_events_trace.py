@@ -15,6 +15,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
+    url_name: str
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
