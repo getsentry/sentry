@@ -434,7 +434,7 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
-        if len(rpc_org_integration) == 0 and rpc_integration == None:
+        if len(rpc_org_integration) == 0 and rpc_integration is None:
             self.logger.info(
                 "integration.disabled",
                 extra={
@@ -454,7 +454,7 @@ class BaseApiClient(TrackResponseMixin):
                 },
             )
             return
-        if rpc_integration == None:
+        if rpc_integration is None:
             self.logger.info(
                 "integration.disabled",
                 extra={
