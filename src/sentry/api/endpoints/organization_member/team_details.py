@@ -79,7 +79,9 @@ class TeamOrgMemberPermission(OrganizationPermission):
 
 
 def _has_elevated_scope(access: Access) -> bool:
-    # validate the token has more than just org:read
+    """
+    Validate that the token has more than just org:read
+    """
     return access.has_scope("org:write") or access.has_scope("team:write")
 
 
