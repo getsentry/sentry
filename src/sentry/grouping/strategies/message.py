@@ -102,18 +102,18 @@ _parameterization_regex = re.compile(
 )
 
 
-def normalize_message_for_grouping(string: str) -> str:
+def normalize_message_for_grouping(message: str) -> str:
     """Replace values from a group's message to hide P.I.I. and improve grouping when no
     stacktrace available.
     """
     s = "\n".join(
         # If there are multiple lines, grab the first two non-empty ones.
         islice(
-            (x for x in string.splitlines() if x.strip()),
+            (x for x in message.splitlines() if x.strip()),
             2,
         )
     )
-    if s != string:
+    if s != message:
         s += "..."
 
     def _handle_match(match: Match[str]) -> str:
