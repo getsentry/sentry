@@ -202,53 +202,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 )
             ],
         )
-        if len(self.spans) < 1:
-            return
-
-        if len(self.spans) < self.settings["count"]:
-            return
-
-        last_span = self.spans[-1]
-
-        fingerprint = self._fingerprint()
-        if not fingerprint:
-            return
-
-        offender_span_ids = [span["span_id"] for span in self.spans]
-
-        self.stored_problems[fingerprint] = PerformanceProblem(
-            fingerprint=fingerprint,
-            op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
-            cause_span_ids=[],
-            parent_span_ids=[last_span.get("parent_span_id", None)],
-            offender_span_ids=offender_span_ids,
-            evidence_data={
-                "op": last_span["op"],
-                "cause_span_ids": [],
-                "parent_span_ids": [last_span.get("parent_span_id", None)],
-                "offender_span_ids": offender_span_ids,
-                "transaction_name": self._event.get("transaction", ""),
-                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
-                "repeating_spans": self._get_path_prefix(self.spans[0]),
-                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters(),
-            },
-            evidence_display=[
-                IssueEvidence(
-                    name="Offending Spans",
-                    value=get_notification_attachment_body(
-                        last_span["op"],
-                        os.path.commonprefix(
-                            [span.get("description", "") or "" for span in self.spans]
-                        ),
-                    ),
-                    # Has to be marked important to be displayed in the notifications
-                    important=True,
-                )
-            ],
-        )
 
     def _get_parameters(self) -> List[str]:
         if not self.spans or len(self.spans) == 0:
