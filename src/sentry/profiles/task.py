@@ -18,6 +18,7 @@ from sentry.lang.javascript.processing import generate_scraping_config
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.profiles.java import map_obfuscated_signature
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
@@ -654,6 +655,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     method["data"]["deobfuscation_status"] = "partial"
                 else:
                     method["data"]["deobfuscation_status"] = "missing"
+
+            method["signature"] = map_obfuscated_signature(mapper, method["signature"])
 
 
 @metrics.wraps("process_profile.track_outcome")
