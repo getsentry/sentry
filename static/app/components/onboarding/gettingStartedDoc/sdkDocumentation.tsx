@@ -79,6 +79,7 @@ export const migratedDocs = [
   'android',
   'ionic',
   'unity',
+  'cordova',
 ];
 
 type SdkDocumentationProps = {
