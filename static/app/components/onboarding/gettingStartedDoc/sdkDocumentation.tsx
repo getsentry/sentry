@@ -79,6 +79,7 @@ export const migratedDocs = [
   'android',
   'ionic',
   'unity',
+  'capacitor',
   'cordova',
   'unreal',
 ];
@@ -128,6 +129,8 @@ export function SdkDocumentation({
         ? `unity/unity`
         : platform?.id === 'unreal'
         ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
