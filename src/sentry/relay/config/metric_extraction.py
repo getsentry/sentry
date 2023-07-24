@@ -178,7 +178,7 @@ def get_dynamic_metric_conditional_tagging_rules(
 
 def get_metric_conditional_tagging_rules(
     project: Project,
-) -> Sequence[MetricConditionalTaggingRule]:
+) -> List[MetricConditionalTaggingRule]:
     rules = get_dynamic_metric_conditional_tagging_rules(project)
 
     # static rules, will be the same on every project.
