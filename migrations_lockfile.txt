@@ -6,5 +6,5 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0519_migrate_worldmap_widgets
+sentry: 0520_migrate_world_map_widgets
 social_auth: 0002_default_auto_field

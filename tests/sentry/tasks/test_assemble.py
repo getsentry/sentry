@@ -625,17 +625,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
         total_checksum_1 = sha1(bundle_file_1).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_1,
-                chunks=[blob1_1.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_1,
+            chunks=[blob1_1.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         # Since the threshold is not surpassed we expect the system to not perform indexing.
         index_artifact_bundles_for_release.assert_not_called()
@@ -646,17 +645,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
         total_checksum_2 = sha1(bundle_file_2).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_2,
-                chunks=[blob1_2.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_2,
+            chunks=[blob1_2.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         bundles = ArtifactBundle.objects.all()
 

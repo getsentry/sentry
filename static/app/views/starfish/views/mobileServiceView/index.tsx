@@ -23,7 +23,6 @@ import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
-import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 const READABLE_YAXIS_LABELS = {
   'avg(measurements.app_start_cold)': 'avg(app_start_cold)',
@@ -34,8 +33,7 @@ const READABLE_YAXIS_LABELS = {
   'avg(measurements.frames_frozen_rate)': 'avg(frames_frozen_rate)',
 };
 
-export function MobileStarfishView(props: BaseStarfishViewProps) {
-  const {eventView} = props;
+export function MobileStarfishView() {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {data: releases, isLoading: isReleasesLoading} = useReleases();
@@ -175,11 +173,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.app_start_cold)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.app_start_cold)']}
-              start={eventView.start as string}
-              end={eventView.end as string}
               loading={seriesIsLoading}
               utc={false}
               grid={{
@@ -205,11 +200,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.app_start_warm)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.app_start_warm)']}
-              start=""
-              end=""
               loading={seriesIsLoading}
               showLegend
               utc={false}
@@ -237,11 +229,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.time_to_initial_display)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.time_to_initial_display)']}
-              start={eventView.start as string}
-              end={eventView.end as string}
               loading={seriesIsLoading}
               utc={false}
               grid={{
@@ -266,11 +255,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.time_to_full_display)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.time_to_full_display)']}
-              start=""
-              end=""
               loading={seriesIsLoading}
               showLegend
               utc={false}
@@ -298,11 +284,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.frames_slow_rate)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.frames_slow_rate)']}
-              start={eventView.start as string}
-              end={eventView.end as string}
               loading={seriesIsLoading}
               utc={false}
               grid={{
@@ -327,11 +310,8 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
               {READABLE_YAXIS_LABELS['avg(measurements.frames_frozen_rate)']}
             </SubTitle>
             <Chart
-              statsPeriod={eventView.statsPeriod}
               height={125}
               data={transformedSeries['avg(measurements.frames_frozen_rate)']}
-              start=""
-              end=""
               loading={seriesIsLoading}
               showLegend
               utc={false}
