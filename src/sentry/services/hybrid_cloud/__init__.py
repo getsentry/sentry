@@ -347,6 +347,17 @@ def silo_mode_delegation(
     In split database mode, it will also inject DelegatedByOpenTransaction in for the monolith mode implementation.
     """
 
+    return cast(ServiceInterface, DelegatedBySiloMode(get_delegated_constructors(mapping)))
+
+
+def get_delegated_constructors(
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
+    """
+    Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction
+    that intelligently selects the correct service implementation based on the call site.
+    """
+
     def delegator() -> ServiceInterface:
         from sentry.models import Organization, User
 
@@ -366,8 +377,7 @@ def silo_mode_delegation(
         SiloMode.MONOLITH: delegator,
         **({k: v for k, v in mapping.items() if k != SiloMode.MONOLITH}),
     }
-
-    return cast(ServiceInterface, DelegatedBySiloMode(final_mapping))
+    return final_mapping
 
 
 def coerce_id_from(m: object | int | None) -> int | None:
