@@ -435,8 +435,8 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
-            integration_service.get_integration(self.integration_id)
-            notfiyDisable(org, rpc_integration)
+        #    integration = integration_service.get_integration(self.integration_id)
+        #    notfiyDisable(org,integration)
 
         self.logger.info(
             "integration.disabled",

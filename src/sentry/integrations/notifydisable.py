@@ -1,6 +1,14 @@
-class NotifyDisable():
+from sentry.models import Organization
 
-    def get_url(organization: Organization, provider_type: str, provider_slug: str) -> str:
+provider_types = {
+    "first_party": "integrations",
+    "plugin": "plugins",
+    "sentry_app": "sentry-apps",
+}
+
+
+class NotifyDisable:
+    def get_url(self, organization: Organization, provider_type: str, provider_slug: str) -> str:
         type_name = provider_types.get(provider_type, "")
         return str(
             organization.absolute_url(
@@ -9,16 +17,38 @@ class NotifyDisable():
             )
         )
 
+    def get_subject(self, integration_name) -> str:
+        return f"Your team member requested the {integration_name} integration on Sentry"
 
-    def notifyDisable(self, organization, integration, project = None):
+    def notifyDisable(self, organization, integration, project=None):
 
-        integration_name = integration.provider
-        integration_link = get_url(
+        from sentry import integrations
+        from sentry.utils.email import MessageBuilder
+
+        provider = integrations.get(integration.provider)
+
+        integration_name = provider
+        integration_link = self.get_url(
             organization,
             integration.provider_type,
             integration.provider_slug,
         )
-        MessageBuilder(context={"integration_name":integration_name,
-            "integration_link":integration_link,
-            "settings_link":settings_link
-            }).render(request))
+
+        user_email = None
+        user = organization.get_owners()
+        if user:
+            user_email = user.email
+
+        settings_link = None
+
+        msg = MessageBuilder(
+            subject=self.get_subject(integration_name),
+            context={
+                "integration_name": integration_name,
+                "integration_link": integration_link,
+                "settings_link": settings_link,
+            },
+            html_template="sentry/integrations/notify-disable.html",
+        )
+
+        msg.send_async(user_email)
