@@ -268,7 +268,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     """
 
     stacktrace_frames = []
-    stacktrace_container = []
+    stacktrace_containers = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
         # XXX: Why do we want include the raw stacktrace?
