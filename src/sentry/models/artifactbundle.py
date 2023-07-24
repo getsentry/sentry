@@ -59,15 +59,6 @@ class ArtifactBundleIndexingState(Enum):
         return [(key.value, key.name) for key in cls]
 
 
-class ArtifactBundleFlatFileIndexingState(Enum):
-    BEING_INDEXED = 0
-    WAS_INDEXED = 1
-
-    @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
-        return [(key.value, key.name) for key in cls]
-
-
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
@@ -208,7 +199,7 @@ class FlatFileIndexState(Model):
 
     flat_file_index_id = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle_id = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(choices=ArtifactBundleFlatFileIndexingState.choices())
+    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -219,20 +210,17 @@ class FlatFileIndexState(Model):
     def compare_state_and_set(
         flat_file_index_id: int,
         artifact_bundle_id: int,
-        indexing_state: ArtifactBundleFlatFileIndexingState,
-        new_indexing_state: ArtifactBundleFlatFileIndexingState,
+        indexing_state: ArtifactBundleIndexingState,
+        new_indexing_state: ArtifactBundleIndexingState,
     ) -> bool:
-        try:
-            updated_rows = FlatFileIndexState.objects.get(
-                flat_file_index_id=flat_file_index_id,
-                artifact_bundle_id=artifact_bundle_id,
-                indexing_state=indexing_state,
-            ).update(indexing_state=new_indexing_state, date_added=timezone.now())
+        updated_rows = FlatFileIndexState.objects.filter(
+            flat_file_index_id=flat_file_index_id,
+            artifact_bundle_id=artifact_bundle_id,
+            indexing_state=indexing_state,
+        ).update(indexing_state=new_indexing_state, date_added=timezone.now())
 
-            # If we had one row being updated, it means that the cas operation succeeded.
-            return updated_rows == 1
-        except FlatFileIndexState.DoesNotExist:
-            return False
+        # If we had one row being updated, it means that the cas operation succeeded.
+        return updated_rows == 1
 
 
 @region_silo_only_model
