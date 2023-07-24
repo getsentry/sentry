@@ -132,7 +132,6 @@ class Enhancements:
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        # XXX: This may be an in-memory cache
         cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
@@ -148,7 +147,6 @@ class Enhancements:
                     action.apply_modifications_to_frame(frames, match_frames, idx)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
-        # XXX: This may be an in-memory cache
         cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]

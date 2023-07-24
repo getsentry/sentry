@@ -34,11 +34,11 @@ class Action:
         pass
 
     def update_frame_components_contributions(
-        self, components: Any, frames: Sequence[dict[str, Any]], idx: Any, rule: Any = None
+        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
     ) -> None:
         pass
 
-    def modify_stacktrace_state(self, state: Any, rule: Any) -> None:
+    def modify_stacktrace_state(self, state, rule):
         pass
 
     @property
@@ -52,7 +52,7 @@ class Action:
         return self._is_updater
 
     @classmethod
-    def _from_config_structure(cls: Any, val: Any, version: int) -> Any:
+    def _from_config_structure(cls, val, version: int):
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
@@ -74,12 +74,12 @@ class FlagAction(Action):
             self.key,
         )
 
-    def _to_config_structure(self, version: int) -> int:
+    def _to_config_structure(self, version: int):
         return ACTIONS.index(self.key) | (
             ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
         )
 
-    def _slice_to_range(self, seq: Any, idx: Any) -> Any:
+    def _slice_to_range(self, seq, idx):
         if self.range is None:
             return [seq[idx]]
         elif self.range == "down":
@@ -88,7 +88,7 @@ class FlagAction(Action):
             return seq[idx + 1 :]
         return []
 
-    def _in_app_changed(self, frame: dict[str, Any], component: Any) -> bool:
+    def _in_app_changed(self, frame: dict[str, Any], component) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
 
         if orig_in_app is not None:
@@ -105,11 +105,7 @@ class FlagAction(Action):
                 match_frame["in_app"] = frame["in_app"]
 
     def update_frame_components_contributions(
-        self,
-        components: Any,
-        frames: Sequence[dict[str, Any]],
-        idx: Any,
-        rule: Any = None,
+        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
     ) -> None:
         rule_hint = "stack trace rule"
         if rule:
@@ -172,10 +168,10 @@ class VarAction(Action):
     def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version: Any) -> list[Any]:
+    def _to_config_structure(self, version):
         return [self.var, self.value]
 
-    def modify_stacktrace_state(self, state: Any, rule: int) -> None:
+    def modify_stacktrace_state(self, state, rule):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
