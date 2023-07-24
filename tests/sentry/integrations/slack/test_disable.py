@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 import pytest
 import responses
-from django.test import override_settings
 from django.core import mail
+from django.test import override_settings
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -78,10 +78,7 @@ class SlackClientDisable(TestCase):
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your slack integration"
         print(msg.body)
-        assert (
-            (f"/settings/{self.organization.slug}/integrations/")
-            in msg.body
-        )
+        assert (f"/settings/{self.organization.slug}/integrations/") in msg.body
 
     # test with flag off
     @responses.activate
