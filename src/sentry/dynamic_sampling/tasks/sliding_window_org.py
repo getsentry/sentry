@@ -83,25 +83,27 @@ def adjust_base_sample_rate_of_org(
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
 
-    name = adjust_base_sample_rate_of_org.__name__
-    timer = context.get_timer(name)
+    func_name = adjust_base_sample_rate_of_org.__name__
+    timer = context.get_timer(func_name)
     with timer:
-        sample_rate = compute_guarded_sliding_window_sample_rate(
-            org_id, None, total_root_count, window_size
-        )
+        with context.get_timer(compute_guarded_sliding_window_sample_rate.__name__):
+            sample_rate = compute_guarded_sliding_window_sample_rate(
+                org_id, None, total_root_count, window_size
+            )
         # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
         # with the old value.
         if sample_rate is None:
             return
 
-        redis_client = get_redis_client_for_ds()
-        with redis_client.pipeline(transaction=False) as pipeline:
-            cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
-            pipeline.set(cache_key, sample_rate)
-            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
-            pipeline.execute()
+        with context.get_timer("redis_updates"):
+            redis_client = get_redis_client_for_ds()
+            with redis_client.pipeline(transaction=False) as pipeline:
+                cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+                pipeline.set(cache_key, sample_rate)
+                pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
+                pipeline.execute()
 
-    state = context.get_function_state(name)
+    state = context.get_function_state(func_name)
     state.num_orgs += 1
     state.num_iterations += 1
-    context.set_function_state(name, state)
+    context.set_function_state(func_name, state)
