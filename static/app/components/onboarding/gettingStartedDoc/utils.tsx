@@ -51,6 +51,22 @@ export function getUploadSourceMapsStep({
             }
           );
         },
+        onSelectAndCopy: () => {
+          if (!organization || !projectId || !platformKey) {
+            return;
+          }
+
+          trackAnalytics(
+            newOrg
+              ? 'onboarding.source_maps_wizard_selected_and_copied'
+              : 'project_creation.source_maps_wizard_selected_and_copied',
+            {
+              project_id: projectId,
+              platform: platformKey,
+              organization,
+            }
+          );
+        },
       },
     ],
   };
