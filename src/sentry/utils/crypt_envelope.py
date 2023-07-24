@@ -4,10 +4,10 @@ Envelope encryption requires an encryption hierarchy and multiple storage layers
 key types. First, data is encrypted using some data-encryption-key. Second, the data-encryption-key
 is encrypted with the key-encryption-key. Third, the encrypted data and encrypted
 data-encryption-key can be safely stored in the location of the implementers choosing. The
-key-encryption-key must be stored in a safe, third location. Google KMS is the recommended storage
-location for key-encryption-keys.
+key-encryption-key must be stored in a safe, secondary location. Google KMS is the recommended
+storage location for key-encryption-keys.
 
-This module should be be used if your product requires fine-grained control over data-encryption-
+This module should not be used if your product requires fine-grained control over data-encryption-
 -key generation or the encryption algorithm used.
 """
 import io
@@ -101,7 +101,8 @@ def rotate_key_encryption_key(
     """
     nonce, tag, encrypted_dek = _split(data_encryption_key)
     dek = decrypt(old_key_encryption_key, nonce, tag, encrypted_dek)
-    return encrypt(new_key_encryption_key, dek)
+    nonce, tag, message = encrypt(new_key_encryption_key, dek)
+    return nonce + tag + message
 
 
 def _split(encrypted_message: bytes) -> Tuple[bytes, bytes, bytes]:
