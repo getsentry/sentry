@@ -78,6 +78,7 @@ export const migratedDocs = [
   'elixir',
   'android',
   'unity',
+  'cordova',
 ];
 
 type SdkDocumentationProps = {
