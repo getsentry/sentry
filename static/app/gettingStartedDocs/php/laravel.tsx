@@ -7,16 +7,20 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'This guide is for Laravel 8+. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-  {
-    otherVersionsLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-    ),
-    lumenSpecificLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      'This guide is for Laravel 8+. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+      {
+        otherVersionsLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+        ),
+        lumenSpecificLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({

@@ -2031,7 +2031,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -2165,24 +2165,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         org = self.organization
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
         )
         group = event.group
 
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
         )[0]
@@ -2218,20 +2220,21 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
-        org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org = self.organization
+            integration = Integration.objects.create(provider="example", name="Example")
+            integration.add_organization(org, self.user)
+            OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ).update(
+                config={
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            )
         GroupResolution.objects.create(group=group, release=release)
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-%s" % group.id
@@ -2271,9 +2274,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project_id=None, user=user
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=user
+            )
 
         self.login_as(user=user)
         response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
@@ -2287,7 +2291,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user_id=user.id, group=group, is_active=True
         ).exists()
 
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_self_assign_issue_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -2295,9 +2300,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
-        uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project_id=None, user=self.user
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1 = UserOption.objects.create(
+                key="self_assign_issue", value="1", project_id=None, user=self.user
+            )
 
         self.login_as(user=self.user)
 
@@ -2322,7 +2328,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
         assert activity.data["version"] == ""
-        uo1.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            uo1.delete()
 
     def test_in_semver_projects_group_resolution_stores_current_release_version(self):
         """
@@ -3361,7 +3368,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

@@ -245,11 +245,8 @@ function SpanSummaryPage({params, location}: Props) {
                         title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
                       >
                         <Chart
-                          statsPeriod="24h"
                           height={140}
                           data={[spanMetricsThroughputSeries]}
-                          start=""
-                          end=""
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
                           chartColors={[THROUGHPUT_COLOR]}
@@ -266,15 +263,12 @@ function SpanSummaryPage({params, location}: Props) {
                     <Block>
                       <ChartPanel title={DataTitles.p95}>
                         <Chart
-                          statsPeriod="24h"
                           height={140}
                           data={[
                             spanMetricsSeriesData?.[
                               `p95(${SpanMetricsFields.SPAN_SELF_TIME})`
                             ],
                           ]}
-                          start=""
-                          end=""
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
                           chartColors={[P95_COLOR]}
@@ -288,11 +282,8 @@ function SpanSummaryPage({params, location}: Props) {
                       <Block>
                         <ChartPanel title={DataTitles.errorCount}>
                           <Chart
-                            statsPeriod="24h"
                             height={140}
                             data={[spanMetricsSeriesData?.[`http_error_count()`]]}
-                            start=""
-                            end=""
                             loading={areSpanMetricsSeriesLoading}
                             utc={false}
                             chartColors={[ERRORS_COLOR]}
