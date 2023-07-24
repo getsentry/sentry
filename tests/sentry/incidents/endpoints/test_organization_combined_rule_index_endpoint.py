@@ -139,7 +139,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 1
         self.assert_alert_rule_serialized(self.alert_rule, result[0], skip_dates=True)
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         # Test Limit as 1, next page of previous request:
@@ -196,7 +196,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert len(result) == 1
         self.assert_alert_rule_serialized(alert_rule, result[0], skip_dates=True)
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
 
@@ -230,7 +230,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
 
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
 
@@ -264,7 +264,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         # Test Limit 2, next page of previous request:
@@ -281,7 +281,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.alert_rule, result[1], skip_dates=True)
 
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
 
@@ -327,7 +327,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
 
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
@@ -764,7 +764,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.assert_alert_rule_serialized(alert_rule_critical, result[0], skip_dates=True)
         self.assert_alert_rule_serialized(another_alert_rule_warning, result[1], skip_dates=True)
         links = requests.utils.parse_header_links(
-            response.get("link").rstrip(">").replace(">,<", ",<")
+            response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         # Get next page, we should be between the two status':
