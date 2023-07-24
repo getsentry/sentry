@@ -67,7 +67,6 @@ def call_global_config(client, relay, private_key):
 def test_return_global_config(call_global_config):
     result, status_code = call_global_config()
     assert status_code < 400
-    # i'll put this in separate file ofc, this is temporary
     assert result == {
         "measurements": {
             "builtinMeasurements": [

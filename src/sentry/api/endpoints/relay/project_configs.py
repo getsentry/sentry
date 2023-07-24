@@ -45,7 +45,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         if request.relay_request_data.get("globalConfig"):
             metrics.incr("relay.project_configs.global.fetched")
-            return config.get_global_config
+            global_config = config.get_global_config()
+            return Response(global_config, status=200)
 
         full_config_requested = request.relay_request_data.get("fullConfig")
         if full_config_requested and not relay.is_internal:
