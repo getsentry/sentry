@@ -112,9 +112,9 @@ export function cancelDeleteRepository(
 /**
  * Delete a repository by setting its status to hidden.
  *
- * @param {Object} client ApiClient
- * @param {String} orgId Organization Slug
- * @param {String} repositoryId Repository ID
+ * @param client ApiClient
+ * @param orgId Organization Slug
+ * @param repositoryId Repository ID
  */
 export function hideRepository(client: Client, orgId: string, repositoryId: string) {
   addLoadingMessage();
