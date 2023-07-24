@@ -1,10 +1,11 @@
 from sentry.models import Organization
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 provider_types = {
-    "first_party": "integrations",
+    "integration": "integrations",
     "plugin": "plugins",
-    "sentry_app": "sentry-apps",
+    "sentry-app": "sentry-apps",
 }
 
 
@@ -14,14 +15,20 @@ class NotifyDisable:
         return str(
             organization.absolute_url(
                 f"/settings/{organization.slug}/{type_name}/{provider_slug}/",
-                query="referrer=request_email",
             )
         )
+
+    def get_provider_type(self, redis_key) -> str:
+        for provider in provider_types:
+            if provider in redis_key:
+                return provider
 
     def get_subject(self, integration_name) -> str:
         return f"Your team member requested the {integration_name} integration on Sentry"
 
-    def notifyDisable(self, organization=Organization, integration=RpcIntegration, project=None):
+    def notifyDisable(
+        self, organization=Organization, integration=RpcIntegration, redis_key=str, project=None
+    ):
 
         from sentry import integrations
         from sentry.utils.email import MessageBuilder
@@ -30,7 +37,7 @@ class NotifyDisable:
 
         integration_name = provider
         integration_link = self.get_url(
-            organization, integration.provider_t, integration.provider_slug
+            organization, self.get_provider_type(redis_key), integration.provider_slug
         )
 
         user_email = None
