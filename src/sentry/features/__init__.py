@@ -89,6 +89,7 @@ default_manager.add("organizations:integrations-opsgenie", OrganizationFeature, 
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-most-helpful-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-details-most-helpful-event-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-stacktrace-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
