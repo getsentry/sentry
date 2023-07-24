@@ -143,7 +143,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
-                span["data"]["http.response_content_length"] = 900000
+                span["data"]["http.response_content_length"] = 400000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):

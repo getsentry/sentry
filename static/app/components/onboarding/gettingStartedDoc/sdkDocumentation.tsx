@@ -67,10 +67,21 @@ export const migratedDocs = [
   'ruby-rack',
   'kotlin',
   'node',
-  'node-gcpfunctions',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
   'node-express',
+  'node-gcpfunctions',
+  'node-koa',
+  'node-serverlesscloud',
   'electron',
   'elixir',
+  'android',
+  'ionic',
+  'unity',
+  'capacitor',
+  'cordova',
+  'unreal',
 ];
 
 type SdkDocumentationProps = {
@@ -110,6 +121,16 @@ export function SdkDocumentation({
         ? `minidump/minidump`
         : platform?.id === 'native-qt'
         ? `native/native-qt`
+        : platform?.id === 'android'
+        ? `android/android`
+        : platform?.id === 'ionic'
+        ? `ionic/ionic`
+        : platform?.id === 'unity'
+        ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 

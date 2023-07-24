@@ -1,6 +1,6 @@
+import pytz
 from croniter import croniter
 from django.core.exceptions import ValidationError
-from django.utils.timezone import pytz
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -18,6 +18,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import MAX_TIMEOUT
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -98,6 +99,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
         min_value=1,
+        max_value=MAX_TIMEOUT,
     )
 
     timezone = serializers.ChoiceField(

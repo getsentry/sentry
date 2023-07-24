@@ -581,4 +581,47 @@ describe('GroupActivity', function () {
       'Foo Bar archived this issue forever'
     );
   });
+
+  it('renders resolved in release with semver information', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          project: TestStubs.Project(),
+          data: {
+            version: 'frontend@1.0.0',
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      organization: TestStubs.Organization({features: ['issue-release-semver']}),
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in 1.0.0 (semver)'
+    );
+  });
+
+  it('renders resolved in next release with semver information', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+          project: TestStubs.Project(),
+          data: {
+            current_release_version: 'frontend@1.0.0',
+          },
+          user: TestStubs.User(),
+          dateCreated,
+        },
+      ],
+      // TODO(scttcper): combine test with the above test once we remove the feature flag
+      organization: TestStubs.Organization({features: ['issue-release-semver']}),
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Foo Bar marked this issue as resolved in releases greater than 1.0.0 (semver)'
+    );
+  });
 });

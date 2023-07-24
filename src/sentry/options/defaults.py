@@ -1252,12 +1252,12 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.size_threshold",
-    default=1000000,
+    default=500000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.consecutive_http.max_duration_between_spans",
-    default=1000,
+    default=500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1272,7 +1272,7 @@ register(
 )
 register(
     "performance.issues.large_http_payload.size_threshold",
-    default=1000000,
+    default=300000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
@@ -1292,7 +1292,7 @@ register(
 )  # 512 kilo bytes
 register(
     "performance.issues.uncompressed_asset.duration_threshold",
-    default=500,
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
@@ -1303,6 +1303,11 @@ register(
 register(
     "performance.issues.http_overhead.http_request_delay_threshold",
     default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.n_plus_one_api_calls.total_duration",
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 

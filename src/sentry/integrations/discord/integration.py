@@ -47,7 +47,7 @@ class DiscordIntegration(IntegrationInstallation):
         org_integration_id = self.org_integration.id if self.org_integration else None
 
         return DiscordClient(
-            integration_id=self.model.id,  # type:ignore
+            integration_id=self.model.id,
             org_integration_id=org_integration_id,
         )
 
