@@ -1,4 +1,5 @@
 from sentry.models import Organization
+from sentry.notifications.notifications.base import BaseNotification
 
 provider_types = {
     "first_party": "integrations",
@@ -20,7 +21,7 @@ class NotifyDisable:
     def get_subject(self, integration_name) -> str:
         return f"Your team member requested the {integration_name} integration on Sentry"
 
-    def notifyDisable(self, organization, integration, project=None):
+    def notifyDisable(self, organization=Organization, integration=RpcIntegration, project=None):
 
         from sentry import integrations
         from sentry.utils.email import MessageBuilder
@@ -29,26 +30,28 @@ class NotifyDisable:
 
         integration_name = provider
         integration_link = self.get_url(
-            organization,
-            integration.provider_type,
-            integration.provider_slug,
+            organization, integration.provider_t, integration.provider_slug
         )
 
         user_email = None
-        user = organization.get_owners()
-        if user:
-            user_email = user.email
+        users = organization.get_owners()
 
         settings_link = None
 
-        msg = MessageBuilder(
-            subject=self.get_subject(integration_name),
-            context={
-                "integration_name": integration_name,
-                "integration_link": integration_link,
-                "settings_link": settings_link,
-            },
-            html_template="sentry/integrations/notify-disable.html",
-        )
+        for user in users:
 
-        msg.send_async(user_email)
+            user_email = user.email
+
+            settings_link = BaseNotification(organization).get_settings_url(user_email, provider)
+
+            msg = MessageBuilder(
+                subject=self.get_subject(integration_name),
+                context={
+                    "integration_name": integration_name,
+                    "integration_link": integration_link,
+                    "settings_link": settings_link,
+                },
+                html_template="sentry/integrations/notify-disable.html",
+            )
+
+            msg.send_async([user_email])
