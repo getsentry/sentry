@@ -3,9 +3,12 @@ from datetime import datetime, timedelta
 import pytest
 import responses
 from django.test import override_settings
+from django.core import mail
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
+from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
+from sentry.data_export.models import ExportedData
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
@@ -31,6 +34,8 @@ class SlackClientDisable(TestCase):
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
+
+        self.organization = self.create_organization(owner=self.user)
 
         self.integration = Integration.objects.create(
             provider="slack",
@@ -59,13 +64,22 @@ class SlackClientDisable(TestCase):
             body=json.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
-        with pytest.raises(ApiError):
+        with self.tasks() and pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
         assert (
             integration_service.get_integration(integration_id=self.integration.id).status
             == ObjectStatus.DISABLED
+        )
+        # email test
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Action required: re-authenticate or fix your slack integration"
+        print(msg.body)
+        assert (
+            (f"/settings/{self.organization.slug}/integrations/")
+            in msg.body
         )
 
     # test with flag off

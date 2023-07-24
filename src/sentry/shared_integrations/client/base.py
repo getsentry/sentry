@@ -13,6 +13,7 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
+from sentry.integrations.notifydisable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -426,6 +427,8 @@ class BaseApiClient(TrackResponseMixin):
             self.disable_integration()
 
     def disable_integration(self) -> None:
+
+
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
@@ -435,8 +438,8 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
-        #    integration = integration_service.get_integration(self.integration_id)
-        #    notfiyDisable(org,integration)
+            integration = integration_service.get_integration(integration_id=self.integration_id)
+            notify_disable(org,integration,self._get_redis_key())
 
         self.logger.info(
             "integration.disabled",
