@@ -119,8 +119,7 @@ class GroupSubscriptionManager(BaseManager):
         """
         from sentry.notifications.utils.participants import ParticipantMap
 
-        member_user_ids = group.project.member_set.values_list("user_id", flat=True)
-        all_possible_users = RpcActor.many_from_user_ids(member_user_ids)
+        all_possible_users = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )

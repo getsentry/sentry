@@ -46,10 +46,6 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_type))
 
     @classmethod
-    def many_from_user_ids(self, user_ids: Iterable[int]) -> List["RpcActor"]:
-        return [RpcActor(id=user_id, actor_type=ActorType.USER) for user_id in user_ids]
-
-    @classmethod
     def many_from_object(cls, objects: Iterable[ActorTarget]) -> List["RpcActor"]:
         """
         Create a list of RpcActor instaces based on a collection of 'objects'
