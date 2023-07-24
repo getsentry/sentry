@@ -479,12 +479,14 @@ class ArtifactBundlePostAssembler(PostAssembler):
         bundle_id = self.archive.extract_bundle_id()
         if not bundle_id:
             # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-            # XXX: can this ever fail / return `None`?
             bundle_id = ArtifactBundleArchive.normalize_debug_id(
                 self.assemble_result.bundle.checksum
             )
-            if not bundle_id:
-                bundle_id = uuid.uuid4().hex
+        # When normalizing the debug_id from the checksum, or even when reading it from the bundle,
+        # the debug_id can have an additional appendix which we want to remove as it is
+        # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
+        # formatted with `-` to 36 chars.
+        bundle_id = bundle_id[:36]
 
         analytics.record(
             "artifactbundle.manifest_extracted",
