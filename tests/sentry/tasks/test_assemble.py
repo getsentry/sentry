@@ -666,6 +666,39 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist=dist,
         )
 
+    @patch("sentry.tasks.assemble.index_artifact_bundle")
+    def test_bundle_flat_file_indexing(self, index_artifact_bundle):
+        release = "1.0"
+        dist = "android"
+
+        bundle_file_1 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        total_checksum_1 = sha1(bundle_file_1).hexdigest()
+
+        with self.feature("organizations:sourcemaps-bundle-flat-file-indexing"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version=release,
+                dist=dist,
+                checksum=total_checksum_1,
+                chunks=[blob1_1.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        artifact_bundle = ArtifactBundle.objects.get(
+            bundle_id="67429b2f-1d9e-43bb-a626-771a1e37555c"
+        )
+
+        index_artifact_bundle.assert_called_with(
+            artifact_bundle_id=artifact_bundle.id,
+            project_id=self.project.id,
+            release=release,
+            dist=dist,
+        )
+
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version

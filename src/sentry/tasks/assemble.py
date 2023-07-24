@@ -13,9 +13,14 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.debug_files.artifact_bundle_indexing import (
+    BundleMeta,
+    mark_bundle_for_flat_file_indexing,
+    update_artifact_bundle_index,
+)
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -457,7 +462,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.organization = organization
         self.release = release
         self.dist = dist
-        self.projects_ids = project_ids
+        self.project_ids = project_ids
 
     def _validate_bundle(self):
         self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
@@ -498,7 +503,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         analytics.record(
             "artifactbundle.manifest_extracted",
             organization_id=self.organization.id,
-            project_ids=self.projects_ids,
+            project_ids=self.project_ids,
             has_debug_ids=len(debug_ids_with_types) > 0,
         )
 
@@ -544,7 +549,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for project_id in self.projects_ids:
+            for project_id in self.project_ids:
                 ProjectArtifactBundle.objects.create_or_update(
                     organization_id=self.organization.id,
                     project_id=project_id,
@@ -593,6 +598,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 dist=(self.dist or NULL_STRING),
                 date_snapshot=date_snapshot,
             )
+
+        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
+            try:
+                self._index_bundle_into_flat_file(artifact_bundle)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
@@ -732,6 +743,23 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 # We want to capture any exception happening during indexing, since it's crucial to understand if
                 # the system is behaving well because the database can easily end up in an inconsistent state.
                 metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
+                sentry_sdk.capture_exception(e)
+
+    @sentry_sdk.tracing.trace
+    def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
+        identifiers = mark_bundle_for_flat_file_indexing(artifact_bundle)
+
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            # We give priority to the date last modified for total ordering.
+            timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
+        )
+
+        for identifier in identifiers:
+            try:
+                update_artifact_bundle_index(bundle_meta, self.archive, identifier)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)
 
 
