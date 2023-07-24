@@ -11,7 +11,9 @@ from django.utils import timezone
 from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
+from sentry.eventstore.models import Event
 from sentry.models import Activity, ActorTuple
+from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
@@ -234,7 +236,7 @@ class ProjectOwnership(Model):
         return autoassignment_types
 
     @classmethod
-    def handle_auto_assignment(cls, project_id, event):
+    def handle_auto_assignment(cls, project_id, event: Event = None, group: Group = None):
         """
         Get the auto-assign owner for a project if there are any.
 
@@ -251,6 +253,11 @@ class ProjectOwnership(Model):
             User,
         )
 
+        force_autoassign = True
+        if not group:
+            force_autoassign = False
+            group = event.group
+
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
@@ -262,7 +269,7 @@ class ProjectOwnership(Model):
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
             issue_owner = GroupOwner.get_autoassigned_owner_cached(
-                event.group.id, project_id, autoassignment_types
+                group.id, project_id, autoassignment_types
             )
             if issue_owner is False:
                 return
@@ -290,11 +297,11 @@ class ProjectOwnership(Model):
                 }
             )
             activity = Activity.objects.filter(
-                group=event.group, type=ActivityType.ASSIGNED.value
+                group=group, type=ActivityType.ASSIGNED.value
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
-                if not auto_assigned:
+                if not auto_assigned and not force_autoassign:
                     logger.info(
                         "autoassignment.post_manual_assignment",
                         extra={
@@ -308,10 +315,11 @@ class ProjectOwnership(Model):
                     return
 
             assignment = GroupAssignee.objects.assign(
-                event.group,
+                group,
                 owner,
-                create_only=True,
+                create_only=not force_autoassign,
                 extra=details,
+                force_autoassign=force_autoassign,
             )
 
             if assignment["new_assignment"] or assignment["updated_assignment"]:
@@ -321,15 +329,15 @@ class ProjectOwnership(Model):
                     else "issueowners.assignment",
                     organization_id=ownership.project.organization_id,
                     project_id=project_id,
-                    group_id=event.group.id,
+                    group_id=group.id,
                 )
                 logger.info(
                     "handle_auto_assignment.success",
                     extra={
-                        "event": event.event_id,
-                        "group": event.group_id,
-                        "project": event.project_id,
-                        "organization": event.project.organization_id,
+                        "event": event.event_id if event else None,
+                        "group": group.id,
+                        "project": group.project.id,
+                        "organization": group.project.organization_id,
                         # owner_id returns a string including the owner type (user or team) and id
                         "assignee": issue_owner.owner_id(),
                         "reason": "created" if assignment["new_assignment"] else "updated",

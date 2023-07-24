@@ -37,6 +37,7 @@ class GroupAssigneeManager(BaseManager):
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
+        force_autoassign: bool = False,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -69,9 +70,12 @@ class GroupAssigneeManager(BaseManager):
         )
 
         if not created:
-            affected = not create_only and self.filter(group=group).exclude(
-                **{assignee_type_attr: assigned_to_id}
-            ).update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
+            affected = not create_only and (
+                self.filter(group=group)
+                .exclude(**{assignee_type_attr: assigned_to_id})
+                .update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
+                or force_autoassign
+            )
         else:
             affected = True
 
