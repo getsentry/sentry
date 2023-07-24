@@ -27,7 +27,6 @@ class TeamExamples:
                 "isPending": False,
                 "memberCount": 3,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "orgRole": None,
             },
             status_codes=["201"],
             response_only=True,
@@ -66,7 +65,6 @@ class TeamExamples:
                 "isPending": False,
                 "memberCount": 1,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "orgRole": None,
             },
             status_codes=["201"],
             response_only=True,
@@ -98,7 +96,6 @@ class TeamExamples:
                 "isPending": False,
                 "memberCount": 3,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                "orgRole": None,
             },
             status_codes=["200"],
             response_only=True,
@@ -131,7 +128,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 2,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                 },
                 {
                     "id": "100253",
@@ -155,7 +151,6 @@ class TeamExamples:
                     "isPending": False,
                     "memberCount": 5,
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-                    "orgRole": None,
                     "projects": [
                         {
                             "id": "6403534",
