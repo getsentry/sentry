@@ -80,6 +80,7 @@ export const migratedDocs = [
   'ionic',
   'unity',
   'capacitor',
+  'cordova',
 ];
 
 type SdkDocumentationProps = {
