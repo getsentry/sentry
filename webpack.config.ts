@@ -446,6 +446,7 @@ const appConfig: Configuration = {
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
+    crossOriginLoading: 'anonymous',
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
