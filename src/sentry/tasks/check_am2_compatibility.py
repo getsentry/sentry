@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 import pytz
 import sentry_sdk
@@ -10,6 +10,7 @@ from django.db.models import Q
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.incidents.models import AlertRule
 from sentry.models import DashboardWidgetQuery, Organization, Project
+from sentry.snuba import metrics_performance
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics_enhanced_performance import query as performance_query
 from sentry.tasks.base import instrumented_task
@@ -207,9 +208,14 @@ class CheckAM2Compatibility:
 
     @classmethod
     def format_results(
-        cls, organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+        cls,
+        organization,
+        projects_compatibility,
+        unsupported_widgets,
+        unsupported_alerts,
+        outdated_sdks_per_project,
     ):
-        results: Dict[str, Any] = {}
+        results: Dict[str, Any] = {"projects_compatibility": projects_compatibility}
 
         widgets = []
         for dashboard_id, unsupported_widgets in unsupported_widgets.items():
@@ -370,6 +376,7 @@ class CheckAM2Compatibility:
         for condition in EXCLUDED_CONDITIONS:
             # We want to build an AND condition with multiple negated elements.
             qs &= ~Q(conditions__icontains=condition)
+            qs &= ~Q(fields__contains=condition)
 
         return qs
 
@@ -399,10 +406,54 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
+    def get_organization_metrics_compatibility(cls, organization, project_objects):
+        data: Dict[str, List[Any]] = {
+            "incompatible_projects": [],
+            "compatible_projects": [],
+        }
+
+        params = {
+            "organization_id": organization.id,
+            "project_objects": project_objects,
+            "start": datetime.now(tz=pytz.UTC) - timedelta(days=1),
+            "end": datetime.now(tz=pytz.UTC),
+        }
+
+        project_ids = [project.id for project in project_objects]
+
+        count_has_txn = "count_has_transaction_name()"
+        count_null = "count_null_transactions()"
+        compatible_results = metrics_performance.query(
+            selected_columns=[
+                "project.id",
+                count_null,
+                count_has_txn,
+            ],
+            params=params,
+            query=f"{count_null}:0 AND {count_has_txn}:>0",
+            referrer="api.organization-events",
+            functions_acl=["count_null_transactions", "count_has_transaction_name"],
+            use_aggregate_conditions=True,
+        )
+
+        data["compatible_projects"] = sorted(
+            row["project.id"] for row in compatible_results["data"]
+        )
+        data["incompatible_projects"] = sorted(
+            list(set(project_ids) - set(data["compatible_projects"]))
+        )
+
+        return data
+
+    @classmethod
     def run_compatibility_check(cls, org_id):
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
+
+        projects_compatibility = cls.get_organization_metrics_compatibility(
+            organization, all_projects
+        )
 
         unsupported_widgets = defaultdict(list)
         for (
@@ -458,7 +509,11 @@ class CheckAM2Compatibility:
             outdated_sdks_per_project = {}
 
         return cls.format_results(
-            organization, unsupported_widgets, unsupported_alerts, outdated_sdks_per_project
+            organization,
+            projects_compatibility,
+            unsupported_widgets,
+            unsupported_alerts,
+            outdated_sdks_per_project,
         )
 
 
@@ -529,6 +584,7 @@ def run_compatibility_check_async(org_id):
         set_check_status(org_id, CheckStatus.DONE)
         set_check_results(org_id, {"results": results})
     except Exception as e:
+        raise e
         sentry_sdk.capture_exception(e)
         # We want to store the error status for 1 minutes, after that the system will auto reset and we will run the
         # compatibility check again if follow-up requests happen.
