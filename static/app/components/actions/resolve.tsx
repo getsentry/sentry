@@ -151,7 +151,7 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
+    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -162,14 +162,14 @@ function ResolveActions({
       {
         key: 'current-release',
         label:
-          hasIssueResolveSemver || !latestRelease
+          hasIssueReleaseSemver || !latestRelease
             ? t('The current release')
             : t('The current release (%s)', formatVersion(latestRelease.version)),
         details: actionTitle
           ? actionTitle
-          : hasIssueResolveSemver && latestRelease
+          : hasIssueReleaseSemver && latestRelease
           ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('timestamp')
+              isSemver ? t('semver') : t('non-semver')
             })`
           : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
