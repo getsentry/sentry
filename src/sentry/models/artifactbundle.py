@@ -1,7 +1,7 @@
 import zipfile
 from enum import Enum
 from io import BytesIO
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple, cast
+from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
 from django.db import models, router
 from django.db.models.signals import post_delete
@@ -160,9 +160,7 @@ class ArtifactBundleFlatFileIndex(Model):
         ):
             current_file = self.flat_file_index
 
-            updated_file = self._create_flat_file_index_object(
-                cast(int, self.project_id), self.release_name, self.dist_name, file_contents
-            )
+            updated_file = self._create_flat_file_index_object(file_contents)
 
             # We have to update the new index file and also the date added, which is required for expiration.
             self.update(flat_file_index=updated_file, date_added=timezone.now())
@@ -179,9 +177,7 @@ class ArtifactBundleFlatFileIndex(Model):
         return self.flat_file_index.getfile().read().decode()
 
     @classmethod
-    def _create_flat_file_index_object(
-        cls, project_id: int, release: str, dist: str, file_contents: str
-    ):
+    def _create_flat_file_index_object(cls, file_contents: str):
         from sentry.models import File
 
         file = File.objects.create(
