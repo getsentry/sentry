@@ -49,7 +49,7 @@ def relay(relay_id, public_key):
 
 
 @pytest.fixture
-def call_global_config(client, relay, private_key, default_projectkey):
+def call_global_config(client, relay):
     def inner():
         path = reverse("sentry-api-0-relay-projectconfigs")
 
