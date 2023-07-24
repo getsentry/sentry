@@ -9,9 +9,9 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +33,7 @@ import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/c
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -120,7 +121,7 @@ export default function EndpointOverview() {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-endpoint-overview"
+        referrer="api.starfish-web-service.starfish-endpoint-overview"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
@@ -141,6 +142,13 @@ export default function EndpointOverview() {
             <Fragment>
               <Header>
                 <ChartLabel>{DataTitles.p95}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    '95% of requests in the selected period have a lower duration than this value'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -178,6 +186,13 @@ export default function EndpointOverview() {
               />
               <Header>
                 <ChartLabel>{DataTitles.throughput}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the number of requests made to this endpoint per second in the selected period'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -213,6 +228,13 @@ export default function EndpointOverview() {
               <SidebarSpacer />
               <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the total number of requests that resulted in 5XX response codes over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -268,7 +290,7 @@ export default function EndpointOverview() {
   useSynchronizeCharts();
 
   return (
-    <PageFiltersContainer>
+    <StarfishPageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -368,7 +390,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </PageFiltersContainer>
+    </StarfishPageFiltersContainer>
   );
 }
 
@@ -450,5 +472,5 @@ const Header = styled('div')`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: ${space(1)};
 `;

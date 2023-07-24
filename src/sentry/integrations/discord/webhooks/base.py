@@ -10,9 +10,9 @@ from sentry.web.decorators import transaction_start
 @region_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
     """
-    All Discord -> Sentry communication will come through our interactions endpoint.
-    We need to figure out what Discord is sending us and direct the request
-    to the appropriate handler.
+    All Discord -> Sentry communication will come through our interactions
+    endpoint. We need to figure out what Discord is sending us and direct the
+    request to the appropriate handler.
     """
 
     authentication_classes = ()
@@ -33,8 +33,18 @@ class DiscordInteractionsEndpoint(Endpoint):
             # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
             return self.respond({"type": 1}, status=200)
 
-        # handle other types here:
-        # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
+        elif discord_request.is_command():
+            # Temporary response to example command
+            return self.respond(
+                {
+                    "type": 4,
+                    "data": {
+                        "content": "howdy",
+                    },
+                },
+                status=200,
+            )
 
-        # otherwise, this isn't an interaction type that we need to worry about, so we'll just return 200
+        # This isn't an interaction type that we need to worry about, so we'll
+        # just return 200
         return self.respond(status=200)

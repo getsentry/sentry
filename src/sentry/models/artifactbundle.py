@@ -154,10 +154,14 @@ class ArtifactBundleFlatFileIndex(Model):
             using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
         ):
             current_file = self.flat_file_index
+
             updated_file = self._create_flat_file_index_object(
                 cast(int, self.project_id), self.release_name, self.dist_name, file_contents
             )
-            self.update(flat_file_index=updated_file)
+
+            # We have to update the new index file and also the date added, which is required for expiration.
+            self.update(flat_file_index=updated_file, date_added=timezone.now())
+            # It's important to also delete the old file, otherwise we will end up with orphan files in the database.
             current_file.delete()
 
     def load_flat_file_index(self) -> str:

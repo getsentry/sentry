@@ -11,7 +11,7 @@ from sentry.utils.outcomes import Outcome
 
 
 @freezegun.freeze_time("2022-01-01 03:30:00")
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()

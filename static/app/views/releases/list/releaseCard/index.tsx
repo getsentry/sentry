@@ -130,7 +130,11 @@ class ReleaseCard extends Component<Props> {
           </ReleaseInfoHeader>
           <ReleaseInfoSubheader>
             {versionInfo?.package && (
-              <PackageName ellipsisDirection="left">{versionInfo.package}</PackageName>
+              <PackageName>
+                <TextOverflow ellipsisDirection="left">
+                  {versionInfo.package}
+                </TextOverflow>
+              </PackageName>
             )}
             <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
             {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
@@ -244,9 +248,12 @@ const ReleaseInfoSubheader = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const PackageName = styled(TextOverflow)`
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const ReleaseProjects = styled('div')`

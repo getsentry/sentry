@@ -64,6 +64,7 @@ class AssembleResult(NamedTuple):
         self.bundle_temp_file.close()
 
 
+@sentry_sdk.tracing.trace
 def assemble_file(
     task, org_or_project, name, checksum, chunks, file_type
 ) -> Optional[AssembleResult]:
@@ -101,6 +102,11 @@ def assemble_file(
 
     # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
+        # Most likely a previous check to `find_missing_chunks` or similar
+        # reported a chunk exists by its checksum, but now it does not
+        # exist anymore
+        logger.error("`FileBlob` disappeared during async `assemble_XXX` task")
+
         set_assemble_status(
             task,
             org_or_project.id,
@@ -186,6 +192,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
+    from sentry.lang.native.sources import record_last_upload
     from sentry.models import BadDif, Project, debugfile
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -213,8 +220,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         delete_file = True
 
         with temp_file:
-            # We only permit split difs to hit this endpoint.  The
-            # client is required to split them up first or we error.
+            # We only permit split difs to hit this endpoint.
+            # The client is required to split them up first or we error.
             try:
                 result = debugfile.detect_dif_from_path(
                     temp_file.name, name=name, debug_id=debug_id
@@ -240,6 +247,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # and might resolve processing issues. If the file was not
                 # created, someone else has created it and will bump the
                 # revision instead.
+                record_last_upload(project)
                 bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(
@@ -324,6 +332,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
         with metrics.timer("tasks.assemble.release_bundle"):
             self._create_release_file()
 
+    @sentry_sdk.tracing.trace
     def _create_release_file(self):
         manifest = self.archive.manifest
 
@@ -361,6 +370,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
             }
             self._store_single_files(meta, True)
 
+    @sentry_sdk.tracing.trace
     def _store_single_files(self, meta: dict, count_as_artifacts: bool):
         try:
             temp_dir = self.archive.extract()
@@ -456,6 +466,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
+    @sentry_sdk.tracing.trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
@@ -574,6 +585,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 dist=self.dist or NULL_STRING,
             )
 
+    @sentry_sdk.tracing.trace
     def _bind_or_create_artifact_bundle(
         self, bundle_id: Optional[str], date_added: datetime
     ) -> Tuple[ArtifactBundle, bool]:
@@ -643,6 +655,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
+    @sentry_sdk.tracing.trace
     def _index_bundle_if_needed(self, release: str, dist: str, date_snapshot: datetime):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")

@@ -29,9 +29,13 @@ export const steps = ({
         language: 'bash',
         description: (
           <p>
-            {tct('Install [code:sentry-sdk] from PyPI with the [code:flask] extra:', {
-              code: <code />,
-            })}
+            {tct(
+              'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
+              {
+                sentrySdkCode: <code />,
+                sentryFlaskCode: <code />,
+              }
+            )}
           </p>
         ),
         code: "pip install --upgrade 'sentry-sdk[flask]'",

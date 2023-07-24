@@ -589,6 +589,11 @@ function buildRoutes() {
         />
       </Route>
       <Route
+        path="loader-script/"
+        name={t('Loader Script')}
+        component={make(() => import('sentry/views/settings/project/loaderScript'))}
+      />
+      <Route
         path="user-feedback/"
         name={t('User Feedback')}
         component={make(
@@ -1689,15 +1694,6 @@ function buildRoutes() {
         path="definitions/"
         component={make(() => import('sentry/views/starfish/views/definitionsView'))}
       />
-      <Route path="api/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
-        />
-        <Route
-          path="span/:groupId/"
-          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-        />
-      </Route>
       <Route path="spans/">
         <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
         <Route
