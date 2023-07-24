@@ -9,7 +9,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -63,7 +62,7 @@ class SlackClientDisable(TestCase):
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
         assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
+            Integration.objects.filter(integration_id=self.integration.id).status
             == ObjectStatus.DISABLED
         )
 
@@ -86,8 +85,8 @@ class SlackClientDisable(TestCase):
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
         assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.ACTIVE
+            Integration.objects.filter(integration_id=self.integration.id).status
+            == ObjectStatus.DISABLED
         )
 
     @responses.activate
@@ -145,8 +144,8 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
         assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.ACTIVE
+            Integration.objects.filter(integration_id=self.integration.id).status
+            == ObjectStatus.DISABLED
         )
 
     @responses.activate
@@ -174,6 +173,6 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
         assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
+            Integration.objects.filter(integration_id=self.integration.id).status
             == ObjectStatus.DISABLED
         )
