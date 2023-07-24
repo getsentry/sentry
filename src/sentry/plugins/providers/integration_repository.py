@@ -85,6 +85,7 @@ class IntegrationRepositoryProvider:
 
         integration_id = result.get("integration_id")
         external_id = result.get("external_id")
+        name = result.get("name")
 
         repo_update_params = {
             "external_id": external_id,
@@ -92,25 +93,26 @@ class IntegrationRepositoryProvider:
             "config": result.get("config") or {},
             "provider": self.id,
             "integration_id": integration_id,
+            "name": name,
         }
 
         # first check if there is an existing hidden repository with an integration that matches
         existing_repo = Repository.objects.filter(
             organization_id=organization.id,
-            name=result["name"],
             integration_id=integration_id,
             external_id=external_id,
             status=ObjectStatus.HIDDEN,
         ).first()
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
+            existing_repo.name = name
             existing_repo.save()
             metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
         # then check if there is a repository without an integration that matches
         repo = Repository.objects.filter(
-            organization_id=organization.id, name=result["name"], integration_id=None
+            organization_id=organization.id, external_id=external_id, integration_id=None
         ).first()
 
         if repo:
@@ -133,17 +135,22 @@ class IntegrationRepositoryProvider:
             try:
                 with transaction.atomic(router.db_for_write(Repository)):
                     repo = Repository.objects.create(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
+                        organization_id=organization.id, **repo_update_params
                     )
             except IntegrityError:
                 # Try to delete webhook we just created
                 try:
-                    repo = Repository(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
-                    )
+                    repo = Repository(organization_id=organization.id, **repo_update_params)
                     self.on_delete_repository(repo)
                 except IntegrationError:
                     pass
+
+                # if possible update the repo with matching integration
+                repo = Repository.objects.filter(
+                    organization_id=organization.id,
+                    external_id=external_id,
+                    integration_id=integration_id,
+                ).update(**repo_update_params)
 
                 raise RepoExistsError
 
@@ -157,6 +164,9 @@ class IntegrationRepositoryProvider:
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
+        except RepoExistsError as e:
+            metrics.incr("sentry.integration_repo_provider.repo_exists")
+            return self.handle_api_error(e)
         except Exception as e:
             return self.handle_api_error(e)
 
