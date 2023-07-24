@@ -21,7 +21,10 @@ def build_incident_attachment(incident, new_status: IncidentStatus, metric_value
             "message": incident.alert_rule.name,
             "alias": alert_key,
             "description": data["text"],
-            "source": data["title_link"],
+            "source": "Sentry",
+            "details": {
+                "URL": data["title_link"],
+            },
         }
     return payload
 

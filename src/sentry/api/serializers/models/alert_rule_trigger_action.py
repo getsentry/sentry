@@ -29,7 +29,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             AlertRuleTriggerAction.Type.SENTRY_APP.value,
         ]:
             return int(action.target_identifier)
-
+        if action.type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+            # return team ID
+            return action.target_identifier
         # if an input_channel_id is provided, we flip these to display properly
         return (
             action.target_display if action.target_display is not None else action.target_identifier

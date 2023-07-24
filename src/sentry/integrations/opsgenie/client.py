@@ -64,7 +64,7 @@ class OpsgenieClient(IntegrationProxyClient):
             group = data.group
             event = data
             # If we're sending an event alert, there will always be rules. This is just to be safe.
-            triggering_rules = ", ".join([rule.name for rule in rules]) if rules else ""
+            triggering_rules = ", ".join([rule.label for rule in rules]) if rules else ""
             payload = {
                 "message": event.message or event.title,
                 "alias": f"sentry: {group.id}",
@@ -91,5 +91,7 @@ class OpsgenieClient(IntegrationProxyClient):
             payload = data
             # if we're acknowledging the alert
             if payload.get("identifier"):
-                return self.post("/alerts/:identifier/acknowledge", params=payload, headers=headers)
+                return self.post(
+                    "/alerts/:identifier/acknowledge", data={}, params=payload, headers=headers
+                )
         return self.post("/alerts", data=payload, headers=headers)

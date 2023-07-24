@@ -1324,10 +1324,20 @@ def get_alert_rule_trigger_action_pagerduty_service(
     return service["id"], service["service_name"]
 
 
-def get_alert_rule_trigger_action_opsgenie_team(target_value, organization, integration_id):
+def get_alert_rule_trigger_action_opsgenie_team(
+    target_value,
+    organization,
+    integration_id,
+    use_async_lookup=False,
+    input_channel_id=None,
+    integrations=None,
+):
     from sentry.integrations.opsgenie.utils import get_team
 
-    team = get_team(organization, target_value)
+    oi = integration_service.get_organization_integration(
+        integration_id=integration_id, organization_id=organization.id
+    )
+    team = get_team(oi, target_value)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
     return team["id"], team["team"]
@@ -1381,6 +1391,19 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
         return []
     services = PagerDutyService.services_in(org_int.config)
     return [(s["id"], s["service_name"]) for s in services]
+
+
+def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    teams = []
+    team_table = org_int.config.get("team_table")
+    if team_table:
+        teams = [(team["id"], team["team"]) for team in team_table]
+    return teams
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

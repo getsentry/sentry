@@ -80,6 +80,7 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
     };
     availableActions.forEach(a => {
       availableServicesMap[a.action.serviceType as NotificationActionService].push(a);
@@ -103,6 +104,7 @@ function NotificationActionManager({
       [NotificationActionService.PAGERDUTY]: [],
       [NotificationActionService.MSTEAMS]: [],
       [NotificationActionService.SENTRY_APP]: [],
+      [NotificationActionService.OPSGENIE]: [],
     };
     notificationActions.forEach((action, index) => {
       if (action.serviceType) {
