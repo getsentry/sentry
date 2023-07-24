@@ -23,7 +23,6 @@ import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
-import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 const READABLE_YAXIS_LABELS = {
   'avg(measurements.app_start_cold)': 'avg(app_start_cold)',
@@ -34,8 +33,7 @@ const READABLE_YAXIS_LABELS = {
   'avg(measurements.frames_frozen_rate)': 'avg(frames_frozen_rate)',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function MobileStarfishView(props: BaseStarfishViewProps) {
+export function MobileStarfishView() {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {data: releases, isLoading: isReleasesLoading} = useReleases();
