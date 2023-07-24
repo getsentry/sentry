@@ -4,18 +4,9 @@ import pytest
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.relay import Relay
-from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
-
-
-@pytest.fixture(autouse=True)
-def disable_auto_on_commit():
-    simulated_transaction_watermarks.state["default"] = -1
-    with in_test_hide_transaction_boundary():
-        yield
 
 
 @pytest.fixture

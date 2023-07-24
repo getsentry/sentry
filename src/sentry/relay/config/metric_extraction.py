@@ -192,7 +192,7 @@ def _threshold_to_rules(
         ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
     ],
     extra_conditions: Sequence[RuleCondition],
-) -> Sequence[MetricConditionalTaggingRule]:
+) -> List[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
         "condition": {
             "op": "and",
