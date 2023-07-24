@@ -136,7 +136,7 @@ def project_config_get_mock(monkeypatch):
 
 
 @django_db_all
-def test_return_global_config():
+def test_return_global_config(call_global_config):
     result, status_code = call_global_config()
     assert status_code < 400
     # i'll put this in separate file ofc, this is temporary
