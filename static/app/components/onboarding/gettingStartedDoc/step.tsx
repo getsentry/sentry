@@ -143,8 +143,8 @@ const Description = styled(Configuration)`
   }
 `;
 
-const AdditionalInfo = styled(Configuration)``;
+const AdditionalInfo = styled(Description)``;
 
-const GeneralAdditionalInfo = styled(Configuration)`
+const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
 `;
