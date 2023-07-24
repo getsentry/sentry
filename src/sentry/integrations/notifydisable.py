@@ -2,18 +2,15 @@ from django.urls import reverse
 
 from sentry.models import Organization
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-
 
 provider_types = {
     "integration": "integrations",
     "plugin": "plugins",
     "sentry-app": "sentry-apps",
 }
-
-
 
 
 def get_url(organization: Organization, provider_type: str) -> str:
@@ -23,6 +20,7 @@ def get_url(organization: Organization, provider_type: str) -> str:
             f"/settings/{organization.slug}/{type_name}/",
         )
     )
+
 
 def get_provider_type(redis_key) -> str:
     for provider in provider_types:
@@ -34,7 +32,9 @@ def get_subject(integration_name) -> str:
     return f"Action required: re-authenticate or fix your {integration_name} integration"
 
 
-def notify_disable(organization=Organization, integration=RpcIntegration, redis_key=str, project=None):
+def notify_disable(
+    organization=Organization, integration=RpcIntegration, redis_key=str, project=None
+):
 
     from sentry import integrations
     from sentry.utils.email import MessageBuilder
@@ -43,9 +43,12 @@ def notify_disable(organization=Organization, integration=RpcIntegration, redis_
 
     integration_name = provider.name
     integration_link = get_url(
-        organization, get_provider_type(redis_key),
+        organization,
+        get_provider_type(redis_key),
     )
-    settings_link = organization.absolute_url(reverse("sentry-organization-settings", args=[organization.slug]))
+    settings_link = organization.absolute_url(
+        reverse("sentry-organization-settings", args=[organization.slug])
+    )
 
     user_email = None
     users = organization.get_owners()
@@ -54,7 +57,6 @@ def notify_disable(organization=Organization, integration=RpcIntegration, redis_
     for user in users:
 
         user_email = user.email
-
 
         msg = MessageBuilder(
             subject=get_subject(integration_name),
