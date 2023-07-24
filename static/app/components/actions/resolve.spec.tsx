@@ -169,7 +169,7 @@ describe('ResolveActions', function () {
   });
 
   it('displays if the current release version uses semver', async function () {
-    const organization = TestStubs.Organization({features: ['issue-resolve-semver']});
+    const organization = TestStubs.Organization({features: ['issue-release-semver']});
     render(
       <ResolveActions
         onUpdate={spy}
