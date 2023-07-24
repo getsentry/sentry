@@ -109,5 +109,6 @@ class IntegrationRepositoryTestCase(TestCase):
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
+
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION

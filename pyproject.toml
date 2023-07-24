@@ -1127,7 +1127,6 @@ module = [
     "tests.sentry.middleware.test_ratelimit_middleware",
     "tests.sentry.middleware.test_stats",
     "tests.sentry.middleware.test_subdomain",
-    "tests.sentry.middleware.test_useractive",
     "tests.sentry.models.test_notificationaction",
     "tests.sentry.models.test_notificationsetting",
     "tests.sentry.models.test_organization",
