@@ -30,29 +30,29 @@ class Action:
     _is_modifier: bool
     _is_updater: bool
 
-    def apply_modifications_to_frame(
-        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
+    def apply_modifications_to_frame(self, frames, match_frames, idx):
+        pass
+
+    def update_frame_components_contributions(
+        self, components: Any, frames: Sequence[dict[str, Any]], idx: Any, rule: Any = None
     ) -> None:
         pass
 
-    def update_frame_components_contributions(self, components, frames, idx, rule=None):
-        pass
-
-    def modify_stacktrace_state(self, state, rule):
+    def modify_stacktrace_state(self, state: Any, rule: Any) -> None:
         pass
 
     @property
-    def is_modifier(self):
+    def is_modifier(self) -> bool:
         """Does this action modify the frame?"""
         return self._is_modifier
 
     @property
-    def is_updater(self):
+    def is_updater(self) -> bool:
         """Does this action update grouping components?"""
         return self._is_updater
 
     @classmethod
-    def _from_config_structure(cls, val, version):
+    def _from_config_structure(cls: Any, val: Any, version: int) -> Any:
         if isinstance(val, list):
             return VarAction(val[0], val[1])
         flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
@@ -67,19 +67,19 @@ class FlagAction(Action):
         self.flag = flag
         self.range = range
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}{}{}".format(
             {"up": "^", "down": "v"}.get(self.range, ""),
             self.flag and "+" or "-",
             self.key,
         )
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> int:
         return ACTIONS.index(self.key) | (
             ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
         )
 
-    def _slice_to_range(self, seq, idx):
+    def _slice_to_range(self, seq: Any, idx: Any) -> Any:
         if self.range is None:
             return [seq[idx]]
         elif self.range == "down":
@@ -88,7 +88,7 @@ class FlagAction(Action):
             return seq[idx + 1 :]
         return []
 
-    def _in_app_changed(self, frame, component):
+    def _in_app_changed(self, frame: dict[str, Any], component: Any) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
 
         if orig_in_app is not None:
@@ -98,15 +98,19 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(
-        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
-    ) -> None:
+    def apply_modifications_to_frame(self, frames, match_frames, idx):
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
                 match_frame["in_app"] = frame["in_app"]
 
-    def update_frame_components_contributions(self, components, frames, idx, rule=None):
+    def update_frame_components_contributions(
+        self,
+        components: Any,
+        frames: Sequence[dict[str, Any]],
+        idx: Any,
+        rule: Any = None,
+    ) -> None:
         rule_hint = "stack trace rule"
         if rule:
             rule_hint = f"{rule_hint} ({rule.matcher_description})"
@@ -149,7 +153,7 @@ class VarAction(Action):
 
     _FRAME_VARIABLES = {"category"}
 
-    def __init__(self, var, value):
+    def __init__(self, var: str, value: str) -> None:
         self.var = var
         self._is_modifier = self.var == "category"
         self._is_updater = self.var not in VarAction._FRAME_VARIABLES
@@ -165,19 +169,17 @@ class VarAction(Action):
             self.value.encode("utf-8") if isinstance(self.value, str) else self.value
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: Any) -> list[Any]:
         return [self.var, self.value]
 
-    def modify_stacktrace_state(self, state, rule):
+    def modify_stacktrace_state(self, state: Any, rule: int) -> None:
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(
-        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
-    ) -> None:
+    def apply_modifications_to_frame(self, frames, match_frames, idx):
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
