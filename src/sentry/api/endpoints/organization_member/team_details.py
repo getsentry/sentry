@@ -124,7 +124,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
         # are not part of using team:write. We cannot explicitly check for team:write b/c org admins
-        # but are only allowed to remove members from teams they are on.
+        # have it but are only allowed to remove members from teams they are on.
         if _is_org_owner_or_manager(request.access):
             return True
 
