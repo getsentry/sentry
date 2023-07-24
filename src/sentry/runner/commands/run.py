@@ -684,6 +684,7 @@ def profiles_consumer(**options):
 @click.option(
     "--max-poll-interval-ms",
     type=int,
+    default=45000,
 )
 @click.option(
     "--synchronize-commit-log-topic",
