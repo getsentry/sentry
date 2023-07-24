@@ -160,6 +160,7 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: List[ExternalActorResponse]
     organization: OrganizationSerializerResponse
     projects: List[ProjectSerializerResponse]
+    orgRole: str  # TODO(cathy): Change to new key
 
 
 class TeamSerializerResponse(_TeamSerializerResponseOptional):
@@ -175,7 +176,6 @@ class TeamSerializerResponse(_TeamSerializerResponseOptional):
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
-    orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
 @register(Team)
