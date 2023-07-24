@@ -52,7 +52,7 @@ export default function SourceMapsWizard() {
           setIsHidden(true);
           setHideUntilTime(DISMISS_TIME);
           trackAnalytics('issue_details.sourcemap_wizard_dismiss', {
-            organization: organization.id,
+            organization,
           });
         }}
         icon={<IconClose size="xs" />}
@@ -70,7 +70,7 @@ export default function SourceMapsWizard() {
               <ExternalLink
                 onClick={() => {
                   trackAnalytics('issue_details.sourcemap_wizard_learn_more', {
-                    organization: organization.id,
+                    organization,
                   });
                 }}
                 openInNewTab
@@ -86,7 +86,7 @@ export default function SourceMapsWizard() {
           language="bash"
           onCopy={() => {
             trackAnalytics('issue_details.sourcemap_wizard_copy', {
-              organization: organization.id,
+              organization,
             });
           }}
         >
