@@ -293,7 +293,10 @@ describe('GroupReplays', () => {
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
               id: '346789a703f6454384f1de473b8b9fcc',
               started_at: new Date('2022-09-15T06:50:00+00:00'),
-              urls: ['https://dev.getsentry.net:7999/replays/', '/replays/?project=2'],
+              urls: [
+                'https://dev.getsentry.net:7999/replays/',
+                '/organizations/sentry-emerging-tech/replays/?project=2',
+              ],
             },
             {
               ...TestStubs.ReplayList()[0],
@@ -339,13 +342,13 @@ describe('GroupReplays', () => {
       // Expect the first row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
         'href',
-        `/replays/${REPLAY_ID_1}/?${expectedQuery}`
+        `/organizations/org-slug/replays/${REPLAY_ID_1}/?${expectedQuery}`
       );
 
       // Expect the second row to have the correct href
       expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
         'href',
-        `/replays/${REPLAY_ID_2}/?${expectedQuery}`
+        `/organizations/org-slug/replays/${REPLAY_ID_2}/?${expectedQuery}`
       );
 
       // Expect the first row to have the correct duration
