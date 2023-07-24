@@ -106,7 +106,13 @@ def normalize_message_for_grouping(string: str) -> str:
     """Replace values from a group's message to hide P.I.I. and improve grouping when no
     stacktrace available.
     """
-    s = "\n".join(islice((x for x in string.splitlines() if x.strip()), 2)).strip()
+    s = "\n".join(
+        # If there are multiple lines, grab the first two non-empty ones.
+        islice(
+            (x for x in string.splitlines() if x.strip()),
+            2,
+        )
+    ).strip()
     if s != string:
         s += "..."
 
