@@ -115,7 +115,7 @@ class MetricsQueryBuilder(QueryBuilder):
             sentry_sdk.capture_exception(e)
             return None
 
-    def _get_on_demand_metrics_query(self, query: Any) -> Optional[MetricsQuery]:
+    def _get_on_demand_metrics_query(self, snuba_query: Query) -> Optional[MetricsQuery]:
         spec = self._on_demand_spec
 
         # TimeseriesQueryBuilder specific parameters
@@ -126,7 +126,7 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = self.limit
             alias = spec.mri
 
-        granularity = query.granularity or self.resolve_granularity()
+        granularity = snuba_query.granularity or self.resolve_granularity()
 
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
