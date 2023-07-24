@@ -155,6 +155,9 @@ EXCLUDED_CONDITIONS = [
     # Match multiple tags that contain this.
     "stack.",
     "error.",
+    # Match generic values.
+    "issue",
+    "exception",
 ]
 
 
