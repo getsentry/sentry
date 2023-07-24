@@ -99,6 +99,8 @@ class TransactionMetricKey(Enum):
     # NOTE: These might be moved to their own namespace soon.
     SPAN_USER = "span.user"
     SPAN_DURATION = "span.duration"
+    SPAN_SELF_TIME = "span.exclusive_time"
+    SPAN_SELF_TIME_LIGHT = "span.exclusive_time_light"
 
     # TODO: Remove this as soon as the MetricsQuery supports private metrics
     COUNT_ON_DEMAND = "count.on_demand"
