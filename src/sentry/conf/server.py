@@ -359,6 +359,11 @@ TEMPLATES = [
     }
 ]
 
+SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+    "CONTROL": ["sentry.ControlOutbox"],
+    "REGION": ["sentry.RegionOutbox"],
+}
+
 INSTALLED_APPS = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
