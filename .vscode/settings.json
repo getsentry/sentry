@@ -16,37 +16,47 @@
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
+
   "files.associations": {
     "*.jsx": "javascriptreact"
   },
+
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
+
   "[javascript]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+
   "[typescript]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+  // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
     "**/config/chartcuterie/*",
     "**/node_modules/@testing-library/*",
     "**/node_modules/@tanstack/react-query"
   ],
+  // Avoid relative imports
   "typescript.preferences.importModuleSpecifier": "non-relative",
+
   "[typescriptreact]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+
   "[javascriptreact]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+
   "[less]": {
     "editor.formatOnSave": true
   },
+
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -54,11 +64,15 @@
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
+
   "[html]": {
     "editor.formatOnSave": false
   },
+
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
+  // test discovery is sluggish and the UI around running
+  // tests is often in your way and misclicked
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.nosetestsEnabled": false,
@@ -70,27 +84,5 @@
   "python.testing.pytestPath": "${workspaceFolder}/.venv/bin/pytest",
   "python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
   "python.formatting.provider": "none",
-  "python.testing.pytestArgs": [
-    "tests"
-  ],
-  "workbench.colorCustomizations": {
-    "activityBar.activeBackground": "#65678e",
-    "activityBar.background": "#65678e",
-    "activityBar.foreground": "#e7e7e7",
-    "activityBar.inactiveForeground": "#e7e7e799",
-    "activityBarBadge.background": "#4b3536",
-    "activityBarBadge.foreground": "#e7e7e7",
-    "commandCenter.border": "#e7e7e799",
-    "sash.hoverBorder": "#65678e",
-    "statusBar.background": "#505170",
-    "statusBar.foreground": "#e7e7e7",
-    "statusBarItem.hoverBackground": "#65678e",
-    "statusBarItem.remoteBackground": "#505170",
-    "statusBarItem.remoteForeground": "#e7e7e7",
-    "titleBar.activeBackground": "#505170",
-    "titleBar.activeForeground": "#e7e7e7",
-    "titleBar.inactiveBackground": "#50517099",
-    "titleBar.inactiveForeground": "#e7e7e799"
-  },
-  "peacock.color": "#505170"
+  "python.testing.pytestArgs": ["tests"]
 }
