@@ -47,7 +47,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
         if (!projectSlug) {
           window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
         } else {
-          window.location.href = `${sentryUrl}/organizations/${orgSlug}/settings/${orgSlug}/projects/${projectSlug}/teams/`;
+          window.location.href = `${sentryUrl}/organizations/${orgSlug}/settings/projects/${projectSlug}/teams/`;
           // done this way since we need to change subdomains
         }
       },
