@@ -1,0 +1,17 @@
+Hi there,
+
+    We’ve encountered an issue with the {{ integration_name }} integration that you’ve set up.</p><p>
+    To restore the connection and prevent data loss, please re-authenticate or fix the integration as quickly as possible.</p><p>
+    Please follow the link below to view the {{ integration_name }} integration in Sentry. If you need additional assistance, you can reach out to our support team at [support alias].
+
+
+
+View {{ integration_name }} integration by clicking the link below:
+
+    {{ integration_link }}
+
+
+Let’s get integrated.
+
+You are receiving this email because you’re listed as an organization Owner or Manager.
+Requests to join your organization can be disabled in Organization Settings: {{ settings_link }}.

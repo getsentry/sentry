@@ -59,6 +59,7 @@ class NotifyDisable:
                     "settings_link": settings_link,
                 },
                 html_template="sentry/integrations/notify-disable.html",
+                txt_template="sentry/integrations/notify-disable.txt",
             )
 
             msg.send_async([user_email])
