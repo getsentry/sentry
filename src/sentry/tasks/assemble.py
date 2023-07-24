@@ -486,7 +486,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         # the debug_id can have an additional appendix which we want to remove as it is
         # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
         # formatted with `-` to 36 chars.
-        bundle_id = bundle_id[:36]
+        bundle_id = bundle_id[:36] if bundle_id else uuid.uuid4().hex
 
         analytics.record(
             "artifactbundle.manifest_extracted",
