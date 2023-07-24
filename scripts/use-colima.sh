@@ -20,6 +20,23 @@ brew install docker
 brew unlink docker
 brew link --overwrite docker
 
+# This removes credsStore, saving it under oldCredsStore so it can be restored later.
+# The right value under colima for this is "colima", but I think vast majority of people
+# are authing their docker through gcloud, not docker cli.
+python3 <<'EOF'
+import os
+import json
+with open(os.path.expanduser("~/.docker/config.json"), "rb") as f:
+    config = json.loads(f.read())
+    credsStore = config.get("credsStore")
+    if credsStore is None:
+        exit(0)
+    config["oldCredsStore"] = credsStore
+    del config["credsStore"]
+with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
+    f.write(json.dumps(config))
+EOF
+
 echo "Installing colima."
 brew install colima
 brew link colima
