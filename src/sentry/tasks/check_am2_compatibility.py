@@ -587,7 +587,6 @@ def run_compatibility_check_async(org_id):
         set_check_status(org_id, CheckStatus.DONE)
         set_check_results(org_id, {"results": results})
     except Exception as e:
-        raise e
         sentry_sdk.capture_exception(e)
         # We want to store the error status for 1 minutes, after that the system will auto reset and we will run the
         # compatibility check again if follow-up requests happen.
