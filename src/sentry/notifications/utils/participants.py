@@ -256,7 +256,7 @@ def get_owners(
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
+            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
         )
         recipients = RpcActor.many_from_object(users)
 
