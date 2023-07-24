@@ -14,6 +14,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -1324,7 +1325,13 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
     from sentry.services.hybrid_cloud.app import app_service
 
     if installations is None:
-        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+        # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
+        # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
+        # which we would like to avoid. We should refactor to obviate the need for this watermark
+        with django_test_transaction_water_mark():
+            installations = app_service.get_installed_for_organization(
+                organization_id=organization.id
+            )
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
