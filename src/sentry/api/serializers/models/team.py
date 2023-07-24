@@ -160,7 +160,7 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: List[ExternalActorResponse]
     organization: OrganizationSerializerResponse
     projects: List[ProjectSerializerResponse]
-    orgRole: str  # TODO(cathy): Change to new key
+    orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
 class TeamSerializerResponse(_TeamSerializerResponseOptional):
@@ -319,7 +319,6 @@ class TeamSerializer(Serializer):
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
             "avatar": avatar,
-            "orgRole": obj.org_role,
         }
 
         # Expandable attributes.
