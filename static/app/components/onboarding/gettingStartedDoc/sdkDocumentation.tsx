@@ -76,6 +76,7 @@ export const migratedDocs = [
   'node-serverlesscloud',
   'electron',
   'elixir',
+  'android',
 ];
 
 type SdkDocumentationProps = {
@@ -115,6 +116,8 @@ export function SdkDocumentation({
         ? `minidump/minidump`
         : platform?.id === 'native-qt'
         ? `native/native-qt`
+        : platform?.id === 'android'
+        ? `android/android`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
