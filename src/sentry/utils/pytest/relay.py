@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import time
+import os
 from os import environ, path
 from urllib.parse import urlparse
 
