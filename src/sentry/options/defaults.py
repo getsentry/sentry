@@ -1267,7 +1267,7 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=500,  # ms
+    default=900,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
