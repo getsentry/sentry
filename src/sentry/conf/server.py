@@ -955,8 +955,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors": {
-        "task": "sentry.monitors.tasks.check_monitors",
+    "check-monitors-missing": {
+        "task": "sentry.monitors.tasks.check_missing",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "check-monitors-timeout": {
+        "task": "sentry.monitors.tasks.check_timeout",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1492,6 +1498,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
