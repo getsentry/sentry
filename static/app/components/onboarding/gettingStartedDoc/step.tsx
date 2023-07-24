@@ -43,6 +43,10 @@ type ConfigurationType = {
    * A callback to be invoked when the configuration is copied to the clipboard
    */
   onCopy?: () => void;
+  /**
+   * A callback to be invoked when the configuration is selected and copied to the clipboard
+   */
+  onSelectAndCopy?: () => void;
 };
 
 interface BaseStepProps {
@@ -74,12 +78,18 @@ function getConfiguration({
   language,
   additionalInfo,
   onCopy,
+  onSelectAndCopy,
 }: ConfigurationType) {
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
       {language && code && (
-        <CodeSnippet dark language={language} onCopy={onCopy}>
+        <CodeSnippet
+          dark
+          language={language}
+          onCopy={onCopy}
+          onSelectAndCopy={onSelectAndCopy}
+        >
           {language === 'javascript'
             ? beautify.js(code, {indent_size: 2, e4x: true})
             : code.trim()}

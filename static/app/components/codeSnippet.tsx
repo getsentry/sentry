@@ -16,6 +16,10 @@ interface CodeSnippetProps {
   filename?: string;
   hideCopyButton?: boolean;
   onCopy?: (copiedCode: string) => void;
+  /**
+   * Fired when the user selects and copies code snippet manually
+   */
+  onSelectAndCopy?: () => void;
 }
 
 export function CodeSnippet({
@@ -26,6 +30,7 @@ export function CodeSnippet({
   hideCopyButton,
   onCopy,
   className,
+  onSelectAndCopy,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -64,6 +69,20 @@ export function CodeSnippet({
       ? t('Copied')
       : t('Unable to copy');
 
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    if (language in Prism.languages) {
+      Prism.highlightElement(element);
+      return;
+    }
+
+    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
+  }, [children, language]);
+
   return (
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
       <Header hasFileName={!!filename}>
@@ -85,7 +104,11 @@ export function CodeSnippet({
       </Header>
 
       <pre className={`language-${String(language)}`}>
-        <code ref={ref} className={`language-${String(language)}`}>
+        <code
+          ref={ref}
+          className={`language-${String(language)}`}
+          onCopy={onSelectAndCopy}
+        >
           {children}
         </code>
       </pre>
