@@ -120,7 +120,11 @@ export function FunctionTrendsWidget({
         )}
         {!isError && !isLoading && !hasTrends && (
           <EmptyStateWarning>
-            <p>{t('No functions found')}</p>
+            {trendType === 'regression' ? (
+              <p>{t('No regressed functions detected')}</p>
+            ) : (
+              <p>{t('No improved functions detected')}</p>
+            )}
           </EmptyStateWarning>
         )}
         {hasTrends && (
