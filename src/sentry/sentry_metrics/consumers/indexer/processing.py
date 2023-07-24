@@ -8,9 +8,17 @@ from arroyo.types import Message
 from django.conf import settings
 
 from sentry import options
-from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import (
+    IndexerStorage,
+    MetricsIngestConfiguration,
+    UseCaseKey,
+)
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.tags_validator import (
+    GenericMetricsTagsValidator,
+    ReleaseHealthTagsValidator,
+)
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
@@ -47,6 +55,15 @@ class MessageProcessor:
         # mypy: "cannot access init directly"
         # yes I can, watch me.
         self.__init__(config)  # type: ignore
+
+    def __get_tags_validator(self) -> Callable[[Mapping[str, str]], bool]:
+        """
+        Get the tags validator function for the current use case.
+        """
+        if self._config.use_case_id == UseCaseKey.RELEASE_HEALTH:
+            return ReleaseHealthTagsValidator().is_allowed
+        else:
+            return GenericMetricsTagsValidator().is_allowed
 
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
         with sentry_sdk.start_transaction(
@@ -89,6 +106,7 @@ class MessageProcessor:
             should_index_tag_values=should_index_tag_values,
             is_output_sliced=is_output_sliced,
             input_codec=_INGEST_CODEC,
+            tags_validator=self.__get_tags_validator(),
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))

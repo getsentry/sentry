@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCaseKey
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class MetricsKeyIndexer(Model):
 
 
 class BaseIndexer(Model):
-    string = models.CharField(max_length=200)
+    string = models.CharField(max_length=MAX_INDEXED_COLUMN_LENGTH)
     organization_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
