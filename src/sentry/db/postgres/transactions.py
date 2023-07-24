@@ -13,7 +13,7 @@ from sentry.utils.env import in_test_environment
 def django_test_transaction_water_mark(using: str | None = None):
     """
     Hybrid cloud outbox flushing depends heavily on transaction.on_commit logic, but our tests do not follow
-    production in terms of isolation (TestCase users two outer transactions, and stubbed RPCs cannot simulate
+    production in terms of isolation (TestCase uses two outer transactions, and stubbed RPCs cannot simulate
     transactional isolation without breaking other test case assumptions).  Therefore, in order to correctly
     simulate transaction.on_commit semantics, use this context in any place where we "simulate" inter transaction
     work that in tests should behave that way.
