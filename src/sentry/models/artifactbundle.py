@@ -255,13 +255,7 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
-        # TODO: this index can be removed and maybe replaced with a different one
-        # The `ReleaseFile` table has a `release_id+name` index. Similarly, we could
-        # create a `artifact_bundle+url` index, though the effectiveness of that
-        # might be limited as we are primarily doing substring searches.
-        index_together = (
-            ("organization_id", "release_name", "dist_name", "url", "artifact_bundle"),
-        )
+        index_together = (("url", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -269,10 +263,10 @@ class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250, db_index=True)
+    release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -280,7 +274,9 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        # We add the organization_id to this index since there are many occurrences of the same release/dist
+        # pair, and we would like to reduce the result set by scoping to the org.
+        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -297,9 +293,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        # We can have the same debug_id pointing to different artifact_bundle(s) because the user might upload
-        # the same artifacts twice, or they might have certain build files that don't change across builds.
-        unique_together = (("debug_id", "artifact_bundle", "source_file_type"),)
+        index_together = (("debug_id", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -307,7 +301,7 @@ class ProjectArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -315,7 +309,7 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        unique_together = (("project_id", "artifact_bundle"),)
+        index_together = (("project_id", "artifact_bundle"),)
 
 
 class ArtifactBundleArchive:
@@ -391,19 +385,12 @@ class ArtifactBundleArchive:
 
     def extract_debug_ids_from_manifest(
         self,
-    ) -> Tuple[Optional[str], Set[Tuple[SourceFileType, str]]]:
+    ) -> Set[Tuple[SourceFileType, str]]:
         # We use a set, since we might have the same debug_id and file_type.
         debug_ids_with_types = set()
 
-        # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
-        # identify a specific ArtifactBundle in case for example of future deletion.
-        #
-        # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
-        # ReleaseArtifactBundle table.
-        bundle_id = self._extract_bundle_id()
-
         files = self.manifest.get("files", {})
-        for file_path, info in files.items():
+        for info in files.values():
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
                 debug_id = self.normalize_debug_id(debug_id)
@@ -416,9 +403,9 @@ class ArtifactBundleArchive:
                 ):
                     debug_ids_with_types.add((source_file_type, debug_id))
 
-        return bundle_id, debug_ids_with_types
+        return debug_ids_with_types
 
-    def _extract_bundle_id(self):
+    def extract_bundle_id(self) -> Optional[str]:
         bundle_id = self.manifest.get("debug_id")
 
         if bundle_id is not None:

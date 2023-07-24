@@ -137,7 +137,11 @@ const Configurations = styled(Configuration)`
   margin-top: ${space(2)};
 `;
 
-const Description = styled(Configuration)``;
+const Description = styled(Configuration)`
+  code {
+    color: ${p => p.theme.pink400};
+  }
+`;
 
 const AdditionalInfo = styled(Configuration)``;
 
