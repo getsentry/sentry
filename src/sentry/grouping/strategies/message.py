@@ -137,12 +137,12 @@ def message_v1(
 ) -> ReturnedVariants:
     if context["normalize_message"]:
         message_in = interface.message or interface.formatted or ""
-        message_trimmed = normalize_message_for_grouping(message_in)
-        hint = "stripped common values" if message_in != message_trimmed else None
+        normalized = normalize_message_for_grouping(message_in)
+        hint = "stripped common values" if message_in != normalized else None
         return {
             context["variant"]: GroupingComponent(
                 id="message",
-                values=[message_trimmed],
+                values=[normalized],
                 hint=hint,
             )
         }
