@@ -642,10 +642,10 @@ def single_exception(
                 id="value",
             )
 
-            value_in = interface.value
-            if value_in is not None:
-                normalized = normalize_message_for_grouping(value_in)
-                hint = "stripped common values" if value_in != normalized else None
+            raw = interface.value
+            if raw is not None:
+                normalized = normalize_message_for_grouping(raw)
+                hint = "stripped common values" if raw != normalized else None
                 if normalized:
                     value_component.update(values=[normalized], hint=hint)
 
