@@ -13,7 +13,7 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
-_irrelevant_re = re.compile(
+_parameterization_regex = re.compile(
     r"""(?x)
     (?P<email>
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
@@ -114,14 +114,14 @@ def trim_message_for_grouping(string: str) -> str:
         # e.g. hex, 0x40000015
         for key, value in match.groupdict().items():
             if value is not None:
-                # key can be one of the keys from _irrelevant_re, thus, not a large cardinality
+                # key can be one of the keys from _parameterization_regex, thus, not a large cardinality
                 # tracking the key helps distinguish what kinds of replacements are happening
                 metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
                 # For quoted_str we want to preserver the = symbol
                 return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
         return ""
 
-    return _irrelevant_re.sub(_handle_match, s)
+    return _parameterization_regex.sub(_handle_match, s)
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
