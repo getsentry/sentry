@@ -12,6 +12,8 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
+from sentry.relay.config.measurements import get_measurements_config
+from sentry.relay.config.metric_extraction import _HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -21,6 +23,13 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 ProjectConfig = MutableMapping[str, Any]
+
+
+def get_global_config():
+    return {
+        "measurements": get_measurements_config(),
+        "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
+    }
 
 
 def _sample_apm():
@@ -42,6 +51,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
+
+        if request.relay_request_data.get("globalConfig"):
+            metrics.incr("relay.project_configs.global.fetched")
+            global_config = get_global_config()
+            return Response(global_config, status=200)
 
         full_config_requested = request.relay_request_data.get("fullConfig")
 
