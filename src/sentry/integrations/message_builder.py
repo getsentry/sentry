@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Group, Project, Rule, Team
@@ -101,6 +102,22 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
             return important.value
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
+
+    return None
+
+
+def build_attachment_replay_link(
+    group: Group, event: GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
+) -> str | None:
+    has_replay = features.has("organizations:session-replay", group.organization)
+    has_slack_links = features.has(
+        "organizations:session-replay-slack-new-issue", group.organization
+    )
+    if has_replay and has_slack_links and group.has_replays():
+        referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
+        replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
+
+        return f"\n\n{url_format.format(text='⏵ View Replays', url=absolute_uri(replay_url))}"
 
     return None
 
