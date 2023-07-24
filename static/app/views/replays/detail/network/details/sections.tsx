@@ -1,10 +1,16 @@
-import {MouseEvent, useEffect} from 'react';
+import {MouseEvent, useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
 import ObjectInspector from 'sentry/components/objectInspector';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {
+  getFrameMethod,
+  getFrameStatus,
+  isRequestFrame,
+} from 'sentry/utils/replays/resourceFrame';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import {
   Indent,
   keyValueTableOrNotFound,
@@ -14,32 +20,39 @@ import {
 } from 'sentry/views/replays/detail/network/details/components';
 import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export type SectionProps = {
-  item: NetworkSpan;
+  item: SpanFrame;
   projectId: string;
   startTimestampMs: number;
 };
 
+const UNKNOWN_STATUS = 'unknown';
+
 export function GeneralSection({item, startTimestampMs}: SectionProps) {
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
-  const startMs = item.startTimestamp * 1000;
-  const endMs = item.endTimestamp * 1000;
+  const requestFrame = isRequestFrame(item) ? item : null;
+
+  // TODO[replay]: what about:
+  // `requestFrame?.data?.request?.size` vs. `requestFrame?.data?.requestBodySize`
 
   const data = {
     [t('URL')]: item.description,
     [t('Type')]: item.op,
-    [t('Method')]: item.data?.method ?? '',
-    [t('Status Code')]: item.data?.statusCode ?? '',
+    [t('Method')]: getFrameMethod(item),
+    [t('Status Code')]: String(getFrameStatus(item) ?? UNKNOWN_STATUS),
     [t('Request Body Size')]: (
-      <SizeTooltip>{formatBytesBase10(item.data?.request?.size ?? 0)}</SizeTooltip>
+      <SizeTooltip>
+        {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
+      </SizeTooltip>
     ),
     [t('Response Body Size')]: (
-      <SizeTooltip>{formatBytesBase10(item.data?.response?.size ?? 0)}</SizeTooltip>
+      <SizeTooltip>
+        {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
+      </SizeTooltip>
     ),
-    [t('Duration')]: `${(endMs - startMs).toFixed(2)}ms`,
+    [t('Duration')]: `${(item.endTimestampMs - item.timestampMs).toFixed(2)}ms`,
     [t('Timestamp')]: (
       <TimestampButton
         format="mm:ss.SSS"
@@ -48,7 +61,7 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
           handleClick(item);
         }}
         startTimestampMs={startTimestampMs}
-        timestampMs={startMs}
+        timestampMs={item.timestampMs}
       />
     ),
   };
@@ -61,17 +74,19 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
 }
 
 export function RequestHeadersSection({item}: SectionProps) {
+  const data = isRequestFrame(item) ? item.data : {};
   return (
     <SectionItem title={t('Request Headers')}>
-      {keyValueTableOrNotFound(item.data?.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(data.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
 
 export function ResponseHeadersSection({item}: SectionProps) {
+  const data = isRequestFrame(item) ? item.data : {};
   return (
     <SectionItem title={t('Response Headers')}>
-      {keyValueTableOrNotFound(item.data?.request?.headers, t('Headers not captured'))}
+      {keyValueTableOrNotFound(data.request?.headers, t('Headers not captured'))}
     </SectionItem>
   );
 }
@@ -90,28 +105,28 @@ export function QueryParamsSection({item}: SectionProps) {
 export function RequestPayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const hasRequest = 'request' in item.data;
+  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
   useEffect(() => {
-    if (!isDismissed && hasRequest) {
+    if (!isDismissed && 'request' in data) {
       dismiss();
     }
-  }, [dismiss, hasRequest, isDismissed]);
+  }, [dismiss, data, isDismissed]);
 
   return (
     <SectionItem
       title={t('Request Body')}
       titleExtra={
         <SizeTooltip>
-          {t('Size:')} {formatBytesBase10(item.data?.request?.size ?? 0)}
+          {t('Size:')} {formatBytesBase10(data.request?.size ?? 0)}
         </SizeTooltip>
       }
     >
       <Indent>
-        <Warning warnings={item.data?.request?._meta?.warnings} />
-        {hasRequest ? (
-          <ObjectInspector data={item.data.request.body} expandLevel={2} showCopyButton />
+        <Warning warnings={data.request?._meta?.warnings} />
+        {'request' in data ? (
+          <ObjectInspector data={data.request?.body} expandLevel={2} showCopyButton />
         ) : (
-          tct('Request body not found.', item.data)
+          t('Request body not found.')
         )}
       </Indent>
     </SectionItem>
@@ -121,32 +136,28 @@ export function RequestPayloadSection({item}: SectionProps) {
 export function ResponsePayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const hasResponse = 'response' in item.data;
+  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
   useEffect(() => {
-    if (!isDismissed && hasResponse) {
+    if (!isDismissed && 'response' in data) {
       dismiss();
     }
-  }, [dismiss, hasResponse, isDismissed]);
+  }, [dismiss, data, isDismissed]);
 
   return (
     <SectionItem
       title={t('Response Body')}
       titleExtra={
         <SizeTooltip>
-          {t('Size:')} {formatBytesBase10(item.data?.response?.size ?? 0)}
+          {t('Size:')} {formatBytesBase10(data.response?.size ?? 0)}
         </SizeTooltip>
       }
     >
       <Indent>
-        <Warning warnings={item.data?.response?._meta?.warnings} />
-        {hasResponse ? (
-          <ObjectInspector
-            data={item.data.response.body}
-            expandLevel={2}
-            showCopyButton
-          />
+        <Warning warnings={data?.response?._meta?.warnings} />
+        {'response' in data ? (
+          <ObjectInspector data={data.response?.body} expandLevel={2} showCopyButton />
         ) : (
-          tct('Response body not found.', item.data)
+          t('Response body not found.')
         )}
       </Indent>
     </SectionItem>

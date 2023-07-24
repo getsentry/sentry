@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import getOutputType, {
@@ -34,8 +35,8 @@ export default function NetworkDetailsContent(props: Props) {
       is_sdk_setup: isSetup,
       organization,
       output,
-      resource_method: item.data.method,
-      resource_status: item.data.statusCode,
+      resource_method: getFrameMethod(item),
+      resource_status: String(getFrameStatus(item)),
       resource_type: item.op,
       tab: visibleTab,
     });

@@ -45,7 +45,7 @@ export function SizeTooltip({children}: {children: ReactNode}) {
 }
 
 export function keyValueTableOrNotFound(
-  data: undefined | Record<string, string>,
+  data: undefined | Record<string, string | ReactNode>,
   notFoundText: string
 ) {
   return data ? (
