@@ -91,6 +91,11 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def has_open_membership(self) -> bool:
+        pass
+
+    @property
+    @abc.abstractmethod
     def has_global_access(self) -> bool:
         pass
 
@@ -232,6 +237,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    has_open_membership: bool = False
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -832,6 +838,10 @@ class OrganizationlessAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def has_open_membership(self) -> bool:
+        return False
 
     @property
     def has_global_access(self) -> bool:

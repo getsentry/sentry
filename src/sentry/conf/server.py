@@ -1489,6 +1489,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
