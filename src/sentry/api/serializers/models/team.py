@@ -320,6 +320,8 @@ class TeamSerializer(Serializer):
             "memberCount": attrs["member_count"],
             "avatar": avatar,
         }
+        if obj.org_role:
+            result["orgRole"] = obj.org_role
 
         # Expandable attributes.
         if self._expand("externalTeams"):
