@@ -552,36 +552,26 @@ class ArtifactBundlePostAssembler(PostAssembler):
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
                 release=self.release,
-                dist=(self.dist or NULL_STRING),
+                dist=self.dist or NULL_STRING,
                 date_snapshot=date_snapshot,
             )
 
-        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
-            # We want to asynchronously compute the index, in order to speed up the process and have the possibility to
-            # reschedule the task in case of contention.
-
-            # FIXME: indexing really requires a project. or does it? should it?
-            projects = self.projects_ids or []
-            if len(projects) < 1:
+        if organization is not None and features.has(
+            "organizations:sourcemaps-bundle-flat-file-indexing", self.organization
+        ):
+            # A project is required in order to compute the index identifier, which is a triple composed of
+            # project_id, release and dist.
+            first_project_id = self.projects_ids[0] if self.projects_ids else None
+            if first_project_id is None:
                 return
-            project_id = projects[0]
 
-            # FIXME: the `apply_async` does not work in tests for some reason?
-            # also, why is this async in the first place?
+            # We call asynchronously the indexing function and then inside of it, it might be rescheduled asynchronously
+            # in case of failure to acquire the distributed lock due to high contention.
             index_artifact_bundle(
-                artifact_bundle.id,
-                project_id,
-                self.release or NULL_STRING,
-                self.dist or NULL_STRING,
-            )
-
-            index_artifact_bundle.apply_async(
-                kwargs={
-                    "artifact_bundle_id": artifact_bundle.id,
-                    "project_id": project_id,
-                    "release": self.release or NULL_STRING,
-                    "dist": self.dist or NULL_STRING,
-                }
+                artifact_bundle_id=artifact_bundle.id,
+                project_id=project_id,
+                release=self.release or NULL_STRING,
+                dist=self.dist or NULL_STRING,
             )
 
     def _bind_or_create_artifact_bundle(
