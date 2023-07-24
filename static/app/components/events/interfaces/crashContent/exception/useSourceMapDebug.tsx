@@ -45,11 +45,6 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   data: {absPath: string};
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
-
-interface NotPartOfPipelineError extends BaseSourceMapDebugError {
-  type: SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE;
-}
-
 interface DebugIdNotSetUpError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS;
 }
@@ -63,7 +58,6 @@ export type SourceMapDebugError =
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
   | NoURLMatchDebugError
-  | NotPartOfPipelineError
   | DebugIdNotSetUpError;
 
 export interface SourceMapDebugResponse {
