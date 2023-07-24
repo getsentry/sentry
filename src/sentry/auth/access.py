@@ -91,6 +91,11 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def has_open_membership(self) -> bool:
+        pass
+
+    @property
+    @abc.abstractmethod
     def has_global_access(self) -> bool:
         pass
 
@@ -134,6 +139,10 @@ class Access(abc.ABC):
     @abc.abstractmethod
     def accessible_project_ids(self) -> FrozenSet[int]:
         pass
+
+    @property
+    def is_org_auth_token(self) -> bool:
+        return False
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -228,6 +237,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    has_open_membership: bool = False
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -443,8 +453,12 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
+    def has_open_membership(self) -> bool:
+        return self.rpc_user_organization_context.organization.flags.allow_joinleave
+
+    @property
     def has_global_access(self) -> bool:
-        if self.rpc_user_organization_context.organization.flags.allow_joinleave:
+        if self.has_open_membership:
             return True
 
         if (
@@ -680,7 +694,6 @@ class OrganizationGlobalAccess(DbAccess):
         self._organization_id = (
             organization.id if isinstance(organization, Organization) else organization
         )
-
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     def has_team_access(self, team: Team) -> bool:
@@ -786,6 +799,10 @@ class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
+    def is_org_auth_token(self) -> bool:
+        return True
+
+    @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
         return self.accessible_team_ids
 
@@ -821,6 +838,10 @@ class OrganizationlessAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def has_open_membership(self) -> bool:
+        return False
 
     @property
     def has_global_access(self) -> bool:
@@ -929,6 +950,7 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
