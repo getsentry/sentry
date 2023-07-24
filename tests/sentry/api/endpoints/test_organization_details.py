@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from base64 import b64encode
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.db import router
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -13,6 +17,7 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models import (
@@ -659,7 +664,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ]
 
         initial_settings = {"trustedRelays": initial_trusted_relays}
-        changed_settings = {"trustedRelays": []}
+        changed_settings: dict[str, Any] = {"trustedRelays": []}
 
         with self.feature("organizations:relay"):
             self.get_success_response(self.organization.slug, **initial_settings)
@@ -890,7 +895,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
@@ -929,7 +934,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_organization_does_not_exist(self):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)
@@ -1067,9 +1072,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
         self.get_success_response(self.org_2fa.slug)
-
-
-from sentry.api.endpoints.organization_details import TrustedRelaySerializer
 
 
 def test_trusted_relays_option_serialization():

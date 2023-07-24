@@ -16,6 +16,9 @@ class BitbucketRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.BITBUCKET
 
     def get_bitbucket_webhook_response(self):
+        """
+        Used for identifying regions from Bitbucket and Bitbucket Server webhooks
+        """
         # The organization is provided in the path, so we can skip inferring organizations
         # from the integration credentials
         organization_id = self.match.kwargs.get("organization_id")
@@ -44,7 +47,6 @@ class BitbucketRequestParser(BaseRequestParser):
         return self.get_response_from_outbox_creation(regions=[region])
 
     def get_response(self):
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class == BitbucketWebhookEndpoint:
+        if self.view_class == BitbucketWebhookEndpoint:
             return self.get_bitbucket_webhook_response()
         return self.get_response_from_control_silo()

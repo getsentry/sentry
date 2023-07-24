@@ -112,7 +112,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             transform_alias_to_input_format=True,
         )
 
-        def get_event_stats(columns, query, params, _rollup, zerofill_results, _comparison_delta):
+        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
 
             chunks = [
@@ -129,7 +129,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     other=False,
                     query=query,
                     selected_columns=["project.id", "fingerprint"],
-                    timeseries_columns=columns,
+                    # It's possible to override the columns via
+                    # the `yAxis` qs. So we explicitly ignore the
+                    # columns, and hard code in the columns we want.
+                    timeseries_columns=[data["function"], "worst()"],
                     skip_tag_resolution=True,
                 )
                 for chunk in chunks
@@ -150,6 +153,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     top_events={"data": chunk},
                     result_key_order=["project.id", "fingerprint"],
                 )
+
                 results.update(formatted_results)
 
             return results
@@ -161,15 +165,17 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             trends_request = {
                 "data": {
                     k: {
-                        "data": v["data"],
-                        "data_start": v["start"],
-                        "data_end": v["end"],
+                        "data": v[data["function"]]["data"],
+                        "data_start": v[data["function"]]["start"],
+                        "data_end": v[data["function"]]["end"],
                         # We want to use the first 20% of the data as historical data
                         # to help filter out false positives.
                         # This means if there is a change in the first 20%, it will
                         # not be detected as a breakpoint.
-                        "request_start": v["data"][len(v["data"]) // 5][0],
-                        "request_end": v["end"],
+                        "request_start": v[data["function"]]["data"][
+                            len(v[data["function"]]["data"]) // 5
+                        ][0],
+                        "request_end": v[data["function"]]["end"],
                     }
                     for k, v in stats_data.items()
                 },
@@ -185,6 +191,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
+            additional_query_column="worst()",
             params=params,
             query=data.get("query"),
         )
@@ -230,7 +237,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 # hence the name of the key, but it can be adapted to work
                 # for functions as well.
                 key = f"{result['project']},{result['transaction']}"
-                formatted_result = {"stats": stats_data[key]}
+                formatted_result = {
+                    "stats": stats_data[key][data["function"]],
+                    "worst": [
+                        (ts, data[0]["count"])
+                        for (ts, data) in stats_data[key]["worst()"]["data"]
+                        if data[0]["count"]  # filter out entries without an example
+                    ],
+                }
                 formatted_result.update(
                     {
                         k: result[k]

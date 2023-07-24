@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.region import override_region_config
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import RegionCategory, clear_global_regions
-from sentry.utils import json
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -130,7 +130,7 @@ class CustomerDomainMiddlewareTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             },
         ]
-        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_configs)):
+        with override_region_config(region_configs):
             for region in region_configs:
                 request = RequestFactory().get("/")
                 request.subdomain = region["name"]

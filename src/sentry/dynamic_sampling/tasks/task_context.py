@@ -79,7 +79,8 @@ class TaskContext:
     def to_dict(self) -> Dict[str, Any]:
         ret_val = {
             "taskName": self.name,
-            "numSeconds": self.num_seconds,
+            "maxSeconds": self.num_seconds,
+            "seconds": time.monotonic() - self.expiration_time + self.num_seconds,
         }
         if self.context_data is not None:
             ret_val["taskData"] = {k: v.to_dict() for k, v in self.context_data.items()}

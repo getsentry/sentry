@@ -360,6 +360,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         data = {
             "title": "EPM Big Number",

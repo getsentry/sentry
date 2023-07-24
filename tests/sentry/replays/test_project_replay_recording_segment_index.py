@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.testutils import mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
 Message = namedtuple("Message", ["project_id", "replay_id"])
@@ -25,8 +26,9 @@ class ProjectReplayRecordingSegmentIndexMixin:
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
-            response.streaming_content
+        assert (
+            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
+            == close_streaming_response(response)
         )
 
     def test_index_download_basic_compressed_over_chunk_size(self):
@@ -37,7 +39,7 @@ class ProjectReplayRecordingSegmentIndexMixin:
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert len(b"".join(response.streaming_content)) == 5002
+        assert len(close_streaming_response(response)) == 5002
 
     def test_index_download_basic_not_compressed(self):
         for i in range(0, 3):
@@ -48,8 +50,9 @@ class ProjectReplayRecordingSegmentIndexMixin:
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
-            response.streaming_content
+        assert (
+            b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]'
+            == close_streaming_response(response)
         )
 
     def test_index_download_paginate(self):
@@ -61,23 +64,21 @@ class ProjectReplayRecordingSegmentIndexMixin:
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b'[[{"test":"hello 0"}]]' == b"".join(response.streaming_content)
+        assert b'[[{"test":"hello 0"}]]' == close_streaming_response(response)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url + "?download&per_page=1&cursor=1:1:0")
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b'[[{"test":"hello 1"}]]' == b"".join(response.streaming_content)
+        assert b'[[{"test":"hello 1"}]]' == close_streaming_response(response)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url + "?download&per_page=2&cursor=1:1:0")
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
-            response.streaming_content
-        )
+        assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
 
 
 @region_silo_test
@@ -173,7 +174,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b"".join([i for i in response.streaming_content]) == b"[]"
+        assert close_streaming_response(response) == b"[]"
 
     def test_blob_does_not_exist(self):
         """Assert missing blobs return default value."""
@@ -192,7 +193,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b"".join([i for i in response.streaming_content]) == b"[[]]"
+        assert close_streaming_response(response) == b"[[]]"
 
     def test_missing_segment_meta(self):
         """Assert missing segment meta returns no blob data."""
@@ -210,4 +211,4 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert b"".join([i for i in response.streaming_content]) == b"[]"
+        assert close_streaming_response(response) == b"[]"
