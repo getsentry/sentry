@@ -180,16 +180,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "onClick",
                             "abs_path": None,
                             "class_name": "e.a.c.a",
+                            "name": "onClick",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 2,
                         },
                         {
-                            "name": "t",
                             "abs_path": None,
                             "class_name": "io.sentry.sample.MainActivity",
+                            "name": "t",
+                            "signature": "()V",
                             "source_file": "MainActivity.java",
                             "source_line": 1,
                         },
@@ -202,21 +204,26 @@ class ProfilesProcessTaskTest(TestCase):
         _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
-        assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
+        assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 3
 
-        assert frames[0]["name"] == "onClick"
         assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+        assert frames[0]["name"] == "onClick"
+        assert frames[0]["signature"] == "()"
 
-        assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
+        assert frames[1]["class_name"] == "io.sentry.sample.MainActivity"
+        assert frames[1]["name"] == "bar"
+        assert frames[1]["signature"] == "()"
+        assert frames[1]["source_file"] == "MainActivity.java"
+        assert frames[1]["source_line"] == 54
+
         assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-        assert frames[1]["inline_frames"][0]["name"] == "bar"
-        assert frames[1]["inline_frames"][0]["source_line"] == 54
-        assert frames[1]["inline_frames"][1]["name"] == "foo"
-        assert frames[1]["inline_frames"][1]["source_line"] == 44
-        assert frames[1]["inline_frames"][2]["name"] == "onClickHandler"
-        assert frames[1]["inline_frames"][2]["source_line"] == 40
-        assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
-        assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
+        assert frames[1]["inline_frames"][0]["name"] == "foo"
+        assert frames[1]["inline_frames"][0]["source_line"] == 44
+
+        assert frames[1]["inline_frames"][1]["class_name"] == "io.sentry.sample.MainActivity"
+        assert frames[1]["inline_frames"][1]["name"] == "onClickHandler"
+        assert frames[1]["inline_frames"][1]["source_file"] == "MainActivity.java"
+        assert frames[1]["inline_frames"][1]["source_line"] == 40
 
     def test_error_on_resolving(self):
         out = BytesIO()

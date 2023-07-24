@@ -619,34 +619,39 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
+            method.setdefault("data", {})
+
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
-            method.setdefault("data", {})
-            if len(mapped) == 1:
+            if len(mapped) >= 1:
                 new_frame = mapped[0]
-                method.update(
-                    {
-                        "class_name": new_frame.class_name,
-                        "name": new_frame.method,
-                        "source_file": new_frame.file,
-                        "source_line": new_frame.line,
-                    }
-                )
-                method["data"]["deobfuscation_status"] = "deobfuscated"
-            elif len(mapped) > 1:
+                new_frame_attributes = {
+                    "class_name": new_frame.class_name,
+                    "name": new_frame.method,
+                    "data": {"deobfuscation_status": "deobfuscated"},
+                }
+
+                if new_frame.file:
+                    new_frame_attributes["source_file"] = new_frame.file
+
+                if new_frame.line:
+                    new_frame_attributes["source_line"] = new_frame.line
+
+                method.update(new_frame_attributes)
+
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
                     {
                         "class_name": new_frame.class_name,
+                        "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
                         "source_file": method["source_file"]
                         if bottom_class == new_frame.class_name
-                        else None,
+                        else "",
                         "source_line": new_frame.line,
-                        "data": {"deobfuscation_status": "deobfuscated"},
                     }
-                    for new_frame in mapped
+                    for new_frame in mapped[1:]
                 ]
             else:
                 mapped_class = mapper.remap_class(method["class_name"])
@@ -656,7 +661,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 else:
                     method["data"]["deobfuscation_status"] = "missing"
 
-            method["signature"] = deobfuscate_signature(mapper, method["signature"])
+            if "signature" in method and method["signature"]:
+                method["signature"] = deobfuscate_signature(mapper, method["signature"])
 
 
 @metrics.wraps("process_profile.track_outcome")
