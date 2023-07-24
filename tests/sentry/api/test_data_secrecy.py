@@ -19,7 +19,7 @@ class SuperuserDataSecrecyTestCase(APITestCase):
         self.login_as(superuser, superuser=True)
 
         # superuser cannot access orgs with data secrecy
-        self.get_error_response(self.organization.slug, status_code=500)
+        self.get_error_response(self.organization.slug, status_code=418)
 
     def test_superuser_has_access(self):
         superuser = self.create_user(is_superuser=True)

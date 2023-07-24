@@ -86,7 +86,7 @@ class SuperuserRequired(SentryAPIException):
 
 
 class DataSecrecyError(SentryAPIException):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code = status.HTTP_418_IM_A_TEAPOT
     code = "data-secrecy"
 
 
