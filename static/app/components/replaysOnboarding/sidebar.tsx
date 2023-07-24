@@ -180,7 +180,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button size="sm" href="https://docs.sentry.io/platforms/" external>
+          <Button size="sm" href="https://docs.sentry.io/platforms/javascript/session-replay/" external>
             {t('Go to Sentry Documentation')}
           </Button>
         </div>
