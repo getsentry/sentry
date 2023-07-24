@@ -34,6 +34,7 @@ from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
+from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
@@ -65,7 +66,7 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
-from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
+
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
     ObjectStatus.DISABLED: "deleted",
@@ -751,7 +752,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
-            sampleRate=get_guarded_blended_sample_rate(obj.organization, obj)
+            sampleRate=get_guarded_blended_sample_rate(obj.organization, obj),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
