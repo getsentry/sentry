@@ -556,7 +556,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
             #   if the artifact bundle was newly inserted. This is based on the assumption
             #   that the `bundle_id` is deterministic and the `created` flag signals that
             #   this identical bundle was already inserted.
-            # - Otherwise, update all the effected/conflicting rows with a single query.
+            # - Otherwise, update all the affected/conflicting rows with a single query.
             if created:
                 debug_id_to_insert = [
                     DebugIdArtifactBundle(
