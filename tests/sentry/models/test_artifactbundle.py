@@ -40,7 +40,7 @@ class ArtifactBundleTest(TestCase):
         assert index.project_id == self.project.id
         assert index.release_name == "1.0"
         assert index.dist_name == "android"
-        assert index.load_flat_file_index() == file_contents
+        assert json.loads(index.load_flat_file_index()) == file_contents
 
     def test_artifact_bundle_flat_index_is_updated(self):
         index = ArtifactBundleFlatFileIndex.create_flat_file_index(
@@ -56,4 +56,4 @@ class ArtifactBundleTest(TestCase):
         assert index.project_id == self.project.id
         assert index.release_name == "1.0"
         assert index.dist_name == "android"
-        assert index.load_flat_file_index() == updated_file_contents
+        assert json.loads(index.load_flat_file_index()) == updated_file_contents
