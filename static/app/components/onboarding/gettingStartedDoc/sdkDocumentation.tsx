@@ -80,6 +80,7 @@ export const migratedDocs = [
   'ionic',
   'unity',
   'cordova',
+  'unreal',
 ];
 
 type SdkDocumentationProps = {
@@ -125,6 +126,8 @@ export function SdkDocumentation({
         ? `ionic/ionic`
         : platform?.id === 'unity'
         ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
