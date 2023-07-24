@@ -6,7 +6,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
-import {getDescription} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
@@ -97,7 +97,7 @@ function SummarySegment({
 
   const label =
     frames.length === 1
-      ? getDescription(frames[0])
+      ? getFrameDetails(frames[0]).description
       : tn('%s Page', '%s Pages', frames.length);
   return (
     <Span>

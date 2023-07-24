@@ -8,6 +8,7 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {
   groupId: string;
@@ -35,7 +36,9 @@ function IssueReplayCount({groupId}: Props) {
   return (
     <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink
-        to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
+        to={normalizeUrl(
+          `/organizations/${organization.slug}/issues/${groupId}/replays/`
+        )}
         aria-label="replay-count"
       >
         <IconPlay size="xs" />

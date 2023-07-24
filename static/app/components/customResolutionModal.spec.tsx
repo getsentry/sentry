@@ -101,7 +101,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        organization={{...organization, features: ['issue-resolve-semver']}}
+        organization={{...organization, features: ['issue-release-semver']}}
         projectSlug="project-slug"
         onSelected={jest.fn()}
         closeModal={jest.fn()}
@@ -111,7 +111,7 @@ describe('CustomResolutionModal', () => {
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(
-      await screen.findByRole('menuitemradio', {name: 'abcdef (timestamp)'})
+      await screen.findByRole('menuitemradio', {name: 'abcdef (non-semver)'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: '1.2.3 (semver)'})
