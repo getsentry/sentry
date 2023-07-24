@@ -41,12 +41,14 @@ def get(option, silent):
     if silent:
         click.echo(value)
         return
-    # TODO(mattrobenolt): Add help to option keys
-    # if key.help:
-    #     click.echo(key.help + '\n')
-    click.echo("        type: %s" % key.type.name.upper())
-    click.echo(" from config: %s" % settings.SENTRY_OPTIONS.get(key.name, "<not set>"))
-    click.echo("     current: %s" % value)
+
+    last_update_channel = manager.get_last_update_channel(option)
+    click.echo(f"           type: {key.type.name.upper()}")
+    click.echo(f"    from config: {settings.SENTRY_OPTIONS.get(key.name, '<not set>')}")
+    click.echo(f"        current: {value}")
+    click.echo(
+        f" last update by: {last_update_channel.value if last_update_channel else '<not set>'}"
+    )
 
 
 @config.command()
@@ -59,6 +61,7 @@ def get(option, silent):
 def set(key, value, secret):
     "Set a configuration option to a new value."
     from sentry import options
+    from sentry.options import UpdateChannel
     from sentry.options.manager import UnknownOption
 
     if value is None:
@@ -68,7 +71,7 @@ def set(key, value, secret):
             value = click.prompt("Value")
 
     try:
-        options.set(key, value)
+        options.set(key, value, channel=UpdateChannel.CLI)
     except UnknownOption:
         raise click.ClickException("unknown option: %s" % key)
     except TypeError as e:

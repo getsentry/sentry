@@ -18,6 +18,7 @@ from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+from sentry.utils import metrics
 
 
 class RepoExistsError(APIException):
@@ -82,18 +83,38 @@ class IntegrationRepositoryProvider:
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
 
+        integration_id = result.get("integration_id")
+        external_id = result.get("external_id")
+        name = result.get("name")
+
         repo_update_params = {
-            "external_id": result.get("external_id"),
+            "external_id": external_id,
             "url": result.get("url"),
             "config": result.get("config") or {},
             "provider": self.id,
-            "integration_id": result.get("integration_id"),
+            "integration_id": integration_id,
+            "name": name,
         }
 
-        # first check if there is a repository without an integration that matches
-        repo = Repository.objects.filter(
-            organization_id=organization.id, name=result["name"], integration_id=None
+        # first check if there is an existing hidden repository with an integration that matches
+        existing_repo = Repository.objects.filter(
+            organization_id=organization.id,
+            integration_id=integration_id,
+            external_id=external_id,
+            status=ObjectStatus.HIDDEN,
         ).first()
+        if existing_repo:
+            existing_repo.status = ObjectStatus.ACTIVE
+            existing_repo.name = name
+            existing_repo.save()
+            metrics.incr("sentry.integration_repo_provider.repo_relink")
+            return result, existing_repo
+
+        # then check if there is a repository without an integration that matches
+        repo = Repository.objects.filter(
+            organization_id=organization.id, external_id=external_id, integration_id=None
+        ).first()
+
         if repo:
             if self.logger:
                 self.logger.info(
@@ -114,17 +135,22 @@ class IntegrationRepositoryProvider:
             try:
                 with transaction.atomic(router.db_for_write(Repository)):
                     repo = Repository.objects.create(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
+                        organization_id=organization.id, **repo_update_params
                     )
             except IntegrityError:
                 # Try to delete webhook we just created
                 try:
-                    repo = Repository(
-                        organization_id=organization.id, name=result["name"], **repo_update_params
-                    )
+                    repo = Repository(organization_id=organization.id, **repo_update_params)
                     self.on_delete_repository(repo)
                 except IntegrationError:
                     pass
+
+                # if possible update the repo with matching integration
+                repo = Repository.objects.filter(
+                    organization_id=organization.id,
+                    external_id=external_id,
+                    integration_id=integration_id,
+                ).update(**repo_update_params)
 
                 raise RepoExistsError
 

@@ -24,19 +24,16 @@ import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
-  'sps_percent_change()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -241,7 +238,7 @@ function getColumns(
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
       ? [
           {
             key: SPAN_DOMAIN,
@@ -252,12 +249,7 @@ function getColumns(
       : []),
     {
       key: 'sps()',
-      name: 'Throughput',
-      width: COL_WIDTH_UNDEFINED,
-    },
-    {
-      key: 'sps_percent_change()',
-      name: DataTitles.change,
+      name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },
     {
@@ -265,21 +257,11 @@ function getColumns(
       name: DataTitles.p95,
       width: COL_WIDTH_UNDEFINED,
     },
-    {
-      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-      name: DataTitles.change,
-      width: COL_WIDTH_UNDEFINED,
-    },
     ...(moduleName === ModuleName.HTTP
       ? [
           {
             key: 'http_error_count()',
             name: DataTitles.errorCount,
-            width: COL_WIDTH_UNDEFINED,
-          } as Column,
-          {
-            key: 'http_error_count_percent_change()',
-            name: DataTitles.change,
             width: COL_WIDTH_UNDEFINED,
           } as Column,
         ]

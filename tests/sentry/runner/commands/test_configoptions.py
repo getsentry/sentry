@@ -86,13 +86,26 @@ class ConfigOptionsTest(CliTestCase):
 
         def assert_output(rv):
             assert rv.exit_code == 0, rv.output
-            output = "\n".join(
+
+            # The script produces log lines when DRIFT is detected. This
+            # makes it easier to surface these as Sentry errors.
+            # This also means the output is polluted with a log line
+            # because reconfiguring the logger in the test is quite tricky
+            # as it is initialized at the beginning of the test.
+            # So we just split the output in two and check each part
+            # independently.
+            output_before_log = "\n".join(
                 [
                     SET_MSG % ("int_option", 40),
                     UPDATE_MSG % ("str_option", "old value", "new value"),
                     SET_MSG % ("map_option", {"a": 1, "b": 2}),
                     SET_MSG % ("list_option", [1, 2]),
                     DRIFT_MSG % "drifted_option",
+                ]
+            )
+
+            output_after_log = "\n".join(
+                [
                     DB_VALUE % "drifted_option",
                     "- 1",
                     "- 2",
@@ -101,7 +114,8 @@ class ConfigOptionsTest(CliTestCase):
                     CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
-            assert output in rv.output
+            assert output_before_log in rv.output
+            assert output_after_log in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -153,13 +167,17 @@ class ConfigOptionsTest(CliTestCase):
             "sync",
         )
         assert rv.exit_code == 0, rv.output
-        output = "\n".join(
+        output_before_log = "\n".join(
             [
                 SET_MSG % ("int_option", 40),
                 UPDATE_MSG % ("str_option", "old value", "new value"),
                 SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 SET_MSG % ("list_option", [1, 2]),
                 DRIFT_MSG % "drifted_option",
+            ]
+        )
+        output_after_log = "\n".join(
+            [
                 DB_VALUE % "drifted_option",
                 "- 1",
                 "- 2",
@@ -170,7 +188,8 @@ class ConfigOptionsTest(CliTestCase):
             ]
         )
 
-        assert output in rv.output
+        assert output_before_log in rv.output
+        assert output_after_log in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"

@@ -31,38 +31,11 @@ import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpe
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-const StyledTooltip = styled(Tooltip)`
-  display: block;
-`;
-
-function ChangeHeader(title: string) {
-  return (
-    <StyledTooltip showUnderline title={title}>
-      {t('Change')}
-    </StyledTooltip>
-  );
-}
-
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  ChangeHeader(
-    t(
-      'The change in throughput from the first half v. second half of the selected time range'
-    )
-  ),
   DataTitles.p95,
-  ChangeHeader(
-    t(
-      'The change in P95 duration from the first half v. second half of the selected time range'
-    )
-  ),
   DataTitles.errorCount,
-  ChangeHeader(
-    t(
-      'The change in 5XX responses from the first half v. second half of the selected time range'
-    )
-  ),
   DataTitles.timeSpent,
 ];
 

@@ -4,6 +4,9 @@ import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,21 +20,9 @@ import {
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function TracesNotFound({
-  hasPerformanceView,
-  projectId,
-}: {
-  hasPerformanceView: boolean;
-  projectId: string;
-}) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === projectId);
-  const hasPerformance = project?.firstTransactionEvent === true;
-
+function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
-  useRouteAnalyticsParams(
-    hasPerformanceView && hasPerformance ? {trace_status: 'trace missing'} : {}
-  );
+  useRouteAnalyticsParams(performanceActive ? {trace_status: 'trace missing'} : {});
 
   return (
     <BorderedSection>
@@ -42,13 +33,43 @@ function TracesNotFound({
   );
 }
 
+function TraceFound({
+  organization,
+  performanceActive,
+  eventView,
+  traces,
+}: {
+  eventView: EventView | null;
+  organization: Organization;
+  performanceActive: boolean;
+  traces: TraceFullDetailed[] | null;
+}) {
+  const location = useLocation();
+
+  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
+  useRouteAnalyticsParams(performanceActive ? {trace_status: 'success'} : {});
+
+  return (
+    <FluidHeight>
+      <TraceView
+        meta={null}
+        traces={traces ?? null}
+        location={location}
+        organization={organization}
+        traceEventView={eventView!}
+        traceSlug="Replay"
+      />
+    </FluidHeight>
+  );
+}
+
 type Props = {
   replayRecord: undefined | ReplayRecord;
 };
 
 function Trace({replayRecord}: Props) {
-  const location = useLocation();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const {
     state: {didInit, errors, isFetching, traces},
     eventView,
@@ -77,26 +98,22 @@ function Trace({replayRecord}: Props) {
     );
   }
 
+  const project = projects.find(p => p.id === replayRecord.project_id);
+  const hasPerformance = project?.firstTransactionEvent === true;
+  const performanceActive =
+    organization.features.includes('performance-view') && hasPerformance;
+
   if (!traces?.length) {
-    return (
-      <TracesNotFound
-        hasPerformanceView={organization.features.includes('performance-view')}
-        projectId={replayRecord.project_id}
-      />
-    );
+    return <TracesNotFound performanceActive={performanceActive} />;
   }
 
   return (
-    <FluidHeight>
-      <TraceView
-        meta={null}
-        traces={traces ?? null}
-        location={location}
-        organization={organization}
-        traceEventView={eventView!}
-        traceSlug="Replay"
-      />
-    </FluidHeight>
+    <TraceFound
+      performanceActive={performanceActive}
+      organization={organization}
+      eventView={eventView}
+      traces={traces}
+    />
   );
 }
 

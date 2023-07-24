@@ -29,7 +29,9 @@ import {
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_OP} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -190,12 +192,7 @@ const getColumnOrder = (
   },
   {
     key: 'sps()',
-    name: DataTitles.throughput,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'sps_percent_change()',
-    name: DataTitles.change,
+    name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -203,21 +200,11 @@ const getColumnOrder = (
     name: DataTitles.p95,
     width: COL_WIDTH_UNDEFINED,
   },
-  {
-    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
-    name: DataTitles.change,
-    width: COL_WIDTH_UNDEFINED,
-  },
   ...(span?.['span.op']?.startsWith('http')
     ? ([
         {
           key: `http_error_count()`,
           name: DataTitles.errorCount,
-          width: COL_WIDTH_UNDEFINED,
-        },
-        {
-          key: `http_error_count_percent_change()`,
-          name: DataTitles.change,
           width: COL_WIDTH_UNDEFINED,
         },
       ] as TableColumnHeader[])
