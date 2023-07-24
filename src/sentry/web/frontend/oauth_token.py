@@ -124,7 +124,6 @@ class OAuthTokenView(View):
                 nonce=request.POST.get("nonce"),
             )
             token_data["id_token"] = open_id_token.get_encrypted_id_token(grant=grant)
-
         return token_data
 
     def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
