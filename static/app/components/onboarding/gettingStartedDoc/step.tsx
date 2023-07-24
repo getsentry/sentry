@@ -39,6 +39,10 @@ type ConfigurationType = {
    * The language of the code to be rendered (python, javascript, etc)
    */
   language?: string;
+  /**
+   * A callback to be invoked when the configuration is copied to the clipboard
+   */
+  onCopy?: () => void;
 };
 
 interface BaseStepProps {
@@ -69,12 +73,13 @@ function getConfiguration({
   code,
   language,
   additionalInfo,
+  onCopy,
 }: ConfigurationType) {
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
       {language && code && (
-        <CodeSnippet dark language={language}>
+        <CodeSnippet dark language={language} onCopy={onCopy}>
           {language === 'javascript'
             ? beautify.js(code, {indent_size: 2, e4x: true})
             : code.trim()}
@@ -132,7 +137,11 @@ const Configurations = styled(Configuration)`
   margin-top: ${space(2)};
 `;
 
-const Description = styled(Configuration)``;
+const Description = styled(Configuration)`
+  code {
+    color: ${p => p.theme.pink400};
+  }
+`;
 
 const AdditionalInfo = styled(Configuration)``;
 

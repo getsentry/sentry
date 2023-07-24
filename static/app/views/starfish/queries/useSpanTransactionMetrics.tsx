@@ -22,13 +22,13 @@ export type SpanTransactionMetrics = {
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
-  transactionMethod: string;
+  'transaction.method': string;
 };
 
 export const useSpanTransactionMetrics = (
   span: Pick<IndexedSpan, 'group'>,
   options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'span-transaction-metrics'
+  _referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
@@ -40,6 +40,7 @@ export const useSpanTransactionMetrics = (
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    limit: 25,
     referrer: _referrer,
   });
 };
@@ -68,14 +69,11 @@ function getEventView(
         'transaction',
         'transaction.method',
         'sps()',
-        'sps_percent_change()',
         `sum(${SPAN_SELF_TIME})`,
         `p95(${SPAN_SELF_TIME})`,
-        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
         'time_spent_percentage(local)',
         'transaction.op',
         'http_error_count()',
-        'http_error_count_percent_change()',
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,

@@ -99,6 +99,7 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
+@sentry_sdk.tracing.trace
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
@@ -376,7 +377,8 @@ def get_artifact_bundles_containing_url(
             artifactbundleindex__url__icontains=url,
         )
         .values_list("id", "date_added")
-        .order_by("-date_last_modified", "-id")[:1]
+        .order_by("-date_last_modified", "-id")
+        .distinct("date_last_modified", "id")[:MAX_BUNDLES_QUERY]
     )
 
 

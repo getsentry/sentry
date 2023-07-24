@@ -401,7 +401,8 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            user = organization.get_default_owner()
+            with assume_test_silo_mode(SiloMode.REGION):
+                user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
@@ -442,6 +443,9 @@ class Fixtures:
 
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
+
+    def create_basic_auth_header(self, *args, **kwargs):
+        return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)

@@ -10,7 +10,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.text import slugify
 
 from sentry import ratelimits
@@ -24,6 +24,7 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
     MonitorType,
 )
@@ -220,7 +221,7 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_config = params.pop("monitor_config", None)
 
             params["duration"] = (
@@ -282,6 +283,13 @@ def _process_message(wrapper: Dict) -> None:
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
                 logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
+                return
+            except MonitorEnvironmentValidationFailed:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
+                )
+                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())

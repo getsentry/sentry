@@ -8,6 +8,7 @@ interface OrganizationsStoreDefinition extends StoreDefinition {
 
   getAll(): Organization[];
   getState(): Organization[];
+  init(): void;
   load(items: Organization[]): void;
   loaded: boolean;
   onChangeSlug(prev: Organization, next: Partial<Organization>): void;

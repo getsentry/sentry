@@ -36,7 +36,7 @@ export const useSpanList = (
   spanCategory?: string,
   sorts?: Sort[],
   limit?: number,
-  referrer = 'use-span-list',
+  referrer = 'api.starfish.use-span-list',
   cursor?: string
 ) => {
   const location = useLocation();
@@ -85,12 +85,9 @@ function getEventView(
     SPAN_DESCRIPTION,
     SPAN_DOMAIN,
     'sps()',
-    'sps_percent_change()',
     `sum(${SPAN_SELF_TIME})`,
     `p95(${SPAN_SELF_TIME})`,
-    `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
     'http_error_count()',
-    'http_error_count_percent_change()',
   ];
 
   if (defined(transaction)) {

@@ -285,9 +285,8 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       return <NotFound />;
     }
 
-    const {access, features, orgRoleList} = organization;
+    const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
@@ -400,7 +399,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
         <OrganizationRoleSelect
           enforceAllowed={false}
-          enforceRetired={hasTeamRoles}
+          enforceRetired={this.hasTeamRoles}
           disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}

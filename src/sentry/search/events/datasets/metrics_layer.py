@@ -366,7 +366,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         alias,
                     ),
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "eps",
@@ -380,7 +380,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         alias,
                     ),
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "failure_count",

@@ -17,8 +17,9 @@ def test_is_on_demand_query_invalid_query():
     dataset = Dataset.PerformanceMetrics
 
     assert is_on_demand_query(dataset, "count()", "AND") is False
-    assert is_on_demand_query(dataset, "count()", "(AND transaction.duration:>=1") is False
+    assert is_on_demand_query(dataset, "count()", ")AND transaction.duration:>=1") is False
     assert is_on_demand_query(dataset, "count()", "transaction.duration:>=abc") is False
+    assert is_on_demand_query(dataset, "count_if(}", "") is False
 
 
 def test_is_on_demand_query_true():
@@ -175,3 +176,10 @@ def test_spec_countif_with_query():
             {"name": "event.duration", "op": "eq", "value": 300.0},
         ],
     }
+
+
+def test_ignore_fields():
+    with_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
+    without_ignored_field = OndemandMetricSpec("count()", "transaction.duration:>=1")
+
+    assert with_ignored_field.condition() == without_ignored_field.condition()

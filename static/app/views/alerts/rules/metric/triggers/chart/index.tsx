@@ -448,6 +448,7 @@ class TriggersChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={handleMEPAlertDataset}
+        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({
           loading,

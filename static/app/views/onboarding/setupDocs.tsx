@@ -2,12 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {Location} from 'history';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
@@ -16,10 +14,7 @@ import {
   SdkDocumentation,
 } from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -29,7 +24,6 @@ import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,116 +33,6 @@ import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
-
-export function DocWithProductSelection({
-  organization,
-  location,
-  projectSlug,
-  newOrg,
-  currentPlatform: currentPlatformKey,
-}: {
-  currentPlatform: PlatformKey;
-  location: Location;
-  organization: Organization;
-  projectSlug: Project['slug'];
-  newOrg?: boolean;
-}) {
-  const products = useMemo<ProductSolution[]>(
-    () => (location.query.product ?? []) as ProductSolution[],
-    [location.query.product]
-  );
-
-  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
-  const platformName = currentPlatform?.name ?? '';
-
-  const loadLocalSdkDocumentation =
-    currentPlatform && migratedDocs.includes(currentPlatformKey);
-
-  const loadPlatform = useMemo(() => {
-    return products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
-      products.includes(ProductSolution.SESSION_REPLAY)
-      ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
-      : products.includes(ProductSolution.PERFORMANCE_MONITORING)
-      ? `${currentPlatformKey}-with-error-monitoring-and-performance`
-      : products.includes(ProductSolution.SESSION_REPLAY)
-      ? `${currentPlatformKey}-with-error-monitoring-and-replay`
-      : `${currentPlatformKey}-with-error-monitoring`;
-  }, [products, currentPlatformKey]);
-
-  const {data, isLoading, isError, refetch} = useApiQuery<OnboardingPlatformDoc>(
-    [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
-    {
-      staleTime: Infinity,
-      enabled:
-        !!projectSlug &&
-        !!organization.slug &&
-        !!loadPlatform &&
-        !loadLocalSdkDocumentation,
-    }
-  );
-
-  return (
-    <Fragment>
-      {newOrg && (
-        <SetupIntroduction
-          stepHeaderText={t('Configure %s SDK', platformName)}
-          platform={currentPlatformKey}
-        />
-      )}
-      {loadLocalSdkDocumentation ? (
-        <SdkDocumentation
-          platform={currentPlatform}
-          orgSlug={organization.slug}
-          projectSlug={projectSlug}
-          activeProductSelection={products}
-          newOrg={newOrg}
-        />
-      ) : (
-        <Fragment>
-          <ProductSelection
-            defaultSelectedProducts={[
-              ProductSolution.PERFORMANCE_MONITORING,
-              ProductSolution.SESSION_REPLAY,
-            ]}
-          />
-          {isLoading ? (
-            <LoadingIndicator />
-          ) : isError ? (
-            <LoadingError
-              message={t(
-                'Failed to load documentation for the %s platform.',
-                platformName
-              )}
-              onRetry={refetch}
-            />
-          ) : (
-            getDynamicText({
-              value: (
-                <DocsWrapper>
-                  <DocumentationWrapper
-                    dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
-                  />
-                  <MissingExampleWarning
-                    platform={currentPlatformKey}
-                    platformDocs={{
-                      html: data?.html ?? '',
-                      link: data?.link ?? '',
-                    }}
-                  />
-                </DocsWrapper>
-              ),
-              fixed: (
-                <Alert type="warning">
-                  Platform documentation is not rendered in for tests in CI
-                </Alert>
-              ),
-            })
-          )}
-        </Fragment>
-      )}
-    </Fragment>
-  );
-}
 
 function ProjectDocs(props: {
   hasError: boolean;
@@ -361,8 +245,9 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
               />
               <SdkDocumentation
                 platform={currentPlatform}
-                orgSlug={organization.slug}
+                organization={organization}
                 projectSlug={project.slug}
+                projectId={project.id}
                 activeProductSelection={products}
                 newOrg
               />

@@ -4,7 +4,7 @@ from datetime import timedelta
 from itertools import chain
 from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -40,15 +40,16 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashrepor
 from sentry.models import (
     Group,
     GroupStatus,
-    NotificationSetting,
     Project,
     ProjectBookmark,
     ProjectRedirect,
-    ScheduledDeletion,
+    RegionScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.recap_servers import (
     RECAP_SERVER_TOKEN_OPTION,
     RECAP_SERVER_URL_OPTION,
@@ -527,7 +528,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("isBookmarked"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(ProjectBookmark)):
                     ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass
@@ -658,12 +659,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
 
         if "isSubscribed" in result:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                get_option_value_from_boolean(result.get("isSubscribed")),
-                user_id=request.user.id,
-                project=project,
+            notifications_service.update_settings(
+                external_provider=ExternalProviders.EMAIL,
+                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+                setting_option=get_option_value_from_boolean(result.get("isSubscribed")),
+                actor=RpcActor(id=request.user.id, actor_type=ActorType.USER),
+                project_id=project.id,
             )
 
         if "dynamicSamplingBiases" in result:
@@ -841,7 +842,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
                 "request": request,

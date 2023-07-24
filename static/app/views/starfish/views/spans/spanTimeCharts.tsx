@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
@@ -7,7 +6,6 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -17,7 +15,10 @@ import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/f
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {
+  DataTitles,
+  getThroughputChartTitle,
+} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
@@ -46,19 +47,13 @@ function getSegmentLabel(moduleName: ModuleName) {
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
   const {selection} = usePageFilters();
-  const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    selection,
-    appliedFilters,
-    spanCategory
-  );
+  const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
 
   const {isLoading} = useSpansQuery({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.span-time-charts',
   });
 
   useSynchronizeCharts([!isLoading]);
@@ -68,12 +63,12 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: DataTitles.throughput, Comp: ThroughputChart},
+      {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
       {title: DataTitles.p95, Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
-    [ModuleName.NONE]: [],
+    [ModuleName.OTHER]: [],
   };
 
   const charts = [...moduleCharts[ModuleName.ALL]];
@@ -96,13 +91,19 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
 
 function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = getSegmentLabel(moduleName);
-  const {isLoading, data} = useSpansQuery({
+  const {isLoading, data} = useSpansQuery<
+    {
+      interval: number;
+      'p95(span.self_time)': number;
+      'sps()': number;
+    }[]
+  >({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.span-time-charts',
   });
   const dataByGroup = {[label]: data};
 
@@ -111,7 +112,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
     return {
       seriesName: label ?? 'Throughput',
-      data: groupData.map(datum => ({
+      data: (groupData ?? []).map(datum => ({
         value: datum['sps()'],
         name: datum.interval,
       })),
@@ -147,14 +148,20 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
 function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = `p95(${SPAN_SELF_TIME})`;
 
-  const {isLoading, data} = useSpansQuery({
+  const {isLoading, data} = useSpansQuery<
+    {
+      interval: number;
+      'p95(span.self_time)': number;
+      'sps()': number;
+    }[]
+  >({
     eventView,
     initialData: [],
+    referrer: 'api.starfish.span-time-charts',
   });
   const dataByGroup = {[label]: data};
 
@@ -163,7 +170,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
     return {
       seriesName: label,
-      data: groupData.map(datum => ({
+      data: (groupData ?? []).map(datum => ({
         value: datum[`p95(${SPAN_SELF_TIME})`],
         name: datum.interval,
       })),
@@ -234,14 +241,13 @@ const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
 const getEventView = (
   moduleName: ModuleName,
-  location: Location,
   pageFilters: PageFilters,
   appliedFilters: AppliedFilters,
   spanCategory?: string
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [''],
@@ -251,7 +257,7 @@ const getEventView = (
       interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
       version: 2,
     },
-    location
+    pageFilters
   );
 };
 

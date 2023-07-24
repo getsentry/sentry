@@ -1,6 +1,7 @@
 from urllib.parse import parse_qs, urlparse
 
 import responses
+from django.db import router
 
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
@@ -19,7 +20,10 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        OrganizationMember.objects.create(user_id=self.user.id, organization=self.org, role="admin")
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMember.objects.create(
+                user_id=self.user.id, organization=self.org, role="admin"
+            )
 
         responses.reset()
         # need oauth mocks
@@ -69,7 +73,9 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
-        with unguarded_write(), assume_test_silo_mode(SiloMode.REGION):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)), assume_test_silo_mode(
+            SiloMode.REGION
+        ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"
             )
