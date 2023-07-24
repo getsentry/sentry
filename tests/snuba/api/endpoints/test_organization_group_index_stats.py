@@ -82,6 +82,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "timestamp": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         profile_group = group_info.group
 
         self.login_as(user=self.user)
@@ -118,6 +119,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "timestamp": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         profile_group = group_info.group
 
         error_event = self.store_event(

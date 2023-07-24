@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectReleaseStatsTest(APITestCase):
     def test_simple(self):
         """Minimal test to ensure code coverage of the endpoint"""

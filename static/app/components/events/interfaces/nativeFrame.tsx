@@ -23,7 +23,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
@@ -46,15 +46,23 @@ type Props = {
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Frames that are hidden under the most recent non-InApp frame
+   */
+  isSubFrame?: boolean;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
+  showStackedFrames?: boolean;
 };
 
 function NativeFrame({
@@ -69,6 +77,10 @@ function NativeFrame({
   isOnlyFrame,
   event,
   components,
+  hiddenFrameCount,
+  isShowFramesToggleExpanded,
+  isSubFrame,
+  onShowFramesToggle,
   isExpanded,
   platform,
   registersMeta,
@@ -228,6 +240,7 @@ function NativeFrame({
           expandable={expandable}
           expanded={expanded}
           stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
+          isSubFrame={!!isSubFrame}
         >
           <SymbolicatorIcon>
             {status === 'error' ? (
@@ -306,6 +319,25 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
+          {stacktraceChangesEnabled && hiddenFrameCount ? (
+            <ShowHideButton
+              analyticsEventName="Stacktrace Frames: toggled"
+              analyticsEventKey="stacktrace_frames.toggled"
+              analyticsParams={{
+                frame_count: hiddenFrameCount,
+                is_frame_expanded: isShowFramesToggleExpanded,
+              }}
+              size="xs"
+              borderless
+              onClick={e => {
+                onShowFramesToggle?.(e);
+              }}
+            >
+              {isShowFramesToggleExpanded
+                ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+            </ShowHideButton>
+          ) : null}
           <TypeCell>
             {!frame.inApp ? (
               stacktraceChangesEnabled ? null : (
@@ -423,6 +455,7 @@ const FileName = styled('span')`
 const RowHeader = styled('span')<{
   expandable: boolean;
   expanded: boolean;
+  isSubFrame: boolean;
   stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
@@ -431,7 +464,10 @@ const RowHeader = styled('span')<{
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
-  background-color: ${p => p.theme.bodyBackground};
+  background-color: ${p =>
+    p.stacktraceChangesEnabled && p.isSubFrame
+      ? `${p.theme.surface100}`
+      : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
   color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
@@ -439,7 +475,7 @@ const RowHeader = styled('span')<{
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr auto auto ${space(2)};
+    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
@@ -455,4 +491,14 @@ const StackTraceFrame = styled('li')`
 
 const SymbolicatorIcon = styled('div')`
   width: ${p => p.theme.iconSizes.sm};
+`;
+
+const ShowHideButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-weight: normal;
+  padding: ${space(0.25)} ${space(0.5)};
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;

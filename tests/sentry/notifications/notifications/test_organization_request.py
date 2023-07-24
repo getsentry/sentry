@@ -4,7 +4,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -42,13 +42,13 @@ class GetParticipantsTest(TestCase):
             external_provider=ExternalProviders.SLACK,
             notification_type=NotificationSettingTypes.APPROVAL,
             setting_option=NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
+            actor=RpcActor(id=self.user.id, actor_type=ActorType.USER),
         )
         notifications_service.update_settings(
             external_provider=ExternalProviders.EMAIL,
             notification_type=NotificationSettingTypes.APPROVAL,
             setting_option=NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user2.id,
+            actor=RpcActor(id=self.user2.id, actor_type=ActorType.USER),
         )
 
         notification = DummyRequestNotification(self.organization, self.user)
