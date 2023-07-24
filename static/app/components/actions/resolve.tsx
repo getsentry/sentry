@@ -169,7 +169,7 @@ function ResolveActions({
           ? actionTitle
           : hasIssueReleaseSemver && latestRelease
           ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('timestamp')
+              isSemver ? t('semver') : t('non-semver')
             })`
           : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
