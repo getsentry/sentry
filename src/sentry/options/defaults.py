@@ -915,8 +915,6 @@ register(
 )
 
 
-register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
 register(
