@@ -13,7 +13,7 @@ class SourceMapProcessingIssue:
     PARTIAL_MATCH = "partial_match"
     DIST_MISMATCH = "dist_mismatch"
     SOURCEMAP_NOT_FOUND = "sourcemap_not_found"
-    NOT_PART_OF_PIPELINE = "not_part_of_pipeline"
+    DEBUG_ID_NO_SOURCEMAPS = "debug_id_no_sourcemaps"
 
     _messages = {
         UNKNOWN_ERROR: "Unknown error",
@@ -24,7 +24,7 @@ class SourceMapProcessingIssue:
         PARTIAL_MATCH: "The absolute path url is a partial match",
         DIST_MISMATCH: "The dist values do not match",
         SOURCEMAP_NOT_FOUND: "The sourcemap could not be found",
-        NOT_PART_OF_PIPELINE: "Sentry is not part of your build pipeline",
+        DEBUG_ID_NO_SOURCEMAPS: "Can use debug id but no sourcemaps",
     }
 
     @classmethod
