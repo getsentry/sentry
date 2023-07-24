@@ -10,6 +10,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import useOrganization from './useOrganization';
+
 type Props = RouteComponentProps<{}, {}>;
 
 type TransferDetails = {
@@ -33,6 +35,18 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
     return t('Accept Project Transfer');
   }
 
+  resolveRoute(route: string, nextOrg?: string) {
+    const currentOrg = useOrganization({allowNull: true});
+    const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
+
+    if (!nextOrg) {
+      return route;
+    }
+
+    const organizationUrl = localizeDomain(`https://${nextOrgSlug}.sentry.io`);
+    return `${organizationUrl}${normalizeUrl(route)}`;
+  }
+
   handleSubmit = formData => {
     this.api.request('/accept-transfer/', {
       method: 'POST',
@@ -42,8 +56,9 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       },
       success: () => {
         const orgSlug = formData.organization;
-
-        this.props.router.push(normalizeUrl(`/organizations/${orgSlug}/projects/`));
+        const projectSlug = this.state?.transferDetails?.project.slug;
+        const route = `/settings/${orgSlug}/projects/${projectSlug}/teams/`;
+        window.location.href = resolveRoute(route, orgSlug);
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
