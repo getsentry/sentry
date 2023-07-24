@@ -185,8 +185,8 @@ class ArtifactBundleFlatFileIndex(Model):
         from sentry.models import File
 
         file = File.objects.create(
-            name=f"{project_id}:{release}:{dist}:artifact_bundle_flat_index",
-            type="artifact_bundle_flat_index",
+            name="artifact_bundle_flat_file_index",
+            type="flat_file_index",
         )
         file.putfile(BytesIO(file_contents.encode()))
 
