@@ -74,7 +74,7 @@ class TeamOrgMemberPermission(OrganizationPermission):
             "member:write",
             "member:admin",
         ],
-        "DELETE": ["org:read", "org:write", "team:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
     }
 
 
@@ -405,6 +405,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 <td style="width: 50%; text-align: left;">
                     <ul style="list-style-type: none; padding-left: 0;">
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                     </ul>
                 </td>
@@ -415,6 +416,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                     <ul style="list-style-type: none; padding-left: 0;">
                         <li><strong style="color: #9c5f99;">&bull; org:read*</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                        <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; team:write</strong></li>
                         <li><strong style="color: #9c5f99;">&bull; org:read + team:write**</strong></li>
                     </ul>
