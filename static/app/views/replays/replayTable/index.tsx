@@ -35,7 +35,6 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   saveLocation?: boolean;
-  style?: string;
 };
 
 function ReplayTable({
