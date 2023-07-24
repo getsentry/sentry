@@ -74,6 +74,16 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "percentile",
                     required_args=[
                         NumericColumn("column", spans=True),
