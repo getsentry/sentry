@@ -17,6 +17,7 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getIssueAttributes(org: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
+  init(): void;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;

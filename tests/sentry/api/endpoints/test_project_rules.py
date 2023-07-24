@@ -39,7 +39,7 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(

@@ -262,6 +262,7 @@ default_manager.add("organizations:slack-use-new-lookup", OrganizationFeature, F
 default_manager.add("organizations:sourcemaps-bundle-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
+
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

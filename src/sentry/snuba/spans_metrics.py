@@ -77,6 +77,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """

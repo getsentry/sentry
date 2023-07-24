@@ -138,8 +138,8 @@ environment_name: System.get_env("RELEASE_LEVEL") || "development"
             </p>
             <p>
               {tct(
-                'If using an environment with Plug or Phoenix, add the following to [codePlugRouter:Plug.Router] or [codePhoenixEndpoint:Phoenix.Endpoint]:',
-                {codePlugRouter: <code />, codePhoenixEndpoint: <code />}
+                'If using an environment with Plug or Phoenix, add the following to [plugRouterCode:Plug.Router] or [phoenixEndpointCode:Phoenix.Endpoint]:',
+                {plugRouterCode: <code />, phoenixEndpointCode: <code />}
               )}
             </p>
           </Fragment>

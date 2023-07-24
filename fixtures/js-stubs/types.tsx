@@ -66,7 +66,6 @@ type TestStubFixtures = {
   EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
   EventStacktraceMessage: OverridableStub;
-  Events: OverridableStubList;
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
