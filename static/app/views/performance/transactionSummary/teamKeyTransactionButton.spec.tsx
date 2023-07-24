@@ -31,6 +31,10 @@ describe('TeamKeyTransactionButton', function () {
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: [],
+    createdBy: TestStubs.User(),
+    display: 'line',
+    team: ['myteams'],
+    topEvents: '5',
   });
 
   beforeEach(function () {
