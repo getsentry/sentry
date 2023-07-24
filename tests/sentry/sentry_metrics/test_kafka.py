@@ -20,6 +20,11 @@ tags = {"a": "b"}
 
 
 metrics_backend = client.backend
+# For testing, we are calling close() here because we
+# are swapping out the KafkaProducer
+# with a LocalProducer, but regardless,
+# close() must always be called in order to close
+# the backend's KafkaProducer
 metrics_backend.close()
 
 
@@ -30,10 +35,6 @@ def test_produce_set() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    # For testing, we are swapping out the KafkaProducer
-    # with a LocalProducer, but regardless,
-    # close() must always be called in order to close
-    # the backend's KafkaProducer
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
@@ -73,10 +74,6 @@ def test_produce_counter() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    # For testing, we are swapping out the KafkaProducer
-    # with a LocalProducer, but regardless,
-    # close() must always be called in order to close
-    # the backend's KafkaProducer
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
@@ -116,10 +113,6 @@ def test_produce_distribution() -> None:
     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
     broker.create_topic(my_topic, partitions=1)
 
-    # For testing, we are swapping out the KafkaProducer
-    # with a LocalProducer, but regardless,
-    # close() must always be called in order to close
-    # the backend's KafkaProducer
     metrics_backend.producer = LocalProducer(broker)
     metrics_backend.kafka_topic = my_topic
 
