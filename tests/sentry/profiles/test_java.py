@@ -3,7 +3,7 @@ from tempfile import mkstemp
 import pytest
 from symbolic.proguard import ProguardMapper
 
-from sentry.profiles.java import map_obfuscated_signature
+from sentry.profiles.java import deobfuscate_signature
 
 PROGUARD_SOURCE = b"""\
 # compiler: R8
@@ -40,8 +40,9 @@ def mapper():
         ("([Ljava/lang/String;)", "(java.lang.String[])"),
         ("([[J)", "(long[][])"),
         ("(I)I", "(int): int"),
+        ("([B)V", "(byte[])"),
     ],
 )
-def test_map_obfuscated_signature(mapper, obfuscated, expected):
-    result = map_obfuscated_signature(mapper, obfuscated)
+def test_deobfuscate_signature(mapper, obfuscated, expected):
+    result = deobfuscate_signature(mapper, obfuscated)
     assert result == expected

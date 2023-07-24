@@ -127,16 +127,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 67,
                         },
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 69,
                         },
