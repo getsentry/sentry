@@ -1,6 +1,7 @@
 from typing import Any, Mapping, MutableMapping
 
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +11,8 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.team import TeamSerializer, TeamWithProjectsSerializer
+from sentry.api.serializers.models.team import TeamSerializer
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization,
@@ -44,27 +46,44 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
         }
 
 
-class RelaxedOrganizationPermission(OrganizationPermission):
-    _allowed_scopes = [
-        "org:read",
-        "org:write",
-        "org:admin",
-        "member:read",
-        "member:write",
-        "member:admin",
-    ]
+class TeamOrgMemberPermission(OrganizationPermission):
 
     scope_map = {
-        "GET": _allowed_scopes,
-        "POST": _allowed_scopes,
-        "PUT": _allowed_scopes,
-        "DELETE": _allowed_scopes,
+        "GET": [
+            "org:read",
+            "org:write",
+            "member:read",
+            "member:write",
+            "member:admin",
+        ],
+        "POST": ["org:read", "org:write", "team:write"],
+        "PUT": [
+            "org:read",
+            "org:write",
+            "member:read",
+            "member:write",
+            "member:admin",
+        ],
+        "DELETE": ["org:read", "org:write", "org:admin", "team:write"],
     }
+
+
+def _has_elevated_scope(access: Access) -> bool:
+    """
+    Validate that the token has more than just org:read
+    """
+    return access.has_scope("org:write") or access.has_scope("team:write")
+
+
+def _is_org_owner_or_manager(access: Access) -> bool:
+    roles = access.get_organization_roles()
+    # only org owners and managers have org:write scope
+    return any("org:write" in role.scopes for role in roles)
 
 
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    permission_classes = [RelaxedOrganizationPermission]
+    permission_classes = [TeamOrgMemberPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
@@ -74,7 +93,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are a team admin or have global write access
         * If the open membership organization setting is enabled
         """
-        return request.access.has_global_access or can_admin_team(request.access, team)
+        access = request.access
+
+        # When open membership is disabled, we need to check if the token has elevated permissions
+        # in order to ensure org tokens with only "org:read" scope cannot add members. This check
+        # comes first because access.has_global_access is True for all org tokens
+        if access.is_org_auth_token and not access.has_open_membership:
+            return _has_elevated_scope(access)
+        return access.has_global_access or can_admin_team(access, team)
 
     def _can_delete(
         self,
@@ -96,6 +122,12 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             return False
 
         if request.user.id == member.user_id:
+            return True
+
+        # There is an edge case where org owners/managers cannot remove a member from a team they
+        # are not part of using team:write. We cannot explicitly check for team:write b/c org admins
+        # have it but are only allowed to remove members from teams they are on.
+        if _is_org_owner_or_manager(request.access):
             return True
 
         return can_admin_team(request.access, team)
@@ -142,13 +174,10 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     ) -> Response:
         """
         Join, request access to or add a member to a team.
-
         If the user needs permission to join the team, an access request will
         be generated and the returned status code will be 202.
-
         If the user is already a member of the team, this will simply return
         a 204.
-
         If the team is provisioned through an identity provider, then the user
         cannot join or request to join the team through Sentry.
         """
@@ -184,7 +213,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             data=omt.get_audit_log_data(),
         )
 
-        return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
+        return Response(serialize(team, request.user, TeamSerializer()), status=201)
 
     def put(
         self,
@@ -198,7 +227,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        omt = None
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:
@@ -206,7 +234,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         serializer = OrganizationMemberTeamSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
-            return Response(status=400)
+            raise ValidationError(serializer.errors)
         result = serializer.validated_data
 
         if "teamRole" in result and features.has("organizations:team-roles", organization):
@@ -289,6 +317,4 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(
-            serialize(team, request.user, TeamSerializer(expand=["externalTeams"])), status=200
-        )
+        return Response(serialize(team, request.user, TeamSerializer()), status=200)
