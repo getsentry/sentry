@@ -747,7 +747,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_valid_debugod_sdk_no_sourcemaps(self):
+    def test_valid_debugid_sdk_no_sourcemaps(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
