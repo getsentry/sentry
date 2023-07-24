@@ -1,6 +1,5 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -20,7 +19,7 @@ export default function DBModule() {
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Database Queries')}</Layout.Title>
+              <Layout.Title>{ROUTE_NAMES.database}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 

@@ -7,6 +7,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 import SpansView from './spansView';
 
@@ -55,7 +56,7 @@ const getTitle = (moduleName: ModuleName, spanCategory?: string) => {
     return t('API Calls');
   }
   if (spanCategory === 'db') {
-    return t('Database Queries');
+    return ROUTE_NAMES.database;
   }
   if (spanCategory === 'cache') {
     return t('Cache Queries');
