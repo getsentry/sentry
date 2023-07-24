@@ -356,7 +356,12 @@ class ReleaseBundlePostAssembler(PostAssembler):
 
         if self.archive.artifact_count >= min_artifact_count:
             try:
-                update_artifact_index(release, dist, self.assemble_result.bundle)
+                update_artifact_index(
+                    release,
+                    dist,
+                    self.assemble_result.bundle,
+                    self.assemble_result.bundle_temp_file,
+                )
                 saved_as_archive = True
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
@@ -546,15 +551,31 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for source_file_type, debug_id in debug_ids_with_types:
-                DebugIdArtifactBundle.objects.create_or_update(
-                    organization_id=self.organization.id,
-                    debug_id=debug_id,
-                    artifact_bundle=artifact_bundle,
-                    source_file_type=source_file_type.value,
-                    values=new_date_added,
-                    defaults=new_date_added,
+            # Instead of doing a `create_or_update` one-by-one, we will instead:
+            # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
+            #   if the artifact bundle was newly inserted. This is based on the assumption
+            #   that the `bundle_id` is deterministic and the `created` flag signals that
+            #   this identical bundle was already inserted.
+            # - Otherwise, update all the affected/conflicting rows with a single query.
+            if created:
+                debug_id_to_insert = [
+                    DebugIdArtifactBundle(
+                        organization_id=self.organization.id,
+                        debug_id=debug_id,
+                        artifact_bundle=artifact_bundle,
+                        source_file_type=source_file_type.value,
+                        date_added=date_snapshot,
+                    )
+                    for source_file_type, debug_id in debug_ids_with_types
+                ]
+                DebugIdArtifactBundle.objects.bulk_create(
+                    debug_id_to_insert, batch_size=50, ignore_conflicts=True
                 )
+            else:
+                DebugIdArtifactBundle.objects.filter(
+                    organization_id=self.organization.id,
+                    artifact_bundle=artifact_bundle,
+                ).update(date_added=date_snapshot)
 
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
@@ -611,6 +632,9 @@ class ArtifactBundlePostAssembler(PostAssembler):
             # We store a reference to the previous file to which the bundle was pointing to.
             existing_file = existing_artifact_bundle.file
 
+            if existing_file.checksum != self.assemble_result.bundle.checksum:
+                logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
+
             # Only if the file objects are different we want to update the database, otherwise we will end up deleting
             # a newly bound file.
             if existing_file != self.assemble_result.bundle:
@@ -627,6 +651,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
                 # We now delete that file, in order to avoid orphan files in the database.
                 existing_file.delete()
+            # else: are we leaking the `assemble_result.bundle` in this case?
 
             return existing_artifact_bundle, False
 
