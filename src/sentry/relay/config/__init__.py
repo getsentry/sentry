@@ -404,7 +404,7 @@ def _get_project_config(
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
         if version == 4:
-            get_conditional_rules = get_dynamic_metric_conditional_tagging_rules[0]
+            get_conditional_rules = get_dynamic_metric_conditional_tagging_rules
         else:
             get_conditional_rules = get_metric_conditional_tagging_rules
 

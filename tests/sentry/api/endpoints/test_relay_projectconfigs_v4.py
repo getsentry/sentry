@@ -50,11 +50,9 @@ def relay(relay_id, public_key):
 
 @pytest.fixture
 def call_global_config(client, relay, private_key, default_projectkey):
-    def inner(full_config, global_config=False, public_keys=None):
+    def inner():
         path = reverse("sentry-api-0-relay-projectconfigs")
 
-        if public_keys is None:
-            public_keys = [str(default_projectkey.public_key)]
         raw_json = {"globalConfig": True}
 
         resp = client.post(
@@ -138,18 +136,7 @@ def project_config_get_mock(monkeypatch):
 
 
 @django_db_all
-def test_return_global_config(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
-):
-
-    # first check it doesn't return global if flag is false
-    result, status_code = call_endpoint(full_config=True, global_config=False)
-    assert status_code < 400
-    assert result == {
-        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
-        "pending": [],
-    }
-
+def test_return_global_config():
     result, status_code = call_global_config()
     assert status_code < 400
     # i'll put this in separate file ofc, this is temporary

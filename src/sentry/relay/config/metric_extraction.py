@@ -144,7 +144,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 # Only the rules that can change per project, unlike the static ones.
 def get_dynamic_metric_conditional_tagging_rules(
     project: Project,
-) -> Union[List[MetricConditionalTaggingRule], bool]:
+) -> Sequence[MetricConditionalTaggingRule]:
     rules: List[MetricConditionalTaggingRule] = []
 
     # transaction-specific overrides must precede the project-wide threshold in the list of rules.
@@ -179,7 +179,7 @@ def get_dynamic_metric_conditional_tagging_rules(
 def get_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
-    rules = get_dynamic_metric_conditional_tagging_rules(project)[0]
+    rules = get_dynamic_metric_conditional_tagging_rules(project)
 
     # static rules, will be the same on every project.
     rules.extend(_HISTOGRAM_OUTLIER_RULES)
