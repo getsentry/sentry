@@ -19,7 +19,9 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +31,9 @@ import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
+import TeamMembersRow, {
+  GRID_TEMPLATE,
+} from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getButtonHelpText} from './utils';
@@ -326,10 +330,13 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
         />
 
         <Panel>
-          <PanelHeader hasButtons>
+          <StyledPanelHeader hasButtons>
             <div>{t('Members')}</div>
+            <div>
+              <TeamRoleColumnLabel />
+            </div>
             <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
-          </PanelHeader>
+          </StyledPanelHeader>
           {this.state.teamMembers.length ? (
             this.state.teamMembers.map(member => {
               return (
@@ -387,6 +394,10 @@ const StyledMembersLabel = styled('div')`
 
 const StyledCreateMemberLink = styled(Link)`
   text-transform: none;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  ${GRID_TEMPLATE}
 `;
 
 export default withConfig(withApi(withOrganization(TeamMembers)));

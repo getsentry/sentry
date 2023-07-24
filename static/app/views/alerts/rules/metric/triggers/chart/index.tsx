@@ -20,7 +20,7 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import LoadingMask from 'sentry/components/loadingMask';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -448,6 +448,7 @@ class TriggersChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={handleMEPAlertDataset}
+        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({
           loading,

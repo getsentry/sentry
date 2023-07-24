@@ -389,7 +389,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Compare releases'),
           target: 'release_projects',
           description: t(
-            `Click here and select the "react-native" project to see how the release is trending compaed to previous releases.`
+            `Click here and select the "react-native" project to see how the release is trending compared to previous releases.`
           ),
         },
       ],

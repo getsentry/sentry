@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import {Organization, ProjectKey} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';

@@ -28,10 +28,12 @@ from sentry.web.frontend.organization_auth_settings import get_scim_url
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
-        self.auth_provider = AuthProvider.objects.create(
+        self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
-        AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=self.auth_provider)
+        AuthIdentity.objects.create(
+            user=self.user, ident="foo", auth_provider=self.auth_provider_inst
+        )
         self.login_as(self.user, organization_id=self.organization.id)
         self.path = reverse(
             "sentry-organization-auth-provider-settings", args=[self.organization.slug]
@@ -42,7 +44,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         self.create_member(
             user=user, organization=self.organization, role="owner", teams=[self.team]
         )
-        AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider)
+        AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider_inst)
         om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
         setattr(om.flags, "sso:linked", True)
         om.save()
@@ -53,7 +55,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         self.create_member(
             user=user, organization=self.organization, role="manager", teams=[self.team]
         )
-        AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider)
+        AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider_inst)
         om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
         setattr(om.flags, "sso:linked", True)
         om.save()

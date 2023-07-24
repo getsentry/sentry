@@ -3,11 +3,23 @@ import styled from '@emotion/styled';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+
+type StepProps = {
+  errorHandlerProviders: string;
+  newOrg: boolean;
+  organization: Organization;
+  platformKey: PlatformKey;
+  projectId: string;
+  sentryInitContent: string;
+};
 
 // Configuration Start
 const replayIntegration = `
@@ -49,70 +61,65 @@ const performanceErrorHandler = `
 export const steps = ({
   sentryInitContent,
   errorHandlerProviders,
-}: {
-  errorHandlerProviders?: string;
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+  ...props
+}: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
+    description: (
+      <InstallDescription>
+        <p>
+          {tct(
+            "To use Sentry with your Angular application, you'll need [sentryAngularIvyCode:@sentry/angular-ivy] or [sentryAngularCode:@sentry/angular], Sentry’s Browser Angular SDKs:",
+            {
+              sentryAngularIvyCode: <code />,
+              sentryAngularCode: <code />,
+            }
+          )}
+        </p>
+        <List symbol="bullet">
+          <ListItem>
+            {tct("If you're using Angular 12 or newer, use [code:@sentry/angular-ivy]", {
+              code: <code />,
+            })}
+          </ListItem>
+          <ListItem>
+            {tct("If you're using Angular 10 or 11, use [code:@sentry/angular]", {
+              code: <code />,
+            })}
+          </ListItem>
+        </List>
+        <p>
+          {tct('Add the Sentry SDK as a dependency using [code:yarn] or [code:npm]:', {
+            code: <code />,
+          })}
+        </p>
+      </InstallDescription>
+    ),
     configurations: [
       {
-        description: (
-          <InstallDescription>
-            <div>
-              {tct(
-                "To use Sentry with your Angular application, you'll need [code:@sentry/angular-ivy] or [code:@sentry/angular], Sentry’s Browser Angular SDKs:",
-                {
-                  code: <code />,
-                }
-              )}
-            </div>
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  "If you're using Angular 12 or newer, use [code:@sentry/angular-ivy]",
-                  {code: <code />}
-                )}
-              </ListItem>
-              <ListItem>
-                {tct("If you're using Angular 10 or 11, use [code:@sentry/angular]", {
-                  code: <code />,
-                })}
-              </ListItem>
-            </List>
-            <div>
-              {tct(
-                'Add the Sentry SDK as a dependency using [code:yarn] or [code:npm]:',
-                {
-                  code: <code />,
-                }
-              )}
-            </div>
-          </InstallDescription>
-        ),
+        language: 'bash',
         code: `
-        # Using yarn (Angular 12+)
-        yarn add @sentry/angular-ivy
-        # Using yarn (Angular 10 and 11)
-        yarn add @sentry/angular
+# Using yarn (Angular 12+)
+yarn add @sentry/angular-ivy
+# Using yarn (Angular 10 and 11)
+yarn add @sentry/angular
 
-        # Using npm (Angular 12+)
-        npm install --save @sentry/angular-ivy
-        # Using npm (Angular 10 and 11)
-        npm install --save @sentry/angular
+# Using npm (Angular 12+)
+npm install --save @sentry/angular-ivy
+# Using npm (Angular 10 and 11)
+npm install --save @sentry/angular
         `,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
+    description: t(
+      'You should init the Sentry browser SDK in your main.ts file as soon as possible during application load up, before initializing Angular:'
+    ),
     configurations: [
       {
-        description: t(
-          'You should init the Sentry browser SDK in your main.ts file as soon as possible during application load up, before initializing Angular:'
-        ),
+        language: 'javascript',
         code: `
         import { enableProdMode } from "@angular/core";
         import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
@@ -136,6 +143,7 @@ export const steps = ({
         description: t(
           "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
         ),
+        language: 'javascript',
         code: `
         import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
         import { Router } from "@angular/router";
@@ -159,17 +167,18 @@ export const steps = ({
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/'
-  ),
+  getUploadSourceMapsStep({
+    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
+    ...props,
+  }),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
+    description: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
     configurations: [
       {
-        description: t(
-          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-        ),
+        language: 'javascript',
         code: `myUndefinedFunction();`,
       },
     ],
@@ -202,17 +211,14 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithAngular({
+export function GettingStartedWithAngular({
   dsn,
+  activeProductSelection = [],
+  organization,
   newOrg,
-  activeProductSelection,
-}: Props) {
+  platformKey,
+  projectId,
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
 
@@ -251,12 +257,19 @@ export default function GettingStartedWithAngular({
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
         errorHandlerProviders: errorHandlerProviders.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
       })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
+      platformKey={platformKey}
     />
   );
 }
+
+export default GettingStartedWithAngular;
 
 const InstallDescription = styled('div')`
   display: flex;

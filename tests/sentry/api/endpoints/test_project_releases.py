@@ -6,11 +6,10 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
 from sentry.models import (
     CommitAuthor,
-    CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
@@ -18,9 +17,12 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -505,7 +507,7 @@ class ProjectReleaseCreateTest(APITestCase):
         )
 
         # test right org, wrong permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
@@ -523,7 +525,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             wrong_org_token_str = generate_token(org2.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
@@ -541,7 +543,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test right org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
@@ -551,12 +553,20 @@ class ProjectReleaseCreateTest(APITestCase):
                 scope_list=["org:ci"],
                 date_last_used=None,
             )
-        response = self.client.post(
-            url,
-            data={"version": "1.2.1"},
-            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
-        )
+
+        with outbox_runner():
+            response = self.client.post(
+                url,
+                data={"version": "1.2.1"},
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
         assert response.status_code == 201, response.content
+
+        # Make sure org token usage was updated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == project1.id
 
 
 @region_silo_test(stable=True)

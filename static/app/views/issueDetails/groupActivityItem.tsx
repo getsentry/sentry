@@ -14,12 +14,14 @@ import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
+  GroupActivitySetEscalating,
   GroupActivitySetIgnored,
   GroupActivityType,
   Organization,
   Project,
   User,
 } from 'sentry/types';
+import {isSemverRelease} from 'sentry/utils/formatters';
 
 type Props = {
   activity: GroupActivity;
@@ -95,7 +97,10 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       });
     }
 
-    return tct('[author] [action] this issue', {author, action: ignoredOrArchived});
+    return tct('[author] [action] this issue forever', {
+      author,
+      action: ignoredOrArchived,
+    });
   }
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
@@ -148,6 +153,76 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
     );
   }
 
+  function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
+    if (data.forecast) {
+      return tct(
+        '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+        {
+          author,
+          forecast: data.forecast,
+          event: data.forecast === 1 ? 'event' : 'events',
+        }
+      );
+    }
+
+    if (data.expired_snooze) {
+      if (data.expired_snooze.count && data.expired_snooze.window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened in [duration]',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+            duration: <Duration seconds={data.expired_snooze.window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count && data.expired_snooze.user_window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected in [duration]',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+            duration: <Duration seconds={data.expired_snooze.user_window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+          }
+        );
+      }
+
+      if (data.expired_snooze.until) {
+        return tct('[author] flagged this issue as escalating because [date] passed', {
+          author,
+          date: <DateTime date={data.expired_snooze.until} />,
+        });
+      }
+    }
+
+    return tct('[author] flagged this issue as escalating', {author}); // should not reach this
+  }
+
   function renderContent() {
     switch (activity.type) {
       case GroupActivityType.NOTE:
@@ -159,28 +234,41 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        const {current_release_version, version} = activity.data;
-        if (current_release_version) {
+        // Resolved in the next release
+        if ('current_release_version' in activity.data) {
+          const currentVersion = activity.data.current_release_version;
           return tct(
-            '[author] marked this issue as resolved in releases greater than [version]',
+            '[author] marked this issue as resolved in releases greater than [version] [semver]',
             {
               author,
               version: (
                 <Version
-                  version={current_release_version}
+                  version={currentVersion}
                   projectId={projectId}
                   tooltipRawVersion
                 />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(currentVersion)
+                  ? t('(semver)')
+                  : t('(non-semver)')
+                : '',
             }
           );
         }
+
+        const version = activity.data.version;
         return version
-          ? tct('[author] marked this issue as resolved in [version]', {
+          ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(version)
+                  ? t('(semver)')
+                  : t('(non-semver)')
+                : '',
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -393,14 +481,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             });
       }
       case GroupActivityType.SET_ESCALATING: {
-        return tct(
-          '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
-          {
-            author,
-            forecast: activity.data.forecast,
-            event: activity.data.forecast === 1 ? 'event' : 'events',
-          }
-        );
+        return getEscalatingMessage(activity.data);
       }
 
       default:

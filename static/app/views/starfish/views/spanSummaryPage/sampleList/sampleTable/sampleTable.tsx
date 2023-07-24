@@ -36,7 +36,7 @@ function SampleTable({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'api.starfish.span-summary-panel-samples-table-p95'
   );
   const organization = useOrganization();
 
@@ -45,6 +45,7 @@ function SampleTable({
   const {
     data: spans,
     isFetching: isFetchingSamples,
+    isEnabled: isSamplesEnabled,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -56,10 +57,11 @@ function SampleTable({
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
+    isEnabled: isTransactionsEnabled,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
-    'span-summary-panel-samples-table-transactions'
+    'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
   const [loadedSpans, setLoadedSpans] = useState(false);
@@ -91,6 +93,8 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
+    !isSamplesEnabled ||
+    !isTransactionsEnabled ||
     (!areNoSamples && isFetchingTransactions);
 
   if (sampleError || transactionError) {
@@ -110,7 +114,7 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
-              op: spanMetrics['span.op'],
+              op: spanMetrics[SPAN_OP],
               transaction: transactionsById[sample['transaction.id']],
             };
           })}

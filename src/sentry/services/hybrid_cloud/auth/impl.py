@@ -6,12 +6,12 @@ from typing import Any, List, Mapping
 from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models import Count, F, Q
-from django.http import HttpResponse
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import (
     ApiKey,
     ApiToken,
@@ -168,7 +168,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
-        handler = RequestAuthenticationMiddleware(lambda _: HttpResponse("fake"))
+        handler = RequestAuthenticationMiddleware(placeholder_get_response)
         expired_user: User | None = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
@@ -184,7 +184,9 @@ class DatabaseBackedAuthService(AuthService):
             auth = AuthenticatedToken.from_token(fake_request.auth)
 
         result = MiddlewareAuthenticationResponse(
-            auth=auth, user_from_signed_request=fake_request.user_from_signed_request
+            auth=auth,
+            user_from_signed_request=fake_request.user_from_signed_request,
+            accessed=fake_request.session._accessed,
         )
 
         if expired_user is not None:
@@ -193,7 +195,7 @@ class DatabaseBackedAuthService(AuthService):
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             with transaction.atomic(using=router.db_for_read(User)):
                 result.user = self._load_auth_user(fake_request.user)
-                transaction.set_rollback(True)
+                transaction.set_rollback(True, using=router.db_for_read(User))
             if SiloMode.single_process_silo_mode():
                 connections.close_all()
 
@@ -236,11 +238,18 @@ class DatabaseBackedAuthService(AuthService):
 
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]
+    _accessed: set[str]
 
     def __init__(self, **d: Any):
         self.d = d
+        self._accessed = set()
+
+    @property
+    def accessed(self) -> bool:
+        return bool(self._accessed)
 
     def __getitem__(self, item: str) -> str | bytes:
+        self._accessed.add(item)
         result = self.d[item]
         if result is None:
             raise KeyError(f"Key '{item!r}' does not exist")

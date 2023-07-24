@@ -76,6 +76,25 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 error_ids=[],
             )
         )
+        self.store_replays(
+            mock_replay_click(
+                seq2_timestamp,
+                project.id,
+                replay1_id,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1", "class2"],
+                role="button",
+                testid="1",
+                alt="Alt",
+                aria_label="AriaLabel",
+                title="MyTitle",
+                is_dead=1,
+                is_rage=1,
+                text="Hello",
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -101,6 +120,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 count_errors=1,
                 tags={"test": ["hello", "world"], "other": ["hello"]},
                 activity=4,
+                count_dead_clicks=1,
+                count_rage_clicks=1,
+                clicks=[
+                    {
+                        "click.alt": "Alt",
+                        "click.classes": ["class1", "class2"],
+                        "click.id": "myid",
+                        "click.role": "button",
+                        "click.tag": "div",
+                        "click.testid": "1",
+                        "click.text": "Hello",
+                        "click.title": "MyTitle",
+                        "click.label": "AriaLabel",
+                    }
+                ],
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -512,6 +546,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:1",
+                "count_dead_clicks:0",
+                "count_rage_clicks:0",
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
@@ -586,6 +622,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
+                "count_dead_clicks:>0",
+                "count_rage_clicks:>0",
                 f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
                 "id:b OR duration:>1000",
@@ -868,6 +906,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "urls": None,
                     "started_at": None,
                     "count_errors": None,
+                    "count_dead_clicks": None,
+                    "count_rage_clicks": None,
                     "activity": None,
                     "finished_at": None,
                     "duration": None,

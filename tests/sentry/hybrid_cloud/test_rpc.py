@@ -1,10 +1,13 @@
+from __future__ import annotations
+
+from typing import Any, cast
 from unittest import mock
-from unittest.mock import MagicMock
 
 import pytest
+import responses
+from django.db import router
 from django.test import override_settings
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth import AuthService
@@ -21,20 +24,14 @@ from sentry.services.hybrid_cloud.rpc import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 _REGIONS = [
-    Region(
-        "north_america",
-        1,
-        "http://na.sentry.io",
-        RegionCategory.MULTI_TENANT,
-        "swordfish",
-    ),
+    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT, "swordfish"),
     Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT, "courage"),
 ]
 
@@ -46,7 +43,7 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.update_or_create(
                 organization_id=organization.id,
                 defaults={
@@ -136,66 +133,89 @@ class RpcServiceTest(TestCase):
             assert result[0]["organization_id"] == organization.id
 
 
+control_address = "https://control.example.com"
+shared_secret = ["a-long-token-you-could-not-guess"]
+
+
 class DispatchRemoteCallTest(TestCase):
     def test_while_not_allowed(self):
         with pytest.raises(RpcSendException):
             dispatch_remote_call(None, "user", "get_user", {"id": 0})
 
-    _REGION_SILO_CREDS = {
-        "is_allowed": True,
-        "control_silo_api_token": "letmein",
-        "control_silo_address": "http://localhost",
-    }
-
     @staticmethod
-    def _set_up_mock_response(mock_urlopen, response_value):
-        charset = "utf-8"
-        response_body = {"meta": {}, "value": response_value}
-        serial_response = json.dumps(response_body).encode(charset)
-
-        mock_response = MagicMock()
-        mock_response.headers.get_content_charset.return_value = charset
-        mock_response.read.return_value = serial_response
-        mock_urlopen.return_value.__enter__.return_value = mock_response
-
-    @override_settings(SILO_MODE=SiloMode.REGION, DEV_HYBRID_CLOUD_RPC_SENDER=_REGION_SILO_CREDS)
-    @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
-    def test_region_to_control_happy_path(self, mock_urlopen):
-        org = self.create_organization()
-        response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
-        self._set_up_mock_response(mock_urlopen, response_value.dict())
-
-        result = dispatch_remote_call(
-            None, "organization", "get_organization_by_id", {"id": org.id}
+    def _set_up_mock_response(service_name: str, response_value: Any, address: str | None = None):
+        address = address or control_address
+        responses.add(
+            responses.POST,
+            f"{address}/api/0/internal/rpc/{service_name}/",
+            content_type="json",
+            body=json.dumps({"meta": {}, "value": response_value}),
         )
-        assert result == response_value
 
-    @override_settings(SILO_MODE=SiloMode.REGION, DEV_HYBRID_CLOUD_RPC_SENDER=_REGION_SILO_CREDS)
-    @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
-    def test_region_to_control_null_result(self, mock_urlopen):
-        self._set_up_mock_response(mock_urlopen, None)
+    @responses.activate
+    def test_region_to_control_happy_path(self):
+        org = self.create_organization()
+
+        with override_settings(
+            RPC_SHARED_SECRET=shared_secret, SENTRY_CONTROL_ADDRESS=control_address
+        ):
+            response_value = RpcUserOrganizationContext(
+                organization=serialize_rpc_organization(org)
+            )
+            self._set_up_mock_response("organization/get_organization_by_id", response_value.dict())
+
+            result = dispatch_remote_call(
+                None, "organization", "get_organization_by_id", {"id": org.id}
+            )
+            assert result == response_value
+
+    @responses.activate
+    @override_settings(
+        SILO_MODE=SiloMode.REGION,
+        RPC_SHARED_SECRET=shared_secret,
+        SENTRY_CONTROL_ADDRESS=control_address,
+    )
+    def test_region_to_control_null_result(self):
+        self._set_up_mock_response("organization/get_organization_by_id", None)
 
         result = dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
         assert result is None
 
+    @responses.activate
     @override_regions(_REGIONS)
-    @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
-    @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
-    def test_control_to_region_happy_path(self, mock_urlopen):
+    @override_settings(
+        SILO_MODE=SiloMode.CONTROL,
+        RPC_SHARED_SECRET=shared_secret,
+        SENTRY_CONTROL_ADDRESS=control_address,
+    )
+    def test_control_to_region_happy_path(self):
         user = self.create_user()
         serial = serialize_rpc_user(user)
-        self._set_up_mock_response(mock_urlopen, serial.dict())
+        self._set_up_mock_response("user/get_user", serial.dict(), address="http://na.sentry.io")
 
         result = dispatch_remote_call(_REGIONS[0], "user", "get_user", {"id": 0})
         assert result == serial
 
+    @responses.activate
     @override_regions(_REGIONS)
-    @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
-    @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
-    def test_control_to_region_with_list_result(self, mock_urlopen):
+    @override_settings(
+        SILO_MODE=SiloMode.CONTROL,
+        RPC_SHARED_SECRET=shared_secret,
+        SENTRY_CONTROL_ADDRESS=control_address,
+    )
+    def test_region_to_control_with_list_result(self):
         users = [self.create_user() for _ in range(3)]
         serial = [serialize_rpc_user(user) for user in users]
-        self._set_up_mock_response(mock_urlopen, [m.dict() for m in serial])
+        self._set_up_mock_response("user/get_many", [m.dict() for m in serial])
 
-        result = dispatch_remote_call(_REGIONS[0], "user", "get_many", {"filter": {}})
+        result = dispatch_remote_call(None, "user", "get_many", {"filter": {}})
         assert result == serial
+
+    @responses.activate
+    @override_regions(_REGIONS)
+    @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
+    def test_early_halt_from_null_region_resolution(self):
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            org_service_delgn = cast(OrganizationService, OrganizationService.create_delegation())
+        result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
+        assert result is None

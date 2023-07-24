@@ -20,6 +20,7 @@ from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
@@ -117,7 +118,7 @@ def get_top_5_issues_by_count(issue_list: List[int], project: Project) -> List[i
             .set_limit(5)
         ),
     )
-    return raw_snql_query(request, referrer="tasks.github_comment")["data"]
+    return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
 
 
 def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
@@ -253,13 +254,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except ApiError as e:
         cache.delete(cache_key)
 
-        if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.issue_locked_error")
-            return
+        if e.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.issue_locked_error")
+                return
 
-        elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.rate_limited_error")
-            return
+            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.rate_limited_error")
+                return
 
         metrics.incr("github_pr_comment.api_error")
         raise e
@@ -308,6 +310,11 @@ def github_comment_reactions():
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
                 break
 
-            metrics.incr("github_pr_comment.comment_reactions.api_error")
-            sentry_sdk.capture_exception(e)
+            if e.code == 404:
+                metrics.incr("github_pr_comment.comment_reactions.not_found_error")
+            else:
+                metrics.incr("github_pr_comment.comment_reactions.api_error")
+                sentry_sdk.capture_exception(e)
             continue
+
+        metrics.incr("github_pr_comment.comment_reactions.success")

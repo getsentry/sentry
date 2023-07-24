@@ -22,7 +22,6 @@ from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -57,12 +56,17 @@ def _metric_percentile_definition(
 
 
 def _metric_conditions(org_id, metrics) -> List[Condition]:
+    def _resolve_must_succeed(*a, **k):
+        ret = indexer.resolve(*a, **k)
+        assert ret is not None
+        return ret
+
     return [
         Condition(
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
+                _resolve_must_succeed(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )
@@ -1948,6 +1952,46 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             allow_metric_aggregates=False,
         )
 
+    def test_on_demand_metrics(self):
+        query = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=900,
+            query="transaction.duration:>0",
+            selected_columns=["count()"],
+            on_demand_metrics_enabled=True,
+        )
+        result = query.run_query("test_query")
+        assert result["data"][:5] == [
+            {
+                "time": self.start.isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=3)).isoformat(),
+                "count": 0,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=4)).isoformat(),
+                "count": 0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "count", "type": "Float64"},
+            ],
+        )
+
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_histogram_columns_set_on_builder(self):
@@ -2050,54 +2094,75 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
+    def test_run_on_demand_query(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+            on_demand_metrics_enabled=True,
+        )
+
+        result = query.run_query("test_query")
+
+        assert len(result["data"]) == 1
+
+        meta = result["meta"]
+
+        assert len(meta) == 2
+        assert meta[0]["name"] == "bucketed_time"
+        assert meta[1]["name"] == "d:transactions/on_demand@none"
+
     def test_get_snql_query(self):
-        with Feature("organizations:on-demand-metrics-extraction"):
-            query = AlertMetricsQueryBuilder(
-                self.params,
-                use_metrics_layer=True,
-                granularity=3600,
-                query="transaction.duration:>=100",
-                dataset=Dataset.PerformanceMetrics,
-                selected_columns=["p75(measurements.fp)"],
-            )
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=False,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+            on_demand_metrics_enabled=True,
+        )
 
-            snql_request = query.get_snql_query()
-            assert snql_request.dataset == "generic_metrics"
-            snql_query = snql_request.query
-            self.assertCountEqual(
-                [
-                    Function(
-                        "arrayElement",
-                        [
-                            Function(
-                                "quantilesIf(0.75)",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            indexer.resolve(
-                                                UseCaseID.TRANSACTIONS,
-                                                None,
-                                                "d:transactions/on_demand@none",
-                                            ),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            1,
-                        ],
-                        "d:transactions/on_demand@none",
-                    )
-                ],
-                snql_query.select,
-            )
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            UseCaseID.TRANSACTIONS,
+                                            None,
+                                            "d:transactions/on_demand@none",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "d:transactions/on_demand@none",
+                )
+            ],
+            snql_query.select,
+        )
 
-            query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
-            query_hash_clause = Condition(
-                lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
-            )
+        query_hash_clause = Condition(
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
+        )
 
-            assert query_hash_clause in snql_query.where
+        assert query_hash_clause in snql_query.where

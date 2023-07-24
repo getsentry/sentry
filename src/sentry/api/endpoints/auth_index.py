@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
@@ -57,7 +57,7 @@ class AuthIndexEndpoint(Endpoint):
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
         redirect = request.META.get("HTTP_REFERER", None)
-        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
         raise SsoRequired(

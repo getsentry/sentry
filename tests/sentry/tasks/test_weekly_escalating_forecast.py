@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytz
 
-from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -25,14 +25,16 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         return group_list
 
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating_group_forecast.logger")
     @patch("sentry.issues.escalating.query_groups_past_counts")
     def test_empty_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
-        mock_logger: MagicMock,
         mock_generate_and_save_missing_forecasts: MagicMock,
     ) -> None:
+        """
+        Test that when fetch is called and the issue has no forecast, the forecast for one
+        event/hr is returned, and the forecast is regenerated.
+        """
         with self.tasks():
             group_list = self.create_archived_until_escalating_groups(num_groups=1)
 
@@ -41,10 +43,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             run_escalating_forecast()
             group = group_list[0]
             fetched_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
-            assert fetched_forecast is None
-            assert mock_logger.exception.call_args.args[0] == (
-                f"Forecast does not exist for project id: {group.project.id} group id: {group.id}"
-            )
+            assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
     @patch("sentry.analytics.record")

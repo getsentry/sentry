@@ -1,4 +1,3 @@
-import base64
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -16,6 +15,8 @@ from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.region import override_region_config
+from sentry.types.region import RegionCategory, clear_global_regions
 from sentry.utils.cursors import Cursor
 
 
@@ -113,9 +114,7 @@ class EndpointTest(APITestCase):
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         response = _dummy_endpoint(request)
         response.render()
@@ -139,9 +138,7 @@ class EndpointTest(APITestCase):
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://acme.example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         response = _dummy_endpoint(request)
         response.render()
@@ -165,9 +162,7 @@ class EndpointTest(APITestCase):
         for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
             request = self.make_request(method="GET")
             request.META["HTTP_ORIGIN"] = http_origin
-            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-                apikey.key.encode("utf-8")
-            )
+            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
             response = _dummy_endpoint(request)
             response.render()
@@ -433,14 +428,31 @@ class EndpointJSONBodyTest(APITestCase):
 
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self):
+        clear_global_regions()
+
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return resolve_region(request)
 
-        assert request_with_subdomain("us") == "us"
-        assert request_with_subdomain("eu") == "eu"
-        assert request_with_subdomain("sentry") is None
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "eu",
+                "snowflake_id": 1,
+                "address": "http://eu.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+        ]
+        with override_region_config(region_config):
+            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("eu") == "eu"
+            assert request_with_subdomain("sentry") is None
 
 
 class EndpointSiloLimitTest(APITestCase):

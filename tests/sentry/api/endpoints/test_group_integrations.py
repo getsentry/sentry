@@ -23,6 +23,7 @@ class GroupIntegrationsTest(APITestCase):
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
+            assert provider.metadata is not None
 
             assert response.data[0] == {
                 "id": str(integration.id),

@@ -1,20 +1,20 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Union
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.mediators import project_rules
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleSource, User
+from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSource, User
 from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import TIMEOUT
+from .tasks import MAX_TIMEOUT, TIMEOUT
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -24,7 +24,8 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 
@@ -41,7 +42,7 @@ def get_timeout_at(
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
         return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
         )
 
     return None
@@ -65,7 +66,7 @@ def valid_duration(duration: Optional[int]) -> bool:
 
 def fetch_associated_groups(
     trace_ids: List[str], organization_id: int, project_id: int, start: datetime, end
-) -> Dict[str, Set[int]]:
+) -> Dict[str, List[Dict[str, int]]]:
     """
     Returns serializer appropriate group_ids corresponding with check-in trace ids
     :param trace_ids: list of trace_ids from the given check-ins
@@ -144,16 +145,24 @@ def fetch_associated_groups(
         },
     )
 
-    trace_groups: Dict[str, Set[int]] = defaultdict(set)
+    group_id_data: Dict[int, Set[str]] = defaultdict(set)
+    trace_groups: Dict[str, List[Dict[str, Union[int, str]]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
-    # if query completes successfully, add the set of group id's to the corresponding check-in trace
+    # if query completes successfully, add an array of objects with group id and short id
     # otherwise, return an empty dict to return an empty array through the serializer
     if "error" not in result:
         for event in result["data"]:
             trace_id_event_name = Columns.TRACE_ID.value.event_name
             assert trace_id_event_name is not None
-            trace_groups[event[trace_id_event_name]].add(event["group_id"])
+
+            # create dict with group_id and trace_id
+            group_id_data[event["group_id"]].add(event[trace_id_event_name])
+
+        group_ids = group_id_data.keys()
+        for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
+            for trace_id in group_id_data[group.id]:
+                trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 
     return trace_groups
 

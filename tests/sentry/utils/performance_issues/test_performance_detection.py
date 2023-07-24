@@ -413,7 +413,7 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 12
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -467,32 +467,22 @@ class PerformanceDetectionTest(TestCase):
             )
             in incr_mock.mock_calls
         )
-        assert (
-            call(
-                "performance.performance_issue.detected",
-                instance="True",
-                tags={
-                    "sdk_name": "sentry.javascript.react",
-                    "consecutive_db": False,
-                    "large_http_payload": False,
-                    "consecutive_http": False,
-                    "consecutive_http_ext": False,
-                    "slow_db_query": False,
-                    "render_blocking_assets": False,
-                    "n_plus_one_db": False,
-                    "n_plus_one_db_ext": False,
-                    "file_io_main_thread": False,
-                    "db_main_thread": False,
-                    "n_plus_one_api_calls": False,
-                    "n_plus_one_api_calls_ext": False,
-                    "m_n_plus_one_db": False,
-                    "uncompressed_assets": True,
-                    "browser_name": "Chrome",
-                    "is_early_adopter": False,
-                },
-            )
-            in incr_mock.mock_calls
-        )
+        detection_calls = [
+            call
+            for call in incr_mock.mock_calls
+            if call.args[0] == "performance.performance_issue.detected"
+        ]
+        assert len(detection_calls) == 2
+        tags = detection_calls[0].kwargs["tags"]
+
+        assert tags["uncompressed_assets"]
+        assert tags["sdk_name"] == "sentry.javascript.react"
+        assert not tags["is_early_adopter"]
+        assert tags["browser_name"] == "Chrome"
+
+        # Ensure all other detections are set to false in tags
+        pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
+        assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
 @region_silo_test

@@ -47,13 +47,13 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOption,
     ProjectPlatform,
-    ProjectTeam,
     Release,
     Team,
     User,
     UserReport,
 )
 from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     transform_to_notification_settings_by_scope,

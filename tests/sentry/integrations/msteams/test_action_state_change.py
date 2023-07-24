@@ -20,9 +20,10 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -35,30 +36,31 @@ class StatusActionTest(APITestCase):
         self.org = self.create_organization(owner=owner)
         self.team = self.create_team(organization=self.org, members=[self.user])
 
-        self.integration = Integration.objects.create(
-            provider="msteams",
-            name="Fellowship of the Ring",
-            external_id="f3ll0wsh1p",
-            metadata={
-                "service_url": "https://smba.trafficmanager.net/amer",
-                "access_token": "y0u_5h4ll_n07_p455",
-                "expires_at": int(time.time()) + 86400,
-            },
-        )
-        OrganizationIntegration.objects.create(
-            organization_id=self.org.id, integration=self.integration
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="msteams",
+                name="Fellowship of the Ring",
+                external_id="f3ll0wsh1p",
+                metadata={
+                    "service_url": "https://smba.trafficmanager.net/amer",
+                    "access_token": "y0u_5h4ll_n07_p455",
+                    "expires_at": int(time.time()) + 86400,
+                },
+            )
+            OrganizationIntegration.objects.create(
+                organization_id=self.org.id, integration=self.integration
+            )
 
-        self.idp = IdentityProvider.objects.create(
-            type="msteams", external_id="f3ll0wsh1p", config={}
-        )
-        self.identity = Identity.objects.create(
-            external_id="g4nd4lf",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+            self.idp = IdentityProvider.objects.create(
+                type="msteams", external_id="f3ll0wsh1p", config={}
+            )
+            self.identity = Identity.objects.create(
+                external_id="g4nd4lf",
+                idp=self.idp,
+                user=self.user,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(
@@ -180,7 +182,7 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             auth_idp = AuthProvider.objects.create(organization_id=self.org.id, provider="nobody")
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
@@ -269,7 +271,7 @@ class StatusActionTest(APITestCase):
     def test_assign_to_me_multiple_identities(self, verify):
         org2 = self.create_organization(owner=None)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration2 = Integration.objects.create(
                 provider="msteams",
                 name="Army of Mordor",
@@ -321,10 +323,7 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_unassign_issue(self, verify):
-        with exempt_from_silo_limits():
-            GroupAssignee.objects.create(
-                group=self.group1, project=self.project1, user_id=self.user.id
-            )
+        GroupAssignee.objects.create(group=self.group1, project=self.project1, user_id=self.user.id)
         resp = self.post_webhook(action_type=ACTION_TYPE.UNASSIGN, resolve_input="resolved")
         self.group1 = Group.objects.get(id=self.group1.id)
 
@@ -348,7 +347,7 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_no_integration(self, verify):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 404

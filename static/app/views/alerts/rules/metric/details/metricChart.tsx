@@ -29,7 +29,8 @@ import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
@@ -54,7 +55,6 @@ import {
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -85,6 +85,7 @@ type Props = WithRouterProps & {
   rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
+  isOnDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
 };
 
@@ -465,8 +466,17 @@ class MetricChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, project, interval, query, location} =
-      this.props;
+    const {
+      api,
+      rule,
+      organization,
+      timePeriod,
+      project,
+      interval,
+      query,
+      location,
+      isOnDemandMetricAlert,
+    } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // Fix for 7 days * 1m interval being over the max number of results from events api
@@ -501,14 +511,6 @@ class MetricChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery: false,
     });
-
-    if (isOnDemandMetricAlert(rule.query)) {
-      return this.renderEmpty(
-        t(
-          'This alert includes advanced conditions, which is a feature that is currently in early access. Charts are not yet supported at this time.'
-        )
-      );
-    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -548,6 +550,7 @@ class MetricChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
+        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) =>
           this.renderChart(loading, timeseriesData, undefined, comparisonTimeseriesData)

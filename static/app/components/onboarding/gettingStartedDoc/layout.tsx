@@ -5,18 +5,16 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {
-  Step,
-  StepProps,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -29,25 +27,41 @@ type NextStep = {
   name: string;
 };
 
-type CurrentStep = {
-  configurations: StepProps['configurations'];
-  language: string;
-  type: StepType;
-};
-
 export type LayoutProps = {
-  steps: CurrentStep[];
+  steps: StepProps[];
+  /**
+   * An introduction displayed before the steps
+   */
+  introduction?: React.ReactNode;
   newOrg?: boolean;
   nextSteps?: NextStep[];
+  platformKey?: PlatformKey;
 };
 
-export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
+export function Layout({
+  steps,
+  platformKey,
+  nextSteps = [],
+  newOrg,
+  introduction,
+}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
+  const isJavaScriptPlatform =
+    platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
+
+  const displayProductSelection = !isSelfHosted && isJavaScriptPlatform;
+
   return (
     <Wrapper>
-      {!isSelfHosted && newOrg && (
+      {introduction && (
+        <Fragment>
+          <Introduction>{introduction}</Introduction>
+          <Divider />
+        </Fragment>
+      )}
+      {displayProductSelection && newOrg && (
         <ProductSelection
           defaultSelectedProducts={[
             ProductSolution.PERFORMANCE_MONITORING,
@@ -55,20 +69,15 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
           ]}
         />
       )}
-      {!isSelfHosted && !newOrg && (
+      {displayProductSelection && !newOrg && (
         <ProductSelectionAvailabilityHook organization={organization} />
       )}
-      <Steps>
+      <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (
-          <Step
-            key={step.type}
-            type={step.type}
-            configurations={step.configurations}
-            language={step.language}
-          />
+          <Step key={step.title ?? step.type} {...step} />
         ))}
       </Steps>
-      {nextSteps && (
+      {nextSteps.length > 0 && (
         <Fragment>
           <Divider />
           <h4>{t('Next Steps')}</h4>
@@ -94,17 +103,29 @@ const Divider = styled('hr')`
   border: none;
 `;
 
-const Steps = styled('div')`
+const Steps = styled('div')<{withTopSpacing?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const Wrapper = styled('div')`
   h4 {
     margin-bottom: 0.5em;
   }
-  p {
-    margin-bottom: 1em;
+  && {
+    p {
+      margin-bottom: 0;
+    }
+    h5 {
+      margin-bottom: 0;
+    }
   }
 `;
