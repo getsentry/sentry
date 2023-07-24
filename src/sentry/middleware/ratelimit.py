@@ -24,6 +24,7 @@ DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
     "{limit} requests in {window} seconds"
 )
+logger = logging.getLogger("sentry.api.rate-limit")
 
 
 class RatelimitMiddleware:
@@ -91,6 +92,9 @@ class RatelimitMiddleware:
                     request.will_be_rate_limited = True
                     enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
+                        logger.exception(
+                            f"Rate limit exceeded for key `{request.rate_limit_key}` hitting {request.build_absolute_uri()}"
+                        )
                         return HttpResponse(
                             json.dumps(
                                 DEFAULT_ERROR_MESSAGE.format(
