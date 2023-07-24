@@ -14,4 +14,3 @@ View {{ integration_name }} integration by clicking the link below:
 Let’s get integrated.
 
 You are receiving this email because you’re listed as an organization Owner or Manager.
-Requests to join your organization can be disabled in Organization Settings: {{ settings_link }}.

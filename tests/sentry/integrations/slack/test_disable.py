@@ -7,19 +7,13 @@ from django.test import override_settings
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.data_export.base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
-from sentry.data_export.models import ExportedData
+from sentry.integrations.notifydisable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.helpers import install_slack, with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 
 control_address = "http://controlserver"
@@ -68,17 +62,19 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+
+    @responses.activate
+    @with_feature("organizations:disable-on-broken")
+    def test_email(self):
+        client = SlackClient(integration_id=self.integration.id)
+        with self.tasks():
+            notify_disable(self.organization, self.integration, client._get_redis_key())
         # email test
-        print(mail.outbox)
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == "Action required: re-authenticate or fix your slack integration"
-        print(msg.body)
-        assert (f"/settings/{self.organization.slug}/integrations/") in msg.body
+        assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
+        assert (f"/settings/integrations/{self.integration.provider}") in msg.body
 
     # test with flag off
     @responses.activate
@@ -96,10 +92,7 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.ACTIVE
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_error_integration(self):
@@ -139,10 +132,7 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.ACTIVE
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     # fake slow test w disable on
     @responses.activate
@@ -165,7 +155,4 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert (
-            integration_service.get_integration(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED

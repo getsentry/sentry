@@ -1,10 +1,5 @@
-from django.urls import reverse
-
 from sentry.models import Organization
-from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 provider_types = {
     "integration": "integrations",
@@ -13,11 +8,11 @@ provider_types = {
 }
 
 
-def get_url(organization: Organization, provider_type: str) -> str:
+def get_url(organization: Organization, provider_type: str, provider) -> str:
     type_name = provider_types.get(provider_type, "")
     return str(
         organization.absolute_url(
-            f"/settings/{organization.slug}/{type_name}/",
+            f"/settings/{type_name}/{provider}/",
         )
     )
 
@@ -40,37 +35,22 @@ def notify_disable(
     from sentry.utils.email import MessageBuilder
 
     provider = integrations.get(integration.provider)
-
     integration_name = provider.name
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
+        integration.provider,
     )
-    settings_link = organization.absolute_url(
-        reverse("sentry-organization-settings", args=[organization.slug])
-    )
-
-    user_email = None
     users = organization.get_owners()
 
-    print("Users: ", users)
     for user in users:
 
         user_email = user.email
 
         msg = MessageBuilder(
             subject=get_subject(integration_name),
-            context={
-                "integration_name": integration_name,
-                "integration_link": integration_link,
-                "settings_link": settings_link,
-            },
+            context={"integration_name": integration_name, "integration_link": integration_link},
             html_template="sentry/integrations/notify-disable.html",
             template="sentry/integrations/notify-disable.txt",
         )
-        print("Message: ", msg._html_body)
-        print(msg.subject)
-        print(msg._txt_body)
         msg.send_async([user_email])
-
-        print("Email sent to: ", user_email)
