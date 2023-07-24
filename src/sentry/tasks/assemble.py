@@ -13,7 +13,7 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
@@ -63,6 +63,7 @@ class AssembleResult(NamedTuple):
         self.bundle_temp_file.close()
 
 
+@sentry_sdk.tracing.trace
 def assemble_file(
     task, org_or_project, name, checksum, chunks, file_type
 ) -> Optional[AssembleResult]:
@@ -100,6 +101,11 @@ def assemble_file(
 
     # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
+        # Most likely a previous check to `find_missing_chunks` or similar
+        # reported a chunk exists by its checksum, but now it does not
+        # exist anymore
+        logger.error("`FileBlob` disappeared during async `assemble_XXX` task")
+
         set_assemble_status(
             task,
             org_or_project.id,
@@ -213,8 +219,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         delete_file = True
 
         with temp_file:
-            # We only permit split difs to hit this endpoint.  The
-            # client is required to split them up first or we error.
+            # We only permit split difs to hit this endpoint.
+            # The client is required to split them up first or we error.
             try:
                 result = debugfile.detect_dif_from_path(
                     temp_file.name, name=name, debug_id=debug_id
@@ -325,6 +331,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
         with metrics.timer("tasks.assemble.release_bundle"):
             self._create_release_file()
 
+    @sentry_sdk.tracing.trace
     def _create_release_file(self):
         manifest = self.archive.manifest
 
@@ -349,7 +356,13 @@ class ReleaseBundlePostAssembler(PostAssembler):
 
         if self.archive.artifact_count >= min_artifact_count:
             try:
-                update_artifact_index(release, dist, self.assemble_result.bundle)
+                update_artifact_index(
+                    release,
+                    dist,
+                    self.assemble_result.bundle,
+                    self.assemble_result.bundle_temp_file,
+                )
+                metrics.incr("sourcemaps.upload.release_bundle")
                 saved_as_archive = True
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
@@ -360,8 +373,10 @@ class ReleaseBundlePostAssembler(PostAssembler):
                 "release_id": release.id,
                 "dist_id": dist.id if dist else dist,
             }
+            metrics.incr("sourcemaps.upload.release_file")
             self._store_single_files(meta, True)
 
+    @sentry_sdk.tracing.trace
     def _store_single_files(self, meta: dict, count_as_artifacts: bool):
         try:
             temp_dir = self.archive.extract()
@@ -436,7 +451,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         organization: Organization,
         release: Optional[str],
         dist: Optional[str],
-        project_ids: Optional[List[int]],
+        project_ids: List[int],
     ):
         super().__init__(assemble_result)
         self.organization = organization
@@ -457,6 +472,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
+    @sentry_sdk.tracing.trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
@@ -465,7 +481,19 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         # We want to measure how much time it takes to extract debug ids from manifest.
         with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
-            bundle_id, debug_ids_with_types = self.archive.extract_debug_ids_from_manifest()
+            debug_ids_with_types = self.archive.extract_debug_ids_from_manifest()
+
+        bundle_id = self.archive.extract_bundle_id()
+        if not bundle_id:
+            # In case we didn't find the bundle_id in the manifest, we will just generate our own.
+            bundle_id = ArtifactBundleArchive.normalize_debug_id(
+                self.assemble_result.bundle.checksum
+            )
+        # When normalizing the debug_id from the checksum, or even when reading it from the bundle,
+        # the debug_id can have an additional appendix which we want to remove as it is
+        # incompatible with the SQL `uuid` type, which expects this to be a 16-byte UUID,
+        # formatted with `-` to 36 chars.
+        bundle_id = bundle_id[:36] if bundle_id else uuid.uuid4().hex
 
         analytics.record(
             "artifactbundle.manifest_extracted",
@@ -499,7 +527,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 router.db_for_write(DebugIdArtifactBundle),
             )
         ):
-            artifact_bundle, created = self._bind_or_create_artifact_bundle(
+            artifact_bundle, created = self._create_or_update_artifact_bundle(
                 bundle_id=bundle_id, date_added=date_snapshot
             )
 
@@ -516,7 +544,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for project_id in self.projects_ids or ():
+            for project_id in self.projects_ids:
                 ProjectArtifactBundle.objects.create_or_update(
                     organization_id=self.organization.id,
                     project_id=project_id,
@@ -525,30 +553,39 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for source_file_type, debug_id in debug_ids_with_types:
-                DebugIdArtifactBundle.objects.create_or_update(
-                    organization_id=self.organization.id,
-                    debug_id=debug_id,
-                    artifact_bundle=artifact_bundle,
-                    source_file_type=source_file_type.value,
-                    values=new_date_added,
-                    defaults=new_date_added,
+            # Instead of doing a `create_or_update` one-by-one, we will instead:
+            # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
+            #   if the artifact bundle was newly inserted. This is based on the assumption
+            #   that the `bundle_id` is deterministic and the `created` flag signals that
+            #   this identical bundle was already inserted.
+            # - Otherwise, update all the affected/conflicting rows with a single query.
+            if created:
+                debug_id_to_insert = [
+                    DebugIdArtifactBundle(
+                        organization_id=self.organization.id,
+                        debug_id=debug_id,
+                        artifact_bundle=artifact_bundle,
+                        source_file_type=source_file_type.value,
+                        date_added=date_snapshot,
+                    )
+                    for source_file_type, debug_id in debug_ids_with_types
+                ]
+                DebugIdArtifactBundle.objects.bulk_create(
+                    debug_id_to_insert, batch_size=50, ignore_conflicts=True
                 )
+            else:
+                DebugIdArtifactBundle.objects.filter(
+                    organization_id=self.organization.id,
+                    artifact_bundle=artifact_bundle,
+                ).update(date_added=date_snapshot)
 
-        try:
-            organization = Organization.objects.get_from_cache(id=self.organization.id)
-        except Organization.DoesNotExist:
-            organization = None
+        metrics.incr("sourcemaps.upload.artifact_bundle")
 
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
         # not support them, some files were not injected...).
-        if (
-            organization is not None
-            and self.release
-            and features.has("organizations:sourcemaps-bundle-indexing", organization, actor=None)
-        ):
+        if self.release:
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
@@ -557,8 +594,9 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 date_snapshot=date_snapshot,
             )
 
-    def _bind_or_create_artifact_bundle(
-        self, bundle_id: Optional[str], date_added: datetime
+    @sentry_sdk.tracing.trace
+    def _create_or_update_artifact_bundle(
+        self, bundle_id: str, date_added: datetime
     ) -> Tuple[ArtifactBundle, bool]:
         existing_artifact_bundles = list(
             ArtifactBundle.objects.filter(organization_id=self.organization.id, bundle_id=bundle_id)
@@ -577,8 +615,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         if existing_artifact_bundle is None:
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,
-                # In case we didn't find the bundle_id in the manifest, we will just generate our own.
-                bundle_id=bundle_id or uuid.uuid4().hex,
+                bundle_id=bundle_id,
                 file=self.assemble_result.bundle,
                 artifact_count=self.archive.artifact_count,
                 # By default, a bundle is not indexed.
@@ -597,6 +634,9 @@ class ArtifactBundlePostAssembler(PostAssembler):
             # We store a reference to the previous file to which the bundle was pointing to.
             existing_file = existing_artifact_bundle.file
 
+            if existing_file.checksum != self.assemble_result.bundle.checksum:
+                logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
+
             # Only if the file objects are different we want to update the database, otherwise we will end up deleting
             # a newly bound file.
             if existing_file != self.assemble_result.bundle:
@@ -613,6 +653,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
                 # We now delete that file, in order to avoid orphan files in the database.
                 existing_file.delete()
+            # else: are we leaking the `assemble_result.bundle` in this case?
 
             return existing_artifact_bundle, False
 
@@ -626,6 +667,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
+    @sentry_sdk.tracing.trace
     def _index_bundle_if_needed(self, release: str, dist: str, date_snapshot: datetime):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
@@ -693,9 +735,18 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
 
 def prepare_post_assembler(
-    assemble_result, organization, release, dist, project_ids, upload_as_artifact_bundle
+    assemble_result: AssembleResult,
+    organization: Organization,
+    release: Optional[str],
+    dist: Optional[str],
+    project_ids: Optional[List[int]],
+    upload_as_artifact_bundle: bool,
 ) -> PostAssembler:
     if upload_as_artifact_bundle:
+        if not project_ids:
+            raise AssembleArtifactsError(
+                "uploading an artifact bundle without a project is prohibited"
+            )
         return ArtifactBundlePostAssembler(
             assemble_result=assemble_result,
             organization=organization,
@@ -704,6 +755,10 @@ def prepare_post_assembler(
             project_ids=project_ids,
         )
     else:
+        if not release:
+            raise AssembleArtifactsError(
+                "uploading a release bundle without a release is prohibited"
+            )
         return ReleaseBundlePostAssembler(
             assemble_result=assemble_result, organization=organization, version=release
         )
@@ -724,9 +779,6 @@ def assemble_artifacts(
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
-    if project_ids is None:
-        project_ids = []
-
     # We want to evaluate the type of assemble task given the input parameters.
     assemble_task = (
         AssembleTask.ARTIFACT_BUNDLE if upload_as_artifact_bundle else AssembleTask.RELEASE_BUNDLE

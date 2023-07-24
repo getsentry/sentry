@@ -85,6 +85,7 @@ default_manager.add("organizations:higher-ownership-limit", OrganizationFeature,
 default_manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-discord", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:integrations-discord-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-opsgenie", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -92,7 +93,7 @@ default_manager.add("organizations:issue-details-most-helpful-event", Organizati
 default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-stacktrace-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issue-resolve-semver", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-release-semver", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -163,6 +164,7 @@ default_manager.add("organizations:profiling-global-suspect-functions", Organiza
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add('organizations:replay-rage-click-dead-click-columns', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add('organizations:replay-error-click-cards', OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:release-health-drop-sessions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -257,7 +259,6 @@ default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, 
 default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-use-new-lookup", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:sourcemaps-bundle-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

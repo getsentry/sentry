@@ -1,5 +1,4 @@
 import unittest
-from base64 import b64encode
 from datetime import datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
@@ -8,10 +7,8 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.endpoints.organization_releases import (
-    ReleaseHeadCommitSerializer,
-    ReleaseSerializerWithProjects,
-)
+from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.locks import locks
@@ -1635,7 +1632,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{bad_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(bad_api_key.key),
         )
         assert response.status_code == 403
 
@@ -1647,7 +1644,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(wrong_org_api_key.key),
         )
         assert response.status_code == 403
 
@@ -1659,7 +1656,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(good_api_key.key),
         )
         assert response.status_code == 201, response.content
 

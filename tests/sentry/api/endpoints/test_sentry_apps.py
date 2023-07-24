@@ -67,6 +67,7 @@ class SentryAppsTest(APITestCase):
         has_features: bool = False,
         mask_secret: bool = False,
     ) -> None:
+        assert sentry_app.application is not None
         data = {
             "allowedOrigins": [],
             "author": sentry_app.author,
@@ -140,7 +141,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()

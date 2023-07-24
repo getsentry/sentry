@@ -3,7 +3,9 @@ from __future__ import annotations
 import io
 import os
 import random
+from base64 import b64encode
 from binascii import hexlify
+from contextlib import contextmanager
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
@@ -16,6 +18,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.db import router, transaction
+from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
@@ -106,11 +109,13 @@ from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
@@ -261,11 +266,30 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(name=None, owner=None, **kwargs):
+    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        org = Organization.objects.create(name=name, **kwargs)
+        if isinstance(region, str):
+            region = get_region_by_name(region)
+
+        @contextmanager
+        def org_creation_context():
+            if region is None:
+                yield
+            else:
+                with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
+                    yield
+
+        with org_creation_context():
+            org = Organization.objects.create(name=name, **kwargs)
+
+        if region is not None:
+            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+                using=router.db_for_write(OrganizationMapping)
+            ):
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name=region.name)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
@@ -1101,7 +1125,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -1391,7 +1415,8 @@ class Factories:
         **integration_params: Any,
     ) -> Integration:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
+        with outbox_runner():
+            organization_integration = integration.add_organization(organization)
         organization_integration.update(**(oi_params or {}))
 
         return integration
@@ -1507,6 +1532,10 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    def create_basic_auth_header(username: str, password: str = "") -> str:
+        return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

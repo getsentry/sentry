@@ -9,17 +9,21 @@ from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
     def setUp(self):
         super().setUp()
         self.application_id = "application-id"
+        self.public_key = "public-key"
         self.bot_token = "bot-token"
         options.set("discord.application-id", self.application_id)
         options.set("discord.bot-token", self.bot_token)
+        options.set("discord.public-key", self.public_key)
 
     def assert_setup_flow(
         self,

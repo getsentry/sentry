@@ -1,4 +1,4 @@
-import {EntryException} from 'sentry/types';
+import {EntryException, ReleaseMeta} from 'sentry/types';
 import type {
   ReplayListRecord,
   ReplayRecord,
@@ -56,7 +56,7 @@ type TestStubFixtures = {
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
   Entries: SimpleStub;
-  Environments: OverridableStub;
+  Environments: SimpleStub;
   Event: OverridableStub;
   EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
@@ -66,7 +66,6 @@ type TestStubFixtures = {
   EventIdQueryResult: OverridableStub;
   EventStacktraceException: OverridableStub;
   EventStacktraceMessage: OverridableStub;
-  Events: OverridableStubList;
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
@@ -81,6 +80,7 @@ type TestStubFixtures = {
   GroupingConfigs: SimpleStub;
   GroupingEnhancements: SimpleStub;
   Groups: SimpleStub;
+  HiddenEnvironments: SimpleStub;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
   IncidentStats: OverridableStub;
@@ -123,6 +123,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  ReleaseMeta: OverridableStub<ReleaseMeta>;
   Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;

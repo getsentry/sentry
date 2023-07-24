@@ -659,9 +659,6 @@ CELERY_ALWAYS_EAGER = False
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
 
-# Complain about bad use of pickle in PickledObjectField
-PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -1070,18 +1067,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 10 minutes
+        "schedule": crontab(minute="*/10"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "sentry.dynamic_sampling.tasks.sliding_window_org",
@@ -1119,8 +1116,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "dynamic-sampling-collect-orgs": {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
-        # Run every 5 minutes
-        "schedule": crontab(minute="*/5"),
+        # Run every 20 minutes
+        "schedule": crontab(minute="*/20"),
     },
 }
 
@@ -1341,10 +1338,6 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Enable Discord integration
-    "organizations:integrations-discord": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1458,6 +1451,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to create a Discord integration
+    "organizations:integrations-discord": False,
+    # Enable Discord integration notifications
+    "organizations:integrations-discord-notifications"
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1489,7 +1488,7 @@ SENTRY_FEATURES = {
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
     # Display if a release is using semver when resolving issues
-    "organizations:issue-resolve-semver": False,
+    "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1570,6 +1569,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-trace-table": False,
     # Enable rage click and dead click columns in replay list.
     "organizations:replay-rage-click-dead-click-columns": False,
+    # Enable experimental error and rage/dead click cards in replay list.
+    "organizations:replay-error-click-cards": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1668,8 +1669,6 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable indexing of artifact bundles for sourcemaps.
-    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3492,6 +3491,7 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     # RPC authentication and address information
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",

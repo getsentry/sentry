@@ -41,6 +41,7 @@ type Props = {
 type State = {
   showCompleteFunctionName: boolean;
   showingAbsoluteAddresses: boolean;
+  toggleFrameMap: {[frameIndex: number]: boolean};
 };
 
 class Content extends Component<Props, State> {
@@ -49,10 +50,99 @@ class Content extends Component<Props, State> {
     expandFirstFrame: true,
   };
 
+  constructor(props) {
+    super(props);
+    this.state.toggleFrameMap = this.setInitialFrameMap();
+  }
+
   state: State = {
     showingAbsoluteAddresses: false,
     showCompleteFunctionName: false,
+    toggleFrameMap: {},
   };
+
+  setInitialFrameMap(): {[frameIndex: number]: boolean} {
+    const {data} = this.props;
+    const indexMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        indexMap[frameIdx] = false;
+      }
+    });
+    return indexMap;
+  }
+
+  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
+    const {includeSystemFrames} = this.props;
+
+    return (
+      includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp) ||
+      // the last non-app frame
+      (!frame.inApp && !nextFrame)
+    );
+  };
+
+  getInitialFrameCounts(): {[frameIndex: number]: number} {
+    const {data} = this.props;
+    let count = 0;
+    const countMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        countMap[frameIdx] = count;
+        count = 0;
+      } else {
+        if (!repeatedFrame && !frame.inApp) {
+          count += 1;
+        }
+      }
+    });
+    return countMap;
+  }
+
+  getRepeatedFrameIndices() {
+    const {data} = this.props;
+    const repeats: number[] = [];
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
+
+      if (repeatedFrame) {
+        repeats.push(frameIdx);
+      }
+    });
+    return repeats;
+  }
+
+  getHiddenFrameIndices(
+    toggleFrameMap: {[frameIndex: number]: boolean},
+    frameCountMap: {[frameIndex: number]: number}
+  ) {
+    const repeatedIndeces = this.getRepeatedFrameIndices();
+    let hiddenFrameIndices: number[] = [];
+    Object.keys(toggleFrameMap)
+      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
+      .forEach(indexString => {
+        const index = parseInt(indexString, 10);
+        const indicesToBeAdded: number[] = [];
+        let i = 1;
+        let numHidden = frameCountMap[index];
+        while (numHidden > 0) {
+          if (!repeatedIndeces.includes(index - i)) {
+            indicesToBeAdded.push(index - i);
+            numHidden -= 1;
+          }
+          i += 1;
+        }
+        hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
+      });
+    return hiddenFrameIndices;
+  }
 
   renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
     const props = {
@@ -82,17 +172,18 @@ class Content extends Component<Props, State> {
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
 
-  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
-    const {includeSystemFrames} = this.props;
-
+  isRepeatedFrame(frame: Frame, nextFrame?: Frame): boolean {
+    if (!nextFrame) {
+      return false;
+    }
     return (
-      includeSystemFrames ||
-      frame.inApp ||
-      (nextFrame && nextFrame.inApp) ||
-      // the last non-app frame
-      (!frame.inApp && !nextFrame)
+      frame.lineNo === nextFrame.lineNo &&
+      frame.instructionAddr === nextFrame.instructionAddr &&
+      frame.package === nextFrame.package &&
+      frame.module === nextFrame.module &&
+      frame.function === nextFrame.function
     );
-  };
+  }
 
   findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
@@ -126,6 +217,17 @@ class Content extends Component<Props, State> {
     }));
   };
 
+  handleToggleFrames = (event: React.MouseEvent<HTMLElement>, frameIndex: number) => {
+    event.stopPropagation(); // to prevent toggling frame context
+
+    this.setState(prevState => ({
+      toggleFrameMap: {
+        ...prevState.toggleFrameMap,
+        [frameIndex]: !prevState.toggleFrameMap[frameIndex],
+      },
+    }));
+  };
+
   getClassName() {
     const {className = '', includeSystemFrames} = this.props;
 
@@ -153,7 +255,8 @@ class Content extends Component<Props, State> {
       lockAddress,
     } = this.props;
 
-    const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
+    const {showingAbsoluteAddresses, showCompleteFunctionName, toggleFrameMap} =
+      this.state;
 
     let firstFrameOmitted = null;
     let lastFrameOmitted = null;
@@ -201,6 +304,12 @@ class Content extends Component<Props, State> {
       0
     );
 
+    const frameCountMap = this.getInitialFrameCounts();
+    const hiddenFrameIndices: number[] = this.getHiddenFrameIndices(
+      toggleFrameMap,
+      frameCountMap
+    );
+
     const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
     const mechanism =
       platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -209,21 +318,17 @@ class Content extends Component<Props, State> {
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         nRepeats++;
       }
 
-      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
+      if (
+        (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
+        hiddenFrameIndices.includes(frameIdx)
+      ) {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
-
         frames.push(
           <DeprecatedLine
             key={frameIdx}
@@ -244,6 +349,11 @@ class Content extends Component<Props, State> {
             isFrameAfterLastNonApp={isFrameAfterLastNonApp}
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
+            onShowFramesToggle={e => {
+              this.handleToggleFrames(e, frameIdx);
+            }}
+            isSubFrame={hiddenFrameIndices.includes(frameIdx)}
+            isShowFramesToggleExpanded={toggleFrameMap[frameIdx]}
             showCompleteFunctionName={showCompleteFunctionName}
             isHoverPreviewed={isHoverPreviewed}
             frameMeta={meta?.frames?.[frameIdx]}
@@ -252,6 +362,7 @@ class Content extends Component<Props, State> {
             isANR={isANR}
             threadId={threadId}
             lockAddress={lockAddress}
+            hiddenFrameCount={frameCountMap[frameIdx]}
           />
         );
       }

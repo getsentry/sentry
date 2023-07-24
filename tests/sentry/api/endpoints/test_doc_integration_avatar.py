@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from base64 import b64encode
+from typing import Any
 
 from rest_framework import status
 
@@ -95,7 +98,7 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         """
         self.login_as(user=self.superuser, superuser=True)
         # Structured as 'error-description' : (malformed-payload, erroring-fields)
-        invalid_payloads = {
+        invalid_payloads: dict[str, tuple[dict[str, Any], list[str]]] = {
             "empty_payload": ({}, ["avatar_photo", "avatar_type"]),
             "missing_avatar_photo": (
                 {"avatar_type": self.avatar_payload["avatar_type"]},
