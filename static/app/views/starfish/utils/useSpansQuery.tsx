@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   encodeSort,
   EventsMetaType,
@@ -12,6 +12,11 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/starfish/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
@@ -27,7 +32,7 @@ export function useSpansQuery<T = any[]>({
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
@@ -36,12 +41,15 @@ export function useSpansQuery<T = any[]>({
     ? useWrappedDiscoverTimeseriesQuery
     : useWrappedDiscoverQuery;
 
+  const {isReady: pageFiltersReady} = usePageFilters();
+
   if (eventView) {
     const response = queryFunction<T>({
       eventView,
       initialData,
       limit,
-      enabled,
+      // We always want to wait until the pageFilters are ready to prevent clobbering requests
+      enabled: (enabled || enabled === undefined) && pageFiltersReady,
       referrer,
       cursor,
     });
@@ -54,7 +62,7 @@ export function useSpansQuery<T = any[]>({
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>({
+function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,
@@ -69,6 +77,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -91,16 +100,21 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       cursor,
     }),
     options: {
-      enabled,
+      enabled: enabled && pageFiltersReady,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
     referrer,
   });
 
-  const data: T =
-    result.isLoading && initialData
-      ? initialData
-      : processDiscoverTimeseriesResult(result.data, eventView);
+  const isFetchingOrLoading = result.isLoading || result.isFetching;
+  const defaultData = initialData ?? undefined;
+
+  const data: T = isFetchingOrLoading
+    ? defaultData
+    : processDiscoverTimeseriesResult(result.data, eventView);
 
   return {
     ...result,
@@ -120,12 +134,13 @@ export function useWrappedDiscoverQuery<T>({
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
-  initialData?: any;
+  initialData?: T;
   limit?: number;
   referrer?: string;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -134,31 +149,37 @@ export function useWrappedDiscoverQuery<T>({
     cursor,
     limit,
     options: {
-      enabled,
+      enabled: enabled && pageFiltersReady,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
   });
 
+  // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
+  // does not!
   const meta = result.data?.meta as EventsMetaType | undefined;
-  if (meta) {
-    // TODO: Remove this hack when the backend returns `"rate"` as the data
-    // type for `sps()` and other rate fields!
-    meta.fields['sps()'] = 'rate';
-    meta.units['sps()'] = '1/second';
-  }
 
-  const data: T = result.isLoading && initialData ? initialData : result.data?.data;
+  const data =
+    result.isLoading && initialData ? initialData : (result.data?.data as T | undefined);
 
   return {
     ...result,
     data,
-    meta, // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it does not!
+    meta,
   };
 }
 
-type Interval = {[key: string]: any; interval: string; group?: string};
+type Interval = {interval: string; group?: string};
 
-function processDiscoverTimeseriesResult(result, eventView: EventView) {
+function processDiscoverTimeseriesResult(
+  result: TableData | undefined,
+  eventView: EventView
+) {
+  if (!result) {
+    return undefined;
+  }
   if (!eventView.yAxis) {
     return [];
   }

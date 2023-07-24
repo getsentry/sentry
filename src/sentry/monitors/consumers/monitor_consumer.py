@@ -1,6 +1,6 @@
-import datetime
 import logging
 import uuid
+from datetime import datetime, timedelta
 from typing import Dict, Mapping, Optional
 
 import msgpack
@@ -10,11 +10,12 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from django.utils.text import slugify
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
@@ -23,11 +24,17 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
+    MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.tasks import TIMEOUT
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created, valid_duration
+from sentry.monitors.utils import (
+    get_new_timeout_at,
+    get_timeout_at,
+    signal_first_checkin,
+    signal_first_monitor_created,
+    valid_duration,
+)
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
@@ -127,6 +134,16 @@ def _process_message(wrapper: Dict) -> None:
         "source_sdk": source_sdk,
     }
 
+    if killswitch_matches_context(
+        "crons.organization.disable-check-in", {"organization_id": project.organization_id}
+    ):
+        metrics.incr(
+            "monitors.checkin.dropped.blocked",
+            tags={**metric_kwargs},
+        )
+        logger.debug("monitor check in blocked: %s", monitor_slug)
+        return
+
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
@@ -140,7 +157,10 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     def update_existing_check_in(
-        existing_check_in: MonitorCheckIn, updated_status: CheckInStatus, updated_duration: float
+        existing_check_in: MonitorCheckIn,
+        updated_status: CheckInStatus,
+        updated_duration: float,
+        new_date_updated: datetime,
     ):
         if (
             existing_check_in.project_id != project_id
@@ -184,12 +204,24 @@ def _process_message(wrapper: Dict) -> None:
             logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
             return
 
-        existing_check_in.update(status=updated_status, duration=updated_duration)
+        # update date_added for heartbeat
+        date_updated = existing_check_in.date_updated
+        if updated_status == CheckInStatus.IN_PROGRESS:
+            date_updated = new_date_updated
+
+        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, new_date_updated)
+
+        existing_check_in.update(
+            status=updated_status,
+            duration=updated_duration,
+            date_updated=date_updated,
+            timeout_at=updated_timeout_at,
+        )
 
         return
 
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Monitor)):
             monitor_config = params.pop("monitor_config", None)
 
             params["duration"] = (
@@ -252,6 +284,13 @@ def _process_message(wrapper: Dict) -> None:
                 )
                 logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
                 return
+            except MonitorEnvironmentValidationFailed:
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
+                )
+                logger.debug("monitor environment name too long: %s %s", monitor_slug, environment)
+                return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
 
@@ -275,7 +314,7 @@ def _process_message(wrapper: Dict) -> None:
                         guid=check_in_id,
                     )
 
-                update_existing_check_in(check_in, status, validated_params["duration"])
+                update_existing_check_in(check_in, status, validated_params["duration"], start_time)
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
@@ -283,20 +322,16 @@ def _process_message(wrapper: Dict) -> None:
                 date_added = start_time
                 duration = validated_params["duration"]
                 if duration is not None:
-                    date_added -= datetime.timedelta(milliseconds=duration)
+                    date_added -= timedelta(milliseconds=duration)
 
                 expected_time = None
                 if monitor_environment.last_checkin:
-                    expected_time = monitor.get_next_scheduled_checkin_without_margin(
+                    expected_time = monitor.get_next_scheduled_checkin(
                         monitor_environment.last_checkin
                     )
 
                 monitor_config = monitor.get_validated_config()
-                timeout_at = None
-                if status == CheckInStatus.IN_PROGRESS:
-                    timeout_at = date_added.replace(second=0, microsecond=0) + datetime.timedelta(
-                        minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
-                    )
+                timeout_at = get_timeout_at(monitor_config, status, date_added)
 
                 trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
@@ -326,7 +361,7 @@ def _process_message(wrapper: Dict) -> None:
                             guid=guid,
                         )
                         if not created:
-                            update_existing_check_in(check_in, status, duration)
+                            update_existing_check_in(check_in, status, duration, start_time)
                         else:
                             signal_first_checkin(project, monitor)
 

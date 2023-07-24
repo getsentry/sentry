@@ -1,6 +1,6 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -18,8 +18,12 @@ from sentry.db.models import (
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
 
+# Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
+# always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
+# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
+INDEXING_THRESHOLD = 1
 
 
 class SourceFileType(Enum):
@@ -44,6 +48,15 @@ class SourceFileType(Enum):
         return None
 
 
+class ArtifactBundleIndexingState(Enum):
+    NOT_INDEXED = 0
+    WAS_INDEXED = 1
+
+    @classmethod
+    def choices(cls) -> List[Tuple[int, str]]:
+        return [(key.value, key.name) for key in cls]
+
+
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
@@ -54,6 +67,9 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    indexing_state = models.IntegerField(
+        default=None, null=True, choices=ArtifactBundleIndexingState.choices()
+    )
     # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
     # name is the same across entities connected to this bundle named *ArtifactBundle.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -98,14 +114,37 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
 @region_silo_only_model
+class ArtifactBundleIndex(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    url = models.TextField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    # TODO: legacy fields:
+    # These will eventually be removed in a migration, as they can be joined
+    # via the `{Release,}ArtifactBundle` tables.
+    release_name = models.CharField(max_length=250)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    date_last_modified = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_artifactbundleindex"
+
+        index_together = (("url", "artifact_bundle"),)
+
+
+@region_silo_only_model
 class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250, db_index=True)
+    release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -113,7 +152,9 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        # We add the organization_id to this index since there are many occurrences of the same release/dist
+        # pair, and we would like to reduce the result set by scoping to the org.
+        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -130,9 +171,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        # We can have the same debug_id pointing to different artifact_bundle(s) because the user might upload
-        # the same artifacts twice, or they might have certain build files that don't change across builds.
-        unique_together = (("debug_id", "artifact_bundle", "source_file_type"),)
+        index_together = (("debug_id", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -140,7 +179,7 @@ class ProjectArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -148,7 +187,7 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        unique_together = (("project_id", "artifact_bundle"),)
+        index_together = (("project_id", "artifact_bundle"),)
 
 
 class ArtifactBundleArchive:
@@ -158,8 +197,15 @@ class ArtifactBundleArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
+        self.artifact_count = len(self.manifest.get("files", {}))
         if build_memory_map:
             self._build_memory_maps()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        self.close()
 
     def close(self):
         self._zip_file.close()
@@ -193,7 +239,6 @@ class ArtifactBundleArchive:
         self._entries_by_debug_id = {}
         self._entries_by_url = {}
 
-        # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
@@ -215,6 +260,39 @@ class ArtifactBundleArchive:
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def extract_debug_ids_from_manifest(
+        self,
+    ) -> Set[Tuple[SourceFileType, str]]:
+        # We use a set, since we might have the same debug_id and file_type.
+        debug_ids_with_types = set()
+
+        files = self.manifest.get("files", {})
+        for info in files.values():
+            headers = self.normalize_headers(info.get("headers", {}))
+            if (debug_id := headers.get("debug-id")) is not None:
+                debug_id = self.normalize_debug_id(debug_id)
+                file_type = info.get("type")
+                if (
+                    debug_id is not None
+                    and file_type is not None
+                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
+                    is not None
+                ):
+                    debug_ids_with_types.add((source_file_type, debug_id))
+
+        return debug_ids_with_types
+
+    def extract_bundle_id(self) -> Optional[str]:
+        bundle_id = self.manifest.get("debug_id")
+
+        if bundle_id is not None:
+            bundle_id = self.normalize_debug_id(bundle_id)
+
+        return bundle_id
+
+    def get_files(self) -> Dict[str, dict]:
+        return self.manifest.get("files", {})
 
     def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
         file_path, info = self._entries_by_url[url]
@@ -287,4 +365,5 @@ class ArtifactBundleArchive:
     def get_file_url_by_file_path(self, file_path):
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
+
         return file_info.get("url")

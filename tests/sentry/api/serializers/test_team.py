@@ -12,7 +12,7 @@ TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -320,7 +320,7 @@ class TeamSerializerTest(TestCase):
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamWithProjectsSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -351,7 +351,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self):
         user = self.create_user(username="foo")

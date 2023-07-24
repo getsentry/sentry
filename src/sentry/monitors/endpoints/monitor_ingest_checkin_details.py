@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -20,7 +20,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.utils import valid_duration
+from sentry.monitors.utils import get_new_timeout_at, valid_duration
 from sentry.monitors.validators import MonitorCheckInValidator
 
 from .base import MonitorIngestEndpoint
@@ -102,6 +102,10 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
             params["duration"] = duration
 
+        params["timeout_at"] = get_new_timeout_at(
+            checkin, params.get("status", checkin.status), params["date_updated"]
+        )
+
         # TODO(rjo100): will need to remove this when environment is ensured
         monitor_environment = checkin.monitor_environment
         if not monitor_environment:
@@ -111,7 +115,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             checkin.monitor_environment = monitor_environment
             checkin.save()
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             checkin.update(**params)
 
             if checkin.status == CheckInStatus.ERROR:

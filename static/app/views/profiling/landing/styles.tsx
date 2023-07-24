@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -54,8 +54,6 @@ export const Accordion = styled('ul')`
   padding: ${space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
-  display: flex;
-  flex-direction: column;
   flex: 1 1 auto;
 `;
 

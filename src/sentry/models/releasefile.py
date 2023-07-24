@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
 from typing import IO, ClassVar, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
+import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
 
@@ -198,6 +199,9 @@ class ReleaseArchive:
         return self
 
     def __exit__(self, exc, value, tb):
+        self.close()
+
+    def close(self):
         self._zip_file.close()
         self._fileobj.close()
 
@@ -369,6 +373,7 @@ class _ArtifactIndexGuard:
         )
 
 
+@sentry_sdk.tracing.trace
 def read_artifact_index(
     release: Release, dist: Optional[Distribution], use_cache: bool = False, **filter_args
 ) -> Optional[dict]:
@@ -382,7 +387,13 @@ def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
     return sha1(data).hexdigest()
 
 
-def update_artifact_index(release: Release, dist: Optional[Distribution], archive_file: File):
+@sentry_sdk.tracing.trace
+def update_artifact_index(
+    release: Release,
+    dist: Optional[Distribution],
+    archive_file: File,
+    temp_file: Optional[IO] = None,
+):
     """Add information from release archive to artifact index
 
     :returns: The created ReleaseFile instance
@@ -397,7 +408,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     )
 
     files_out = {}
-    with ReleaseArchive(archive_file.getfile()) as archive:
+    with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
         manifest = archive.manifest
 
         files = manifest.get("files", {})
@@ -421,6 +432,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     return releasefile
 
 
+@sentry_sdk.tracing.trace
 def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str) -> bool:
     """Delete the file with the given url from the manifest.
 

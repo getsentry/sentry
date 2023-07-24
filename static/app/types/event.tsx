@@ -289,7 +289,7 @@ export enum EntryType {
   RESOURCES = 'resources',
 }
 
-type EntryDebugMeta = {
+export type EntryDebugMeta = {
   data: {
     images: Array<Image | null>;
   };
@@ -315,7 +315,7 @@ export type EntryException = {
   type: EntryType.EXCEPTION;
 };
 
-type EntryStacktrace = {
+export type EntryStacktrace = {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
 };
@@ -648,6 +648,7 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  profile?: ProfileContext;
   replay?: ReplayContext;
   response?: ResponseContext;
   runtime?: RuntimeContext;

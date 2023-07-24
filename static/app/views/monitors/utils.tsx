@@ -8,11 +8,11 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(organization: Organization, location: Location) {
-  const {query, project, environment} = location.query;
+  const {query, project, environment, cursor} = location.query;
 
   return [
     `/organizations/${organization.slug}/monitors/`,
-    {query: {query, project, environment, includeNew: true, per_page: 20}},
+    {query: {cursor, query, project, environment, includeNew: true, per_page: 20}},
   ] as const;
 }
 
@@ -76,10 +76,10 @@ export const statusToText: Record<CheckInStatus, string> = {
 
 export function getColorsFromStatus(status: CheckInStatus, theme: Theme) {
   const statusToColor: Record<CheckInStatus, {labelColor: string; tickColor: string}> = {
-    [CheckInStatus.ERROR]: {tickColor: theme.red200, labelColor: theme.red300},
-    [CheckInStatus.TIMEOUT]: {tickColor: theme.red200, labelColor: theme.red300},
-    [CheckInStatus.OK]: {tickColor: theme.green200, labelColor: theme.green300},
-    [CheckInStatus.MISSED]: {tickColor: theme.yellow200, labelColor: theme.yellow300},
+    [CheckInStatus.ERROR]: {tickColor: theme.red300, labelColor: theme.red400},
+    [CheckInStatus.TIMEOUT]: {tickColor: theme.red300, labelColor: theme.red400},
+    [CheckInStatus.OK]: {tickColor: theme.green300, labelColor: theme.green400},
+    [CheckInStatus.MISSED]: {tickColor: theme.yellow300, labelColor: theme.yellow400},
     [CheckInStatus.IN_PROGRESS]: {tickColor: theme.disabled, labelColor: theme.disabled},
   };
   return statusToColor[status];

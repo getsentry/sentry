@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.db import transaction
+from django.db import router, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -23,7 +23,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -66,7 +66,10 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyProxyClient(
+            org_integration_id=self.org_integration.id,
+            integration_key=integration_key,
+        )
 
     def get_organization_config(self):
         fields = [
@@ -94,7 +97,7 @@ class PagerDutyIntegration(IntegrationInstallation):
             if bad_rows:
                 raise IntegrationError("Name and key are required")
 
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(PagerDutyService)):
                 existing_service_items = PagerDutyService.objects.filter(
                     organization_integration_id=self.org_integration.id
                 )
@@ -119,6 +122,8 @@ class PagerDutyIntegration(IntegrationInstallation):
                         organization_integration_id=self.org_integration.id,
                         service_name=service_name,
                         integration_key=key,
+                        integration_id=self.model.id,
+                        organization_id=self.organization_id,
                     )
 
     def get_config_data(self):
@@ -165,12 +170,14 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
             logger.exception("The PagerDuty post_install step failed.")
             return
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(PagerDutyService)):
             for service in services:
                 PagerDutyService.objects.create_or_update(
                     organization_integration_id=org_integration.id,
                     integration_key=service["integration_key"],
                     service_name=service["name"],
+                    organization_id=organization.id,
+                    integration_id=integration.id,
                 )
 
     def build_integration(self, state):

@@ -4,7 +4,7 @@ import logging
 from typing import Any, Mapping, Tuple
 
 from dateutil.parser import parse as parse_date
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
@@ -183,8 +183,9 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
             try:
-                author.preload_users()
-                with transaction.atomic():
+                if author is not None:
+                    author.preload_users()
+                with transaction.atomic(router.db_for_write(Commit)):
                     Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,

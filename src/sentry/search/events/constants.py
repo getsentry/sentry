@@ -42,6 +42,7 @@ TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
+SPAN_MODULE_ALIAS = "span.module"
 
 
 class ThresholdDict(TypedDict):
@@ -95,7 +96,16 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "percent_change", "date"}
+RESULT_TYPES = {
+    "duration",
+    "string",
+    "number",
+    "integer",
+    "percentage",
+    "percent_change",
+    "date",
+    "rate",
+}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
@@ -278,6 +288,7 @@ SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 METRICS_MAX_LIMIT = 101
 
 METRICS_GRANULARITIES = [86400, 3600, 60]
+METRICS_GRANULARITY_MAPPING = {"1d": 86400, "1h": 3600, "1m": 60}
 METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"

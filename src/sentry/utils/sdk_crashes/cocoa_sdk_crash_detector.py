@@ -1,10 +1,22 @@
 from typing import Any, Mapping, Sequence
 
 from sentry.utils.glob import glob_match
-from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector, SDKCrashDetectorConfig
 
 
 class CocoaSDKCrashDetector(SDKCrashDetector):
+    def __init__(self):
+
+        config = SDKCrashDetectorConfig(
+            sdk_name="sentry.cocoa",
+            # Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
+            # released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
+            # the frames contain the full paths required for detecting system frames in is_system_library_frame.
+            # Therefore, we require at least sentry-cocoa 8.2.0.
+            min_sdk_version="8.2.0",
+        )
+        super().__init__(config)
+
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         if not frames:
             return False

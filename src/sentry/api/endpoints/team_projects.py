@@ -1,6 +1,6 @@
 from typing import List
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -120,7 +120,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.TEAM_SLUG,
-            GlobalParams.name("The name of the project.", required=True),
+            GlobalParams.name("The name for the project.", required=True),
             GlobalParams.slug(
                 "Optional slug for the project. If not provided a slug is generated from the name."
             ),
@@ -147,9 +147,9 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Project)):
                     project = Project.objects.create(
                         name=result["name"],
                         slug=result.get("slug"),

@@ -6,7 +6,7 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, OrgAuthToken, Project} from 'sentry/types';
@@ -56,11 +56,13 @@ function TokenList({
 
   const idQueryParams = projectIds.map(id => `id:${id}`).join(' ');
 
-  const {data: projects} = useApiQuery<Project[]>(
+  const hasProjects = projectIds.length > 0;
+
+  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
     [apiEndpoint, {query: {query: idQueryParams}}],
     {
       staleTime: 0,
-      enabled: projectIds.length > 0,
+      enabled: hasProjects,
     }
   );
 
@@ -78,6 +80,7 @@ function TokenList({
             isRevoking={isRevoking}
             revokeToken={revokeToken ? () => revokeToken({token}) : undefined}
             projectLastUsed={projectLastUsed}
+            isProjectLoading={hasProjects && isLoadingProjects}
           />
         );
       })}

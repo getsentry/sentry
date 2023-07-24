@@ -1,11 +1,14 @@
 import logging
 import posixpath
 import re
+import uuid
+from typing import Sequence
 
 import jsonschema
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
@@ -20,6 +23,7 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
+from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.models import (
     File,
     FileBlobOwner,
@@ -29,6 +33,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.debugfile import ProguardArtifactRelease
 from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -79,6 +84,83 @@ def has_download_permission(request, project):
         return False
 
     return roles.get(current_role).priority >= roles.get(required_role).priority
+
+
+@region_silo_endpoint
+class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectReleasePermission,)
+
+    def post(self, request: Request, project) -> Response:
+        release_name = request.data.get("release_name")
+        proguard_uuid = request.data.get("proguard_uuid")
+
+        missing_fields = []
+        if not release_name:
+            missing_fields.append("release_name")
+        if not proguard_uuid:
+            missing_fields.append("proguard_uuid")
+
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uuid.UUID(proguard_uuid)
+        except ValueError:
+            return Response(
+                data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        proguard_uuid = str(proguard_uuid)
+
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
+        if not difs:
+            return Response(
+                data={"error": "No matching proguard mapping file with this uuid found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            ProguardArtifactRelease.objects.create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                release_name=release_name,
+                project_debug_file=difs[proguard_uuid],
+                proguard_uuid=proguard_uuid,
+            )
+            return Response(status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                data={
+                    "error": "Proguard artifact release with this name in this project already exists."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+    def get(self, request: Request, project) -> Response:
+        """
+        List a Project's Proguard Associated Releases
+        ````````````````````````````````````````
+
+        Retrieve a list of associated releases for a given Proguard File.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     DIFs of.
+        :qparam string proguard_uuid: the uuid of the Proguard file.
+        :auth: required
+        """
+
+        proguard_uuid = request.GET.get("proguard_uuid")
+        releases = None
+        if proguard_uuid:
+            releases = ProguardArtifactRelease.objects.filter(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                proguard_uuid=proguard_uuid,
+            ).values_list("release_name", flat=True)
+        return Response({"releases": releases})
 
 
 @region_silo_endpoint
@@ -177,15 +259,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
-        file_format_q = Q()
-        for file_format in file_formats:
-            known_file_format = DIF_MIMETYPES.get(file_format)
-            if known_file_format:
-                file_format_q |= Q(file__headers__icontains=known_file_format)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
 
-        q &= file_format_q
+        q &= Q(project_id=project.id)
+        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
+        def on_results(difs: Sequence[ProjectDebugFile]):
+            # NOTE: we are only refreshing files if there is direct query for specific files
+            if not query and not file_formats:
+                maybe_renew_debug_files(q, difs)
+
+            return serialize(difs, request.user)
 
         return self.paginate(
             request=request,
@@ -193,7 +283,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
 
     def delete(self, request: Request, project) -> Response:

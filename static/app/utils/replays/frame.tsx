@@ -5,26 +5,33 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {
+import type {
   BreadcrumbFrame,
-  ErrorFrame,
   LargestContentfulPaintFrame,
+  MultiClickFrame,
   MutationFrame,
-  NavigationFrame,
+  NavFrame,
+  ReplayFrame,
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick, isRageClick} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
+import stripOrigin from 'sentry/utils/url/stripOrigin';
 
-export function getColor(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): Color {
+export function getColor(frame: ReplayFrame): Color {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return 'gray300';
+      case 'navigation':
+        return 'green300';
       case 'issue':
         return 'red300';
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
-          ? 'red300'
-          : 'yellow300';
+        return isDeadClick(frame as SlowClickFrame) ? 'red300' : 'yellow300';
+      case 'ui.multiClick':
+        return isRageClick(frame as MultiClickFrame) ? 'red300' : 'yellow300';
       case 'replay.mutations':
         return 'yellow300';
       case 'ui.click':
@@ -61,15 +68,21 @@ export function getColor(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): Color
  *
  * @deprecated
  */
-export function getBreadcrumbType(
-  frame: BreadcrumbFrame | SpanFrame | ErrorFrame
-): BreadcrumbType {
+export function getBreadcrumbType(frame: ReplayFrame): BreadcrumbType {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return BreadcrumbType.DEFAULT;
+      case 'navigation':
+        return BreadcrumbType.NAVIGATION;
       case 'issue':
         return BreadcrumbType.ERROR;
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
+        return isDeadClick(frame as SlowClickFrame)
+          ? BreadcrumbType.ERROR
+          : BreadcrumbType.WARNING;
+      case 'ui.multiClick':
+        return isRageClick(frame as MultiClickFrame)
           ? BreadcrumbType.ERROR
           : BreadcrumbType.WARNING;
       case 'replay.mutations':
@@ -105,7 +118,7 @@ export function getBreadcrumbType(
   }
 }
 
-export function getTitle(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): ReactNode {
+export function getTitle(frame: ReplayFrame): ReactNode {
   if (
     typeof frame.data === 'object' &&
     frame.data !== null &&
@@ -118,10 +131,18 @@ export function getTitle(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): React
   if ('category' in frame) {
     const [type, action] = frame.category.split('.');
     switch (frame.category) {
+      case 'replay.init':
+        return 'Replay Start';
+      case 'navigation':
+        return 'Navigation';
       case 'ui.slowClickDetected':
-        return (frame as SlowClickFrame).data.endReason === 'timeout'
+        return isDeadRageClick(frame as SlowClickFrame)
+          ? 'Rage Click'
+          : isDeadClick(frame as SlowClickFrame)
           ? 'Dead Click'
           : 'Slow Click';
+      case 'ui.multiClick':
+        return isRageClick(frame as MultiClickFrame) ? 'Rage Click' : 'Multi Click';
       case 'replay.mutations':
         return 'Replay';
       case 'ui.click':
@@ -138,7 +159,19 @@ export function getTitle(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): React
   if ('message' in frame) {
     return frame.message; // TODO(replay): Included for backwards compat
   }
-  return frame.description;
+
+  switch (frame.op) {
+    case 'navigation.navigate':
+      return 'Page Load';
+    case 'navigation.reload':
+      return 'Reload';
+    case 'navigation.back_forward':
+      return 'Navigate Back';
+    case 'navigation.push':
+      return 'Navigation';
+    default:
+      return frame.description;
+  }
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
@@ -151,16 +184,19 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
   }`;
 }
 
-export function getDescription(
-  frame: BreadcrumbFrame | SpanFrame | ErrorFrame
-): ReactNode {
+export function getDescription(frame: ReplayFrame): ReactNode {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return stripOrigin(frame.message ?? '');
+      case 'navigation':
+        const navFrame = frame as NavFrame;
+        return stripOrigin(navFrame.data.to);
       case 'issue':
       case 'ui.slowClickDetected': {
         const slowClickFrame = frame as SlowClickFrame;
         const node = slowClickFrame.data.node;
-        return slowClickFrame.data.endReason === 'timeout'
+        return isDeadClick(slowClickFrame)
           ? tct(
               'Click on [selector] did not cause a visible effect within [timeout] ms',
               {
@@ -173,6 +209,17 @@ export function getDescription(
               duration: slowClickFrame.data.timeAfterClickMs,
             });
       }
+      case 'ui.multiClick':
+        const multiClickFrame = frame as MultiClickFrame;
+        return isRageClick(multiClickFrame)
+          ? tct('Rage clicked [clickCount] times on [selector]', {
+              clickCount: multiClickFrame.data.clickCount,
+              selector: stringifyNodeAttributes(multiClickFrame.data.node),
+            })
+          : tct('[clickCount] clicks on [selector]', {
+              clickCount: multiClickFrame.data.clickCount,
+              selector: stringifyNodeAttributes(multiClickFrame.data.node),
+            });
       case 'replay.mutations': {
         const mutationFrame = frame as MutationFrame;
         return mutationFrame.data.limit
@@ -186,6 +233,7 @@ export function getDescription(
             );
       }
       case 'ui.click':
+        return frame.message ?? ''; // This should be the selector
       case 'ui.input':
       case 'ui.keyDown':
       case 'ui.blur':
@@ -202,8 +250,7 @@ export function getDescription(
     case 'navigation.reload':
     case 'navigation.back_forward':
     case 'navigation.push':
-      // @ts-expect-error `.to` isn't part of the type
-      return (frame as NavigationFrame).data.to ?? '';
+      return stripOrigin(frame.description);
     case 'largest-contentful-paint': {
       const lcpFrame = frame as LargestContentfulPaintFrame;
       if (typeof lcpFrame.data.value === 'number') {
@@ -228,13 +275,18 @@ export function getDescription(
 export function getTabKeyForFrame(frame: BreadcrumbFrame | SpanFrame): TabKey {
   if ('category' in frame) {
     switch (frame.category) {
+      case 'replay.init':
+        return TabKey.CONSOLE;
+      case 'navigation':
+        return TabKey.NETWORK;
       case 'issue':
         return TabKey.ERRORS;
-      case 'ui.slowClickDetected':
       case 'replay.mutations':
       case 'ui.click':
       case 'ui.input':
       case 'ui.keyDown':
+      case 'ui.multiClick':
+      case 'ui.slowClickDetected':
         return TabKey.DOM;
       case 'console':
       default: // Custom breadcrumbs will fall through here

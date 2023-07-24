@@ -51,6 +51,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
@@ -202,6 +203,10 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     )
 
 
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
+    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
+
+
 @dataclass
 class NotificationRuleDetails:
     id: int
@@ -271,9 +276,7 @@ def has_alert_integration(project: Project) -> bool:
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
     provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(
-        organizationintegration__organization_id=org.id, provider__in=provider_keys
-    ).exists():
+    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
     # check plugins
@@ -416,6 +419,23 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     split = participants_by_provider.split_participants_and_context()
     for (provider, participants, extra_context) in split:
         notify(provider, notification, participants, shared_context, extra_context)
+
+
+def get_replay_id(event: Event | GroupEvent) -> str | None:
+    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    if (
+        isinstance(event, GroupEvent)
+        and event.occurrence is not None
+        and event.occurrence.evidence_data
+    ):
+        evidence_replay_id = (
+            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
+        )
+
+        if evidence_replay_id:
+            return evidence_replay_id
+
+    return replay_id
 
 
 @dataclass

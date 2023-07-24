@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
+from django.db import router
 
 from sentry import audit_log
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     DeletedOrganization,
@@ -10,10 +10,10 @@ from sentry.models import (
     Organization,
     OrganizationStatus,
 )
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.audit import (
     create_audit_entry,
     create_audit_entry_from_user,
@@ -39,7 +39,7 @@ class CreateAuditEntryTest(TestCase):
         self.project = self.create_project(teams=[self.team], platform="java")
 
     def assert_no_delete_log_created(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
             assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
@@ -91,7 +91,9 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(Organization)
+        ):
             Organization.objects.filter(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )
@@ -181,7 +183,7 @@ class CreateAuditEntryTest(TestCase):
                 event=audit_log.get_event_id("PROJECT_ADD"),
             )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
                 AuditLogEntry.objects.get(event=audit_log.get_event_id("PROJECT_ADD")).actor_label
                 == key.key
@@ -263,6 +265,42 @@ class CreateAuditEntryTest(TestCase):
         assert entry.target_object == self.project.id
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
         assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
+
+    def test_audit_entry_project_performance_setting_disable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": False},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to disable detection of File IO on Main Thread issue"
+        )
+
+    def test_audit_entry_project_performance_setting_enable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": True},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
+        )
 
     def test_audit_entry_integration_log(self):
         project = self.create_project()

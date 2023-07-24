@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -159,7 +162,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
     # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
 
@@ -273,7 +276,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
 @pytest.fixture
 def projectconfig_cache_set(monkeypatch):
-    calls = []
+    calls: list[dict[str, Any]] = []
     monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
 
@@ -351,16 +354,14 @@ def test_relay_disabled_project(
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("is_business", [True, False], ids=["business_plan", "free_plan"])
-def test_health_check_filters(call_endpoint, add_org_key, relay, default_project, is_business):
+def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
     """
-    Test that only business plans contain healthcheck filters
+    Test health check filter (aka ignoreTransactions)
     """
     relay.save()
 
     default_project.update_option("filters:filtered-transaction", "1")
-    with Feature({"organizations:health-check-filter": is_business}):
-        result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True)
 
     assert status_code < 400
 
@@ -368,7 +369,4 @@ def test_health_check_filters(call_endpoint, add_org_key, relay, default_project
         result, "configs", str(default_project.id), "config", "filterSettings"
     )
     assert filter_settings is not None
-
-    has_health_check = "ignoreTransactions" in filter_settings
-
-    assert has_health_check == is_business
+    assert "ignoreTransactions" in filter_settings

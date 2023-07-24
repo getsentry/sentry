@@ -11,7 +11,8 @@ import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +21,7 @@ import {RuleActionsCategories} from 'sentry/types/alerts';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {AlertRuleStatus, Incident} from '../../../types';
@@ -215,6 +217,7 @@ export default class DetailsBody extends Component<Props> {
               interval={this.getInterval()}
               query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
+              isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
             />
             <DetailWrapper>
               <ActivityWrapper>

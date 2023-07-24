@@ -653,7 +653,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
         )
-        assert alert_rule.is_custom_metric
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
 
@@ -978,14 +977,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
-        assert not alert_rule.is_custom_metric
         mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
         alert_rule = update_alert_rule(
             alert_rule, name="updated alert", query="transaction.duration:>=100"
         )
-
-        assert alert_rule.is_custom_metric
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 
@@ -1369,6 +1365,8 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1583,6 +1581,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
             organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1938,6 +1938,7 @@ class TestCustomMetricAlertRule(TestCase):
     ):
         self.create_alert_rule(
             projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>=100",
         )
 
@@ -1952,6 +1953,7 @@ class TestCustomMetricAlertRule(TestCase):
     ):
         self.create_alert_rule(
             projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>=100",
         )
 

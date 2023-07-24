@@ -8,7 +8,6 @@ with the same Enum name but with a value of the MRI so we would add
 `FOO_BAR=e:sessions/foo.bar@none`
 """
 
-
 __all__ = (
     "SessionMetricKey",
     "TransactionMetricKey",
@@ -100,6 +99,13 @@ class TransactionMetricKey(Enum):
     # NOTE: These might be moved to their own namespace soon.
     SPAN_USER = "span.user"
     SPAN_DURATION = "span.duration"
+    SPAN_SELF_TIME = "span.exclusive_time"
+    SPAN_SELF_TIME_LIGHT = "span.exclusive_time_light"
+
+    # TODO: Remove this as soon as the MetricsQuery supports private metrics
+    COUNT_ON_DEMAND = "count.on_demand"
+    DIST_ON_DEMAND = "dist.on_demand"
+    SET_ON_DEMAND = "set.on_demand"
 
 
 # TODO: these tag keys and values below probably don't belong here, and should

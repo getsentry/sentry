@@ -1,15 +1,24 @@
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 from uuid import uuid4
 
 import pytest
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
+
+
+@pytest.fixture(autouse=True)
+def disable_auto_on_commit():
+    simulated_transaction_watermarks.state["default"] = -1
+    with in_test_hide_transaction_boundary():
+        yield
 
 
 @pytest.fixture
@@ -95,7 +104,7 @@ def projectconfig_debounced_cache(monkeypatch):
 def project_config_get_mock(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig("mock_project", is_mock_config=True),
+        lambda *args, **kwargs: ProjectConfig(sentinel.mock_project, is_mock_config=True),
     )
 
 

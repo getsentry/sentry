@@ -9,10 +9,10 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectTeam,
     Team,
     TeamStatus,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,
@@ -93,13 +93,14 @@ def _serialize_flags(org: Organization) -> RpcOrganizationFlags:
     return RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool)
 
 
-def _serialize_team(team: Team) -> RpcTeam:
+def serialize_rpc_team(team: Team) -> RpcTeam:
     return RpcTeam(
         id=team.id,
         status=team.status,
         organization_id=team.organization_id,
         slug=team.slug,
         org_role=team.org_role,
+        name=team.name,
     )
 
 
@@ -140,5 +141,5 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     projects: List[Project] = Project.objects.filter(organization=org)
     teams: List[Team] = Team.objects.filter(organization=org)
     rpc_org.projects.extend(serialize_project(project) for project in projects)
-    rpc_org.teams.extend(_serialize_team(team) for team in teams)
+    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
     return rpc_org

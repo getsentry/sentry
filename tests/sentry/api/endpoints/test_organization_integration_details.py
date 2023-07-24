@@ -6,12 +6,12 @@ from sentry.models import (
     Repository,
     ScheduledDeletion,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test(stable=True)
 class OrganizationIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
 
@@ -32,22 +32,23 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
 
-        self.repo = Repository.objects.create(
-            provider="gitlab",
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.repo = Repository.objects.create(
+                provider="gitlab",
+                name="getsentry/sentry",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -62,7 +63,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         assert org_integration.config == config
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 
@@ -78,7 +79,7 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         )
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
     method = "put"
 

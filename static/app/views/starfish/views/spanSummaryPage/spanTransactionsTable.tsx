@@ -15,6 +15,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -28,7 +29,9 @@ import {
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_OP} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -38,7 +41,7 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<IndexedSpan, 'group'>;
+  span: Pick<IndexedSpan, 'group' | 'span.op'>;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
@@ -63,7 +66,7 @@ export function SpanTransactionsTable({
   const organization = useOrganization();
 
   const {
-    data: spanTransactionMetrics,
+    data: spanTransactionMetrics = [],
     meta,
     isLoading,
     pageLinks,
@@ -112,17 +115,22 @@ export function SpanTransactionsTable({
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={spanTransactionsWithMetrics}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: col => renderHeadCell({column: col, sort, location}),
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <VisuallyCompleteWithData
+        id="SpanSummary.SpanTransactionsTable"
+        hasData={spanTransactionMetrics.length > 0}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={spanTransactionsWithMetrics}
+          columnOrder={getColumnOrder(span)}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderBodyCell,
+          }}
+          location={location}
+        />
+      </VisuallyCompleteWithData>
       <Footer>
         {endpoint && (
           <Button
@@ -161,6 +169,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
+          ...location.query,
           endpoint,
           endpointMethod,
           transaction: row.transaction,
@@ -173,7 +182,9 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const getColumnOrder = (
+  span: Pick<IndexedSpan, 'group' | 'span.op'>
+): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
@@ -181,12 +192,7 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
   {
     key: 'sps()',
-    name: DataTitles.throughput,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'sps_percent_change()',
-    name: DataTitles.change,
+    name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -194,11 +200,15 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: DataTitles.p95,
     width: COL_WIDTH_UNDEFINED,
   },
-  {
-    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
-    name: DataTitles.change,
-    width: COL_WIDTH_UNDEFINED,
-  },
+  ...(span?.['span.op']?.startsWith('http')
+    ? ([
+        {
+          key: `http_error_count()`,
+          name: DataTitles.errorCount,
+          width: COL_WIDTH_UNDEFINED,
+        },
+      ] as TableColumnHeader[])
+    : []),
   {
     key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,

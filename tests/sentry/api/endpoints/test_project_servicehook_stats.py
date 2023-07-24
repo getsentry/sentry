@@ -5,7 +5,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectServiceHookStatsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -17,7 +17,7 @@ class ProjectServiceHookStatsTest(APITestCase):
             f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/{hook.guid}/stats/"
         )
 
-        tsdb.incr(TSDBModel.servicehook_fired, hook.id, count=3)
+        tsdb.backend.incr(TSDBModel.servicehook_fired, hook.id, count=3)
 
         response = self.client.get(path)
         assert response.status_code == 200

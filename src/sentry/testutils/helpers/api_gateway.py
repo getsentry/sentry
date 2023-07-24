@@ -1,28 +1,21 @@
+from __future__ import annotations
+
+import unittest.result
 from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
-from django.conf.urls import url
 from django.test import override_settings
+from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase
+from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json
-
-SENTRY_REGION_CONFIG = [
-    Region(
-        name="region1",
-        snowflake_id=1,
-        address="http://region1.testserver",
-        category=RegionCategory.MULTI_TENANT,
-    ),
-]
 
 
 @control_silo_endpoint
@@ -42,12 +35,12 @@ class RegionEndpoint(OrganizationEndpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/control/$",
         ControlEndpoint.as_view(),
         name="control-endpoint",
     ),
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/region/$",
         RegionEndpoint.as_view(),
         name="region-endpoint",
@@ -114,31 +107,35 @@ def provision_middleware():
     return middleware
 
 
-@override_settings(SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG, ROOT_URLCONF=__name__)
+@override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
+    _REGION = Region(
+        name="region1",
+        snowflake_id=1,
+        address="http://region1.testserver",
+        category=RegionCategory.MULTI_TENANT,
+    )
+
     def setUp(self):
         super().setUp()
         clear_global_regions()
         responses.add(
             responses.GET,
-            "http://region1.testserver/get",
+            f"{self._REGION.address}/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
-            "http://region1.testserver/error",
+            f"{self._REGION.address}/error",
             body=json.dumps({"proxy": True}),
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
         )
 
-        with in_test_psql_role_override("postgres"):
-            OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-                region_name="region1"
-            )
+        self.organization = self.create_organization(region=self._REGION)
 
         # Echos the request body and header back for verification
         def return_request_body(request):
@@ -149,12 +146,13 @@ class ApiGatewayTestCase(APITestCase):
             params = parse_qs(request.url.split("?")[1])
             return (200, request.headers, json.dumps(params).encode())
 
-        responses.add_callback(
-            responses.GET, "http://region1.testserver/echo", return_request_params
-        )
-
-        responses.add_callback(
-            responses.POST, "http://region1.testserver/echo", return_request_body
-        )
+        responses.add_callback(responses.GET, f"{self._REGION.address}/echo", return_request_params)
+        responses.add_callback(responses.POST, f"{self._REGION.address}/echo", return_request_body)
 
         self.middleware = provision_middleware()
+
+    def run(
+        self, result: unittest.result.TestResult | None = ...
+    ) -> unittest.result.TestResult | None:
+        with override_regions([self._REGION]):
+            return super().run(result)

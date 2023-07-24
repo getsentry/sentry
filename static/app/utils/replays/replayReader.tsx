@@ -20,7 +20,6 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {
   breadcrumbFactory,
   replayTimestamps,
-  rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
@@ -30,14 +29,13 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {BreadcrumbCategories, EventType} from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
 import type {
-  MemorySpan,
   NetworkSpan,
   RecordingEvent,
-  RecordingOptions,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
@@ -174,18 +172,12 @@ export default class ReplayReader {
       replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
     );
 
-    this.rawErrors = errors;
-
     this.sortedSpans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(
       replayRecord,
       errors,
       rawBreadcrumbs as ReplayCrumb[],
       this.sortedSpans
-    );
-    this.rrwebEvents = rrwebEventListFactory(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[]
     );
 
     this.replayRecord = replayRecord;
@@ -200,10 +192,8 @@ export default class ReplayReader {
   private _sortedRRWebEvents: RecordingFrame[];
   private _sortedSpanFrames: SpanFrame[];
 
-  private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
-  private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
 
   toJSON = () => this._cacheKey;
@@ -261,15 +251,16 @@ export default class ReplayReader {
     [
       ...this._sortedBreadcrumbFrames.filter(
         frame =>
-          [
-            'replay.init',
-            'ui.click',
-            'replay.mutations',
-            'ui.slowClickDetected',
-          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+            frame.category
+          ) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+        // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
       ),
@@ -291,36 +282,30 @@ export default class ReplayReader {
 
   getSDKOptions = () => this._optionFrame;
 
-  // TODO: move isNetworkDetailsSetup() up here? or extract it
+  isNetworkDetailsSetup = memoize(() => {
+    const sdkOptions = this.getSDKOptions();
+    if (sdkOptions) {
+      return sdkOptions.networkDetailHasUrls;
+    }
+
+    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
+    // So even if we don't have the config object, we should still fallback and
+    // look for spans with network data, as that means things are setup!
+    return this.getNetworkFrames().some(
+      frame =>
+        // We'd need to `filter()` before calling `some()` in order for TS to be happy
+        // @ts-expect-error
+        Object.keys(frame?.data?.request?.headers ?? {}).length ||
+        // @ts-expect-error
+        Object.keys(frame?.data?.response?.headers ?? {}).length
+    );
+  });
 
   /*********************/
   /** OLD STUFF BELOW **/
   /*********************/
-  getCrumbsWithRRWebNodes = memoize(() =>
-    this.breadcrumbs.filter(
-      crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
-    )
-  );
-
-  getUserActionCrumbs = memoize(() => {
-    const USER_ACTIONS = [
-      BreadcrumbType.ERROR,
-      BreadcrumbType.INIT,
-      BreadcrumbType.NAVIGATION,
-      BreadcrumbType.UI,
-      BreadcrumbType.USER,
-    ];
-    return this.breadcrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-  });
-
   getConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
-  getRawErrors = memoize(() => this.rawErrors);
-
-  getIssueCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'issue')
   );
 
   getNonConsoleCrumbs = memoize(() =>
@@ -334,36 +319,7 @@ export default class ReplayReader {
   );
 
   getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
-
-  getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
-
-  sdkConfig = memoize(() => {
-    const found = this.rrwebEvents.find(
-      event => event.type === EventType.Custom && event.data.tag === 'options'
-    ) as undefined | RecordingOptions;
-    return found?.data?.payload;
-  });
-
-  isNetworkDetailsSetup = memoize(() => {
-    const config = this.sdkConfig();
-    if (config) {
-      return this.sdkConfig()?.networkDetailHasUrls;
-    }
-
-    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
-    // So even if we don't have the config object, we should still fallback and
-    // look for spans with network data, as that means things are setup!
-    return this.getNetworkSpans().some(
-      span =>
-        Object.keys(span.data.request?.headers || {}).length ||
-        Object.keys(span.data.response?.headers || {}).length
-    );
-  });
 }
-
-const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {
-  return span.op === 'memory';
-};
 
 const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
   return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');

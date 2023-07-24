@@ -13,7 +13,7 @@ from typing import (
     Union,
 )
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q, QuerySet
 
 from sentry import analytics
@@ -97,10 +97,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
+        from sentry.models.notificationsetting import NotificationSetting
 
         defaults = {"value": value.value}
         with configure_scope() as scope:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(NotificationSetting)):
                 setting, created = self.get_or_create(
                     provider=provider.value,
                     type=type.value,
@@ -127,6 +128,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
+        actor: RpcActor | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -137,6 +139,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """
         if user:
             user_id = user.id
+        elif actor:
+            if actor.actor_type == ActorType.USER:
+                user_id = actor.id
+            else:
+                team_id = actor.id
 
         if user_id is not None:
             actor_type = ActorType.USER

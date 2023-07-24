@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
@@ -15,6 +18,7 @@ import {
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
+import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   getParentData,
   getParentField,
@@ -25,7 +29,7 @@ import {
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
 
-type Props = {
+export type NotificationSettingsByProjectsBaseProps = {
   notificationSettings: NotificationSettingsObject;
   notificationType: string;
   onChange: (
@@ -33,13 +37,20 @@ type Props = {
     parentId: string
   ) => NotificationSettingsObject;
   onSubmitSuccess: () => void;
-} & AsyncComponent['props'];
+};
+
+export type Props = {
+  handleOrgChange: Function;
+  organizationId: string;
+  organizations: Organization[];
+} & NotificationSettingsByProjectsBaseProps &
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   projects: Project[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
+class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -47,8 +58,16 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    return [['projects', '/projects/']];
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    return [
+      [
+        'projects',
+        `/projects/`,
+        {
+          query: {organizationId: this.props.organizationId},
+        },
+      ],
+    ];
   }
 
   /**
@@ -74,6 +93,12 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     );
   };
 
+  handleOrgChange = (option: {label: string; value: string}) => {
+    // handleOrgChange(option: {label: string; value: string}) {
+    this.props.handleOrgChange(option);
+    setTimeout(() => this.reloadData(), 0);
+  };
+
   renderBody() {
     const {notificationType, notificationSettings, onChange, onSubmitSuccess} =
       this.props;
@@ -88,35 +113,50 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        {canSearch &&
-          this.renderSearchInput({
-            stateKey: 'projects',
-            url: '/projects/',
-            placeholder: t('Search Projects'),
-            children: renderSearch,
-          })}
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint="/users/me/notification-settings/"
-          initialData={getParentData(notificationType, notificationSettings, projects)}
-          onSubmitSuccess={onSubmitSuccess}
-        >
-          {projects.length === 0 ? (
-            <EmptyMessage>{t('No projects found')}</EmptyMessage>
-          ) : (
-            Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
-              <JsonForm
-                collapsible
-                key={groupTitle}
-                title={groupTitle}
-                fields={parents.map(parent =>
-                  getParentField(notificationType, notificationSettings, parent, onChange)
-                )}
-              />
-            ))
-          )}
-        </Form>
+        <PanelHeader>
+          <OrganizationSelectHeader
+            organizations={this.props.organizations}
+            organizationId={this.props.organizationId}
+            handleOrgChange={this.handleOrgChange}
+          />
+
+          {canSearch &&
+            this.renderSearchInput({
+              stateKey: 'projects',
+              url: `/projects/?organizationId=${this.props.organizationId}`,
+              placeholder: t('Search Projects'),
+              children: renderSearch,
+            })}
+        </PanelHeader>
+        <PanelBody>
+          <Form
+            saveOnBlur
+            apiMethod="PUT"
+            apiEndpoint="/users/me/notification-settings/"
+            initialData={getParentData(notificationType, notificationSettings, projects)}
+            onSubmitSuccess={onSubmitSuccess}
+          >
+            {projects.length === 0 ? (
+              <EmptyMessage>{t('No projects found')}</EmptyMessage>
+            ) : (
+              Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
+                <StyledJsonForm
+                  collapsible
+                  key={groupTitle}
+                  // title={groupTitle}
+                  fields={parents.map(parent =>
+                    getParentField(
+                      notificationType,
+                      notificationSettings,
+                      parent,
+                      onChange
+                    )
+                  )}
+                />
+              ))
+            )}
+          </Form>
+        </PanelBody>
         {canSearch && shouldPaginate && (
           <Pagination pageLinks={projectsPageLinks} {...this.props} />
         )}
@@ -130,5 +170,12 @@ export default NotificationSettingsByProjects;
 const StyledSearchWrapper = styled(SearchWrapper)`
   * {
     width: 100%;
+  }
+`;
+
+export const StyledJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border: 0;
+    margin-bottom: 0;
   }
 `;

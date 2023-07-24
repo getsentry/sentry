@@ -20,7 +20,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -140,16 +141,6 @@ type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
-};
-
-type BetterPriorityEndpointParams = Partial<EndpointParams> & {
-  eventHalflifeHours?: number;
-  hasStacktrace?: number;
-  issueHalflifeHours?: number;
-  logLevel?: number;
-  norm?: boolean;
-  relativeVolume?: number;
-  v2?: boolean;
 };
 
 class IssueListOverview extends Component<Props, State> {
@@ -304,13 +295,7 @@ class IssueListOverview extends Component<Props, State> {
     if (location.query.sort) {
       return location.query.sort as string;
     }
-
-    const hasBetterPrioritySort = this.props.organization.features.includes(
-      'issue-list-better-priority-sort'
-    );
-    return hasBetterPrioritySort
-      ? IssueSortOptions.BETTER_PRIORITY
-      : DEFAULT_ISSUE_STREAM_SORT;
+    return DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {
@@ -338,29 +323,6 @@ class IssueListOverview extends Component<Props, State> {
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
-  }
-
-  getBetterPriorityParams(): BetterPriorityEndpointParams {
-    const query = this.props.location.query ?? {};
-    const {
-      eventHalflifeHours,
-      hasStacktrace,
-      issueHalflifeHours,
-      logLevel,
-      norm,
-      v2,
-      relativeVolume,
-    } = query;
-
-    return {
-      eventHalflifeHours,
-      hasStacktrace,
-      issueHalflifeHours,
-      logLevel,
-      norm,
-      v2,
-      relativeVolume,
-    };
   }
 
   getEndpointParams = (): EndpointParams => {
@@ -394,10 +356,8 @@ class IssueListOverview extends Component<Props, State> {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
-    const mergedParams = {...params, ...this.getBetterPriorityParams()};
-
     // only include defined values.
-    return pickBy(mergedParams, v => defined(v)) as EndpointParams;
+    return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
   getSelectedProjectIds = (): string[] => {
@@ -891,7 +851,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   transitionTo = (
-    newParams: Partial<EndpointParams> | Partial<BetterPriorityEndpointParams> = {},
+    newParams: Partial<EndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {

@@ -8,15 +8,16 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
     def test_create_on_organization_save(self):
-        with outbox_context(flush=False), exempt_from_silo_limits():
+        with outbox_context(flush=False), assume_test_silo_mode(SiloMode.REGION):
             organization = self.create_organization(
                 name="test name",
             )
@@ -61,7 +62,7 @@ class OrganizationMappingTest(TransactionTestCase):
         assert new_org_mapping.status == self.organization.status
 
     def test_upsert__update_if_found(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.organization = self.create_organization(
                 name="test name",
                 slug="foobar",

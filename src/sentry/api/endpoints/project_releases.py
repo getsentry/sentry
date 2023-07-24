@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,8 +11,9 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.api.utils import get_auth_api_token_type
 from sentry.models import Activity, Environment, Release, ReleaseStatus
-from sentry.models.apitoken import is_api_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
@@ -124,7 +125,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     owner_id = owner.id
 
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(Release)):
                         release, created = (
                             Release.objects.create(
                                 organization_id=project.organization_id,
@@ -187,8 +188,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     project_ids=[project.id],
                     user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
                     created_status=status,
-                    auth_type="api_token" if is_api_token_auth(request.auth) else None,
+                    auth_type=get_auth_api_token_type(request.auth),
                 )
+
+                if is_org_auth_token_auth(request.auth):
+                    update_org_auth_token_last_used(request.auth, [project.id])
+
                 scope.set_tag("success_status", status)
 
                 # Disable snuba here as it often causes 429s when overloaded and

@@ -30,7 +30,6 @@ export type FunctionTrend = {
   breakpoint: number;
   change: TrendType;
   'count()': number;
-  // fingerprint: number; DO NOT use this yet
   function: string;
   package: string;
   project: string;
@@ -38,6 +37,7 @@ export type FunctionTrend = {
   trend_difference: number;
   trend_percentage: number;
   unweighted_p_value: number;
+  worst: FunctionExample[];
 };
 
 type EpochTime = number;
@@ -49,3 +49,5 @@ type FunctionTrendStats = {
   end: number;
   start: number;
 };
+
+type FunctionExample = [EpochTime, string];

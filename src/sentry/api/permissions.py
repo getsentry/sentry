@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from rest_framework import permissions
 from rest_framework.request import Request
@@ -70,7 +70,7 @@ class ScopedPermission(permissions.BasePermission):
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view: object, obj: object) -> bool:
+    def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
         return False
 
 
@@ -105,7 +105,9 @@ class SentryPermission(ScopedPermission):
     # For now, this wide typing allows incremental rollout of those changes.  Be mindful how you use
     # organization in this method to stay compatible with all 3 paths.
     def determine_access(
-        self, request: Request, organization: RpcUserOrganizationContext | Organization | int
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization | int,
     ) -> None:
         from sentry.api.base import logger
 

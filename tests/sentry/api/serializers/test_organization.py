@@ -20,7 +20,10 @@ from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingT
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
-default_owner_scopes = frozenset(filter(lambda scope: scope != "org:ci", settings.SENTRY_SCOPES))
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -42,7 +45,7 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -83,6 +86,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "team-roles",
             "performance-issues-search",
             "transaction-name-normalize",
             "transaction-name-mark-scrubbed-as-sanitized",
@@ -131,7 +135,7 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -149,7 +153,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert isinstance(result["teamRoleList"], list)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized
@@ -206,7 +210,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -226,7 +230,7 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

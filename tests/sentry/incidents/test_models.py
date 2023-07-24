@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -316,7 +316,7 @@ class IncidentCreationTest(TestCase):
                 # This incident will take the identifier we already fetched and
                 # use it, which will cause the database to throw an integrity
                 # error.
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Incident)):
                     incident = Incident.objects.create(
                         self.organization,
                         status=IncidentStatus.OPEN.value,
@@ -554,13 +554,3 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
-
-
-class AlertRuleCustomMetricTest(TestCase):
-    def test_simple(self):
-        standard_alert_rule = self.create_alert_rule(query="event.type:error")
-        custom_alert_rule = self.create_alert_rule(query="transaction.duration:>=1000")
-
-        assert not standard_alert_rule.is_custom_metric
-
-        assert custom_alert_rule.is_custom_metric

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import signal
 import sys
 from multiprocessing import cpu_count
@@ -245,12 +246,14 @@ def run_worker(**options):
 
     from sentry.celery import app
 
+    # NOTE: without_mingle breaks everything,
+    # we can't get rid of this. Intentionally kept
+    # here as a warning. Jobs will not process.
+    without_mingle = os.getenv("SENTRY_WORKER_FORCE_WITHOUT_MINGLE", "false").lower() == "true"
+
     with managed_bgtasks(role="worker"):
         worker = app.Worker(
-            # NOTE: without_mingle breaks everything,
-            # we can't get rid of this. Intentionally kept
-            # here as a warning. Jobs will not process.
-            # without_mingle=True,
+            without_mingle=without_mingle,
             without_gossip=True,
             without_heartbeat=True,
             pool_cls="processes",

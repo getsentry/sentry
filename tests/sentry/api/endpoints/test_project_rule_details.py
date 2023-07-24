@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Mapping
 from unittest import mock
@@ -8,13 +10,15 @@ import responses
 from freezegun import freeze_time
 from pytz import UTC
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -27,7 +31,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None
@@ -72,10 +76,11 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
-        self.jira_integration = Integration.objects.create(
-            provider="jira", name="Jira", external_id="jira:1"
-        )
-        self.jira_integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.jira_integration = Integration.objects.create(
+                provider="jira", name="Jira", external_id="jira:1"
+            )
+            self.jira_integration.add_organization(self.organization, self.user)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,
@@ -112,11 +117,13 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] == self.environment.name
 
     def test_with_filters(self):
-        conditions = [
+        conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         data = {
             "conditions": conditions,
             "actions": actions,
@@ -758,11 +765,11 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
     def test_simple(self):
+        rule = self.create_project_rule(self.project)
         self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=202
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
-        self.rule.refresh_from_db()
-        assert self.rule.status == RuleStatus.PENDING_DELETION
-        assert RuleActivity.objects.filter(
-            rule=self.rule, type=RuleActivityType.DELETED.value
+        rule.refresh_from_db()
+        assert not Rule.objects.filter(
+            id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()

@@ -8,7 +8,8 @@ import responses
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
 from sentry.testutils import APITestCase
@@ -38,7 +39,7 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -212,7 +213,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "You may not exceed 1 rules with this type of condition per project."
         )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
@@ -245,7 +246,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "You may not exceed 1 rules with this type of condition per project."
         )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):
@@ -346,11 +347,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         self.run_test(
             actions=actions,
             conditions=conditions,
@@ -359,8 +364,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_no_filter_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         self.run_test(
             filter_match=None,
@@ -369,11 +378,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters_without_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -423,7 +436,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             }
         ]
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "environment": None,
