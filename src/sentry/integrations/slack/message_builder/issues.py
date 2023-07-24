@@ -7,6 +7,7 @@ from django.core.cache import cache
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
+    build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
     build_footer,
@@ -276,12 +277,16 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+
         if self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
             # If we figure out why this is required we should note it here because it's quite strange
             if self.is_unfurl:
                 text = escape_slack_text(text)
+
+        # This link does not contain user input (it's a static label and a url), must not escape it.
+        text += build_attachment_replay_link(self.group, self.event) or ""
 
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
