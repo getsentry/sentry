@@ -138,7 +138,7 @@ def message_v1(
     if context["normalize_message"]:
         raw = interface.message or interface.formatted or ""
         normalized = normalize_message_for_grouping(raw)
-        hint = "stripped common values" if raw != normalized else None
+        hint = "stripped event-specific values" if raw != normalized else None
         return {
             context["variant"]: GroupingComponent(
                 id="message",

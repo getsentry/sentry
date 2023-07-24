@@ -10,5 +10,5 @@ app:
       exception*
         type*
           "Error"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "Loading chunk <int> failed.\n(timeout: <url>"
