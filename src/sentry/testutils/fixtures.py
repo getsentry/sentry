@@ -323,6 +323,9 @@ class Fixtures:
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
 
+    def create_incident_trigger(self, incident, alert_rule_trigger, status):
+        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
+
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
