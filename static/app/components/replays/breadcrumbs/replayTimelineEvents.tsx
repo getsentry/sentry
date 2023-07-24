@@ -7,7 +7,7 @@ import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {getColor} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
@@ -98,7 +98,7 @@ function Event({
   `;
 
   // We want to show the full variety of colors available.
-  const uniqueColors = uniq(frames.map(getColor));
+  const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
   // We just need to stack up to 3 times
   const frameCount = Math.min(uniqueColors.length, 3);
