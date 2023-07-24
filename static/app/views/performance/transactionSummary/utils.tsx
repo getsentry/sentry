@@ -10,6 +10,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export enum DisplayModes {
@@ -175,7 +176,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   const referrer = getRouteStringFromRoutes(routes);
 
   return (
-    _: Organization,
+    organization: Organization,
     tableRow: TableDataRow,
     _query: Query | undefined
   ): LocationDescriptor => {
@@ -186,7 +187,9 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: `/replays/${replayId}/`,
+        pathname: normalizeUrl(
+          `/organizations/${organization.slug}/replays/${replayId}/`
+        ),
         query: {
           referrer,
         },
@@ -199,7 +202,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: `/replays/${replayId}/`,
+      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
       query: {
         event_t: transactionStartTimestamp,
         referrer,

@@ -21,6 +21,7 @@ import {
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 
@@ -313,7 +314,9 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
-      location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
+      location: normalizeUrl(
+        `/organizations/${organization.slug}/replays/#replay-sidequest`
+      ),
       display: organization.features?.includes('session-replay'),
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
