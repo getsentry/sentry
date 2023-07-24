@@ -1169,6 +1169,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
                 ), query
 
+    def test_get_replays_filter_clicks_unsupported_attribute_selector(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = ["click.selector:div[xyz=test]"]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert response.content == (
+                    b'{"detail":"Invalid attribute specified. Only alt, aria-label, role, '
+                    b'data-testid, data-test-id, and title are supported."}'
+                ), query
+
     def test_get_replays_filter_clicks_unsupported_operators(self):
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
