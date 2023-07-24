@@ -69,20 +69,6 @@ export function CodeSnippet({
       ? t('Copied')
       : t('Unable to copy');
 
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-
-    if (language in Prism.languages) {
-      Prism.highlightElement(element);
-      return;
-    }
-
-    loadPrismLanguage(language, {onLoad: () => Prism.highlightElement(element)});
-  }, [children, language]);
-
   return (
     <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
       <Header hasFileName={!!filename}>
