@@ -798,7 +798,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self.on_demand_metrics_enabled:
+                    if self.on_demand_metrics_enabled and self._on_demand_spec:
                         metrics_query = self._get_on_demand_metrics_query()
                     else:
                         metrics_query = transform_mqb_query_to_metrics_query(
@@ -1226,7 +1226,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self.on_demand_metrics_enabled:
+                    if self.on_demand_metrics_enabled and self._on_demand_spec:
                         metrics_query = self._get_on_demand_metrics_query()
                     else:
                         metrics_query = transform_mqb_query_to_metrics_query(
