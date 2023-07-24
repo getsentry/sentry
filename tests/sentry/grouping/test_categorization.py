@@ -147,7 +147,7 @@ def track_enhancers_coverage():
             if len(inputs_for_rule) < 4:
                 inputs_for_rule.append(current_input)
 
-        return old_apply(self, frames, match_frames, idx, rule=rule)
+        return old_apply(self, frames, match_frames, idx)
 
     ran_tests = {}
 
