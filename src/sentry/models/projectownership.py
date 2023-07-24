@@ -11,9 +11,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.eventstore.models import Event
 from sentry.models import Activity, ActorTuple
-from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
@@ -236,7 +234,7 @@ class ProjectOwnership(Model):
         return autoassignment_types
 
     @classmethod
-    def handle_auto_assignment(cls, project_id, event: Event = None, group: Group = None):
+    def handle_auto_assignment(cls, project_id, event=None, group=None):
         """
         Get the auto-assign owner for a project if there are any.
 
@@ -254,7 +252,7 @@ class ProjectOwnership(Model):
         )
 
         force_autoassign = True
-        if not group:
+        if event:
             force_autoassign = False
             group = event.group
 
