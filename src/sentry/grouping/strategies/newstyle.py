@@ -15,7 +15,7 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
-from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.exception import Exception as ChainedException
@@ -644,7 +644,7 @@ def single_exception(
 
             value_in = interface.value
             if value_in is not None:
-                value_trimmed = trim_message_for_grouping(value_in)
+                value_trimmed = normalize_message_for_grouping(value_in)
                 hint = "stripped common values" if value_in != value_trimmed else None
                 if value_trimmed:
                     value_component.update(values=[value_trimmed], hint=hint)

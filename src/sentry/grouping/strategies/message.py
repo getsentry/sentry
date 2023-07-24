@@ -102,7 +102,7 @@ _parameterization_regex = re.compile(
 )
 
 
-def trim_message_for_grouping(string: str) -> str:
+def normalize_message_for_grouping(string: str) -> str:
     """Replace values from a group's message to hide P.I.I. and improve grouping when no
     stacktrace available.
     """
@@ -131,7 +131,7 @@ def message_v1(
 ) -> ReturnedVariants:
     if context["normalize_message"]:
         message_in = interface.message or interface.formatted or ""
-        message_trimmed = trim_message_for_grouping(message_in)
+        message_trimmed = normalize_message_for_grouping(message_in)
         hint = "stripped common values" if message_in != message_trimmed else None
         return {
             context["variant"]: GroupingComponent(
