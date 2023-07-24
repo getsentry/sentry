@@ -29,7 +29,7 @@ interface Details {
   description: ReactNode;
   tabKey: TabKey;
   title: ReactNode;
-  type: BreadcrumbType; // @deprecated
+  type: BreadcrumbType;
 }
 
 const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
