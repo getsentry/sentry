@@ -126,6 +126,8 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = self.limit
             alias = spec.mri
 
+        granularity = self.resolve_granularity()
+
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
             where=[
@@ -137,8 +139,9 @@ class MetricsQueryBuilder(QueryBuilder):
             ],
             limit=limit,
             offset=self.offset,
-            granularity=self.resolve_granularity(),
-            is_alerts_query=self.is_alerts_query,
+            interval=int(granularity.granularity),
+            granularity=granularity,
+            is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=True,
