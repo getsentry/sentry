@@ -214,7 +214,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
         return f"Error Communicating with GitHub (HTTP {exc.code}): {message}"
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             # make sure installation has access to this specific repo
