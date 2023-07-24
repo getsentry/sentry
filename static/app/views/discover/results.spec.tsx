@@ -1396,5 +1396,38 @@ describe('Results', function () {
 
       expect(screen.getByTestId('set-as-default')).toBeEnabled();
     });
+
+    it("doesn't render sample data alert", function () {
+      const organization = TestStubs.Organization({
+        features: ['discover-basic', 'discover-query'],
+      });
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {
+            ...TestStubs.location(),
+            query: {
+              ...EventView.fromNewQueryWithLocation(
+                {...DEFAULT_EVENT_VIEW, query: 'event.type:error'},
+                TestStubs.location()
+              ).generateQueryStringObject(),
+            },
+          },
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
+    });
   });
 });
