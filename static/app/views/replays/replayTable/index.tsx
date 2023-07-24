@@ -35,6 +35,7 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   saveLocation?: boolean;
+  style?: string;
 };
 
 function ReplayTable({
@@ -145,10 +146,10 @@ function ReplayTable({
                     />
                   );
 
-                case ReplayColumn.MOST_DEAD_CLICKS:
+                case ReplayColumn.MOST_RAGE_CLICKS:
                   return (
                     <ReplayCell
-                      key="mostDeadClicks"
+                      key="mostRageClicks"
                       replay={replay}
                       organization={organization}
                       referrer={referrer}
@@ -182,7 +183,7 @@ function ReplayTable({
 
 const flexibleColumns = [
   ReplayColumn.REPLAY,
-  ReplayColumn.MOST_DEAD_CLICKS,
+  ReplayColumn.MOST_RAGE_CLICKS,
   ReplayColumn.MOST_ERRONEOUS_REPLAYS,
 ];
 
