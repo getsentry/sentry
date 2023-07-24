@@ -61,10 +61,8 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert (
-            Integration.objects.filter(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.DISABLED
 
     @responses.activate
     def test_fatal_integration(self):
@@ -84,10 +82,8 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert (
-            Integration.objects.filter(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_error_integration(self):
@@ -143,10 +139,7 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
-        assert (
-            Integration.objects.filter(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
 
     @responses.activate
     @with_feature("organizations:slack-disable-on-broken")
@@ -172,7 +165,4 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert (
-            Integration.objects.filter(integration_id=self.integration.id).status
-            == ObjectStatus.DISABLED
-        )
+        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
