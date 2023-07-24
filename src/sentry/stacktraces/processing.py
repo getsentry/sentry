@@ -33,7 +33,7 @@ class StacktraceInfo(NamedTuple):
     def __ne__(self, other: object) -> bool:
         return self is not other
 
-    def get_frames(self) -> Sequence[dict[str, str]]:
+    def get_frames(self) -> Sequence[dict[str, Any]]:
         return get_path(self.stacktrace, "frames", filter=True, default=())
 
 
@@ -203,7 +203,6 @@ def find_stacktraces_in_data(
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
-                # XXX: This contains all the contents of stacktrace
                 container=container,
                 platforms=platforms,
                 is_exception=is_exception,
@@ -223,7 +222,7 @@ def find_stacktraces_in_data(
 
     if include_raw:
         for info in rv:
-            if info.container:
+            if info.container is not None:
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
@@ -271,12 +270,13 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     stacktrace_containers = []
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
-        # XXX: Why do we want include the raw stacktrace?
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
             frames = stacktrace_info.get_frames()
             if frames:
                 stacktrace_frames.append(frames)
-                stacktrace_container.append(stacktrace_info.container)
+                stacktrace_containers.append(
+                    stacktrace_info.container if stacktrace_info.is_exception else None
+                )
 
     if not stacktrace_frames:
         return
@@ -296,7 +296,7 @@ def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_container):
+            for frames, exception_data in zip(stacktrace_frames, stacktrace_containers):
                 grouping_config.enhancements.apply_modifications_to_frame(
                     frames, platform, exception_data
                 )
