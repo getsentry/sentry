@@ -59,6 +59,15 @@ class ArtifactBundleIndexingState(Enum):
         return [(key.value, key.name) for key in cls]
 
 
+class ArtifactBundleFlatFileIndexingState(Enum):
+    BEING_INDEXED = 0
+    WAS_INDEXED = 1
+
+    @classmethod
+    def choices(cls) -> List[Tuple[int, str]]:
+        return [(key.value, key.name) for key in cls]
+
+
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
@@ -122,7 +131,8 @@ class ArtifactBundleFlatFileIndex(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    flat_file_index = FlexibleForeignKey("sentry.File")
+    # This association is nullable since we need it for a correct durable implementation of the `FlatFileIndexState`.
+    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -133,14 +143,18 @@ class ArtifactBundleFlatFileIndex(Model):
 
     @classmethod
     def create_flat_file_index(
-        cls, project_id: int, release: str, dist: str, file_contents: str
+        cls, project_id: int, release: str, dist: str, file_contents: Optional[str]
     ) -> "ArtifactBundleFlatFileIndex":
         from sentry.models import File
 
         with atomic_transaction(
             using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
         ):
-            file = cls._create_flat_file_index_object(project_id, release, dist, file_contents)
+            # By default, we can create a flat index file which has not `File` object bound to it.
+            file = None
+            if file_contents:
+                file = cls._create_flat_file_index_object(project_id, release, dist, file_contents)
+
             index = ArtifactBundleFlatFileIndex.objects.create(
                 project_id=project_id, release_name=release, dist_name=dist, flat_file_index=file
             )
@@ -161,10 +175,16 @@ class ArtifactBundleFlatFileIndex(Model):
 
             # We have to update the new index file and also the date added, which is required for expiration.
             self.update(flat_file_index=updated_file, date_added=timezone.now())
-            # It's important to also delete the old file, otherwise we will end up with orphan files in the database.
-            current_file.delete()
 
-    def load_flat_file_index(self) -> str:
+            if current_file is not None:
+                # It's important to also delete the old file, otherwise we will end up with orphan files in the
+                # database.
+                current_file.delete()
+
+    def load_flat_file_index(self) -> Optional[str]:
+        if self.flat_file_index is None:
+            return None
+
         return self.flat_file_index.getfile().read().decode()
 
     @classmethod
@@ -180,6 +200,39 @@ class ArtifactBundleFlatFileIndex(Model):
         file.putfile(BytesIO(file_contents.encode()))
 
         return file
+
+
+@region_silo_only_model
+class FlatFileIndexState(Model):
+    __include_in_export__ = False
+
+    flat_file_index_id = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
+    artifact_bundle_id = FlexibleForeignKey("sentry.ArtifactBundle")
+    indexing_state = models.IntegerField(choices=ArtifactBundleFlatFileIndexingState.choices())
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_flatfileindexstate"
+
+    @staticmethod
+    def compare_state_and_set(
+        flat_file_index_id: int,
+        artifact_bundle_id: int,
+        indexing_state: ArtifactBundleFlatFileIndexingState,
+        new_indexing_state: ArtifactBundleFlatFileIndexingState,
+    ) -> bool:
+        try:
+            updated_rows = FlatFileIndexState.objects.get(
+                flat_file_index_id=flat_file_index_id,
+                artifact_bundle_id=artifact_bundle_id,
+                indexing_state=indexing_state,
+            ).update(indexing_state=new_indexing_state, date_added=timezone.now())
+
+            # If we had one row being updated, it means that the cas operation succeeded.
+            return updated_rows == 1
+        except FlatFileIndexState.DoesNotExist:
+            return False
 
 
 @region_silo_only_model

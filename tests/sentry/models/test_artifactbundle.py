@@ -40,7 +40,22 @@ class ArtifactBundleTest(TestCase):
         assert index.project_id == self.project.id
         assert index.release_name == "1.0"
         assert index.dist_name == "android"
-        assert json.loads(index.load_flat_file_index()) == file_contents
+        flat_file_index = index.load_flat_file_index()
+        assert flat_file_index is not None
+        assert json.loads(flat_file_index) == file_contents
+
+    def test_artifact_bundle_flat_index_is_created_with_empty_contents(self):
+        index = ArtifactBundleFlatFileIndex.create_flat_file_index(
+            project_id=self.project.id,
+            release="1.0",
+            dist="android",
+            file_contents=None,
+        )
+
+        assert index.project_id == self.project.id
+        assert index.release_name == "1.0"
+        assert index.dist_name == "android"
+        assert index.load_flat_file_index() is None
 
     def test_artifact_bundle_flat_index_is_updated(self):
         index = ArtifactBundleFlatFileIndex.create_flat_file_index(
@@ -56,4 +71,6 @@ class ArtifactBundleTest(TestCase):
         assert index.project_id == self.project.id
         assert index.release_name == "1.0"
         assert index.dist_name == "android"
-        assert json.loads(index.load_flat_file_index()) == updated_file_contents
+        flat_file_index = index.load_flat_file_index()
+        assert flat_file_index is not None
+        assert json.loads(flat_file_index) == updated_file_contents
