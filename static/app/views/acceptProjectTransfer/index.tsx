@@ -5,12 +5,10 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Project} from 'sentry/types';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-
-import useOrganization from './useOrganization';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -35,18 +33,6 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
     return t('Accept Project Transfer');
   }
 
-  resolveRoute(route: string, nextOrg?: string) {
-    const currentOrg = useOrganization({allowNull: true});
-    const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
-
-    if (!nextOrg) {
-      return route;
-    }
-
-    const organizationUrl = localizeDomain(`https://${nextOrgSlug}.sentry.io`);
-    return `${organizationUrl}${normalizeUrl(route)}`;
-  }
-
   handleSubmit = formData => {
     this.api.request('/accept-transfer/', {
       method: 'POST',
@@ -57,8 +43,12 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       success: () => {
         const orgSlug = formData.organization;
         const projectSlug = this.state?.transferDetails?.project.slug;
-        const route = `/settings/${orgSlug}/projects/${projectSlug}/teams/`;
-        window.location.href = resolveRoute(route, orgSlug);
+        const sentryUrl = ConfigStore.get('links').sentryUrl;
+        if (projectSlug === null) {
+          window.location.href = `${sentryUrl}/organizations/${orgSlug}/projects/`;
+        } else {
+          window.location.href = `${sentryUrl}/settings/${orgSlug}/projects/${projectSlug}/teams/`;
+        }
         addSuccessMessage(t('Project successfully transferred'));
       },
       error: error => {
