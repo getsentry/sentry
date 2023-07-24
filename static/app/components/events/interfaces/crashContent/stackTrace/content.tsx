@@ -9,6 +9,7 @@ import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import DeprecatedLine from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
@@ -50,7 +51,7 @@ function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export default function Content({
+function Content({
   data,
   event,
   newestFirst,
@@ -370,3 +371,5 @@ const Wrapper = styled(Panel)`
 const StyledList = styled('ul')`
   list-style: none;
 `;
+
+export default withOrganization(Content);
