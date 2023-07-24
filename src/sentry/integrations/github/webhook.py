@@ -20,7 +20,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.plugins.providers.integration_repository import get_integration_repository_provider
+from sentry.plugins.providers.integration_repository import (
+    RepoExistsError,
+    get_integration_repository_provider,
+)
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -103,7 +106,11 @@ class Webhook:
 
                 for org in orgs.values():
                     if features.has("organizations:auto-repo-linking", org):
-                        provider.create_repository(config, org)
+                        try:
+                            provider.create_repository(config, org)
+                        except RepoExistsError:
+                            metrics.incr("sentry.integration_repo_provider.repo_exists")
+                            continue
                         metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
