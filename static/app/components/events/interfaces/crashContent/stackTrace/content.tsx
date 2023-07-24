@@ -354,9 +354,9 @@ export default function Content({
     <Wrapper className={className} data-test-id="stack-trace-content">
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <GuideAnchor target="stack_trace">
-        <Frames data-test-id="frames">
+        <StyledList data-test-id="frames">
           {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-        </Frames>
+        </StyledList>
       </GuideAnchor>
     </Wrapper>
   );
@@ -367,6 +367,6 @@ const Wrapper = styled(Panel)`
   border-top-left-radius: 0;
 `;
 
-const Frames = styled('ul')`
+const StyledList = styled('ul')`
   list-style: none;
 `;
