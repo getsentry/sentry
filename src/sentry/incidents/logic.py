@@ -1237,6 +1237,10 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
         target_identifier, target_value = get_alert_rule_trigger_action_pagerduty_service(
             target_value, *args, **kwargs
         )
+    elif type == AlertRuleTriggerAction.Type.OPSGENIE.value:
+        target_identifier, target_value = get_alert_rule_trigger_action_opsgenie_team(
+            target_value, *args, **kwargs
+        )
     else:
         raise Exception("Not implemented")
 
@@ -1318,6 +1322,15 @@ def get_alert_rule_trigger_action_pagerduty_service(
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
     return service["id"], service["service_name"]
+
+
+def get_alert_rule_trigger_action_opsgenie_team(target_value, organization, integration_id):
+    from sentry.integrations.opsgenie.utils import get_team
+
+    team = get_team(organization, target_value)
+    if not team:
+        raise InvalidTriggerActionError("No Opsgenie team found.")
+    return team["id"], team["team"]
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):

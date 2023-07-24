@@ -110,7 +110,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             team_table = oi.config.get("team_table")
             if team_table:
                 teams += [(team["id"], team["team"]) for team in team_table]
-        # print("TEAMS:", teams)
         return teams
 
     def render_label(self) -> str:
@@ -123,7 +122,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         return self.label.format(account=self.get_integration_name(), team=team_name)
 
     def get_form_instance(self):
-        # print("DATA:", self.data)
         return self.form_cls(
             self.data,
             integrations=self.get_integrations(),

@@ -23,6 +23,7 @@ INTEGRATION_SERVICES = {
     ActionService.PAGERDUTY.value,
     ActionService.SLACK.value,
     ActionService.MSTEAMS.value,
+    ActionService.OPSGENIE.value,
 }
 
 

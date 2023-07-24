@@ -171,6 +171,19 @@ class PagerDutyActionHandler(DefaultActionHandler):
 
 
 @AlertRuleTriggerAction.register_type(
+    "opsgenie",
+    AlertRuleTriggerAction.Type.OPSGENIE,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="opsgenie",
+)
+class OpsgenieActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
+        from sentry.integrations.opsgenie.utils import send_incident_alert_notification
+
+        send_incident_alert_notification(self.action, self.incident, metric_value, new_status)
+
+
+@AlertRuleTriggerAction.register_type(
     "sentry_app",
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],

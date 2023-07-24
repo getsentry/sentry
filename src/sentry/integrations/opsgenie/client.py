@@ -58,10 +58,13 @@ class OpsgenieClient(IntegrationProxyClient):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.get(path=path, headers=headers, params=params)
 
-    def send_notification(self, data, rules):
+    def send_notification(self, data, rules=None):
+        headers = {"Authorization": "GenieKey " + self.integration_key}
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
+            # If we're sending an event alert, there will always be rules. This is just to be safe.
+            triggering_rules = ", ".join([rule.name for rule in rules]) if rules else ""
             payload = {
                 "message": event.message or event.title,
                 "alias": f"sentry: {group.id}",
@@ -74,7 +77,7 @@ class OpsgenieClient(IntegrationProxyClient):
                     "Logger": group.logger,
                     "Level": group.get_level_display(),
                     "URL": group.get_absolute_url(),
-                    "Triggering Rules": ", ".join([str(rule.id) for rule in rules]),
+                    "Triggering Rules": triggering_rules,
                     "Release": data.release,
                 },
                 "entity": group.culprit,
@@ -84,8 +87,9 @@ class OpsgenieClient(IntegrationProxyClient):
             }
 
         else:
-            pass
-            # print("Not implemented hehe")
-        # print("PAYLOAD:", payload)
-        headers = {"Authorization": "GenieKey " + self.integration_key}
+            # this is a metric alert
+            payload = data
+            # if we're acknowledging the alert
+            if payload.get("identifier"):
+                return self.post("/alerts/:identifier/acknowledge", params=payload, headers=headers)
         return self.post("/alerts", data=payload, headers=headers)
