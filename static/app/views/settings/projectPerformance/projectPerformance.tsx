@@ -69,6 +69,7 @@ enum DetectorConfigAdmin {
   UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
   LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
   N_PLUS_ONE_API_CALLS_ENABLED = 'n_plus_one_api_calls_detection_enabled',
+  CONSECUTIVE_HTTP_ENABLED = 'consecutive_http_spans_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -82,6 +83,7 @@ export enum DetectorConfigCustomer {
   UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
   UNCOMPRESSED_ASSET_SIZE = 'uncompressed_asset_size_threshold',
   CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
+  CONSECUTIVE_HTTP_MIN_TIME_SAVED = 'consecutive_http_spans_min_time_saved_threshold',
 }
 
 type RouteParams = {orgId: string; projectId: string};
@@ -408,6 +410,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             },
           }),
       },
+      {
+        name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
+        type: 'boolean',
+        label: t('Consecutive HTTP Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              consecutive_http_spans_detection_enabled: value,
+            },
+          }),
+      },
     ];
   }
 
@@ -658,6 +673,29 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Consecutive HTTP'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+            type: 'range',
+            label: t('Minimum Time Saved'),
+            defaultValue: 2000, // in ms
+            help: t(
+              'Setting the value to 2s, means that an eligible event will be stored as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(14).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(14),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
