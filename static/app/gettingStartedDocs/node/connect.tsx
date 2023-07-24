@@ -3,7 +3,7 @@ import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDoc
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 type StepProps = {
@@ -38,7 +38,7 @@ npm install --save @sentry/node
   },
   {
     type: StepType.CONFIGURE,
-    description: <p>{tct('Configure Sentry as a middleware:', {code: <code />})}</p>,
+    description: t('Configure Sentry as a middleware:'),
     configurations: [
       {
         language: 'javascript',
