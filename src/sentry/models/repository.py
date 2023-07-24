@@ -37,10 +37,7 @@ class Repository(Model, PendingDeletionMixin):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repository"
-        unique_together = (
-            ("organization_id", "name"),
-            ("organization_id", "provider", "external_id"),
-        )
+        unique_together = (("organization_id", "provider", "external_id"),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 

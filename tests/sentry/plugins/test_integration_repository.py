@@ -66,7 +66,7 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository__repo_exists(self, get_jwt):
-        self._create_repo()
+        self._create_repo(external_id=self.config["external_id"])
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
