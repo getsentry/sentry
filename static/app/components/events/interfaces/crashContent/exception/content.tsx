@@ -201,7 +201,6 @@ export function Content({
             <SourceMapDebug debugFrames={debugFrames} event={event} />
           )}
         </ErrorBoundary>
-
         <StackTrace
           data={
             type === StackType.ORIGINAL
