@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import Any, Dict, List, Sequence
+from typing import Any, List, Sequence
 
 import msgpack
 import sentry_sdk
@@ -133,7 +133,7 @@ class Enhancements:
         does not affect grouping.
         """
         # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -145,11 +145,11 @@ class Enhancements:
                 for idx, action in rule.get_matching_frame_actions(
                     match_frames, platform, exception_data, cache
                 ):
-                    action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+                    action.apply_modifications_to_frame(frames, match_frames, idx)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 

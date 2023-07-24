@@ -1,4 +1,6 @@
-from typing import Any, Callable, Dict
+from __future__ import annotations
+
+from typing import Any, Callable, Sequence
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
@@ -28,7 +30,9 @@ class Action:
     _is_modifier: bool
     _is_updater: bool
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
+    ) -> None:
         pass
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
@@ -94,7 +98,9 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
+    ) -> None:
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
@@ -134,7 +140,7 @@ class FlagAction(Action):
 class VarAction(Action):
     range = None
 
-    _VALUE_PARSERS: Dict[str, Callable[[Any], Any]] = {
+    _VALUE_PARSERS: dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,
         "invert-stacktrace": get_rule_bool,
@@ -169,7 +175,9 @@ class VarAction(Action):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: Sequence[Any], match_frames: Sequence[Any], idx: int
+    ) -> None:
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)
