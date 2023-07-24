@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0513_django_jsonfield"),
+        ("sentry", "0517_backfill_pagerdutyservices_into_org_integrations"),
     ]
 
     operations = [
