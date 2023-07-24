@@ -23,11 +23,10 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 @pytest.fixture
 def mapper():
     _, mapping_file_path = mkstemp()
-    f = open(mapping_file_path, "wb")
-    f.write(PROGUARD_SOURCE)
+    with open(mapping_file_path, "wb") as f:
+        f.write(PROGUARD_SOURCE)
     mapper = ProguardMapper.open(mapping_file_path)
     assert mapper.has_line_info
-    f.close()
     return mapper
 
 
