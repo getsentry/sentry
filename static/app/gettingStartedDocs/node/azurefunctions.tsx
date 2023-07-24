@@ -2,7 +2,7 @@ import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDo
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 type StepProps = {
@@ -36,13 +36,7 @@ npm install --save @sentry/node
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct('To set up Sentry error logging for an Azure Function:', {
-          code: <code />,
-        })}
-      </p>
-    ),
+    description: t('To set up Sentry error logging for an Azure Function:'),
     configurations: [
       {
         language: 'javascript',
@@ -75,8 +69,8 @@ module.exports = async function (context, req) {
         description: (
           <p>
             {tct(
-              'Note: You need to call both [code:captureException] and [code:flush] for captured events to be successfully delivered to Sentry.',
-              {}
+              'Note: You need to call both [captureExceptionCode:captureException] and [flushCode:flush] for captured events to be successfully delivered to Sentry.',
+              {captureExceptionCode: <code />, flushCode: <code />}
             )}
           </p>
         ),
