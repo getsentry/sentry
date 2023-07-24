@@ -59,6 +59,7 @@ class ActionService(FlexibleIntEnum):
     MSTEAMS = 3
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
 
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
@@ -69,6 +70,7 @@ class ActionService(FlexibleIntEnum):
             (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
+            (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
         )
 
 
