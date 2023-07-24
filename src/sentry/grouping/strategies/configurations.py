@@ -33,9 +33,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # strategy to disable itself.  Recursion is detected by the outer
         # strategy.
         "is_recursion": False,
-        # This turns on the automatic message trimming by the message
-        # strategy.
-        "trim_message": False,
+        # This turns on the automatic message trimming and parameter substitution
+        # by the message strategy.
+        "normalize_message": False,
         # newstyle: enables the legacy function logic.  This is only used
         # by the newstyle:2019-04-05 strategy.  Once this is no longer used
         # this can go away entirely.
@@ -105,7 +105,7 @@ register_strategy_config(
         * Some known weaknesses with regards to grouping of native frames
     """,
     initial_context={
-        "trim_message": False,
+        "normalize_message": False,
     },
     enhancements_base="legacy:2019-03-12",
 )
@@ -135,7 +135,7 @@ register_strategy_config(
         "javascript_fuzzing": True,
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         "with_context_line_file_origin_bug": True,
-        "trim_message": True,
+        "normalize_message": True,
         "with_exception_value_fallback": True,
     },
     enhancements_base="common:2019-03-23",
@@ -230,7 +230,7 @@ register_strategy_config(
     hidden=True,
     initial_context={
         "legacy_function_logic": False,
-        "trim_message": True,
+        "normalize_message": True,
         "with_exception_value_fallback": True,
     },
 )

@@ -129,7 +129,7 @@ def trim_message_for_grouping(string: str) -> str:
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    if context["trim_message"]:
+    if context["normalize_message"]:
         message_in = interface.message or interface.formatted or ""
         message_trimmed = trim_message_for_grouping(message_in)
         hint = "stripped common values" if message_in != message_trimmed else None
