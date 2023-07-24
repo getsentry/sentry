@@ -86,7 +86,7 @@ class SuperuserRequired(SentryAPIException):
 
 
 class DataSecrecyError(SentryAPIException):
-    status_code = status.HTTP_418_IM_A_TEAPOT
+    status_code = status.HTTP_401_UNAUTHORIZED
     code = "data-secrecy"
 
 
