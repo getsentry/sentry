@@ -47,7 +47,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -108,11 +108,6 @@ def boost_low_volume_transactions() -> None:
         "sentry.dynamic_sampling.tasks.boost_low_volume_transactions", MAX_TASK_SECONDS
     )
 
-    # create global timers for the internal iterators since they are created multiple times,
-    # and we are interested in the total time.
-    get_totals_timer = Timer()
-    get_small_transactions_timer = Timer()
-    get_big_transactions_timer = Timer()
     get_totals_name = "GetTransactionTotals"
     get_volumes_small = "GetTransactionVolumes(small)"
     get_volumes_big = "GetTransactionVolumes(big)"
@@ -125,7 +120,6 @@ def boost_low_volume_transactions() -> None:
                 context=context,
                 inner=FetchProjectTransactionTotals(orgs),
                 name=get_totals_name,
-                timer=get_totals_timer,
             )
             small_transactions_it = TimedIterator(
                 context=context,
@@ -135,7 +129,6 @@ def boost_low_volume_transactions() -> None:
                     max_transactions=num_small_trans,
                 ),
                 name=get_volumes_small,
-                timer=get_small_transactions_timer,
             )
             big_transactions_it = TimedIterator(
                 context=context,
@@ -145,7 +138,6 @@ def boost_low_volume_transactions() -> None:
                     max_transactions=num_big_trans,
                 ),
                 name=get_volumes_big,
-                timer=get_big_transactions_timer,
             )
 
             for project_transactions in transactions_zip(

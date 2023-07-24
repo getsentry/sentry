@@ -32,7 +32,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
 
 # Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
@@ -62,7 +62,6 @@ def orgs_to_check(org_volume: OrganizationDataVolume):
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
     context = TaskContext("sentry.dynamic_sampling.tasks.recalibrate_orgs", MAX_TASK_SECONDS)
-    recalibrate_org_timer = Timer()
 
     try:
         for org_volumes in TimedIterator(
@@ -80,7 +79,7 @@ def recalibrate_orgs() -> None:
                         {"org_id": org_volume.org_id},
                         orgs_to_check(org_volume),
                     )
-                    recalibrate_org(org_volume, context, recalibrate_org_timer)
+                    recalibrate_org(org_volume, context)
                 except RecalibrationError as e:
                     set_extra("context-data", context.to_dict())
                     log_recalibrate_org_error(org_volume.org_id, str(e))
@@ -94,10 +93,12 @@ def recalibrate_orgs() -> None:
         log_task_execution(context)
 
 
-def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, timer: Timer) -> None:
+def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) -> None:
 
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
+
+    timer = context.get_timer("recalibrate_org")
 
     with timer:
         # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
@@ -168,5 +169,4 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext, ti
     state = context.get_function_state(name)
     state.num_orgs += 1
     state.num_iterations += 1
-    state.execution_time = timer.current()
     context.set_function_state(name, state)

@@ -22,7 +22,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 )
 from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.tasks.base import instrumented_task
 
 
@@ -37,7 +37,6 @@ from sentry.tasks.base import instrumented_task
 @dynamic_sampling_task
 def sliding_window_org() -> None:
     context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window_org", MAX_TASK_SECONDS)
-    adjust_base_sample_rate_of_org_timer = Timer()
 
     window_size = get_sliding_window_size()
 
@@ -60,7 +59,6 @@ def sliding_window_org() -> None:
                         total_root_count=org_volume.total,
                         window_size=window_size,
                         context=context,
-                        timer=adjust_base_sample_rate_of_org_timer,
                     )
 
             # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
@@ -77,7 +75,7 @@ def sliding_window_org() -> None:
 
 
 def adjust_base_sample_rate_of_org(
-    org_id: int, total_root_count: int, window_size: int, context: TaskContext, timer: Timer
+    org_id: int, total_root_count: int, window_size: int, context: TaskContext
 ) -> None:
     """
     Adjusts the base sample rate per org by considering its volume and how it fits w.r.t. to the sampling tiers.
@@ -85,6 +83,8 @@ def adjust_base_sample_rate_of_org(
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
 
+    name = adjust_base_sample_rate_of_org.__name__
+    timer = context.get_timer(name)
     with timer:
         sample_rate = compute_guarded_sliding_window_sample_rate(
             org_id, None, total_root_count, window_size
@@ -101,9 +101,7 @@ def adjust_base_sample_rate_of_org(
             pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
             pipeline.execute()
 
-    name = adjust_base_sample_rate_of_org.__name__
     state = context.get_function_state(name)
     state.num_orgs += 1
     state.num_iterations += 1
-    state.execution_time = timer.current()
     context.set_function_state(name, state)

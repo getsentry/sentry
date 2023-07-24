@@ -1,6 +1,3 @@
-import time
-from typing import Optional
-
 from sentry.utils import metrics
 
 
@@ -19,49 +16,3 @@ def dynamic_sampling_task(func):
             return func(*args, **kwargs)
 
     return wrapped_func
-
-
-class Timer:
-    """
-    Simple timer class for investigating timeout issues with dynamic sampling tasks
-
-    """
-
-    def __init__(self):
-        self.elapsed: float = 0
-        self.started: Optional[float] = None
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-        return False
-
-    def start(self) -> float:
-        if not self.started:
-            self.started = time.monotonic()
-        return self.current()
-
-    def stop(self) -> float:
-        if self.started:
-            self.elapsed += time.monotonic() - self.started
-        self.started = None
-        return self.current()
-
-    def current(self) -> float:
-        if self.started:
-            return self.elapsed + time.monotonic() - self.started
-        return self.elapsed
-
-    def reset(self) -> float:
-        self.elapsed = 0
-        self.started = None
-        return 0
-
-    def __str__(self) -> str:
-        return str(self.current())
-
-    def __repr__(self) -> str:
-        return f"{self.current()}s"
