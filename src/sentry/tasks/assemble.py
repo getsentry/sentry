@@ -715,7 +715,9 @@ def prepare_post_assembler(
 ) -> PostAssembler:
     if upload_as_artifact_bundle:
         if not project_ids:
-            raise AssembleArtifactsError("uploading an artifact bundle without a project is prohibited")
+            raise AssembleArtifactsError(
+                "uploading an artifact bundle without a project is prohibited"
+            )
         return ArtifactBundlePostAssembler(
             assemble_result=assemble_result,
             organization=organization,
@@ -725,7 +727,9 @@ def prepare_post_assembler(
         )
     else:
         if not release:
-            raise AssembleArtifactsError("uploading a release bundle without a release is prohibited")
+            raise AssembleArtifactsError(
+                "uploading a release bundle without a release is prohibited"
+            )
         return ReleaseBundlePostAssembler(
             assemble_result=assemble_result, organization=organization, version=release
         )
