@@ -61,6 +61,7 @@ export type IssueEventParameters = {
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.sourcemap_wizard_copy': {};
   'issue_details.sourcemap_wizard_dismiss': {};
+  'issue_details.sourcemap_wizard_learn_more': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -286,6 +287,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.high.end.android.device': 'Event from high end Android device',
   'issue_details.sourcemap_wizard_dismiss': 'Issue Details: Sourcemap Wizard Dismiss',
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
+  'issue_details.sourcemap_wizard_learn_more':
+    'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.open_replay_details_clicked':
     'Issue Details: Open Replay Details Clicked',
 };

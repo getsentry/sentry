@@ -68,6 +68,11 @@ export default function SourceMapsWizard() {
           {
             link: (
               <ExternalLink
+                onClick={() => {
+                  trackAnalytics('issue_details.sourcemap_wizard_learn_more', {
+                    organization: organization.id,
+                  });
+                }}
                 openInNewTab
                 href="https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps"
               />
