@@ -67,7 +67,7 @@ def byte_code_type_to_java_type(byte_code_type: str) -> str:
 
 # map_obfucated_signature will parse then deobfuscated a signature and
 # format it appropriately
-def map_obfuscated_signature(mapper, signature: str) -> str:
+def deobfuscate_signature(mapper, signature: str) -> str:
     if not signature:
         return ""
 
