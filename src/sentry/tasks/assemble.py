@@ -634,8 +634,9 @@ class ArtifactBundlePostAssembler(PostAssembler):
             # We store a reference to the previous file to which the bundle was pointing to.
             existing_file = existing_artifact_bundle.file
 
-            if existing_file.checksum != self.assemble_result.bundle.checksum:
-                logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
+            # FIXME: We might want to get this error, but it currently blocks deploys
+            # if existing_file.checksum != self.assemble_result.bundle.checksum:
+            #    logger.error("Detected duplicated `ArtifactBundle` with differing checksums")
 
             # Only if the file objects are different we want to update the database, otherwise we will end up deleting
             # a newly bound file.
