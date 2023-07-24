@@ -26,7 +26,7 @@ def _get_all_keys(config):
                 yield key
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
