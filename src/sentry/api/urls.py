@@ -105,6 +105,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.actionable_items import ActionableItemsEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
@@ -1940,6 +1941,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/actionable-items/$",
+        ActionableItemsEndpoint.as_view(),
+        name="sentry-api-0-event-actionable-items",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
