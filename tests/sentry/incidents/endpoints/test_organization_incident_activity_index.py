@@ -67,9 +67,11 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
             resp = self.get_success_response(
                 incident.organization.slug, incident.identifier, desc=0
             )
+
         assert resp.data == expected
 
         expected.reverse()
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(incident.organization.slug, incident.identifier)
+
         assert resp.data == expected

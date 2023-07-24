@@ -46,13 +46,7 @@ export const steps = ({
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct('Sentry should be initialized as early in your app as possible.', {
-          code: <code />,
-        })}
-      </p>
-    ),
+    description: t('Sentry should be initialized as early in your app as possible.'),
     configurations: [
       {
         language: 'javascript',

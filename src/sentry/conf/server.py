@@ -326,7 +326,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
-    "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
@@ -1471,8 +1470,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enable experimental performance improvements.
-    "organizations:enterprise-perf": False,
     # Enables inviting new members based on GitHub commit activity.
     "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1669,8 +1666,6 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable indexing of artifact bundles for sourcemaps.
-    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

@@ -40,7 +40,8 @@ export const retentionPrioritiesLabels = {
 };
 
 export const allowedDurationValues: number[] = [
-  50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+  50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500,
+  3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8500, 9000, 9500,
   10000,
 ]; // In milliseconds
 
@@ -49,8 +50,9 @@ export const allowedPercentageValues: number[] = [
 ];
 
 export const allowedSizeValues: number[] = [
-  50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
-  2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
+  50000, 100000, 200000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000,
+  1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000,
+  10000000,
 ]; // 50kb to 10MB in bytes
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
@@ -66,11 +68,13 @@ enum DetectorConfigAdmin {
   RENDER_BLOCK_ASSET_ENABLED = 'large_render_blocking_asset_detection_enabled',
   UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
   LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
+  N_PLUS_ONE_API_CALLS_ENABLED = 'n_plus_one_api_calls_detection_enabled',
 }
 
 export enum DetectorConfigCustomer {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
   N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+  N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
   LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
   DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
@@ -314,6 +318,19 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           }),
       },
       {
+        name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
+        type: 'boolean',
+        label: t('N+1 API Calls Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              n_plus_one_api_calls_detection_enabled: value,
+            },
+          }),
+      },
+      {
         name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
         type: 'boolean',
         label: t('Large Render Blocking Asset Detection Enabled'),
@@ -459,13 +476,37 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             help: t(
               'Setting the value to 1s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
             ),
-            tickValues: [0, allowedDurationValues.slice(1).length - 1],
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
             showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(1),
+            allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
             ),
             formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('N+1 API Calls'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+            type: 'range',
+            label: t('Minimum Total Duration'),
+            defaultValue: 300, // ms
+            help: t(
+              'Setting the value to 300ms, means that an eligible event will be stored as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
+            ),
+            allowedValues: allowedDurationValues.slice(5),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
+            ),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            formatLabel: formatDuration,
+            flexibleControlStateSize: true,
             disabledReason,
           },
         ],
@@ -571,9 +612,9 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             help: t(
               'Setting the value to 100ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
             ),
-            tickValues: [0, allowedDurationValues.slice(0, 11).length - 1],
+            tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
             showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(0, 11),
+            allowedValues: allowedDurationValues.slice(0, 23),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
             ),
@@ -611,9 +652,9 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             help: t(
               'Setting the value to 500ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
             ),
-            tickValues: [0, allowedDurationValues.slice(1).length - 1],
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
             showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(1),
+            allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
