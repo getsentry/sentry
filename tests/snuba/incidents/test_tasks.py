@@ -53,7 +53,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        kafka_cluster = kafka_config.get_topic_definition(self.topic)["cluster"]
         create_topics(kafka_cluster, [self.topic])
 
     def tearDown(self):
@@ -99,7 +99,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @cached_property
     def producer(self):
-        cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        cluster_name = kafka_config.get_topic_definition(self.topic)["cluster"]
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
@@ -161,7 +161,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        message = handler.build_message(
+        message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,
                 handler.incident,
@@ -174,9 +174,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
 
         out = mail.outbox[0]
+        assert isinstance(out, mail.EmailMultiAlternatives)
         assert out.to == [self.user.email]
-        assert out.subject == message.subject
-        built_message = message.build(self.user.email)
+        assert out.subject == message_builder.subject
+        built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
     def test_arroyo(self):

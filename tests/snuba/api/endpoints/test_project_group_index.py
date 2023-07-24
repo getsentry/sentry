@@ -970,6 +970,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         now = timezone.now()
 
         assert snooze.count is None
+        assert snooze.until is not None
         assert snooze.until > now + timedelta(minutes=29)
         assert snooze.until < now + timedelta(minutes=31)
         assert snooze.user_count is None
@@ -1013,7 +1014,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
-        event = {}
         for i in range(10):
             event = self.store_event(
                 data={

@@ -6064,6 +6064,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         query = {
             "field": ["title", "release", "environment", "user.display", "timestamp"],
@@ -6137,6 +6138,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             before_now(hours=1).replace(tzinfo=timezone.utc),
             user=user_data,
         )
+        assert group_info is not None
 
         features = {
             "organizations:discover-basic": True,

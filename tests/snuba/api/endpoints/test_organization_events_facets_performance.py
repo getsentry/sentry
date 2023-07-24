@@ -9,6 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
+    url: str
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",

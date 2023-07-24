@@ -117,7 +117,7 @@ class EmailActionHandler(ActionHandler):
             )
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
 
-    def build_message(self, context, status, user_id):
+    def build_message(self, context, status, user_id) -> MessageBuilder:
         display = self.status_display[status]
         return MessageBuilder(
             subject="[{}] {} - {}".format(

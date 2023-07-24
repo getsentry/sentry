@@ -48,7 +48,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
                         request, organization, offset=request_offset, limit=request_limit
                     )
 
-                return release_health.run_sessions_query(
+                return release_health.backend.run_sessions_query(
                     organization.id, query, span_op="sessions.endpoint"
                 )
 
@@ -73,11 +73,11 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
 
         # HACK to prevent front-end crash when release health is sessions-based:
         query_params = MultiValueDict(request.GET)
-        if not release_health.is_metrics_based() and request.GET.get("interval") == "10s":
+        if not release_health.backend.is_metrics_based() and request.GET.get("interval") == "10s":
             query_params["interval"] = "1m"
 
         start, _ = get_date_range_from_params(query_params)
-        query_config = release_health.sessions_query_config(organization, start)
+        query_config = release_health.backend.sessions_query_config(organization, start)
 
         return QueryDefinition(
             query_params,

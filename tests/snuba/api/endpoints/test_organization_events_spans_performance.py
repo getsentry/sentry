@@ -18,6 +18,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
+    URL: str
     FEATURES = [
         "organizations:global-views",
     ]

@@ -1,3 +1,25 @@
+from __future__ import annotations
+
+import re
+from abc import ABC
+from datetime import datetime, timedelta, timezone
+from typing import (
+    Collection,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    Union,
+    overload,
+)
+
+from sentry.snuba.dataset import EntityKey
+
 __all__ = (
     "MAX_POINTS",
     "GRANULARITY",
@@ -40,24 +62,6 @@ __all__ = (
     "NON_RESOLVABLE_TAG_VALUES",
 )
 
-import re
-from abc import ABC
-from datetime import datetime, timedelta, timezone
-from typing import (
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-)
-
-from sentry.snuba.dataset import EntityKey
 
 #: Max number of data points per time series:
 MAX_POINTS = 10000
@@ -81,6 +85,7 @@ MetricOperationType = Literal[
     "p90",
     "p95",
     "p99",
+    "percentage",
     "histogram",
     "rate",
     "count_web_vitals",
@@ -116,7 +121,15 @@ MetricUnit = Literal[
     "exabyte",
 ]
 #: The type of metric, which determines the snuba entity to query
-MetricType = Literal["counter", "set", "distribution", "numeric"]
+MetricType = Literal[
+    "counter",
+    "set",
+    "distribution",
+    "numeric",
+    "generic_counter",
+    "generic_set",
+    "generic_distribution",
+]
 
 MetricEntity = Literal[
     "metrics_counters",
@@ -350,9 +363,31 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
+@overload
+def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]:
+    ...
+
+
+@overload
+def to_intervals(
+    start: datetime, end: datetime, interval_seconds: int
+) -> tuple[datetime, datetime, int]:
+    ...
+
+
 def to_intervals(
     start: Optional[datetime], end: Optional[datetime], interval_seconds: int
-) -> Tuple[Optional[datetime], Optional[datetime], int]:
+) -> tuple[datetime, datetime, int] | tuple[None, None, int]:
     """
     Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
     the number of total intervals in [start:end]

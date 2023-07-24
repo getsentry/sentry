@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest import mock
 
 import pytz
 from django.utils import timezone
@@ -142,8 +142,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.models.Group.is_over_resolve_age")
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.models.Group.is_over_resolve_age")
     def test_auto_resolved(self, mock_is_over_resolve_age, mock_record):
         mock_is_over_resolve_age.return_value = True
 
@@ -438,7 +438,16 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
             last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
-            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+            start = GroupSerializerSnuba._get_start_from_seen_stats(
+                {
+                    mock.sentinel.group: {
+                        "last_seen": last_seen,
+                        "first_seen": None,
+                        "times_seen": 0,
+                        "user_count": 0,
+                    }
+                }
+            )
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
@@ -556,6 +565,7 @@ class ProfilingGroupSerializerSnubaTest(
             environment.name,
             timestamp + timedelta(minutes=5),
         )
+        assert group_info is not None
 
         first_group = group_info.group
 

@@ -172,8 +172,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
 
 class SeenStats(TypedDict):
     times_seen: int
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: datetime | None
+    last_seen: datetime | None
     user_count: int
 
 

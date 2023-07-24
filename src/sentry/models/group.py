@@ -410,8 +410,8 @@ class GroupManager(BaseManager):
     def update_group_status(
         self,
         groups: Sequence[Group],
-        status: GroupStatus,
-        substatus: GroupSubStatus | None,
+        status: int,
+        substatus: int | None,
         activity_type: ActivityType,
         activity_data: Optional[Mapping[str, Any]] = None,
         send_activity_notification: bool = True,
@@ -531,7 +531,7 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
