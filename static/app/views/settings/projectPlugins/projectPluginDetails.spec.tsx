@@ -53,7 +53,6 @@ describe('ProjectPluginDetails', function () {
           projectId: project.slug,
           pluginId: 'amazon-sqs',
         }}
-        plugins={{plugins: []}}
         location={router.location}
         route={{}}
         routeParams={router.params}
@@ -99,7 +98,6 @@ describe('ProjectPluginDetails', function () {
       <ProjectPluginDetailsContainer
         organization={organization}
         project={project}
-        plugins={{plugins}}
         params={{
           projectId: project.slug,
           pluginId: 'amazon-sqs',

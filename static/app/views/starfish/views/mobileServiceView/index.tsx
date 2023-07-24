@@ -5,37 +5,40 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withApi from 'sentry/utils/withApi';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleases} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
+import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
 import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
-const EventsRequest = withApi(_EventsRequest);
+const READABLE_YAXIS_LABELS = {
+  'avg(measurements.app_start_cold)': 'avg(app_start_cold)',
+  'avg(measurements.app_start_warm)': 'avg(app_start_warm)',
+  'avg(measurements.time_to_initial_display)': 'avg(time_to_initial_display)',
+  'avg(measurements.time_to_full_display)': 'avg(time_to_full_display)',
+  'avg(measurements.frames_slow_rate)': 'avg(frames_slow_rate)',
+  'avg(measurements.frames_frozen_rate)': 'avg(frames_frozen_rate)',
+};
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function MobileStarfishView(props: BaseStarfishViewProps) {
-  const {eventView, organization} = props;
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {data: releases, isLoading: isReleasesLoading} = useReleases();
-
-  useSynchronizeCharts();
-  if (isReleasesLoading) {
-    return <LoadingContainer />;
-  }
 
   const release1 =
     decodeScalar(location.query.release1) ?? releases?.[0]?.version ?? undefined;
@@ -43,241 +46,296 @@ export function MobileStarfishView(props: BaseStarfishViewProps) {
   const release2 =
     decodeScalar(location.query.release2) ?? releases?.[0]?.version ?? undefined;
 
-  const releaseFilter: string[] = [];
-  if (defined(release1) && release1 !== '') {
-    releaseFilter.push(release1);
-  }
+  const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
 
-  if (defined(release2) && release2 !== '' && release1 !== release2) {
-    releaseFilter.push(release2);
-  }
-
-  function renderCharts() {
-    const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
-
-    if (releaseFilter.length > 0) {
-      query.addStringFilter(`release:[${releaseFilter.join(',')}]`);
-    }
-
-    return (
-      <EventsRequest
-        query={query.formatString()}
-        includePrevious={false}
-        partial
-        interval={getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        )}
-        includeTransformedData
-        limit={1}
-        environment={eventView.environment}
-        project={eventView.project}
-        period={eventView.statsPeriod}
-        referrer="api.starfish-mobile-service.homepage-charts"
-        start={eventView.start}
-        end={eventView.end}
-        organization={organization}
-        yAxis={[
+  useSynchronizeCharts();
+  const {
+    isLoading: seriesIsLoading,
+    data: firstReleaseSeries,
+    isError,
+  } = useEventsStatsQuery({
+    eventView: EventView.fromNewQueryWithPageFilters(
+      {
+        name: '',
+        fields: [],
+        yAxis: [
           'avg(measurements.app_start_cold)',
           'avg(measurements.app_start_warm)',
           'avg(measurements.time_to_initial_display)',
           'avg(measurements.time_to_full_display)',
           'avg(measurements.frames_slow_rate)',
           'avg(measurements.frames_frozen_rate)',
-        ]}
-        dataset={DiscoverDatasets.METRICS}
-      >
-        {({loading, results}) => {
-          if (!results || !results[0] || !results[1]) {
-            return null;
-          }
+        ],
+        query:
+          defined(release1) && release1 !== ''
+            ? query.copy().addStringFilter(`release:${release1}`).formatString()
+            : query.formatString(),
+        dataset: DiscoverDatasets.METRICS,
+        version: 2,
+        interval: getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        ),
+      },
+      pageFilter.selection
+    ),
+    enabled: !isReleasesLoading,
+    referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
+    initialData: {},
+  });
 
-          const coldStart: Series = {
-            seriesName: 'avg(app_start_cold)',
-            data: results[0].data,
-          };
+  const {data: secondReleaseSeries} = useEventsStatsQuery({
+    eventView: EventView.fromNewQueryWithPageFilters(
+      {
+        name: '',
+        fields: [],
+        yAxis: [
+          'avg(measurements.app_start_cold)',
+          'avg(measurements.app_start_warm)',
+          'avg(measurements.time_to_initial_display)',
+          'avg(measurements.time_to_full_display)',
+          'avg(measurements.frames_slow_rate)',
+          'avg(measurements.frames_frozen_rate)',
+        ],
+        query:
+          defined(release2) && release2 !== ''
+            ? query.copy().addStringFilter(`release:${release2}`).formatString()
+            : query.formatString(),
+        dataset: DiscoverDatasets.METRICS,
+        version: 2,
+        interval: getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        ),
+      },
+      pageFilter.selection
+    ),
+    enabled: !isReleasesLoading && release1 !== release2,
+    referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
+    initialData: {},
+  });
 
-          const warmStart: Series = {
-            seriesName: 'avg(app_start_warm)',
-            data: results[1].data,
-          };
+  if (isReleasesLoading) {
+    return <LoadingContainer />;
+  }
 
-          const initialDisplay: Series = {
-            seriesName: 'avg(time_to_initial_display)',
-            data: results[2].data,
-          };
+  function renderCharts() {
+    const transformedSeries: {[yAxisName: string]: Series[]} = {
+      'avg(measurements.app_start_cold)': [],
+      'avg(measurements.app_start_warm)': [],
+      'avg(measurements.time_to_initial_display)': [],
+      'avg(measurements.time_to_full_display)': [],
+      'avg(measurements.frames_slow_rate)': [],
+      'avg(measurements.frames_frozen_rate)': [],
+    };
 
-          const fullDisplay: Series = {
-            seriesName: 'avg(time_to_full_display)',
-            data: results[3].data,
-          };
+    if (defined(firstReleaseSeries)) {
+      Object.keys(firstReleaseSeries).forEach(yAxis => {
+        const label = `${release1}`;
+        if (yAxis in transformedSeries) {
+          transformedSeries[yAxis].push({
+            seriesName: label,
+            color: CHART_PALETTE[1][0],
+            data:
+              firstReleaseSeries[yAxis]?.data.map(datum => {
+                return {
+                  name: datum[0] * 1000,
+                  value: datum[1][0].count,
+                } as SeriesDataUnit;
+              }) ?? [],
+          });
+        }
+      });
+    }
 
-          const slowFrames: Series = {
-            seriesName: 'avg(slow_frames_rate)',
-            data: results[4].data,
-          };
+    if (defined(secondReleaseSeries)) {
+      Object.keys(secondReleaseSeries).forEach(yAxis => {
+        const label = `${release2}`;
+        if (yAxis in transformedSeries) {
+          transformedSeries[yAxis].push({
+            seriesName: label,
+            color: CHART_PALETTE[1][1],
+            data:
+              secondReleaseSeries[yAxis]?.data.map(datum => {
+                return {
+                  name: datum[0] * 1000,
+                  value: datum[1][0].count,
+                } as SeriesDataUnit;
+              }) ?? [],
+          });
+        }
+      });
+    }
 
-          const frozenFrames: Series = {
-            seriesName: 'avg(frozen_frames_rate)',
-            data: results[5].data,
-          };
+    return (
+      <Fragment>
+        <ChartsContainerItem>
+          <MiniChartPanel title={t('App Initialization')}>
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.app_start_cold)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.app_start_cold)']}
+              loading={seriesIsLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              showLegend
+              definedAxisTicks={2}
+              isLineChart
+              aggregateOutputFormat="duration"
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              }}
+              errored={isError}
+            />
 
-          return (
-            <Fragment>
-              <ChartsContainerItem>
-                <MiniChartPanel title={t('App Initialization')}>
-                  <Chart
-                    height={125}
-                    data={[coldStart]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    isLineChart
-                    chartColors={[P95_COLOR]}
-                    aggregateOutputFormat="duration"
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                    }}
-                  />
+            <Spacer />
 
-                  <Spacer />
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.app_start_warm)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.app_start_warm)']}
+              loading={seriesIsLoading}
+              showLegend
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              aggregateOutputFormat="duration"
+              definedAxisTicks={2}
+              stacked
+              isLineChart
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              }}
+              errored={isError}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <MiniChartPanel title={t('Perceived Screen Load')}>
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.time_to_initial_display)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.time_to_initial_display)']}
+              loading={seriesIsLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              showLegend
+              definedAxisTicks={2}
+              isLineChart
+              aggregateOutputFormat="duration"
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              }}
+              errored={isError}
+            />
 
-                  <Chart
-                    height={125}
-                    data={[warmStart]}
-                    loading={loading}
-                    showLegend
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    aggregateOutputFormat="duration"
-                    definedAxisTicks={2}
-                    stacked
-                    isLineChart
-                    chartColors={[THROUGHPUT_COLOR]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                    }}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-              <ChartsContainerItem>
-                <MiniChartPanel title={t('Perceived Page Load')}>
-                  <Chart
-                    height={125}
-                    data={[initialDisplay]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    isLineChart
-                    chartColors={[P95_COLOR]}
-                    aggregateOutputFormat="duration"
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                    }}
-                  />
+            <Spacer />
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.time_to_full_display)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.time_to_full_display)']}
+              loading={seriesIsLoading}
+              showLegend
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              aggregateOutputFormat="duration"
+              definedAxisTicks={2}
+              stacked
+              isLineChart
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              }}
+              errored={isError}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+        <ChartsContainerItem>
+          <MiniChartPanel title={t('Responsiveness')}>
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.frames_slow_rate)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.frames_slow_rate)']}
+              loading={seriesIsLoading}
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              showLegend
+              definedAxisTicks={2}
+              isLineChart
+              aggregateOutputFormat="percentage"
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+              }}
+              errored={isError}
+            />
 
-                  <Spacer />
-
-                  <Chart
-                    height={125}
-                    data={[fullDisplay]}
-                    loading={loading}
-                    showLegend
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    aggregateOutputFormat="duration"
-                    definedAxisTicks={2}
-                    stacked
-                    isLineChart
-                    chartColors={[THROUGHPUT_COLOR]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                    }}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-              <ChartsContainerItem>
-                <MiniChartPanel title={t('Responsiveness')}>
-                  <Chart
-                    height={125}
-                    data={[slowFrames]}
-                    loading={loading}
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    showLegend
-                    definedAxisTicks={2}
-                    isLineChart
-                    chartColors={[P95_COLOR]}
-                    aggregateOutputFormat="percentage"
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
-                    }}
-                  />
-
-                  <Spacer />
-
-                  <Chart
-                    height={125}
-                    data={[frozenFrames]}
-                    loading={loading}
-                    showLegend
-                    utc={false}
-                    grid={{
-                      left: '0',
-                      right: '0',
-                      top: '16px',
-                      bottom: '0',
-                    }}
-                    aggregateOutputFormat="percentage"
-                    definedAxisTicks={2}
-                    stacked
-                    isLineChart
-                    chartColors={[THROUGHPUT_COLOR]}
-                    tooltipFormatterOptions={{
-                      valueFormatter: value =>
-                        tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
-                    }}
-                  />
-                </MiniChartPanel>
-              </ChartsContainerItem>
-            </Fragment>
-          );
-        }}
-      </EventsRequest>
+            <Spacer />
+            <SubTitle>
+              {READABLE_YAXIS_LABELS['avg(measurements.frames_frozen_rate)']}
+            </SubTitle>
+            <Chart
+              height={125}
+              data={transformedSeries['avg(measurements.frames_frozen_rate)']}
+              loading={seriesIsLoading}
+              showLegend
+              utc={false}
+              grid={{
+                left: '0',
+                right: '0',
+                top: '16px',
+                bottom: '0',
+              }}
+              aggregateOutputFormat="percentage"
+              definedAxisTicks={2}
+              stacked
+              isLineChart
+              tooltipFormatterOptions={{
+                valueFormatter: value =>
+                  tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+              }}
+              errored={isError}
+            />
+          </MiniChartPanel>
+        </ChartsContainerItem>
+      </Fragment>
     );
   }
 
@@ -308,4 +366,10 @@ const ChartsContainerItem = styled('div')`
 
 export const Spacer = styled('div')`
   margin-top: ${space(3)};
+`;
+
+const SubTitle = styled('div')`
+  margin-bottom: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
 `;

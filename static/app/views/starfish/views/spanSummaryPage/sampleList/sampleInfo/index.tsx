@@ -5,10 +5,10 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -24,6 +24,7 @@ function SampleInfo(props: Props) {
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [
+      SPAN_OP,
       'sps()',
       `sum(${SPAN_SELF_TIME})`,
       `p95(${SPAN_SELF_TIME})`,
@@ -42,7 +43,7 @@ function SampleInfo(props: Props) {
 
   return (
     <BlockContainer>
-      <Block title={DataTitles.throughput}>
+      <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])}>
         <ThroughputCell
           containerProps={{style}}
           throughputPerSecond={spanMetrics?.['sps()']}

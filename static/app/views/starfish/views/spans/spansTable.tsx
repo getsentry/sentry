@@ -24,7 +24,7 @@ import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   'http_error_count()': number;
@@ -238,7 +238,7 @@ function getColumns(
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
+    ...(moduleName !== ModuleName.ALL && moduleName !== ModuleName.DB
       ? [
           {
             key: SPAN_DOMAIN,
@@ -249,7 +249,7 @@ function getColumns(
       : []),
     {
       key: 'sps()',
-      name: 'Throughput',
+      name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },
     {
