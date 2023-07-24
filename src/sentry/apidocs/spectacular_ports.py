@@ -28,9 +28,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-# type: ignore
-
 import collections
 import inspect
 import typing
@@ -48,7 +45,7 @@ from drf_spectacular.plumbing import (
     is_basic_type,
 )
 from drf_spectacular.types import OpenApiTypes
-from typing_extensions import _TypedDictMeta
+from typing_extensions import _TypedDictMeta  # type: ignore[attr-defined]
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
@@ -103,7 +100,7 @@ def resolve_type_hint(hint) -> Any:
         if get_type_hints(hint):
             properties = {k: resolve_type_hint(v) for k, v in get_type_hints(hint).items()}
         else:
-            properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}
+            properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
     elif origin is list or hint is list:
         return build_array_type(
@@ -158,7 +155,7 @@ def resolve_type_hint(hint) -> Any:
         return schema
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
-    elif isinstance(hint, typing._TypedDictMeta):
+    elif isinstance(hint, typing._TypedDictMeta):  # type: ignore[attr-defined]
         raise UnableToProceedError("Wrong TypedDict class, please use typing_extensions.TypedDict")
     else:
         raise UnableToProceedError(hint)

@@ -49,7 +49,7 @@ djangorestframework==3.12.4
 djangorestframework-stubs==3.14.0
 docker==3.7.0
 docker-pycreds==0.4.0
-drf-spectacular==0.22.1
+drf-spectacular==0.26.3
 email-reply-parser==0.5.12
 exceptiongroup==1.0.0rc9
 execnet==1.9.0

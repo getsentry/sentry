@@ -1002,7 +1002,6 @@ module = [
     "tests.sentry.api.test_event_search",
     "tests.sentry.api.test_invite_helper",
     "tests.sentry.api.test_issue_search",
-    "tests.sentry.apidocs.test_extensions",
     "tests.sentry.auth.test_access",
     "tests.sentry.digests.test_notifications",
     "tests.sentry.eventstore.test_base",
