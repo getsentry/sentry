@@ -506,6 +506,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
+        assert group_info is not None
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,

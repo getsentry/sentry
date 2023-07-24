@@ -87,6 +87,11 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
         query.testid = attribute.value
     elif attrib == "title":
         query.title = attribute.value
+    else:
+        raise ParseError(
+            "Invalid attribute specified. Only alt, aria-label, role, data-testid, data-test-id, "
+            "and title are supported."
+        )
 
 
 def visit_class(query: QueryType, class_: Class) -> None:

@@ -1342,7 +1342,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
 
 
 class BaseSemverTest:
-    KEY = None
+    KEY: str
 
     def setUp(self):
         super().setUp()
