@@ -6,16 +6,9 @@ from django.utils import timezone
 
 from sentry.integrations.slack.utils import get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    UserEmail,
-)
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.models import Identity, IdentityProvider, IdentityStatus, UserEmail
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -26,8 +19,6 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     queue="integrations",
 )
 def link_slack_user_identities(
-    integration: Integration | RpcIntegration | None = None,  # deprecated
-    organization: Organization | RpcOrganization | None = None,  # deprecated
     integration_id: int | None = None,
     organization_id: int | None = None,
 ) -> None:
@@ -37,9 +28,7 @@ def link_slack_user_identities(
         organization = organization_service.get_organization_by_id(id=organization_id).organization
     assert organization and integration  # type narrowing
 
-    # TODO(hybridcloud) This task is called from slack.integration.SlackIntegration,.post_install()
-    # which should happen in control silo, as it is part of integration install.
-    emails_by_user = UserEmail.objects.get_emails_by_user(organization)
+    emails_by_user = UserEmail.objects.get_emails_by_user(organization=organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
 
     idp = IdentityProvider.objects.get(
