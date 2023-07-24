@@ -16,12 +16,7 @@ import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {
-  getBreadcrumbType,
-  getColor,
-  getDescription,
-  getTitle,
-} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
@@ -66,11 +61,8 @@ type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 function getCrumbOrFrameData(crumb: Crumb | ReplayFrame) {
   if ('offsetMs' in crumb) {
     return {
-      color: getColor(crumb),
-      description: getDescription(crumb),
+      ...getFrameDetails(crumb),
       projectSlug: isErrorFrame(crumb) ? crumb.data.projectSlug : null,
-      title: getTitle(crumb),
-      type: getBreadcrumbType(crumb),
       timestampMs: crumb.timestampMs,
     };
   }

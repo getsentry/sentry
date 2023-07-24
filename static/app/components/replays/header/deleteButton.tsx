@@ -17,17 +17,17 @@ interface DeleteButtonProps {
 function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
   const api = useApi();
   const navigate = useNavigate();
-  const orgSlug = useOrganization().slug;
+  const organization = useOrganization();
 
   const handleDelete = async () => {
     try {
       await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`,
+        `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/`,
         {
           method: 'DELETE',
         }
       );
-      navigate(`/organizations/${orgSlug}/replays/`, {replace: true});
+      navigate(`/organizations/${organization.slug}/replays/`, {replace: true});
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);

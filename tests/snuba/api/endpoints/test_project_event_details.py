@@ -156,6 +156,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
                 "message_timestamp": three_min_ago,
             },
         )
+        assert cur_group_info is not None
         self.cur_group = cur_group_info.group
 
         next_event_id = "c" * 32
