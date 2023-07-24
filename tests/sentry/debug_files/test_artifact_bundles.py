@@ -9,7 +9,6 @@ from sentry.models import FileBlob
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleIndex
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
 
@@ -83,7 +82,6 @@ class ArtifactLookupTest(TestCase):
         redis_client = get_redis_cluster_for_artifact_bundles()
         redis_client.flushall()
 
-    @with_feature("organizations:sourcemaps-bundle-indexing")
     def test_indexing_artifacts(self):
         self.clear_cache()
 

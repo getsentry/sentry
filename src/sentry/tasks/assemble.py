@@ -13,7 +13,7 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
@@ -362,6 +362,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
                     self.assemble_result.bundle,
                     self.assemble_result.bundle_temp_file,
                 )
+                metrics.incr("sourcemaps.upload.release_bundle")
                 saved_as_archive = True
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
@@ -372,6 +373,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
                 "release_id": release.id,
                 "dist_id": dist.id if dist else dist,
             }
+            metrics.incr("sourcemaps.upload.release_file")
             self._store_single_files(meta, True)
 
     @sentry_sdk.tracing.trace
@@ -577,13 +579,13 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     artifact_bundle=artifact_bundle,
                 ).update(date_added=date_snapshot)
 
+        metrics.incr("sourcemaps.upload.artifact_bundle")
+
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
         # not support them, some files were not injected...).
-        if self.release and features.has(
-            "organizations:sourcemaps-bundle-indexing", self.organization, actor=None
-        ):
+        if self.release:
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
