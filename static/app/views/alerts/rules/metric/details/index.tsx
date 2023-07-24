@@ -26,7 +26,7 @@ import {
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
-import DetailsBody from './body';
+import MetricDetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
@@ -256,7 +256,7 @@ class MetricAlertDetails extends Component<Props, State> {
           project={project}
           onSnooze={this.onSnooze}
         />
-        <DetailsBody
+        <MetricDetailsBody
           {...this.props}
           rule={rule}
           project={project}

@@ -1,30 +1,29 @@
-import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
-import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
+import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
 
-import {AlertRuleStatus, Incident} from '../../../types';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import {
@@ -38,7 +37,7 @@ import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import Sidebar from './sidebar';
 
-type Props = {
+interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   api: Client;
   location: Location;
   organization: Organization;
@@ -47,30 +46,22 @@ type Props = {
   project?: Project;
   rule?: MetricRule;
   selectedIncident?: Incident | null;
-} & RouteComponentProps<{}, {}>;
+}
 
-export default class DetailsBody extends Component<Props> {
-  getTimeWindow(): React.ReactNode {
-    const {rule} = this.props;
-
-    if (!rule) {
-      return '';
-    }
-
-    const {timeWindow} = rule;
-
-    return tct('[window]', {
-      window: <Duration seconds={timeWindow * 60} />,
-    });
-  }
-
-  getInterval() {
-    const {
-      timePeriod: {start, end},
-      rule,
-    } = this.props;
-    const startDate = moment.utc(start);
-    const endDate = moment.utc(end);
+export default function MetricDetailsBody({
+  api,
+  project,
+  rule,
+  incidents,
+  organization,
+  timePeriod,
+  selectedIncident,
+  location,
+  router,
+}: MetricDetailsBodyProps) {
+  function getPeriodInterval() {
+    const startDate = moment.utc(timePeriod.start);
+    const endDate = moment.utc(timePeriod.end);
     const timeWindow = rule?.timeWindow;
     const startEndDifferenceMs = endDate.diff(startDate);
 
@@ -83,11 +74,10 @@ export default class DetailsBody extends Component<Props> {
       return `${timeWindow}m`;
     }
 
-    return getInterval({start, end}, 'high');
+    return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
   }
 
-  getFilter() {
-    const {rule} = this.props;
+  function getFilter() {
     const {dataset, query} = rule ?? {};
     if (!rule) {
       return null;
@@ -99,12 +89,12 @@ export default class DetailsBody extends Component<Props> {
     return [eventType, query].join(' ').split(' ');
   }
 
-  handleTimePeriodChange = (datetime: ChangeData) => {
+  const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
     if (start && end) {
-      return this.props.router.push({
-        ...this.props.location,
+      return router.push({
+        ...location,
         query: {
           start: moment(start).utc().format(),
           end: moment(end).utc().format(),
@@ -112,15 +102,15 @@ export default class DetailsBody extends Component<Props> {
       });
     }
 
-    return this.props.router.push({
-      ...this.props.location,
+    return router.push({
+      ...location,
       query: {
         period: relative,
       },
     });
   };
 
-  renderLoading() {
+  if (!rule || !project) {
     return (
       <Layout.Body>
         <Layout.Main>
@@ -138,127 +128,106 @@ export default class DetailsBody extends Component<Props> {
     );
   }
 
-  render() {
-    const {
-      api,
-      project,
-      rule,
-      incidents,
-      location,
-      organization,
-      timePeriod,
-      selectedIncident,
-    } = this.props;
+  const {query, dataset} = rule;
 
-    if (!rule || !project) {
-      return this.renderLoading();
-    }
+  const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+  const relativeOptions = {
+    ...SELECTOR_RELATIVE_PERIODS,
+    ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+  };
 
-    const {query, dataset} = rule;
+  const isSnoozed = rule.snooze;
+  const ruleActionCategory = getAlertRuleActionCategory(rule);
 
-    const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
-    const relativeOptions = {
-      ...SELECTOR_RELATIVE_PERIODS,
-      ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
-    };
-
-    const isSnoozed = rule.snooze;
-    const ruleActionCategory = getAlertRuleActionCategory(rule);
-
-    return (
-      <Fragment>
-        {selectedIncident &&
-          selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
-            <StyledLayoutBody>
-              <StyledAlert type="warning" showIcon>
-                {t(
-                  'Alert Rule settings have been updated since this alert was triggered.'
-                )}
-              </StyledAlert>
-            </StyledLayoutBody>
-          )}
-        <Layout.Body>
-          <Layout.Main>
-            {isSnoozed && (
-              <Alert showIcon>
-                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                  ? tct(
-                      "[creator] muted this alert so these notifications won't be sent in the future.",
-                      {creator: rule.snoozeCreatedBy}
-                    )
-                  : tct(
-                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                      {
-                        creator: rule.snoozeCreatedBy,
-                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                      }
-                    )}
-              </Alert>
-            )}
-            <StyledPageTimeRangeSelector
-              organization={organization}
-              relative={timePeriod.period ?? ''}
-              start={(timePeriod.custom && timePeriod.start) || null}
-              end={(timePeriod.custom && timePeriod.end) || null}
-              utc={null}
-              onUpdate={this.handleTimePeriodChange}
-              relativeOptions={relativeOptions}
-              showAbsolute={false}
-            />
-
-            <MetricChart
-              api={api}
-              rule={rule}
-              incidents={incidents}
-              timePeriod={timePeriod}
-              selectedIncident={selectedIncident}
-              organization={organization}
-              project={project}
-              interval={this.getInterval()}
-              query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
-              filter={this.getFilter()}
-              isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
-            />
-            <DetailWrapper>
-              <ActivityWrapper>
-                <MetricHistory incidents={incidents} />
-                {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(
-                  dataset
-                ) && (
-                  <RelatedIssues
-                    organization={organization}
-                    rule={rule}
-                    projects={[project]}
-                    timePeriod={timePeriod}
-                    query={
-                      dataset === Dataset.ERRORS
-                        ? queryWithTypeFilter
-                        : isCrashFreeAlert(dataset)
-                        ? `${query} error.unhandled:true`
-                        : undefined
+  return (
+    <Fragment>
+      {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+        <StyledLayoutBody>
+          <StyledAlert type="warning" showIcon>
+            {t('Alert Rule settings have been updated since this alert was triggered.')}
+          </StyledAlert>
+        </StyledLayoutBody>
+      )}
+      <Layout.Body>
+        <Layout.Main>
+          {isSnoozed && (
+            <Alert showIcon>
+              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                ? tct(
+                    "[creator] muted this alert so these notifications won't be sent in the future.",
+                    {creator: rule.snoozeCreatedBy}
+                  )
+                : tct(
+                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                    {
+                      creator: rule.snoozeCreatedBy,
+                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
                     }
-                  />
-                )}
-                {dataset === Dataset.TRANSACTIONS && (
-                  <RelatedTransactions
-                    organization={organization}
-                    location={location}
-                    rule={rule}
-                    projects={[project]}
-                    timePeriod={timePeriod}
-                    filter={extractEventTypeFilterFromRule(rule)}
-                  />
-                )}
-              </ActivityWrapper>
-            </DetailWrapper>
-          </Layout.Main>
-          <Layout.Side>
-            <Sidebar rule={rule} />
-          </Layout.Side>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
+                  )}
+            </Alert>
+          )}
+          <StyledPageTimeRangeSelector
+            organization={organization}
+            relative={timePeriod.period ?? ''}
+            start={(timePeriod.custom && timePeriod.start) || null}
+            end={(timePeriod.custom && timePeriod.end) || null}
+            utc={null}
+            onUpdate={handleTimePeriodChange}
+            relativeOptions={relativeOptions}
+            showAbsolute={false}
+            disallowArbitraryRelativeRanges
+          />
+
+          <MetricChart
+            api={api}
+            rule={rule}
+            incidents={incidents}
+            timePeriod={timePeriod}
+            selectedIncident={selectedIncident}
+            organization={organization}
+            project={project}
+            interval={getPeriodInterval()}
+            query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
+            filter={getFilter()}
+            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+          />
+          <DetailWrapper>
+            <ActivityWrapper>
+              <MetricHistory incidents={incidents} />
+              {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
+                <RelatedIssues
+                  organization={organization}
+                  rule={rule}
+                  projects={[project]}
+                  timePeriod={timePeriod}
+                  query={
+                    dataset === Dataset.ERRORS
+                      ? queryWithTypeFilter
+                      : isCrashFreeAlert(dataset)
+                      ? `${query} error.unhandled:true`
+                      : undefined
+                  }
+                />
+              )}
+              {dataset === Dataset.TRANSACTIONS && (
+                <RelatedTransactions
+                  organization={organization}
+                  location={location}
+                  rule={rule}
+                  projects={[project]}
+                  timePeriod={timePeriod}
+                  filter={extractEventTypeFilterFromRule(rule)}
+                />
+              )}
+            </ActivityWrapper>
+          </DetailWrapper>
+        </Layout.Main>
+        <Layout.Side>
+          <Sidebar rule={rule} />
+        </Layout.Side>
+      </Layout.Body>
+    </Fragment>
+  );
 }
 
 const DetailWrapper = styled('div')`
