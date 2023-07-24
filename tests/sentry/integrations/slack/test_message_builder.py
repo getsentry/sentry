@@ -229,7 +229,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
-    def test_build_replaye_issue(self):
+    def test_build_replay_issue(self):
         event = self.store_event(
             data={
                 "message": "Hello world",
