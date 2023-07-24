@@ -35,7 +35,7 @@ import {
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-import Sidebar from './sidebar';
+import MetricDetailsSidebar from './sidebar';
 
 interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   api: Client;
@@ -223,7 +223,7 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <Sidebar rule={rule} />
+          <MetricDetailsSidebar rule={rule} />
         </Layout.Side>
       </Layout.Body>
     </Fragment>

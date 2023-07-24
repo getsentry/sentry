@@ -1,4 +1,4 @@
-import {Fragment, PureComponent, ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import AlertBadge from 'sentry/components/alertBadge';
@@ -11,7 +11,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
@@ -20,31 +20,16 @@ import {
   AlertRuleTriggerType,
   MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {IncidentStatus} from '../../../types';
-
-interface Props {
+interface MetricDetailsSidebarProps {
   rule: MetricRule;
 }
 
-export default class Sidebar extends PureComponent<Props> {
-  getTimeWindow(): ReactNode {
-    const {rule} = this.props;
-
-    if (!rule) {
-      return '';
-    }
-
-    const {timeWindow} = rule;
-
-    return <Duration seconds={timeWindow * 60} />;
-  }
-
-  renderTrigger(label: string, threshold: number, actions: Action[]): ReactNode {
-    const {rule} = this.props;
-
+export default function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
+  function renderTrigger(label: string, threshold: number, actions: Action[]): ReactNode {
     const status =
       label === AlertRuleTriggerType.CRITICAL
         ? t('Critical')
@@ -73,6 +58,7 @@ export default class Sidebar extends PureComponent<Props> {
       : rule.comparisonDelta
       ? t('lower')
       : t('below');
+    const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
 
     const thresholdText = rule.comparisonDelta
       ? tct(
@@ -81,7 +67,7 @@ export default class Sidebar extends PureComponent<Props> {
             metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
             threshold,
             comparisonType: thresholdTypeText,
-            timeWindow: this.getTimeWindow(),
+            timeWindow,
             comparisonDelta: (
               COMPARISON_DELTA_OPTIONS.find(
                 ({value}) => value === rule.comparisonDelta
@@ -92,7 +78,7 @@ export default class Sidebar extends PureComponent<Props> {
       : tct('[metric] is [condition] in [timeWindow]', {
           metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
           condition: `${thresholdTypeText} ${threshold}`,
-          timeWindow: this.getTimeWindow(),
+          timeWindow,
         });
 
     return (
@@ -120,111 +106,97 @@ export default class Sidebar extends PureComponent<Props> {
     );
   }
 
-  render() {
-    const {rule} = this.props;
+  // get current status
+  const latestIncident = rule.latestIncident;
+  const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
+  // The date at which the alert was triggered or resolved
+  const activityDate = latestIncident?.dateClosed ?? latestIncident?.dateStarted ?? null;
 
-    // get current status
-    const latestIncident = rule.latestIncident;
-    const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
-    // The date at which the alert was triggered or resolved
-    const activityDate =
-      latestIncident?.dateClosed ?? latestIncident?.dateStarted ?? null;
+  const criticalTrigger = rule.triggers.find(
+    ({label}) => label === AlertRuleTriggerType.CRITICAL
+  );
+  const warningTrigger = rule.triggers.find(
+    ({label}) => label === AlertRuleTriggerType.WARNING
+  );
 
-    const criticalTrigger = rule?.triggers.find(
-      ({label}) => label === AlertRuleTriggerType.CRITICAL
-    );
-    const warningTrigger = rule?.triggers.find(
-      ({label}) => label === AlertRuleTriggerType.WARNING
-    );
+  const ownerId = rule.owner?.split(':')[1];
+  const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
-    const ownerId = rule.owner?.split(':')[1];
-    const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-
-    return (
-      <Fragment>
-        <StatusContainer>
-          <HeaderItem>
-            <Heading noMargin>{t('Alert Status')}</Heading>
-            <Status>
-              <AlertBadge status={status} withText />
-            </Status>
-          </HeaderItem>
-          <HeaderItem>
-            <Heading noMargin>{t('Last Triggered')}</Heading>
-            <Status>
-              {activityDate ? (
-                <TimeSince date={activityDate} />
-              ) : (
-                t('No alerts triggered')
-              )}
-            </Status>
-          </HeaderItem>
-        </StatusContainer>
-        <SidebarGroup>
-          {typeof criticalTrigger?.alertThreshold === 'number' &&
-            this.renderTrigger(
-              criticalTrigger.label,
-              criticalTrigger.alertThreshold,
-              criticalTrigger.actions
-            )}
-          {typeof warningTrigger?.alertThreshold === 'number' &&
-            this.renderTrigger(
-              warningTrigger.label,
-              warningTrigger.alertThreshold,
-              warningTrigger.actions
-            )}
-          {typeof rule.resolveThreshold === 'number' &&
-            this.renderTrigger(AlertRuleTriggerType.RESOLVE, rule.resolveThreshold, [])}
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <Heading>{t('Alert Rule Details')}</Heading>
-          <KeyValueTable>
+  return (
+    <Fragment>
+      <StatusContainer>
+        <HeaderItem>
+          <Heading noMargin>{t('Alert Status')}</Heading>
+          <Status>
+            <AlertBadge status={status} withText />
+          </Status>
+        </HeaderItem>
+        <HeaderItem>
+          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <Status>
+            {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
+          </Status>
+        </HeaderItem>
+      </StatusContainer>
+      <SidebarGroup>
+        {typeof criticalTrigger?.alertThreshold === 'number' &&
+          renderTrigger(
+            criticalTrigger.label,
+            criticalTrigger.alertThreshold,
+            criticalTrigger.actions
+          )}
+        {typeof warningTrigger?.alertThreshold === 'number' &&
+          renderTrigger(
+            warningTrigger.label,
+            warningTrigger.alertThreshold,
+            warningTrigger.actions
+          )}
+        {typeof rule.resolveThreshold === 'number' &&
+          renderTrigger(AlertRuleTriggerType.RESOLVE, rule.resolveThreshold, [])}
+      </SidebarGroup>
+      <SidebarGroup>
+        <Heading>{t('Alert Rule Details')}</Heading>
+        <KeyValueTable>
+          <KeyValueTableRow
+            keyName={t('Environment')}
+            value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
+          />
+          <KeyValueTableRow
+            keyName={t('Date created')}
+            value={
+              <DateTime
+                date={getDynamicText({
+                  value: rule.dateCreated,
+                  fixed: new Date('2021-04-20'),
+                })}
+                format="ll"
+              />
+            }
+          />
+          {rule.createdBy && (
             <KeyValueTableRow
-              keyName={t('Environment')}
-              value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
-            />
-
-            <KeyValueTableRow
-              keyName={t('Date created')}
+              keyName={t('Created By')}
               value={
-                <DateTime
-                  date={getDynamicText({
-                    value: rule.dateCreated,
-                    fixed: new Date('2021-04-20'),
-                  })}
-                  format="ll"
-                />
+                <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
               }
             />
-
-            {rule.createdBy && (
-              <KeyValueTableRow
-                keyName={t('Created By')}
-                value={
-                  <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
-                }
-              />
-            )}
-
-            {rule.dateModified && (
-              <KeyValueTableRow
-                keyName={t('Last Modified')}
-                value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
-              />
-            )}
-
+          )}
+          {rule.dateModified && (
             <KeyValueTableRow
-              keyName={t('Team')}
-              value={
-                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
-              }
+              keyName={t('Last Modified')}
+              value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
             />
-          </KeyValueTable>
-        </SidebarGroup>
-      </Fragment>
-    );
-  }
+          )}
+          <KeyValueTableRow
+            keyName={t('Team')}
+            value={
+              teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
+            }
+          />
+        </KeyValueTable>
+      </SidebarGroup>
+    </Fragment>
+  );
 }
 
 const SidebarGroup = styled('div')`
