@@ -1470,8 +1470,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enable experimental performance improvements.
-    "organizations:enterprise-perf": False,
     # Enables inviting new members based on GitHub commit activity.
     "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1563,6 +1561,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable linking from 'new issue' slack notifs to the issue replay list
+    "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
