@@ -177,8 +177,6 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
 
 
 def get_global_config():
-    # dbg
-    assert False
     return {
         "measurements": get_measurements_config(),
         "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
