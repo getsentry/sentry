@@ -250,7 +250,7 @@ def _normalize_in_app(stacktrace: list[dict[str, str]]) -> None:
             set_in_app(frame, False)
 
 
-def normalize_stacktraces_for_grouping(data: NodeData, grouping_config: Any = None) -> None:
+def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.

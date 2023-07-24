@@ -4,7 +4,6 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry import eventstore
-from sentry.db.models.fields.node import NodeData
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
 from sentry.grouping.enhancer import Enhancements
@@ -25,7 +24,7 @@ class GroupingInput:
             return json.load(f)
 
     def create_event(self, grouping_config):
-        grouping_input = self.data
+        grouping_input = dict(self.data)
         # Customize grouping config from the _grouping config
         grouping_info = grouping_input.pop("_grouping", None) or {}
         enhancements = grouping_info.get("enhancements")
@@ -37,7 +36,7 @@ class GroupingInput:
         # Normalize the event
         mgr = EventManager(data=grouping_input, grouping_config=grouping_config)
         mgr.normalize()
-        data: NodeData = mgr.get_data()
+        data = mgr.get_data()
 
         # Normalize the stacktrace for grouping.  This normally happens in
         # save()

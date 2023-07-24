@@ -1,7 +1,6 @@
 import pytest
 
 from sentry import eventstore
-from sentry.db.models.fields.node import NodeData
 from sentry.event_manager import EventManager
 from sentry.interfaces.exception import Exception
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -162,8 +161,7 @@ def test_context_with_only_app_frames(make_exception_snapshot):
         },
     ]
     exc = dict(values=values)
-    data: NodeData = {"exception": exc}
-    normalize_stacktraces_for_grouping(data)
+    normalize_stacktraces_for_grouping({"exception": exc})
     make_exception_snapshot(exc)
 
 
