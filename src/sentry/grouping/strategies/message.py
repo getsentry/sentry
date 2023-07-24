@@ -106,15 +106,15 @@ def normalize_message_for_grouping(message: str) -> str:
     """Replace values from a group's message to hide P.I.I. and improve grouping when no
     stacktrace available.
     """
-    s = "\n".join(
+    trimmed = "\n".join(
         # If there are multiple lines, grab the first two non-empty ones.
         islice(
             (x for x in message.splitlines() if x.strip()),
             2,
         )
     )
-    if s != message:
-        s += "..."
+    if trimmed != message:
+        trimmed += "..."
 
     def _handle_match(match: Match[str]) -> str:
         # e.g. hex, 0x40000015
@@ -127,7 +127,7 @@ def normalize_message_for_grouping(message: str) -> str:
                 return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
         return ""
 
-    return _parameterization_regex.sub(_handle_match, s)
+    return _parameterization_regex.sub(_handle_match, trimmed)
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
