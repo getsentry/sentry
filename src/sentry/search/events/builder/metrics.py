@@ -800,7 +800,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    snuba_query = self.get_snuba_query()
+                    snuba_query = self.get_metrics_layer_snql_query()
                     if self.on_demand_metrics_enabled and self._on_demand_spec:
                         metrics_query = self._get_on_demand_metrics_query(snuba_query.query)
                     else:
