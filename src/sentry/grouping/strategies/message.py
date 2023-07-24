@@ -112,7 +112,7 @@ def normalize_message_for_grouping(string: str) -> str:
             (x for x in string.splitlines() if x.strip()),
             2,
         )
-    ).strip()
+    )
     if s != string:
         s += "..."
 
