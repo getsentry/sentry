@@ -8,6 +8,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
@@ -32,6 +34,8 @@ function clearHideUntilTime() {
 
 export default function SourceMapsWizard() {
   const organization = useOrganization();
+  const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
+
   const [isHidden, setIsHidden] = useState(() => {
     const hideUntilTime = getHideUntilTime();
     if (hideUntilTime && Date.now() < hideUntilTime) {
@@ -56,8 +60,8 @@ export default function SourceMapsWizard() {
           });
         }}
         icon={<IconClose size="xs" />}
-        aria-label={t('Sourcemaps Wizard Close')}
-        size="xs"
+        aria-label={t('Dismiss sourcemap wizard banner')}
+        size="zero"
       />
       <EmptyMessage
         size="medium"
@@ -81,7 +85,7 @@ export default function SourceMapsWizard() {
         )}
       >
         <StyledCodeSnipped
-          dark
+          dark={isDarkmode ? false : true}
           hideCopyButton={false}
           language="bash"
           onCopy={() => {
