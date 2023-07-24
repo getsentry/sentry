@@ -51,7 +51,7 @@ class TaskContext:
     * the name
     * the amount of time is allowed to run (until a TimeoutError should be emitted)
     * stats about the task operation (how many items it has processed) used for logging
-    * keeps a timer with multiple named timers for timing different parts of the task
+    * keeps a Timers object that manages multiple named timers for tracking execution time of functions.
     """
 
     name: str
@@ -103,7 +103,12 @@ class TimerState:
 
 class Timers:
     """
-    Simple timer class for investigating timeout issues with dynamic sampling tasks
+    Keeps the state of many named timers.
+
+    Individual timers will be created at first use.
+    Users should not use this class directly, but use the NamedTimer class instead.
+    TaskContext uses this class to keep track of timers.
+    For using timers for functions use TaskContext.get_timer("<name>") to get a NamedTimer.
 
     """
 
@@ -145,7 +150,21 @@ class Timers:
 
 class NamedTimer:
     """
-    Utility
+    Interface for a single timer.
+
+    The class only keeps a reference to the Timers object and the name of the timer.
+    There is no state kept in this class so multiple instances for the same timer can be created sequentially and
+    used and the same timer will be updated.
+    Example:
+        task_context = TaskContext("my_task", 100)
+
+        for i in range(10):
+            with task_context.get_timer("my_timer") as timer:
+                time.sleep(1)
+
+        t = task_context.get_timer("my_timer")
+        # 1 second for each iteration ( all 10 instances update the same timer)
+        assert t.current() == 10
     """
 
     def __init__(self, name: str, timers: Timers):
