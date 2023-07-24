@@ -73,6 +73,7 @@ class SlackClientDisable(TestCase):
             == ObjectStatus.DISABLED
         )
         # email test
+        print(mail.outbox)
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your slack integration"

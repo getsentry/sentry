@@ -31,7 +31,7 @@ def get_provider_type(redis_key) -> str:
 
 
 def get_subject(integration_name) -> str:
-    return f"Your team member requested the {integration_name} integration on Sentry"
+    return f"Action required: re-authenticate or fix your {integration_name} integration"
 
 
 def notify_disable(organization=Organization, integration=RpcIntegration, redis_key=str, project=None):
@@ -41,7 +41,7 @@ def notify_disable(organization=Organization, integration=RpcIntegration, redis_
 
     provider = integrations.get(integration.provider)
 
-    integration_name = provider
+    integration_name = provider.name
     integration_link = get_url(
         organization, get_provider_type(redis_key),
     )
@@ -66,7 +66,9 @@ def notify_disable(organization=Organization, integration=RpcIntegration, redis_
             html_template="sentry/integrations/notify-disable.html",
             template="sentry/integrations/notify-disable.txt",
         )
-
+        print("Message: ", msg._html_body)
+        print(msg.subject)
+        print(msg._txt_body)
         msg.send_async([user_email])
 
         print("Email sent to: ", user_email)
