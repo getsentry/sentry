@@ -12,11 +12,16 @@ export function TimeSpentCell({
 }) {
   const toolTip = getTooltip('timeSpent', totalSpanTime);
   const percentage = timeSpentPercentage > 1 ? 1 : timeSpentPercentage;
+  const undefinedTimeSpentText = '--%';
   return (
     <TextAlignRight>
-      <Tooltip isHoverable title={toolTip}>
-        {formatPercentage(percentage)}
-      </Tooltip>
+      {percentage >= 0 ? (
+        <Tooltip isHoverable title={toolTip} showUnderline>
+          {formatPercentage(percentage)}
+        </Tooltip>
+      ) : (
+        undefinedTimeSpentText
+      )}
     </TextAlignRight>
   );
 }

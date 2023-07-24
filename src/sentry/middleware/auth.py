@@ -45,8 +45,7 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                if SiloMode.CONTROL.is_available():
-                    UserIP.log(user, request.META["REMOTE_ADDR"])
+                UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
 
@@ -115,6 +114,10 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
 
         auth_result = auth_service.authenticate(request=authentication_request_from(request))
         request.user_from_signed_request = auth_result.user_from_signed_request
+
+        # Simulate accessing attributes on the session to trigger side effects related to doing so.
+        for attr in auth_result.accessed:
+            request.session[attr]
 
         if auth_result.auth is not None:
             request.auth = auth_result.auth

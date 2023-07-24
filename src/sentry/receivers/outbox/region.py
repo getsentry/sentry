@@ -11,7 +11,6 @@ from typing import Any
 
 from django.dispatch import receiver
 
-from sentry import roles
 from sentry.models import (
     Organization,
     OrganizationMember,
@@ -31,8 +30,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import member_joined
+from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_rpc_service
 from sentry.types.region import get_local_region
 
 
@@ -40,6 +38,12 @@ from sentry.types.region import get_local_region
 def process_audit_log_event(payload: Any, **kwds: Any):
     if payload is not None:
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE)
+def process_orgauthtoken_update(payload: Any, **kwds: Any):
+    if payload is not None:
+        orgauthtoken_rpc_service.update_orgauthtoken(**payload)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
@@ -74,8 +78,6 @@ def process_organization_member_updates(
 
     rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
 
-    maybe_join_org(org_member)
-
     organizationmember_mapping_service.upsert_mapping(
         organizationmember_id=org_member.id,
         organization_id=shard_identifier,
@@ -105,19 +107,6 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
-
-
-def maybe_join_org(org_member: OrganizationMember):
-    if org_member.user_id is not None:
-        user_org_ids = {o.id for o in user_service.get_organizations(user_id=org_member.user_id)}
-        if org_member.organization_id not in user_org_ids:
-            if org_member.role != roles.get_top_dog().id:
-                member_joined.send_robust(
-                    sender=None,
-                    organization_member_id=org_member.id,
-                    organization_id=org_member.organization_id,
-                    user_id=org_member.user_id,
-                )
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)

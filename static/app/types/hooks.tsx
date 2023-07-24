@@ -1,5 +1,4 @@
 import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-import {Location} from 'history';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
@@ -8,11 +7,10 @@ import {ProductSelectionProps} from 'sentry/components/onboarding/productSelecti
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {Platform} from 'sentry/data/platformCategories';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
-import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
+import {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -117,13 +115,6 @@ type ProductSelectionAvailabilityProps = Pick<
   organization: Organization;
 };
 
-type SetUpSdkDocProps = {
-  location: Location;
-  organization: Organization;
-  platform: Platform;
-  project: Project;
-};
-
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -165,7 +156,8 @@ export type ComponentHooks = {
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:enhanced-org-stats': () => React.ComponentType<UsageStatsOrganizationProps>;
+  'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:escalating-issues-banner-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -182,7 +174,6 @@ export type ComponentHooks = {
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
-  'component:set-up-sdk-doc': () => React.ComponentType<SetUpSdkDocProps>;
   'component:superuser-access-category': React.ComponentType<any>;
 };
 

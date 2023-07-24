@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from sentry.sentry_metrics.indexer.base import to_use_case_id
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -27,7 +24,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     bulk_reverse_resolve,
@@ -94,7 +91,7 @@ def _get_metrics_for_entity(
 def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
@@ -142,7 +139,7 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(public_derived_metrics)
 
 
-def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequence[MetricMeta]:
+def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     ENTITY_TO_DATASET = {
         "sessions": {
             "c": "metrics_counters",
@@ -151,6 +148,12 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
             "g": "metrics_gauges",
         },
         "transactions": {
+            "c": "generic_metrics_counters",
+            "s": "generic_metrics_sets",
+            "d": "generic_metrics_distributions",
+            "g": "generic_metrics_gauges",
+        },
+        "spans": {
             "c": "generic_metrics_counters",
             "s": "generic_metrics_sets",
             "d": "generic_metrics_distributions",
@@ -224,7 +227,7 @@ def get_custom_measurements(
 
 
 def _get_metrics_filter_ids(
-    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseKey
+    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
 ) -> Set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
@@ -263,7 +266,7 @@ def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> None:
     """
     Function that takes metric_mris list and a mapping of entity to its metric ids, and ensures
@@ -292,7 +295,7 @@ def _fetch_tags_or_values_for_metrics(
     metric_names: Optional[Sequence[str]],
     referrer: str,
     column: str,
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     assert len({p.organization_id for p in projects}) == 1
 
@@ -306,7 +309,7 @@ def _fetch_tags_or_values_for_mri(
     metric_mris: Optional[Sequence[str]],
     referrer: str,
     column: str,
-    use_case_key: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
@@ -316,7 +319,6 @@ def _fetch_tags_or_values_for_mri(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     org_id = projects[0].organization_id
-    use_case_id = to_use_case_id(use_case_key)
 
     if metric_mris is not None:
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
@@ -327,7 +329,7 @@ def _fetch_tags_or_values_for_mri(
 
     try:
         metric_ids = _get_metrics_filter_ids(
-            projects=projects, metric_mris=metric_mris, use_case_id=use_case_key
+            projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
         )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
@@ -345,7 +347,7 @@ def _fetch_tags_or_values_for_mri(
     release_health_metric_types = ("counter", "set", "distribution")
     performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
 
-    if use_case_key == UseCaseKey.RELEASE_HEALTH:
+    if use_case_id == UseCaseID.SESSIONS:
         metric_types = release_health_metric_types
     else:
         metric_types = performance_metric_types
@@ -402,7 +404,7 @@ def _fetch_tags_or_values_for_mri(
             projects,
             metric_mris=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
-            use_case_id=use_case_key,
+            use_case_id=use_case_id,
         )
 
         # Only return tags/tag values that occur in all metrics
@@ -441,7 +443,7 @@ def _fetch_tags_or_values_for_mri(
 
 
 def get_single_metric_info(
-    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseKey
+    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseID
 ) -> MetricMetaWithTagKeys:
     assert projects
 
@@ -477,7 +479,7 @@ def get_single_metric_info(
 
 
 def get_tags(
-    projects: Sequence[Project], metrics: Optional[Sequence[str]], use_case_id: UseCaseKey
+    projects: Sequence[Project], metrics: Optional[Sequence[str]], use_case_id: UseCaseID
 ) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names"""
     assert projects
@@ -489,7 +491,7 @@ def get_tags(
                 metric_mris=metrics,
                 column="tags.key",
                 referrer="snuba.metrics.meta.get_tags",
-                use_case_key=use_case_id,
+                use_case_id=use_case_id,
             )
         else:
             tags, _ = _fetch_tags_or_values_for_metrics(
@@ -508,7 +510,7 @@ def get_tag_values(
     projects: Sequence[Project],
     tag_name: str,
     metric_names: Optional[Sequence[str]],
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag"""
     assert projects
@@ -567,7 +569,7 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseKey
+    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseID
 ) -> Optional[GroupLimitFilters]:
     if not metrics_query.groupby or not results:
         return None
@@ -697,7 +699,7 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
 def get_series(
     projects: Sequence[Project],
     metrics_query: MetricsQuery,
-    use_case_id: UseCaseKey,
+    use_case_id: UseCaseID,
     include_meta: bool = False,
     tenant_ids: dict[str, Any] | None = None,
 ) -> dict:

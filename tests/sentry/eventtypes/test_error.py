@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import TestCase
 
-from sentry.eventtypes import ErrorEvent
+from sentry.eventtypes.error import ErrorEvent
 from sentry.testutils.silo import region_silo_test
 
 
@@ -17,7 +20,9 @@ class ErrorEventTest(TestCase):
 
     def test_get_metadata_none(self):
         inst = ErrorEvent()
-        data = {"exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}}
+        data: dict[str, dict[str, Any]] = {
+            "exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}
+        }
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",

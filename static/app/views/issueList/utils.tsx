@@ -4,7 +4,6 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
@@ -14,6 +13,8 @@ export enum Query {
   REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
+
+export const CUSTOM_TAB_VALUE = '__custom__';
 
 type OverviewTab = {
   /**
@@ -29,6 +30,7 @@ type OverviewTab = {
    */
   enabled: boolean;
   name: string;
+  hidden?: boolean;
   /**
    * Tooltip text to be hoverable when text has links
    */
@@ -44,7 +46,6 @@ type OverviewTab = {
  */
 export function getTabs(organization: Organization) {
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
-  const hasAssignToMe = organization.features.includes('assign-to-me');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -56,7 +57,7 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
+      Query.FOR_REVIEW,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
@@ -128,6 +129,19 @@ export function getTabs(organization: Organization) {
         tooltipHoverable: true,
       },
     ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
+      },
+    ],
   ];
 
   return tabs.filter(([_query, tab]) => tab.enabled);
@@ -159,7 +173,6 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
-  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -167,19 +180,8 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({
-  query,
-  sort,
-  organization,
-}: {
-  organization: Organization;
-  query: string;
-  sort: string;
-}) {
-  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
-    ? IssueSortOptions.BETTER_PRIORITY
-    : DEFAULT_ISSUE_STREAM_SORT;
-  return query === DEFAULT_QUERY && sort === defaultSort;
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
@@ -187,8 +189,6 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.NEW:
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
-      return t('Priority');
-    case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
@@ -217,7 +217,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   '__text',
 ];
 
-export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

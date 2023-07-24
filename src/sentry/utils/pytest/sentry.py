@@ -69,6 +69,9 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    # Ensure we can test secure ssl settings
+    settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
     # silence (noisy) loggers by default when testing
     settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
 
@@ -111,7 +114,6 @@ def pytest_configure(config):
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
-    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
     settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 

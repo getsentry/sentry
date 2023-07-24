@@ -1,9 +1,16 @@
-from typing import Optional, TypedDict
+from typing import Optional, Tuple, TypedDict
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
 
-from sentry.models import Organization, OrganizationStatus, outbox_context
+from sentry import roles
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationStatus,
+    outbox_context,
+)
 
 
 class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
@@ -21,10 +28,30 @@ def create_organization_with_outbox_message(
     return org
 
 
+def create_organization_and_member_for_monolith(
+    organization_name,
+    user_id,
+    slug: str,
+) -> Tuple[Organization, OrganizationMember]:
+    org = create_organization_with_outbox_message(
+        create_options={"name": organization_name, "slug": slug}
+    )
+
+    team = org.team_set.create(name=org.name)
+
+    om = OrganizationMember.objects.create(
+        user_id=user_id, organization=org, role=roles.get_top_dog().id
+    )
+
+    OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+
+    return org, om
+
+
 def update_organization_with_outbox_message(
     *, org_id: int, update_data: OrganizationCreateAndUpdateOptions
 ) -> Organization:
-    with outbox_context(transaction.atomic()):
+    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         org: Organization = Organization.objects.get(id=org_id)
         org.update(**update_data)
 
@@ -35,7 +62,7 @@ def update_organization_with_outbox_message(
 def upsert_organization_by_org_id_with_outbox_message(
     *, org_id: int, upsert_data: OrganizationCreateAndUpdateOptions
 ) -> Organization:
-    with outbox_context(transaction.atomic()):
+    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         org, created = Organization.objects.update_or_create(id=org_id, defaults=upsert_data)
         return org
 
@@ -43,7 +70,7 @@ def upsert_organization_by_org_id_with_outbox_message(
 def mark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
 ) -> Optional[Organization]:
-    with outbox_context(transaction.atomic()):
+    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         update_count = Organization.objects.filter(
             id=org_id, status=OrganizationStatus.ACTIVE
         ).update(status=OrganizationStatus.PENDING_DELETION)
@@ -60,7 +87,7 @@ def mark_organization_as_pending_deletion_with_outbox_message(
 def unmark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
 ) -> Optional[Organization]:
-    with outbox_context(transaction.atomic()):
+    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         update_count = Organization.objects.filter(
             id=org_id,
             status__in=[

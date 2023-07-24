@@ -12,6 +12,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Union,
     cast,
 )
 
@@ -27,6 +28,7 @@ from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
+from sentry.api.serializers.types import OrganizationSerializerResponse, SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
@@ -45,13 +47,13 @@ from sentry.models import (
     ProjectBookmark,
     ProjectOption,
     ProjectPlatform,
-    ProjectTeam,
     Release,
     Team,
     User,
     UserReport,
 )
 from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     transform_to_notification_settings_by_scope,
@@ -252,7 +254,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isInternal: bool
     isPublic: bool
-    avatar: Any  # TODO: use Avatar type from other serializers
+    avatar: SerializedAvatarFields
     color: str
     status: str  # TODO enum/literal
 
@@ -704,7 +706,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                 project_env["environment__name"]
             )
 
-        # Only return the version key for the latest release to cut down on response size
+        # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
         deploys_by_project = None
@@ -825,6 +827,72 @@ def _get_project_to_release_version_mapping(
     }
 
 
+class Plugin(TypedDict):
+    id: str
+    name: str
+    slug: str
+    shortName: str
+    type: str
+    canDisable: bool
+    isTestable: bool
+    hasConfiguration: bool
+    metadata: Dict
+    contexts: List[str]
+    status: str
+    assets: List
+    doc: str
+    firstPartyAlternative: Any
+    deprecationDate: Any
+    altIsSentryApp: Any
+    enabled: bool
+    version: str
+    author: Dict[str, str]
+    isDeprecated: bool
+    isHidden: bool
+    description: str
+    features: List[str]
+    featureDescriptions: List[Dict[str, str]]
+    resourceLinks: List[Dict[str, str]]
+
+
+class DetailedProjectResponse(ProjectWithTeamResponseDict):
+    latestRelease: Optional[LatestReleaseDict]
+    options: Dict[str, Any]
+    digestsMinDelay: int
+    digestsMaxDelay: int
+    subjectPrefix: str
+    allowedDomains: List[str]
+    resolveAge: int
+    dataScrubber: bool
+    dataScrubberDefaults: bool
+    safeFields: List[str]
+    storeCrashReports: Optional[int]
+    sensitiveFields: List[str]
+    subjectTemplate: str
+    securityToken: str
+    securityTokenHeader: Optional[str]
+    verifySSL: bool
+    scrubIPAddresses: bool
+    scrapeJavaScript: bool
+    groupingConfig: str
+    groupingEnhancements: str
+    groupingEnhancementsBase: Optional[str]
+    secondaryGroupingExpiry: int
+    secondaryGroupingConfig: Optional[str]
+    groupingAutoUpdate: bool
+    fingerprintingRules: str
+    organization: OrganizationSerializerResponse
+    plugins: List[Plugin]
+    platforms: List[str]
+    processingIssues: int
+    defaultEnvironment: Optional[str]
+    relayPiiConfig: Optional[str]
+    builtinSymbolSources: List[str]
+    dynamicSamplingBiases: List[Dict[str, Union[str, bool]]]
+    eventProcessing: Dict[str, bool]
+    symbolSources: str
+
+
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -850,7 +918,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
-        # Only return the version key for the latest release to cut down on response size
+        # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
         for item in item_list:
@@ -864,7 +932,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Project, attrs: Mapping[str, Any], user: User
+    ) -> DetailedProjectResponse:
         from sentry.plugins.base import plugins
 
         def get_value_with_default(key):

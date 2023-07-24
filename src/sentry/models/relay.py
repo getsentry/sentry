@@ -3,10 +3,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry_relay import PublicKey
 
-from sentry.db.models import Model, control_silo_only_model
+from sentry.db.models import Model, region_silo_only_model
 
 
-@control_silo_only_model
+@region_silo_only_model
 class RelayUsage(Model):
     __include_in_export__ = True
 
@@ -22,7 +22,7 @@ class RelayUsage(Model):
         db_table = "sentry_relayusage"
 
 
-@control_silo_only_model
+@region_silo_only_model
 class Relay(Model):
     __include_in_export__ = True
 
@@ -32,7 +32,7 @@ class Relay(Model):
     first_seen = models.DateTimeField(default=None, null=True)
     # not used, functionality replaced by RelayUsage
     last_seen = models.DateTimeField(default=None, null=True)
-    is_internal = models.NullBooleanField(default=None)
+    is_internal = models.BooleanField(default=None, null=True)
 
     class Meta:
         app_label = "sentry"

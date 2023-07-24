@@ -1,7 +1,8 @@
 from sentry.models import AuditLogEntry, OutboxScope, RegionOutbox, UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_service
+from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.pytest.fixtures import django_db_all
 
 
@@ -21,8 +22,8 @@ def test_audit_log_event():
         )
     )
 
-    with exempt_from_silo_limits():
-        RegionOutbox.for_shard(
+    with assume_test_silo_mode(SiloMode.REGION):
+        RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
 
@@ -48,10 +49,8 @@ def test_user_ip_event():
         )
     )
 
-    with exempt_from_silo_limits():
-        RegionOutbox.for_shard(
-            shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id
-        ).drain_shard()
+    with assume_test_silo_mode(SiloMode.REGION):
+        RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     assert UserIP.objects.count() == 2
     assert UserIP.objects.last().ip_address == "1.0.0.5"

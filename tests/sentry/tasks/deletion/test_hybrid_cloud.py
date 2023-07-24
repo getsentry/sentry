@@ -16,7 +16,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
     set_watermark,
 )
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
 from sentry.utils.pytest.fixtures import django_db_all
 
@@ -92,7 +92,7 @@ def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
     assert get_watermark("tombstone", saved_search_owner_id_field) == (wm, new_tid1)
 
 
-@exempt_from_silo_limits()
+@assume_test_silo_mode(SiloMode.MONOLITH)
 def setup_deletable_objects(
     count=1, send_tombstones=True, u_id=None
 ) -> Tuple[QuerySet, ControlOutbox]:
@@ -105,7 +105,9 @@ def setup_deletable_objects(
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
     for region_name in find_regions_for_user(u_id):
-        shard = ControlOutbox.for_shard(OutboxScope.USER_SCOPE, u_id, region_name)
+        shard = ControlOutbox(
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, region_name=region_name
+        )
         if send_tombstones:
             shard.drain_shard()
 
@@ -134,7 +136,7 @@ def test_region_processing(task_runner):
     assert results2.exists()
 
     # Processing after the tombstones arrives, still converges later.
-    with exempt_from_silo_limits():
+    with assume_test_silo_mode(SiloMode.MONOLITH):
         shard2.drain_shard()
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()

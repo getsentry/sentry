@@ -98,7 +98,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -121,7 +121,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -142,7 +142,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -159,7 +159,7 @@ class MonitorConsumerTest(TestCase):
         # is disabled
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -184,6 +184,11 @@ class MonitorConsumerTest(TestCase):
             minutes=TIMEOUT
         )
         assert checkin.timeout_at == timeout_at
+
+        self.send_message(monitor.slug, guid=self.guid)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.timeout_at is None
 
         new_guid = uuid.uuid4().hex
         self.send_message(
@@ -248,7 +253,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -268,7 +273,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     def test_monitor_update(self):
@@ -291,7 +298,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     def test_check_in_empty_id(self):
@@ -317,15 +326,20 @@ class MonitorConsumerTest(TestCase):
         assert open_checkin.status == CheckInStatus.IN_PROGRESS
         assert open_checkin.guid != uuid.UUID(int=0)
 
+        # Send an event to a different monitor environment, tests that when we
+        # use the empty UUID "latest" we properly scope to the latest of the
+        # same monitor environment
+        self.send_message("my-monitor", status="in_progress", environment="dev")
+
         self.send_message(
             "my-monitor",
             status="ok",
             guid=str(uuid.UUID(int=0)),
         )
 
-        close_checkin = MonitorCheckIn.objects.get(guid=open_checkin.guid)
-        assert close_checkin.status == CheckInStatus.OK
-        assert close_checkin.guid != uuid.UUID(int=0)
+        closed_checkin = MonitorCheckIn.objects.get(guid=open_checkin.guid)
+        assert closed_checkin.status == CheckInStatus.OK
+        assert closed_checkin.guid != uuid.UUID(int=0)
 
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -458,6 +472,21 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
+
+    def test_monitor_environment_validation(self):
+        invalid_name = "x" * 65
+
+        self.send_message(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            environment=f"my-environment-{invalid_name}",
+        )
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+
+        monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
+        assert len(monitor_environments) == 0
 
     def test_organization_killswitch(self):
         monitor = self._create_monitor(slug="my-monitor")

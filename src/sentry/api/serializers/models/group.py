@@ -172,8 +172,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
 
 class SeenStats(TypedDict):
     times_seen: int
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: datetime | None
+    last_seen: datetime | None
     user_count: int
 
 
@@ -474,7 +474,7 @@ class GroupSerializerBase(Serializer, ABC):
             return None
 
         if not item_list:
-            return
+            return None
 
         # partition the item_list by type
         error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]

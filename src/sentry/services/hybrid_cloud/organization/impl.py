@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
     ControlOutbox,
@@ -48,6 +47,7 @@ from sentry.services.hybrid_cloud.organization.serial import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
+from sentry.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
 
 
@@ -109,6 +109,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return serialize_organization_summary(query.get())
         except Organization.DoesNotExist:
             return None
+
+    def get_default_organization(self) -> RpcOrganization:
+        return serialize_rpc_organization(Organization.get_default())
 
     def check_membership_by_email(
         self, organization_id: int, email: str
@@ -225,7 +228,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         user_id: int,
     ) -> Optional[RpcOrganizationMember]:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
             try:
                 org_member = OrganizationMember.objects.get(
                     user_id=user_id, organization_id=organization_id
@@ -287,13 +290,19 @@ class DatabaseBackedOrganizationService(OrganizationService):
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
             Organization.outbox_for_update(org_id=organization_id).save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
-        return flags_to_bits(flags.sso__linked, flags.sso__invalid, flags.member_limit__restricted)
+        return flags_to_bits(
+            flags.sso__linked,
+            flags.sso__invalid,
+            flags.member_limit__restricted,
+            flags.idp__provisioned,
+            flags.idp__role_restricted,
+        )
 
     def add_organization_member(
         self,
@@ -313,7 +322,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
                 org_member = OrganizationMember.objects.filter(
@@ -396,13 +405,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org.save()
         return serialize_rpc_organization(org)
 
-    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
-        with outbox_context(transaction.atomic()):
-            org_member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
-            )
+    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            try:
+                org_member = OrganizationMember.objects.get(
+                    organization_id=organization_id, user_id=user_id
+                )
+            except OrganizationMember.DoesNotExist:
+                return None
+
             org_member.remove_user()
-            org_member.save()
+            if org_member.email:
+                org_member.save()
+            else:
+                return None
+
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
@@ -434,7 +451,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for team in from_member.teams.all():
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
             except IntegrityError:
                 pass
@@ -453,13 +470,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_id=from_user_id, project__organization_id=organization_id
             ):
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(router.db_for_write(model)):
                         obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             # Flags are not replicated -- these updates are safe without outbox application.
             OrganizationMember.objects.filter(
                 organization_id=organization_id,
@@ -474,7 +491,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
@@ -534,5 +551,6 @@ class OnCommitBackedOrganizationSignalService(OrganizationSignalService):
                 organization_id=organization_id,
                 signal=_signal,
                 args=args,
-            )
+            ),
+            router.db_for_write(Organization),
         )

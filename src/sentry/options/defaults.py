@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -226,7 +226,7 @@ register(
 )
 register(
     "u2f.facets",
-    default=(),
+    default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -310,7 +310,7 @@ register(
 register(
     "symbolicator.ignored_sources",
     type=Sequence,
-    default=(),
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -911,9 +911,11 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register(
-    "sentry-metrics.performance.index-tag-values", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to disable misbehaving use case IDs
+register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
@@ -1148,7 +1150,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.n_plus_one_api_calls.ea-rollout", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.n_plus_one_api_calls.ea-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_api_calls.ga-rollout",
@@ -1203,6 +1207,20 @@ register(
 register(
     "performance.issues.m_n_plus_one_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register(
+    "performance.issues.http_overhead.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.http_overhead.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
@@ -1236,12 +1254,12 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.size_threshold",
-    default=1000000,
+    default=500000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.consecutive_http.max_duration_between_spans",
-    default=1000,
+    default=500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1256,9 +1274,44 @@ register(
 )
 register(
     "performance.issues.large_http_payload.size_threshold",
-    default=1000000,
+    default=300000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
+register(
+    "performance.issues.db_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.file_io_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.uncompressed_asset.size_threshold",
+    default=500 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # 512 kilo bytes
+register(
+    "performance.issues.uncompressed_asset.duration_threshold",
+    default=300,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.consecutive_db.min_time_saved_threshold",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.http_overhead.http_request_delay_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.n_plus_one_api_calls.total_duration",
+    default=300,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1287,14 +1340,10 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Controls whether we allow people to upload artifact bundles instead of release bundles.
-register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether artifact bundles asynchronous renewal is enabled.
-register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 
@@ -1350,3 +1399,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Turns on and off the running for dynamic sampling collect_orgs.
+register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

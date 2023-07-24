@@ -6,6 +6,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models import AlertRule, IncidentProject
+        from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
@@ -34,7 +35,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
-            models.ProjectTeam,
+            ProjectTeam,
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig
             models.ProjectCodeOwners,
@@ -45,6 +46,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.UserReport,
             models.ProjectTransactionThreshold,
             models.ProjectArtifactBundle,
+            models.ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
             QuerySubscription,

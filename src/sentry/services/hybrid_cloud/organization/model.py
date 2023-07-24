@@ -48,9 +48,19 @@ class RpcTeam(RpcModel):
     slug: str = ""
     actor_id: Optional[int] = None
     org_role: Optional[str] = None
+    name: str = ""
 
     def class_name(self) -> str:
         return "Team"
+
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
 
 class RpcTeamMember(RpcModel):
@@ -71,6 +81,8 @@ class RpcOrganizationMemberFlags(RpcModel):
     sso__linked: bool = False
     sso__invalid: bool = False
     member_limit__restricted: bool = False
+    idp__provisioned: bool = False
+    idp__role_restricted: bool = False
 
     def __getattr__(self, item: str) -> bool:
         from sentry.services.hybrid_cloud.organization.serial import escape_flag_name

@@ -3,11 +3,13 @@ from __future__ import annotations
 import base64
 import os
 import zlib
+from typing import List, Sequence
 
 import msgpack
 import sentry_sdk
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
@@ -116,7 +118,7 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules = []
+        self._modifier_rules: List[Rule] = []
         self._updater_rules = []
         for rule in self.iter_rules():
             if modifier_rule := rule._as_modifier_rule():
@@ -124,12 +126,13 @@ class Enhancements:
             if updater_rule := rule._as_updater_rule():
                 self._updater_rules.append(updater_rule)
 
-    def apply_modifications_to_frame(self, frames, platform, exception_data):
+    def apply_modifications_to_frame(
+        self, frames: Sequence, platform: str, exception_data, rule=None
+    ):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-
-        cache = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -144,8 +147,7 @@ class Enhancements:
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
-
-        cache = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -312,11 +314,15 @@ class Rule:
         actions = [action for action in self.actions if action.is_modifier]
         if actions:
             return Rule(self.matchers, actions)
+        else:
+            return None
 
     def _as_updater_rule(self) -> Rule | None:
         actions = [action for action in self.actions if action.is_updater]
         if actions:
             return Rule(self.matchers, actions)
+        else:
+            return None
 
     def as_dict(self):
         matchers = {}

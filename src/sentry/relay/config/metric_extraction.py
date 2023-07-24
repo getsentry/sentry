@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -12,11 +12,12 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.snuba.metrics.metric_extraction import (
+from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpec,
     OndemandMetricSpec,
     RuleCondition,
+    is_on_demand_snuba_query,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -57,10 +58,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
         .select_related("snuba_query")
     )
 
-    metrics: List[MetricSpec] = []
-    for alert in alerts:
-        if metric := convert_query_to_metric(alert.snuba_query):
-            metrics.append(metric)
+    metrics = _get_metric_specs(alerts)
 
     if not metrics:
         return None
@@ -75,22 +73,35 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+def _get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
+    # We use a dict so that we can deduplicate metrics with the same query.
+    metrics: Dict[str, MetricSpec] = {}
+
+    for alert in alert_rules:
+        if result := convert_query_to_metric(alert.snuba_query):
+            metrics[result[0]] = result[1]
+
+    return [spec for spec in metrics.values()]
+
+
+def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[Tuple[str, MetricSpec]]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a MetricSpec for the query. Otherwise, returns None.
     """
     try:
-        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
-        if not spec:
+        if not is_on_demand_snuba_query(snuba_query):
             return None
 
-        return {
+        spec = OndemandMetricSpec(snuba_query.aggregate, snuba_query.query)
+        query_hash = spec.query_hash()
+
+        return query_hash, {
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": spec.mri,
             "field": spec.field,
             "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
+            "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
         }
     except Exception as e:
         logger.error(e, exc_info=True)
@@ -187,10 +198,10 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     # The frustration threshold is always four times the threshold
                     # (see https://docs.sentry.io/product/performance/metrics/#apdex)
-                    "value": cast(int, threshold.threshold) * 4,
+                    "value": threshold.threshold * 4,
                 },
                 *extra_conditions,
             ],
@@ -205,7 +216,7 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     "value": threshold.threshold,
                 },
                 *extra_conditions,

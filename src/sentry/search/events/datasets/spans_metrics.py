@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Optional, Union
 
+import sentry_sdk
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import function_aliases
+from sentry.search.events.datasets import field_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.referrer import Referrer
@@ -28,7 +29,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {}
+        return {constants.SPAN_MODULE_ALIAS: self._resolve_span_module}
 
     def resolve_metric(self, value: str) -> int:
         metric_id = self.builder.resolve_metric_index(constants.SPAN_METRICS_MAP.get(value, value))
@@ -83,13 +84,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "epm",
                     snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "eps",
                     snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "count",
@@ -133,6 +134,28 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "avg",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_percentile=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -144,7 +167,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=function_aliases.resolve_metrics_percentile,
+                    snql_percentile=function_aliases.resolve_metrics_percentile,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -161,7 +184,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.50
                     ),
                     default_result_type="duration",
@@ -179,7 +202,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.75
                     ),
                     default_result_type="duration",
@@ -197,20 +220,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.95
                     ),
                     default_result_type="duration",
-                ),
-                fields.MetricsFunction(
-                    "time_spent_percentage",
-                    optional_args=[
-                        fields.with_default(
-                            "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
-                        )
-                    ],
-                    snql_distribution=self._resolve_time_spent_percentage,
-                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "p99",
@@ -225,7 +238,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.99
                     ),
                     default_result_type="duration",
@@ -243,10 +256,20 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=1
                     ),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "time_spent_percentage",
+                    optional_args=[
+                        fields.with_default(
+                            "app", fields.SnQLStringArg("scope", allowed_strings=["app", "local"])
+                        )
+                    ],
+                    snql_distribution=self._resolve_time_spent_percentage,
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "http_error_rate",
@@ -287,7 +310,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.SnQLDateArg("middle"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_percentile=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args,
                         alias=alias,
                         fixed_percentile=args["percentile"],
@@ -314,7 +337,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_percentile_percent_change,
+                    snql_percentile=self._resolve_percentile_percent_change,
                     default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
@@ -342,6 +365,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
 
     # Query Functions
     def _resolve_count_if(
@@ -378,13 +404,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
+            query=self.builder.query if scope == "local" else None,
             selected_columns=["sum(span.self_time)"],
         )
-
-        total_query.columns += self.builder.resolve_groupby()
-
-        if scope == "local":
-            total_query.where = self.builder.where
+        sentry_sdk.set_tag("query.resolved_total", scope)
 
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value

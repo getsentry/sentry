@@ -1,12 +1,13 @@
 from datetime import timedelta
 
+from django.conf import settings
+from django.db import router
 from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthProvider,
@@ -17,13 +18,13 @@ from sentry.models import (
     OrganizationMemberMapping,
     outbox_context,
 )
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
@@ -31,7 +32,8 @@ from sentry.types.region import Region, RegionCategory
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
-        self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
+        with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
+            self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
     def _get_paths(self, args):
@@ -55,7 +57,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
@@ -112,7 +114,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsAuthentication"]
+            assert resp.json()["needsAuthentication"]
 
     def test_not_needs_authentication(self):
         self.login_as(self.user)
@@ -123,7 +125,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needsAuthentication"]
+            assert not resp.json()["needsAuthentication"]
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
@@ -138,7 +140,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needs2fa"]
+            assert resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_in_session(om)
 
@@ -156,7 +158,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
                     slug="abcslug",
@@ -169,11 +171,11 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self.login_as(self.user)
 
-            with exempt_from_silo_limits(), outbox_context(flush=False):
+            with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            with in_test_psql_role_override("postgres"):
+            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
                 OrganizationMemberMapping.objects.create(
                     organization_id=101010, organizationmember_id=om.id
                 )
@@ -184,7 +186,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
                 assert resp.status_code == 200
-                assert resp.data["needs2fa"]
+                assert resp.json()["needs2fa"]
 
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
@@ -195,11 +197,11 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
         self.login_as(self.user)
 
-        with exempt_from_silo_limits(), outbox_context(flush=False):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
             OrganizationMemberMapping.objects.create(
                 organization_id=self.organization.id, organizationmember_id=om.id
             )
@@ -222,7 +224,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert not resp.data["needs2fa"]
+            assert not resp.json()["needs2fa"]
 
             self._assert_pending_invite_details_not_in_session(resp)
 
@@ -236,9 +238,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 200
-            assert resp.data["needsSso"]
-            assert resp.data["hasAuthProvider"]
-            assert resp.data["ssoProvider"] == "Google"
+            assert resp.json()["needsSso"]
+            assert resp.json()["hasAuthProvider"]
+            assert resp.json()["ssoProvider"] == "Google"
 
     def test_can_accept_while_authenticated(self):
         urls = self._get_urls()
@@ -257,7 +259,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -277,7 +279,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
+        ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )
@@ -286,7 +290,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
@@ -305,7 +309,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
         assert om.is_pending
@@ -328,7 +332,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -344,7 +348,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 path = self._get_path(url, [om2.id, om2.token])
                 resp = self.client.post(path)
                 assert resp.status_code == 400
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
@@ -371,7 +375,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -398,6 +402,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
+    # TODO(hybrid-cloud): Split this test per URL in the future, as the
+    #  slug-less variant will not work in Control-Silo mode since we won't
+    #  know which region the org resides in and will return a 400 level error.
     def test_2fa_cookie_deleted_after_accept(self):
         urls = self._get_urls()
 

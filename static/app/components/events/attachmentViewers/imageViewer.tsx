@@ -4,7 +4,7 @@ import {
   getAttachmentUrl,
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 
 type Props = Omit<ViewerProps, 'attachment'> & {
   attachment: ViewerProps['attachment'];

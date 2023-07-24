@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 
 from django.utils import timezone
 
@@ -21,6 +20,10 @@ logger = logging.getLogger("sentry")
 # default maximum runtime for a monitor, in minutes
 TIMEOUT = 30
 
+# hard maximum runtime for a monitor, in minutes
+# current limit is 28 days
+MAX_TIMEOUT = 40_320
+
 # This is the MAXIMUM number of MONITOR this job will check.
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
@@ -32,6 +35,9 @@ MONITOR_LIMIT = 10_000
 # NOTE: We should keep an eye on this as we have more and more usage of
 # monitors the larger the number of checkins to check will exist.
 CHECKINS_LIMIT = 10_000
+
+# Format to use in the issue subtitle for the missed check-in timestamp
+SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p"
 
 
 @instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
@@ -77,9 +83,7 @@ def check_monitors(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin_without_margin(
-                    monitor_environment.last_checkin
-                )
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
             checkin = MonitorCheckIn.objects.create(
@@ -90,25 +94,24 @@ def check_monitors(current_datetime=None):
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+            monitor_environment.mark_failed(
+                reason=MonitorFailure.MISSED_CHECKIN,
+                occurrence_context={
+                    "expected_time": expected_time.strftime(SUBTITLE_DATETIME_FORMAT)
+                    if expected_time
+                    else expected_time
+                },
+            )
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
-        "monitor", "monitor_environment"
-    )[:CHECKINS_LIMIT]
+    qs = MonitorCheckIn.objects.filter(
+        status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
+    ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         try:
-            timeout = timedelta(
-                minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
-            )
-            # Check against date_updated to allow monitors to run for longer as
-            # long as they continue to send heart beats updating the checkin
-            if checkin.date_updated > current_datetime - timeout:
-                continue
-
             monitor_environment = checkin.monitor_environment
             logger.info(
                 "monitor_environment.checkin-timeout",
@@ -126,6 +129,18 @@ def check_monitors(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
+                monitor_environment.mark_failed(
+                    reason=MonitorFailure.DURATION,
+                    occurrence_context={
+                        "duration": (checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
+                    },
+                )
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")
+
+    # safety check for check-ins stuck in the backlog
+    backlog_count = MonitorCheckIn.objects.filter(
+        status=CheckInStatus.IN_PROGRESS, timeout_at__isnull=True
+    ).count()
+    if backlog_count:
+        logger.exception(f"Exception in check_monitors - backlog count {backlog_count} is > 0")

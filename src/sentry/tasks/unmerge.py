@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from functools import reduce
 from typing import Any, Mapping, Optional, Tuple
 
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstore, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
+from sentry.eventstore.models import BaseEvent
 from sentry.models import (
     Activity,
     Environment,
@@ -165,7 +168,7 @@ def get_group_backfill_attributes(caches, group, events):
     }
 
 
-def get_fingerprint(event):
+def get_fingerprint(event: BaseEvent) -> str | None:
     # TODO: This *might* need to be protected from an IndexError?
     return event.get_primary_hash()
 
@@ -438,7 +441,7 @@ def repair_denormalizations(caches, project, events):
 
 
 def lock_hashes(project_id, source_id, fingerprints):
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(GroupHash)):
         eligible_hashes = list(
             GroupHash.objects.filter(
                 project_id=project_id, group_id=source_id, hash__in=fingerprints

@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -82,7 +82,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTransactionThreshold)):
             try:
                 project_threshold = ProjectTransactionThreshold.objects.get(
                     project=project,

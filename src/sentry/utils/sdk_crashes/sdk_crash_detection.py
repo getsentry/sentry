@@ -21,6 +21,16 @@ class SDKCrashReporter:
 
 
 class SDKCrashDetection:
+    """
+    This class checks events for SDK crashes, a crash caused by a bug in one of our SDKs.
+    When it detects such an event, it only keeps essential data and stores the event in a
+    dedicated Sentry project only Sentry employees can access.
+
+    This class doesn't seek to detect severe bugs, such as the transport layer breaking or
+    the SDK continuously crashing. CI or other quality mechanisms should find such severe
+    bugs. Furthermore, the solution only targets SDKs maintained by us, Sentry.
+    """
+
     def __init__(
         self,
         sdk_crash_reporter: SDKCrashReporter,
@@ -32,6 +42,14 @@ class SDKCrashDetection:
     def detect_sdk_crash(
         self, event: Event, event_project_id: int, sample_rate: float
     ) -> Optional[Event]:
+        """
+        Checks if the passed-in event is an SDK crash and stores the stripped event to a Sentry
+        project specified with event_project_id.
+
+        :param event: The event to check for an SDK crash.
+        :param event_project_id: The project ID to store the SDK crash event to if one is detected.
+        :param sample_rate: Sampling gets applied after an event is considered an SDK crash.
+        """
 
         should_detect_sdk_crash = (
             event.group
@@ -64,6 +82,12 @@ class SDKCrashDetection:
                     "original_event_id": event.event_id,
                 },
             )
+
+            sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
+            set_path(sdk_crash_event_data, "release", value=sdk_version)
+
+            # So Sentry can tell how many projects are impacted by this SDK crash
+            set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 

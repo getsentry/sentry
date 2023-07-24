@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import partial
-from typing import Optional
+from typing import Any, Optional
 from unittest import mock
 from unittest.mock import patch
 
@@ -24,7 +26,9 @@ from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id, org_id, string)
+    ret = indexer.record(use_case_id, org_id, string)
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
@@ -70,7 +74,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert (
             response.json()["detail"]
-            == "Invalid useCase parameter. Please use one of: ['release-health', 'performance']"
+            == f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
 
     def test_invalid_field(self):
@@ -438,7 +442,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
-            useCase="performance",
+            useCase="transactions",
         )
         assert response.status_code == 200
 
@@ -476,7 +480,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             cursor=Cursor(0, 1),
             statsPeriod="1h",
-            useCase="performance",
+            useCase="transactions",
         )
         assert response.status_code == 200, response.data
 
@@ -498,7 +502,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
 
         def count_sessions(project_id: Optional[int]) -> int:
-            kwargs = dict(
+            kwargs: dict[str, Any] = dict(
                 field="sum(sentry.sessions.session)",
                 statsPeriod="1h",
                 interval="1h",
@@ -536,7 +540,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
             per_page=3,
-            useCase="performance",
+            useCase="transactions",
             includeSeries="0",
         )
         groups = response.data["groups"]
@@ -572,7 +576,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=2,
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -617,7 +621,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"-count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
             per_page=2,
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -657,7 +661,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -696,7 +700,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -712,7 +716,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             cursor=Cursor(0, 1),
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -743,7 +747,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -768,7 +772,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 0
@@ -810,7 +814,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -868,7 +872,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            useCase="performance",
+            useCase="transactions",
         )
 
         # Test order by DESC
@@ -968,7 +972,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1032,7 +1036,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "groupBy": ["project_id", "transaction"],
             "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             "per_page": 1,
-            "useCase": "performance",
+            "useCase": "transactions",
         }
 
         response = self.get_success_response(self.organization.slug, **request_args)
@@ -1174,7 +1178,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            useCase="performance",
+            useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1226,7 +1230,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag3",
             per_page=2,
-            useCase="performance",
+            useCase="transactions",
         )
 
         groups = response.data["groups"]
@@ -1549,7 +1553,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["crash_free_fake"],
             statsPeriod="6m",
             interval="1m",
-            useCase="release-health",
+            useCase="sessions",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
@@ -1799,10 +1803,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
 
     def test_abnormal_user_sessions(self):
-        for tags, values in (
+        cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({"session.status": "abnormal"}, [1, 2, 4]),
             ({}, [1, 2, 4, 7, 9]),
-        ):
+        )
+        for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
                     name=SessionMRI.USER.value,
@@ -2014,11 +2019,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.errored_user"] == [0]
 
     def test_healthy_user_sessions(self):
-        for tags, values in (
+        cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({}, [1, 2, 4, 5, 7]),  # 3 and 6 did not recorded at init
             ({"session.status": "ok"}, [3]),  # 3 was not in init, but still counts
             ({"session.status": "errored"}, [1, 2, 6]),  # 6 was not in init, but still counts
-        ):
+        )
+        for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
                     name=SessionMRI.USER.value,
@@ -2087,7 +2093,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
-            useCase="performance",
+            useCase="transactions",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2121,7 +2127,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
-            useCase="performance",
+            useCase="transactions",
         )
 
         assert response.data["groups"] == [
@@ -2174,7 +2180,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.apdex"],
             statsPeriod="1m",
             interval="1m",
-            useCase="performance",
+            useCase="transactions",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2204,7 +2210,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.miserable_user"],
             statsPeriod="1m",
             interval="1m",
-            useCase="performance",
+            useCase="transactions",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2234,7 +2240,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.user_misery"],
             statsPeriod="1m",
             interval="1m",
-            useCase="performance",
+            useCase="transactions",
         )
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {

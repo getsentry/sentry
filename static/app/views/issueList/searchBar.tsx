@@ -94,7 +94,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
   const hasSearchShortcuts = organization.features.includes('issue-search-shortcuts');
   const recommendedGroup: SearchGroup = {
-    title: t('Recommended'),
+    title: t('Popular Filters'),
     type: 'header',
     icon: <IconStar size="xs" />,
     childrenWrapper: RecommendedWrapper,
@@ -102,43 +102,37 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Assignee'),
-        desc: t('Filter by team or member.'),
-        value: 'assigned_or_suggested:',
+        title: t('Issue Category'),
+        value: 'issue.category:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Release'),
-        desc: t('Filter by release version.'),
-        value: 'release:',
-      },
-      {
-        type: ItemType.RECOMMENDED,
-        kind: FieldKind.FIELD,
-        title: t('Level'),
-        desc: t('Filter by fatal, error, etc.'),
+        title: t('Error Level'),
         value: 'level:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Device'),
-        desc: t('Filter events by device.'),
-        value: 'device.',
+        title: t('Assignee'),
+        value: 'assigned_or_suggested:',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Unhandled'),
-        desc: t('Filter by unhandled events.'),
+        title: t('Unhandled Events'),
         value: 'error.unhandled:true ',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Latest Release'),
+        value: 'release:latest ',
       },
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.TAG,
         title: t('Custom Tags'),
-        desc: t('Filter events by custom tags.'),
         // Shows only tags when clicked
         applyFilter: item => item.kind === FieldKind.TAG,
       },
@@ -162,17 +156,32 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
 export default withIssueTags(IssueListSearchBar);
 
+// Using grid-template-rows to order the items top to bottom, then left to right
 const RecommendedWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: ${space(1.5)};
-  padding: ${space(1.5)};
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  padding: ${space(1)};
+  text-align: left;
+  line-height: 1.2;
 
   & > li {
     ${p => p.theme.overflowEllipsis}
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${space(1)} ${space(1.5)};
     margin: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: 1fr 1fr;
+    gap: ${space(1.5)};
+    padding: ${space(1.5)};
+    text-align: center;
+
+    & > li {
+      padding: ${space(1.5)} ${space(2)};
+    }
   }
 `;

@@ -1,21 +1,13 @@
 import math
-from unittest.mock import Mock
+from types import SimpleNamespace
 
 from sentry.utils.cursors import Cursor, build_cursor
 
 
-def build_mock(**attrs):
-    obj = Mock()
-    for key, value in attrs.items():
-        setattr(obj, key, value)
-    obj.__repr__ = lambda x: repr(attrs)
-    return obj
-
-
 def test_build_cursor():
-    event1 = build_mock(id=1.1, message="one")
-    event2 = build_mock(id=1.1, message="two")
-    event3 = build_mock(id=2.1, message="three")
+    event1 = SimpleNamespace(id=1.1, message="one")
+    event2 = SimpleNamespace(id=1.1, message="two")
+    event3 = SimpleNamespace(id=2.1, message="three")
 
     results = [event1, event2, event3]
 

@@ -1,10 +1,11 @@
 from sentry.models import InviteStatus
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamMembersTest(APITestCase):
     endpoint = "sentry-api-0-team-members"
 
@@ -54,7 +55,8 @@ class TeamMembersTest(APITestCase):
         inactive_user = self.create_user(email="inactive@example.com")
         inactive_user.is_active = False
         with outbox_runner():
-            inactive_user.save()
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                inactive_user.save()
             inactive_member = self.create_member(
                 organization=self.org,
                 user=inactive_user,

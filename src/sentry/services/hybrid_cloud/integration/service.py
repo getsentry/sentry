@@ -13,8 +13,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.models.integrations import Integration
+from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.integration.serial import serialize_organization_integration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -130,7 +130,20 @@ class IntegrationService(RpcService):
         ois = self.get_organization_integrations(
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
-        return serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return ois[0] if len(ois) > 0 else None
+
+    def find_pagerduty_service(
+        self, *, organization_id: int, integration_id: int, service_id: Union[str, int]
+    ) -> Optional[PagerDutyServiceDict]:
+        org_integration = self.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
+        if not org_integration:
+            return None
+        try:
+            return PagerDutyService.find_service(org_integration.config, service_id)
+        except StopIteration:
+            return None
 
     @rpc_method
     @abstractmethod

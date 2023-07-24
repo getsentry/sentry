@@ -2,7 +2,7 @@ import logging
 from copy import copy
 from datetime import datetime
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
@@ -529,7 +529,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             changed_data = {}
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(Organization)):
                     organization, changed_data = serializer.save()
             except IntegrityError:
                 return self.respond(
@@ -580,7 +580,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ).exists():
             return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=organization.id
             )

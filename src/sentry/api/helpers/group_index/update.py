@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from urllib.parse import urlparse
 
 import rest_framework
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -84,7 +86,7 @@ def handle_discard(
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
@@ -373,7 +375,7 @@ def update_groups(
             except IndexError:
                 release = None
         for group in group_list:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Group)):
                 resolution = None
                 created = None
                 if release:
@@ -530,7 +532,9 @@ def update_groups(
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
-                        activity.send_notification()
+                        transaction.on_commit(
+                            lambda: activity.send_notification(), router.db_for_write(Group)
+                        )
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
@@ -564,7 +568,7 @@ def update_groups(
             "organizations:escalating-issues", group_list[0].organization
         )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
             #                we should centralize the logic for validating and defaulting substatus values
             #                and refactor pre_save and the above new_substatus assignment to account for this
@@ -649,6 +653,27 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
+        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+        metrics.incr(
+            "grouping.merge_issues",
+            sample_rate=1.0,
+            tags={
+                # We assume that if someone's merging groups, they're from the same platform
+                "platform": group_list[0].platform or "unknown",
+                # TODO: It's probably cleaner to just send this value from the front end
+                "referer": (
+                    "issue stream"
+                    if re.search(issue_stream_regex, referer)
+                    else "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                ),
+            },
+        )
 
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
@@ -829,7 +854,6 @@ def handle_assigned_to(
                 had_to_deassign=assignment["updated_assignment"],
             )
         return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
-
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
@@ -841,3 +865,4 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=True,
             )
+        return None
