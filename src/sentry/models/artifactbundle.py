@@ -263,19 +263,12 @@ class ArtifactBundleArchive:
 
     def extract_debug_ids_from_manifest(
         self,
-    ) -> Tuple[Optional[str], Set[Tuple[SourceFileType, str]]]:
+    ) -> Set[Tuple[SourceFileType, str]]:
         # We use a set, since we might have the same debug_id and file_type.
         debug_ids_with_types = set()
 
-        # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
-        # identify a specific ArtifactBundle in case for example of future deletion.
-        #
-        # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
-        # ReleaseArtifactBundle table.
-        bundle_id = self._extract_bundle_id()
-
         files = self.manifest.get("files", {})
-        for file_path, info in files.items():
+        for info in files.values():
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
                 debug_id = self.normalize_debug_id(debug_id)
@@ -288,9 +281,9 @@ class ArtifactBundleArchive:
                 ):
                     debug_ids_with_types.add((source_file_type, debug_id))
 
-        return bundle_id, debug_ids_with_types
+        return debug_ids_with_types
 
-    def _extract_bundle_id(self):
+    def extract_bundle_id(self) -> Optional[str]:
         bundle_id = self.manifest.get("debug_id")
 
         if bundle_id is not None:
