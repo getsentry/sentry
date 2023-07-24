@@ -70,7 +70,7 @@ export function SpanTransactionsTable({
     meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span, {
+  } = useSpanTransactionMetrics(span.group, {
     transactions: endpoint ? [endpoint] : undefined,
     sorts: [sort],
   });

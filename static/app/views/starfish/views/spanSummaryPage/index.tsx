@@ -81,7 +81,7 @@ function SpanSummaryPage({params, location}: Props) {
   }
 
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     queryFilter,
     [
       SPAN_OP,
@@ -102,7 +102,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
-      {group: groupId},
+      groupId,
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'

@@ -21,7 +21,7 @@ function SampleInfo(props: Props) {
   const {setPageError} = usePageError();
 
   const {data: spanMetrics, error} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [
       SPAN_OP,

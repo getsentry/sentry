@@ -6,7 +6,6 @@ import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -23,19 +22,19 @@ export type SpanMetrics = {
 };
 
 export const useSpanMetricsSeries = (
-  span: Pick<IndexedSpan, 'group'>,
+  group: string,
   queryFilters: SpanSummaryQueryFilters,
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
   const pageFilters = usePageFilters();
 
-  const eventView = span
-    ? getEventView(span, pageFilters.selection, yAxis, queryFilters)
+  const eventView = group
+    ? getEventView(group, pageFilters.selection, yAxis, queryFilters)
     : undefined;
 
   const enabled =
-    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
+    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
@@ -64,17 +63,15 @@ export const useSpanMetricsSeries = (
 };
 
 function getEventView(
-  span: {group: string},
+  group: string,
   pageFilters: PageFilters,
   yAxis: string[],
   queryFilters: SpanSummaryQueryFilters
 ) {
-  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
-
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: `${SPAN_GROUP}:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${group}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''
