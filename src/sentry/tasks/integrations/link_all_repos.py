@@ -3,7 +3,10 @@ import logging
 import sentry_sdk
 
 from sentry.models.organization import Organization
-from sentry.plugins.providers.integration_repository import get_integration_repository_provider
+from sentry.plugins.providers.integration_repository import (
+    RepoExistsError,
+    get_integration_repository_provider,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
@@ -72,6 +75,9 @@ def link_all_repos(
                 repo_config=config, organization=organization
             )
         except KeyError:
+            continue
+        except RepoExistsError:
+            metrics.incr("sentry.integration_repo_provider.repo_exists")
             continue
         except Exception as e:
             sentry_sdk.capture_exception(e)

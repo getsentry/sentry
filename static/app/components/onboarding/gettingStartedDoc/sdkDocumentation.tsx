@@ -77,6 +77,11 @@ export const migratedDocs = [
   'electron',
   'elixir',
   'android',
+  'ionic',
+  'unity',
+  'capacitor',
+  'cordova',
+  'unreal',
 ];
 
 type SdkDocumentationProps = {
@@ -118,6 +123,14 @@ export function SdkDocumentation({
         ? `native/native-qt`
         : platform?.id === 'android'
         ? `android/android`
+        : platform?.id === 'ionic'
+        ? `ionic/ionic`
+        : platform?.id === 'unity'
+        ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
