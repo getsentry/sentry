@@ -113,7 +113,7 @@ class Timers:
     """
 
     def __init__(self):
-        self.timers: dict[str, TimerState] = {}
+        self.timers: Dict[str, TimerState] = {}
 
     def get_timer(self, name: str) -> "NamedTimer":
         return NamedTimer(name, self)

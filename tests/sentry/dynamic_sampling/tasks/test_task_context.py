@@ -1,8 +1,11 @@
 import time
+from datetime import timedelta
 
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext, Timers
+
+SECOND = timedelta(seconds=1)
 
 
 def test_task_context_expiration_time():
@@ -262,21 +265,21 @@ def test_named_timer_context_manager():
 
                 with t.get_timer("a") as ta:
                     assert ta.current() == i
-                    frozen_time.tick(1)
+                    frozen_time.tick(delta=SECOND)
                 with t.get_timer("b") as tb:
                     assert tb.current() == i * 2
-                    frozen_time.tick(2)
+                    frozen_time.tick(delta=SECOND * 2)
                 with t.get_timer("c") as tc:
                     assert tc.current() == i * 3
-                    frozen_time.tick(3)
+                    frozen_time.tick(delta=SECOND * 3)
 
                 # jump one sec
-                frozen_time.tick(1)
+                frozen_time.tick(delta=SECOND)
 
-            frozen_time.tick(1)
+            frozen_time.tick(delta=SECOND)
 
         # outside the context manager timers should not advance
-        frozen_time.tick(100)
+        frozen_time.tick(delta=SECOND * 100)
 
         assert t.current("a") == 3
         assert t.current("b") == 3 * 2
