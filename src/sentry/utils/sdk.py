@@ -422,6 +422,14 @@ def configure_sdk():
                         tags={"reason": "unsafe"},
                     )
 
+        def record_lost_event(self, *args, **kwargs):
+            # pass through client report recording to sentry_saas_transport
+            # not entirely accurate for some cases like rate limiting but does the job
+            if sentry_saas_transport:
+                record = getattr(sentry_saas_transport, "record_lost_event", None)
+                if record:
+                    record(*args, **kwargs)
+
         def is_healthy(self):
             if sentry4sentry_transport:
                 if not sentry4sentry_transport.is_healthy():

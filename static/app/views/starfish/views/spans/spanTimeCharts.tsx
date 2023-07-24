@@ -121,11 +121,8 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      statsPeriod="24h"
       height={100}
       data={throughputTimeSeries}
-      start=""
-      end=""
       loading={isLoading}
       utc={false}
       grid={{
@@ -179,11 +176,8 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      statsPeriod="24h"
       height={100}
       data={[...p95Series]}
-      start=""
-      end=""
       loading={isLoading}
       utc={false}
       grid={{
@@ -216,11 +210,8 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 
   return (
     <Chart
-      statsPeriod="24h"
       height={100}
       data={[errorRateSeries]}
-      start=""
-      end=""
       loading={isLoading}
       utc={false}
       grid={{
