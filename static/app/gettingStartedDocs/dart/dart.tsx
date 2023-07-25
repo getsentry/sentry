@@ -95,11 +95,15 @@ try {
   );
 }
         `,
-        additionalInfo: tct(
-          "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
-          {
-            break: <br />,
-          }
+        additionalInfo: (
+          <p>
+            {tct(
+              "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
+              {
+                break: <br />,
+              }
+            )}
+          </p>
         ),
       },
     ],
