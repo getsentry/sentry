@@ -37,7 +37,7 @@ export function OtherPlatformsInfo({projectSlug}: {projectSlug: Project['slug']}
         "We cannot provide instructions for 'other' projects. However, please find below the DSN key for this project, which is required to instrument Sentry."
       )}
       <CodeSnippet dark language="bash">
-        {data[0].dsn.public}
+        {t('dsn: %s', data[0].dsn.public)}
       </CodeSnippet>
       {t(
         'If you use a lesser-known platform, we suggest creating a new project using following SDKs:'
