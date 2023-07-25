@@ -93,7 +93,11 @@ class RatelimitMiddleware:
                     enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
                         logger.info(
-                            f"Rate limit exceeded for key `{request.rate_limit_key}` hitting {request.build_absolute_uri()}"
+                            "sentry.api.rate-limit.exceeded",
+                            extra={
+                                "key": request.rate_limit_key,
+                                "url": request.build_absolute_uri(),
+                            },
                         )
                         return HttpResponse(
                             json.dumps(
