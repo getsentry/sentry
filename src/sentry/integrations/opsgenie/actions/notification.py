@@ -14,7 +14,7 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 
 
 class OpsgenieNotifyTeamAction(IntegrationEventAction):
-    id = "opsgenie.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
+    id = "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction"
     form_cls = OpsgenieNotifyTeamForm
     label = "Send a notification to Opsgenie account {account} and team {team}"
     prompt = "Send an Opsgenie notification"
