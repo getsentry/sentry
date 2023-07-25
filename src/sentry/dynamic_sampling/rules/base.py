@@ -57,6 +57,13 @@ def is_sliding_window_org_enabled(organization: Organization) -> bool:
     ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
+def get_safe_sample_rate(organization: Organization, project: Project) -> float:
+    try:
+        return get_guarded_blended_sample_rate(organization=organization, project=project)
+    except Exception:
+        return 1.0
+
+
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)  # type:ignore
 
