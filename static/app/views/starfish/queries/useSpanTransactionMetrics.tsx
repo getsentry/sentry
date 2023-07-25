@@ -5,7 +5,6 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -26,7 +25,7 @@ export type SpanTransactionMetrics = {
 };
 
 export const useSpanTransactionMetrics = (
-  span: Pick<IndexedSpan, 'group'>,
+  group: string,
   options: {sorts?: Sort[]; transactions?: string[]},
   _referrer = 'api.starfish.span-transaction-metrics'
 ) => {
@@ -34,27 +33,25 @@ export const useSpanTransactionMetrics = (
 
   const {transactions, sorts} = options;
 
-  const eventView = getEventView(span, location, transactions ?? [], sorts);
+  const eventView = getEventView(group, location, transactions ?? [], sorts);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(span),
+    enabled: Boolean(group),
     limit: 25,
     referrer: _referrer,
   });
 };
 
 function getEventView(
-  span: {group: string},
+  group: string,
   location: Location,
   transactions: string[],
   sorts?: Sort[]
 ) {
-  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
-
   const search = new MutableSearch('');
-  search.addFilterValues(SPAN_GROUP, [cleanGroupId]);
+  search.addFilterValues(SPAN_GROUP, [group]);
   search.addFilterValues('transaction.op', ['http.server']);
 
   if (transactions.length > 0) {
