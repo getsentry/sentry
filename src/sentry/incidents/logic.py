@@ -267,8 +267,11 @@ def create_incident_activity(
                     for mentioned_user_id in user_ids_to_subscribe
                 ]
             )
-    tasks.send_subscriber_notifications.apply_async(
-        kwargs={"activity_id": activity.id}, countdown=10
+    transaction.on_commit(
+        lambda: tasks.send_subscriber_notifications.apply_async(
+            kwargs={"activity_id": activity.id}, countdown=10
+        ),
+        router.db_for_write(IncidentSubscription),
     )
     if activity_type == IncidentActivityType.COMMENT:
         analytics.record(
