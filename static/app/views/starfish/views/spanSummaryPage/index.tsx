@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {RateUnits, Sort} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -35,7 +36,6 @@ import {
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -259,7 +259,7 @@ function SpanSummaryPage({params, location}: Props) {
                           rateUnit={RateUnits.PER_MINUTE}
                           tooltipFormatterOptions={{
                             valueFormatter: value =>
-                              formatThroughput(value, RateUnits.PER_MINUTE),
+                              formatRate(value, RateUnits.PER_MINUTE),
                           }}
                         />
                       </ChartPanel>

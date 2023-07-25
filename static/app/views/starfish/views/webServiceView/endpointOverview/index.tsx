@@ -23,6 +23,7 @@ import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,7 +37,6 @@ import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
@@ -218,7 +218,7 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => formatThroughput(value, RateUnits.PER_SECOND),
+                  valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
                 }}
               />
               <SidebarSpacer />

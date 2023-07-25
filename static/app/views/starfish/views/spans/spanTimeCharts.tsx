@@ -7,12 +7,12 @@ import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
@@ -139,7 +139,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatThroughput(value, RateUnits.PER_MINUTE),
+        valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
       }}
     />
   );
