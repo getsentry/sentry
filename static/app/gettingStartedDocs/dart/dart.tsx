@@ -58,9 +58,7 @@ Future<void> main() async {
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
 }
         `,
-      },
-      {
-        description: (
+        additionalInfo: (
           <p>
             {tct(
               'You can configure the [sentryDsn: SENTRY_DSN], [sentryRelease: SENTRY_RELEASE], [sentryDist: SENTRY_DIST], and [sentryEnv: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [dartDefine: --dart-define] flag to the compiler, as noted in the code sample.',
