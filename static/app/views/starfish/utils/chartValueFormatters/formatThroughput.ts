@@ -1,8 +1,9 @@
-import {t} from 'sentry/locale';
+import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fieldRenderers';
 
-const formatThroughput = (throughputPerSecond: number = -1) => {
-  const throughput = throughputPerSecond === -1 ? '--' : throughputPerSecond.toFixed(2);
-  return `${throughput} / ${t('s')}`;
+const formatThroughput = (rate: number = -1, unit: RateUnits) => {
+  return `${rate === -1 ? '--' : rate.toFixed(2)}${
+    RATE_UNIT_LABELS[unit ?? RateUnits.PER_SECOND]
+  }`;
 };
 
 export default formatThroughput;

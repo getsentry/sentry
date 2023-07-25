@@ -259,7 +259,8 @@ function SpanSummaryPage({params, location}: Props) {
                           aggregateOutputFormat="rate"
                           rateUnit={RateUnits.PER_MINUTE}
                           tooltipFormatterOptions={{
-                            valueFormatter: value => formatThroughput(value),
+                            valueFormatter: value =>
+                              formatThroughput(value, RateUnits.PER_MINUTE),
                           }}
                         />
                       </ChartPanel>

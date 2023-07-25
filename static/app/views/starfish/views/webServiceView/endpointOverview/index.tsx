@@ -218,7 +218,7 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => formatThroughput(value),
+                  valueFormatter: value => formatThroughput(value, RateUnits.PER_SECOND),
                 }}
               />
               <SidebarSpacer />

@@ -139,7 +139,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatThroughput(value),
+        valueFormatter: value => formatThroughput(value, RateUnits.PER_MINUTE),
       }}
     />
   );

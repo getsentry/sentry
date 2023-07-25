@@ -130,7 +130,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
                   isLineChart
                   chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
-                    valueFormatter: value => formatThroughput(value),
+                    valueFormatter: value =>
+                      formatThroughput(value, RateUnits.PER_SECOND),
                   }}
                 />
               </MiniChartPanel>
