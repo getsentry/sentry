@@ -3,11 +3,12 @@ import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
+  throughputUnit: string;
   containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >;
-  throughputPerSecond?: number;
+  throughput?: number;
 };
 
 export default function ThroughputCell({throughputPerSecond, containerProps}: Props) {

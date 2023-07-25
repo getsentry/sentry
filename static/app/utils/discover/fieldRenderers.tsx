@@ -168,10 +168,16 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-const RATE_UNIT_LABELS = {
-  '1/second': '/s',
-  '1/minute': '/min',
-  '1/hour': '/hr',
+enum RateUnits {
+  PER_SECOND = '1/second',
+  PER_MINUTE = '1/minute',
+  PER_HOUR = '1/hour',
+}
+
+export const RATE_UNIT_LABELS = {
+  [RateUnits.PER_SECOND]: '/s',
+  [RateUnits.PER_MINUTE]: '/min',
+  [RateUnits.PER_HOUR]: '/hr',
 };
 
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
