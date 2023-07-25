@@ -100,7 +100,6 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
                 data=auth_provider.get_audit_log_data(),
             )
 
-            # This is safe -- we're not syncing flags to the org member mapping table.
             OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])

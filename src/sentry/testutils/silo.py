@@ -130,13 +130,13 @@ class SiloModeTestDecorator:
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
         # Return the value to be wrapped by the original decorator
-        # if regions is None:
-        #     # Pass the original class through, with no modification
-        #     return test_class
-        # else:
-        # Override without changing the original name. We don't need to change
-        # the silo mode, but we do need to override the region config.
-        return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
+        if regions is None:
+            # Pass the original class through, with no modification
+            return test_class
+        else:
+            # Override without changing the original name. We don't need to change
+            # the silo mode, but we do need to override the region config.
+            return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
 
     def __call__(
         self,
