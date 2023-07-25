@@ -85,6 +85,8 @@ export const migratedDocs = [
   'apple',
   'apple-ios',
   'apple-macos',
+  'flutter',
+  'dart',
 ];
 
 type SdkDocumentationProps = {
@@ -134,6 +136,10 @@ export function SdkDocumentation({
         ? `unreal/unreal`
         : platform?.id === 'capacitor'
         ? `capacitor/capacitor`
+        : platform?.id === 'flutter'
+        ? `flutter/flutter`
+        : platform?.id === 'dart'
+        ? `dart/dart`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
