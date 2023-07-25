@@ -43,8 +43,7 @@ import {
   isExpandable,
 } from './utils';
 
-type Props = {
-  components: Array<SentryAppComponent>;
+export interface DeprecatedLineProps {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
@@ -81,7 +80,11 @@ type Props = {
   showingAbsoluteAddress?: boolean;
   threadId?: number;
   timesRepeated?: number;
-};
+}
+
+interface Props extends DeprecatedLineProps {
+  components: Array<SentryAppComponent>;
+}
 
 type State = {
   isExpanded?: boolean;

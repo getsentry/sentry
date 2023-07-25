@@ -914,6 +914,8 @@ register(
     "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to disable misbehaving use case IDs
+register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
@@ -1004,7 +1006,7 @@ register(
 
 register(
     "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # per-organization limits on the number of timeseries that can be observed in
@@ -1227,12 +1229,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=100.0,
+    default=90.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=1000.0,  # ms
+    default=900.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1257,7 +1259,7 @@ register(
 )
 register(
     "performance.issues.consecutive_http.max_duration_between_spans",
-    default=500,
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1267,7 +1269,12 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=1000,
+    default=900,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.consecutive_http.min_time_saved_threshold",
+    default=2000,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
