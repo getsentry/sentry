@@ -1,3 +1,5 @@
+from functools import wraps
+
 import sentry_sdk
 
 from sentry.dynamic_sampling.tasks.common import TimeoutException
@@ -12,6 +14,7 @@ def _compute_task_name(function_name: str) -> str:
 
 def dynamic_sampling_task_with_context(max_task_execution: int):
     def wrapper(func):
+        @wraps(func)
         def _wrapper(*args, **kwargs):
             function_name = func.__name__
             task_name = _compute_task_name(function_name)
@@ -39,6 +42,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
 
 
 def dynamic_sampling_task(func):
+    @wraps(func)
     def wrapped_func(*args, **kwargs):
         function_name = func.__name__
         task_name = _compute_task_name(function_name)
