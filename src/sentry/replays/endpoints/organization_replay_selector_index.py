@@ -146,7 +146,6 @@ def query_selector_dataset(
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
-                Column("click_text"),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -166,7 +165,6 @@ def query_selector_dataset(
                 Column("click_tag"),
                 Column("click_id"),
                 Column("click_class"),
-                Column("click_text"),
                 Column("click_role"),
                 Column("click_alt"),
                 Column("click_testid"),
@@ -184,31 +182,32 @@ def query_selector_dataset(
 def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
 
-    def _iter_response():
-        for r in response:
-            # Tag is always present.
-            selector = r["click_tag"]
+    def make_selector_name(row) -> str:
+        selector = row["click_tag"]
 
-            if r["click_id"]:
-                selector = selector + f"#{r['click_id']}"
-            if r["click_class"]:
-                selector = selector + "." + ".".join(r["click_class"])
+        if row["click_id"]:
+            selector = selector + f"#{row['click_id']}"
+        if row["click_class"]:
+            selector = selector + "." + ".".join(row["click_class"])
 
-            if r["click_role"]:
-                selector = selector + f'[role="{r["click_role"]}"]'
-            if r["click_alt"]:
-                selector = selector + f'[alt="{r["click_alt"]}"]'
-            if r["click_testid"]:
-                selector = selector + f'[testid="{r["click_testid"]}"]'
-            if r["click_aria_label"]:
-                selector = selector + f'[aria="{r["click_aria_label"]}"]'
-            if r["click_title"]:
-                selector = selector + f'[title="{r["click_title"]}"]'
+        if row["click_role"]:
+            selector = selector + f'[role="{row["click_role"]}"]'
+        if row["click_alt"]:
+            selector = selector + f'[alt="{row["click_alt"]}"]'
+        if row["click_testid"]:
+            selector = selector + f'[testid="{row["click_testid"]}"]'
+        if row["click_aria_label"]:
+            selector = selector + f'[aria="{row["click_aria_label"]}"]'
+        if row["click_title"]:
+            selector = selector + f'[title="{row["click_title"]}"]'
 
-            yield {
-                "dom_element": selector,
-                "count_dead_clicks": r["count_dead_clicks"],
-                "count_rage_clicks": r["count_rage_clicks"],
-            }
+        return selector
 
-    return list(_iter_response())
+    return [
+        {
+            "dom_element": make_selector_name(row),
+            "count_dead_clicks": row["count_dead_clicks"],
+            "count_rage_clicks": row["count_rage_clicks"],
+        }
+        for row in response
+    ]
