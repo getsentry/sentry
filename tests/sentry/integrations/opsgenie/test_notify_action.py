@@ -57,7 +57,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             json={},
-            status=200,
+            status=202,
         )
 
         results[0].callback(event, futures=[])
@@ -133,7 +133,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             json={},
-            status=200,
+            status=202,
         )
 
         results[0].callback(event, futures=[])
