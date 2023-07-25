@@ -47,7 +47,7 @@ export const useSpanSamples = (options: Options) => {
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
