@@ -215,3 +215,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
         SentryAppAvatar.objects.filter(sentry_app=self).delete()
         return super().delete()
+
+    def _get_redis_key(self):
+        return f"sentry-app-error:{self.id}"
