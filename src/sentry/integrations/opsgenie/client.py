@@ -92,7 +92,17 @@ class OpsgenieClient(IntegrationProxyClient):
             event = data
             payload = self._get_issue_alert_payload(data, rules, event, group)
         else:
-            # this is for metric alerts, which will be in the next PR
-            pass
-        headers = {"Authorization": "GenieKey " + self.integration_key}
-        return self.post("/alerts", data=payload, headers=headers)
+            # if we're acknowledging the alert
+            if data.get("identifier"):
+                alias = data["identifier"]
+                resp = self.post(
+                    f"/alerts/{alias}/acknowledge",
+                    data={},
+                    params={"identifierType": "alias"},
+                    headers=headers,
+                )
+                return resp
+            # this is a metric alert
+            payload = data
+        resp = self.post("/alerts", data=payload, headers=headers)
+        return resp
