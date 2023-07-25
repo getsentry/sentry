@@ -20,11 +20,94 @@ from sentry.integrations.discord.message_builder.base.flags import DiscordMessag
 from sentry.testutils.cases import TestCase
 
 
-class TestBaseDiscordMessageBuilder(TestCase):
+class TestDiscordMessageBuilder(TestCase):
     def test_empty(self):
         message = DiscordMessageBuilder()
         result = message.build()
         assert result == {}
+
+    def test_some(self):
+        flags = DiscordMessageFlags().set_ephemeral()
+        message = DiscordMessageBuilder(
+            content="message content",
+            flags=flags,
+        )
+        result = message.build()
+        assert result == {
+            "content": "message content",
+            "flags": 1 << 6,
+        }
+
+    def test_all(self):
+        embed = DiscordMessageEmbed(
+            title="Title",
+            description="description",
+            url="https://sentry.io",
+            color=LEVEL_TO_COLOR["warning"],
+        )
+        other_embed = DiscordMessageEmbed(
+            title="Other title",
+            description="other description",
+            color=LEVEL_TO_COLOR["info"],
+        )
+        button = DiscordButton(
+            style=DiscordButtonStyle.PRIMARY,
+            custom_id="test_button",
+            label="button label",
+        )
+        other_button = DiscordButton(
+            style=DiscordButtonStyle.DANGER,
+            custom_id="danger_button",
+            label="delete",
+        )
+        component = DiscordActionRow([button, other_button])
+        flags = DiscordMessageFlags().set_ephemeral()
+
+        message = DiscordMessageBuilder(
+            content="message content",
+            embeds=[embed, other_embed],
+            components=[component],
+            flags=flags,
+        )
+        result = message.build()
+        assert result == {
+            "content": "message content",
+            "embeds": [
+                {
+                    "title": "Title",
+                    "description": "description",
+                    "url": "https://sentry.io",
+                    "color": LEVEL_TO_COLOR["warning"],
+                },
+                {
+                    "title": "Other title",
+                    "description": "other description",
+                    "color": LEVEL_TO_COLOR["info"],
+                },
+            ],
+            "components": [
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "style": DiscordButtonStyle.PRIMARY,
+                            "custom_id": "test_button",
+                            "label": "button label",
+                            "disabled": False,
+                        },
+                        {
+                            "type": 2,
+                            "style": DiscordButtonStyle.DANGER,
+                            "custom_id": "danger_button",
+                            "label": "delete",
+                            "disabled": False,
+                        },
+                    ],
+                }
+            ],
+            "flags": 1 << 6,
+        }
 
 
 class TestDiscordMessageFlags(TestCase):
@@ -60,7 +143,7 @@ class TestDiscordMessageFlags(TestCase):
 
 
 class TestDiscordButton(TestCase):
-    def test_some_fields(self):
+    def test_some(self):
         button = DiscordButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
@@ -75,7 +158,7 @@ class TestDiscordButton(TestCase):
             "disabled": False,
         }
 
-    def test_all_fields(self):
+    def test_all(self):
         button = DiscordButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
@@ -150,7 +233,7 @@ class TestDiscordMessageEmbed(TestCase):
         result = embed.build()
         assert result == {}
 
-    def test_some_fields(self):
+    def test_some(self):
         embed = DiscordMessageEmbed(
             title="Title",
             url="https://sentry.io",
