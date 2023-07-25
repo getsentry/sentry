@@ -16,15 +16,15 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.query import in_iexact
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import User
 
 
 class UserEmailManager(BaseManager):
-    def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
+    def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
         emails_by_user = defaultdict(set)
@@ -40,22 +40,6 @@ class UserEmailManager(BaseManager):
     def get_primary_email(self, user: User) -> UserEmail:
         user_email, _ = self.get_or_create(user_id=user.id, email=user.email)
         return user_email
-
-    def get_user_ids_by_emails(
-        self, emails: Iterable[str], organization: Organization
-    ) -> Mapping[str, User]:
-        if not emails:
-            return {}
-
-        return {
-            ue.email: ue.user
-            for ue in self.get_for_organization(organization)
-            .filter(
-                in_iexact("email", emails),
-                is_verified=True,
-            )
-            .select_related("user")
-        }
 
 
 @control_silo_only_model

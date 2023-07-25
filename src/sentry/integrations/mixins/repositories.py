@@ -112,7 +112,7 @@ class RepositoryMixin:
             integration_id=self.model.id,
         ).update(status=ObjectStatus.ACTIVE)
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         raise NotImplementedError
 
     def get_codeowner_file(

@@ -914,6 +914,8 @@ register(
     "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to disable misbehaving use case IDs
+register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
@@ -1004,7 +1006,7 @@ register(
 
 register(
     "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # per-organization limits on the number of timeseries that can be observed in

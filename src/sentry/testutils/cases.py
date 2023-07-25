@@ -1673,7 +1673,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[int] | int,
+        value: List[float] | float,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,

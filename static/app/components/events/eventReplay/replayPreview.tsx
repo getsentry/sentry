@@ -17,6 +17,7 @@ import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
@@ -100,7 +101,7 @@ function ReplayPreview({orgSlug, replaySlug, event, onClickOpenReplay}: Props) {
   }
 
   const fullReplayUrl = {
-    pathname: `/replays/${replayId}/`,
+    pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',

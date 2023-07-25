@@ -6,7 +6,6 @@ import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {ReplayFrame} from 'sentry/utils/replays/types';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
   const {
@@ -19,7 +18,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   const {setActiveTab} = useActiveReplayTab();
 
   const mouseEnterCallback = useRef<{
-    id: Crumb | NetworkSpan | ReplayFrame | null;
+    id: Crumb | ReplayFrame | null;
     timeoutId: NodeJS.Timeout | null;
   }>({
     id: null,
@@ -27,7 +26,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   });
 
   const handleMouseEnter = useCallback(
-    (item: Crumb | NetworkSpan | ReplayFrame) => {
+    (item: Crumb | ReplayFrame) => {
       // this debounces the mouseEnter callback in unison with mouseLeave
       // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
       // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
@@ -56,7 +55,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleMouseLeave = useCallback(
-    (item: Crumb | NetworkSpan | ReplayFrame) => {
+    (item: Crumb | ReplayFrame) => {
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
       if (mouseEnterCallback.current.id === item) {
         if (mouseEnterCallback.current.timeoutId) {
@@ -78,7 +77,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleClick = useCallback(
-    (crumb: Crumb | NetworkSpan | ReplayFrame) => {
+    (crumb: Crumb | ReplayFrame) => {
       if ('offsetMs' in crumb) {
         const frame = crumb; // Finding `offsetMs` means we have a frame, not a crumb or span
 

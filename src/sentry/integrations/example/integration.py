@@ -16,6 +16,7 @@ from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveS
 from sentry.mediators.plugins import Migrator
 from sentry.models import ExternalIssue, Integration, Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -197,7 +198,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        Migrator.run(integration=integration, organization=organization)
+        Migrator.run(integration=serialize_integration(integration), organization=organization)
 
     def build_integration(self, state):
         return {"external_id": state["name"]}
