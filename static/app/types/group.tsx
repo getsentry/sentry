@@ -329,6 +329,16 @@ interface GroupActivityMarkReviewed extends GroupActivityBase {
 
 interface GroupActivityRegression extends GroupActivityBase {
   data: {
+    /**
+     * True if the project is using semver to decide if the event is a regression.
+     * Available when the issue was resolved in a release.
+     */
+    follows_semver?: boolean;
+    /**
+     * The version that the issue was previously resolved in.
+     * Available when the issue was resolved in a release.
+     */
+    resolved_in_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_REGRESSION;
