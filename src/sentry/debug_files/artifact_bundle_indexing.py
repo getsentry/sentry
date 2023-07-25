@@ -36,8 +36,8 @@ FLAT_FILE_INDEXING_CACHE_TIMEOUT = 600
 def mark_bundle_for_flat_file_indexing(
     artifact_bundle: ArtifactBundle,
     project_ids: List[int],
-    release: str | None,
-    dist: str | None,
+    release: Optional[release],
+    dist: Optional[str],
 ):
     identifiers = []
 
@@ -67,7 +67,7 @@ def mark_bundle_for_flat_file_indexing(
                 artifact_bundle=artifact_bundle,
                 defaults={
                     "indexing_state": ArtifactBundleIndexingState.NOT_INDEXED.value,
-                    "date_added": timezone.now,
+                    "date_added": timezone.now(),
                 },
             )
 
