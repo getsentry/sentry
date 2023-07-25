@@ -33,16 +33,18 @@ def mapper():
 @pytest.mark.parametrize(
     ["obfuscated", "expected"],
     [
+        # invalid signatures
         ("", ""),
-        ("()", "()"),
-        ("([I)", "(int[])"),
-        ("(III)", "(int, int, int)"),
-        ("([Ljava/lang/String;)", "(java.lang.String[])"),
-        ("([[J)", "(long[][])"),
+        ("()", ""),
+        # valid signatures
+        ("()V", "()"),
+        ("([I)V", "(int[])"),
+        ("(III)V", "(int, int, int)"),
+        ("([Ljava/lang/String;)V", "(java.lang.String[])"),
+        ("([[J)V", "(long[][])"),
         ("(I)I", "(int): int"),
         ("([B)V", "(byte[])"),
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):
-    result = deobfuscate_signature(mapper, obfuscated)
-    assert result == expected
+    assert deobfuscate_signature(mapper, obfuscated) == expected
