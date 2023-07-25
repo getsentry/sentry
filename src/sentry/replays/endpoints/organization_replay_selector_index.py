@@ -95,7 +95,7 @@ def query_selector_collection(
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
-    organization: Optional[Organization] = None,
+    organization: Organization,
 ) -> dict:
     """Query aggregated replay collection."""
     if organization:
@@ -117,7 +117,7 @@ def query_selector_collection(
 
 
 def query_selector_dataset(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     pagination: Optional[Paginators],
@@ -126,7 +126,6 @@ def query_selector_dataset(
 ):
     query_options = {}
 
-    # Instance requests do not paginate.
     if pagination:
         query_options["limit"] = Limit(pagination.limit)
         query_options["offset"] = Offset(pagination.offset)
