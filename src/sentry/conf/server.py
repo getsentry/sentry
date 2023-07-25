@@ -1354,7 +1354,7 @@ SENTRY_FEATURES = {
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
     # Allow disabling integrations when broken is detected
-    "organization:disable-on-broken": False,
+    "organizations:slack-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit

@@ -69,10 +69,12 @@ class SlackClient(IntegrationProxyClient):
         prepared_request.headers["Authorization"] = f"Bearer {token}"
         return prepared_request
 
-    def is_response_fatal(self, response: BaseApiResponse) -> bool:
-        if not response.json.get("ok"):
-            if "account_inactive" == response.json.get("error", ""):
+    def is_response_fatal(self, response: Response) -> bool:
+        resp_json = response.json()
+        if not resp_json.get("ok"):
+            if "account_inactive" == resp_json.get("error", ""):
                 return True
+            return False
 
     def track_response_data(
         self,
@@ -84,7 +86,6 @@ class SlackClient(IntegrationProxyClient):
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
         span = span or Span()
-        #   print("track_response_data")
         try:
             span.set_http_status(int(code))
         except ValueError:
