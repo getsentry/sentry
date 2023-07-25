@@ -27,8 +27,8 @@ export type ProguardMappingAssociation = {
 };
 
 export type AssociatedMapping = {
-  mapping: DebugFile | undefined;
-  releaseAssociation: DebugIdBundleAssociation[] | undefined;
+  mapping?: DebugFile;
+  releaseAssociation?: DebugIdBundleAssociation[];
 };
 
 function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {

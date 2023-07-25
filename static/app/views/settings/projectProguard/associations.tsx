@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Hovercard} from 'sentry/components/hovercard';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tn} from 'sentry/locale';
@@ -30,9 +32,9 @@ function ProguardAssociationsBody({
         borderless: true,
       }}
     >
-      <NumericList>
+      <List symbol="bullet">
         {associations.releases.map(release => (
-          <li key={release}>
+          <ListItem key={release}>
             <ReleaseContent>
               <ReleaseLink
                 to={`/organizations/${organization.slug}/releases/${release}/`}
@@ -46,9 +48,9 @@ function ProguardAssociationsBody({
                 iconSize="sm"
               />
             </ReleaseContent>
-          </li>
+          </ListItem>
         ))}
-      </NumericList>
+      </List>
     </ClippedBoxWithoutPadding>
   );
 }
@@ -100,13 +102,6 @@ const ReleaseContent = styled('div')`
 
 const ReleaseLink = styled(Link)`
   overflow: hidden;
-`;
-
-const NumericList = styled('ol')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  margin: 0;
 `;
 
 const WiderHovercard = styled(Hovercard)`
