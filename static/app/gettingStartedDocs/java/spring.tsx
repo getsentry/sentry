@@ -7,19 +7,23 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  "There are two variants of Sentry available for Spring. If you're using Spring 5, use [sentrySpringLink:sentry-spring]. If you're using Spring 6, use [sentrySpringJakartaLink:sentry-spring-jakarta] instead. Sentry's integration with Spring supports Spring Framework 5.1.2 and above to report unhandled exceptions and optional user information. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
-  {
-    sentrySpringLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring" />
-    ),
-    sentrySpringJakartaLink: (
-      <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-jakarta" />
-    ),
-    legacyIntegrationLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/legacy/" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      "There are two variants of Sentry available for Spring. If you're using Spring 5, use [sentrySpringLink:sentry-spring]. If you're using Spring 6, use [sentrySpringJakartaLink:sentry-spring-jakarta] instead. Sentry's integration with Spring supports Spring Framework 5.1.2 and above to report unhandled exceptions and optional user information. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
+      {
+        sentrySpringLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring" />
+        ),
+        sentrySpringJakartaLink: (
+          <ExternalLink href="https://github.com/getsentry/sentry-java/tree/master/sentry-spring-jakarta" />
+        ),
+        legacyIntegrationLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring/legacy/" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({

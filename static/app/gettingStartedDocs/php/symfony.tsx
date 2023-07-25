@@ -7,9 +7,13 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
-  {code: <code />}
+const introduction = (
+  <p>
+    {tct(
+      'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
+      {code: <code />}
+    )}
+  </p>
 );
 
 export const steps = ({

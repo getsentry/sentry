@@ -115,7 +115,7 @@ describe('ProjectInstallPlatform', function () {
     );
 
     expect(
-      await screen.findByText(/We cannot provide instructions for 'other' projects/)
+      await screen.findByText(/We cannot provide instructions for 'Other' projects/)
     ).toBeInTheDocument();
   });
 
