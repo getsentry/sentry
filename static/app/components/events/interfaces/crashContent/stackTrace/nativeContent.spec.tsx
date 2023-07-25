@@ -67,7 +67,7 @@ describe('with stacktrace improvements feature flag enabled', function () {
     expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
   });
 
-  it('toggles the show/hide button when clicked', async function () {
+  it('toggles the show/hide button text when clicked', async function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: true};
 
@@ -84,6 +84,30 @@ describe('with stacktrace improvements feature flag enabled', function () {
     await userEvent.click(screen.getByText('Show 3 more frames'));
 
     expect(screen.getByText('Hide 3 more frames')).toBeInTheDocument();
+  });
+
+  it('shows/hides frames when toggle button clicked', async function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+    dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
+    dataFrames[2] = {...dataFrames[2], function: 'non-in-app-frame'};
+    dataFrames[3] = {...dataFrames[3], function: 'non-in-app-frame'};
+    dataFrames[4] = {...dataFrames[4], function: 'non-in-app-frame'};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      organization,
+      data: newData,
+      includeSystemFrames: false,
+    });
+    await userEvent.click(screen.getByText('Show 3 more frames'));
+    expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
+    await userEvent.click(screen.getByText('Hide 3 more frames'));
+    expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
   });
 
   it('does not display a toggle button when there is only one non-inapp frame', function () {
