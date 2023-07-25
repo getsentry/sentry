@@ -96,7 +96,7 @@ class UpdateGroupsTest(TestCase):
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
-        request.data = {"status": "unresolved"}
+        request.data = {"status": "unresolved", "substatus": "ongoing"}
         request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         search_fn = Mock()
@@ -107,6 +107,7 @@ class UpdateGroupsTest(TestCase):
         resolved_group.refresh_from_db()
 
         assert resolved_group.status == GroupStatus.UNRESOLVED
+        assert resolved_group.substatus == GroupSubStatus.ONGOING
         assert not send_robust.called
         assert send_unresolved.called
 
@@ -118,7 +119,7 @@ class UpdateGroupsTest(TestCase):
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
-        request.data = {"status": "resolved"}
+        request.data = {"status": "resolved", "substatus": None}
         request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         search_fn = Mock()
