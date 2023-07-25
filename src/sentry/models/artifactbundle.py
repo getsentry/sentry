@@ -193,8 +193,8 @@ class ArtifactBundleFlatFileIndex(Model):
 class FlatFileIndexState(Model):
     __include_in_export__ = False
 
-    flat_file_index_id = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
-    artifact_bundle_id = FlexibleForeignKey("sentry.ArtifactBundle")
+    flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
     date_added = models.DateTimeField(default=timezone.now)
 
