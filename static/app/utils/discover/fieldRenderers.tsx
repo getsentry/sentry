@@ -35,7 +35,11 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
@@ -244,7 +248,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
 
       return (
         <NumberContainer>
-          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
+          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
         </NumberContainer>
       );
     },
