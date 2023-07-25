@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {Footer} from 'sentry/components/onboarding/footer';
 import {
   migratedDocs,
   SdkDocumentation,
@@ -121,7 +120,7 @@ export function SetUpGeneralSdkDoc({
   );
 }
 
-export function ProjectInstallPlatform({location, params, route, router}: Props) {
+export function ProjectInstallPlatform({location, params, router}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
@@ -201,10 +200,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     projectAlertRulesIsLoading,
     projectAlertRulesIsError,
   ]);
-
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
-  );
 
   const projectDeletionOnBackClick = !!organization?.features.includes(
     'onboarding-project-deletion-on-back-click'
@@ -420,38 +415,28 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Feature>
         )}
 
-        {isGettingStarted && heartbeatFooter ? (
-          <Footer
-            projectSlug={params.projectId}
-            projectId={project?.id}
-            route={route}
-            router={router}
-            location={location}
-          />
-        ) : (
-          <StyledButtonBar gap={1}>
-            <Button
-              priority="primary"
-              busy={loadingProjects}
-              to={{
-                pathname: issueStreamLink,
-                query: project?.id,
-                hash: '#welcome',
-              }}
-            >
-              {t('Take me to Issues')}
-            </Button>
-            <Button
-              busy={loadingProjects}
-              to={{
-                pathname: performanceOverviewLink,
-                query: project?.id,
-              }}
-            >
-              {t('Take me to Performance')}
-            </Button>
-          </StyledButtonBar>
-        )}
+        <StyledButtonBar gap={1}>
+          <Button
+            priority="primary"
+            busy={loadingProjects}
+            to={{
+              pathname: issueStreamLink,
+              query: project?.id,
+              hash: '#welcome',
+            }}
+          >
+            {t('Take me to Issues')}
+          </Button>
+          <Button
+            busy={loadingProjects}
+            to={{
+              pathname: performanceOverviewLink,
+              query: project?.id,
+            }}
+          >
+            {t('Take me to Performance')}
+          </Button>
+        </StyledButtonBar>
       </div>
     </Fragment>
   );
