@@ -28,7 +28,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   EventsStats,
-  EventsStatsData,
   MultiSeriesEventsStats,
   Organization,
   Project,

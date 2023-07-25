@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
