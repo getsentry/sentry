@@ -70,14 +70,15 @@ class ReplayDetailsResponse(TypedDict, total=False):
 
 
 def process_raw_response(
-    response: List[Dict[str, Any]], fields: List[str]
+    response: List[Dict[str, Any]],
+    fields: List[str],
 ) -> List[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
-    fields: Optional[List[str]],
+    fields: List[str],
     response: Generator[ReplayDetailsResponse, None, None],
 ) -> Iterator[ReplayDetailsResponse]:
 
@@ -244,7 +245,9 @@ CLICK_FIELD_MAP = {
 }
 
 
-def extract_click_fields(item: MutableMapping[str, Any]) -> List[Dict[str, Any]]:
+def extract_click_fields(
+    item: MutableMapping[str, Any],
+) -> List[Dict[str, Any]]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """
