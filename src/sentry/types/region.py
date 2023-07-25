@@ -192,7 +192,13 @@ def get_region_by_name(name: str) -> Region:
     try:
         return global_regions.by_name[name]
     except KeyError as e:
-        raise RegionResolutionError(f"No region with name: {name!r}") from e
+        region_names = [
+            r.name for r in global_regions.regions if r.category == RegionCategory.MULTI_TENANT
+        ]
+        raise RegionResolutionError(
+            f"No region with name: {name!r} "
+            f"(expected one of {region_names!r} or a single-tenant name)"
+        ) from e
 
 
 def is_region_name(name: str) -> bool:
