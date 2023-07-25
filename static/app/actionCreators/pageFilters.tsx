@@ -188,7 +188,11 @@ export function initializeUrlState({
     pageFilters.environments = parsed.environment || [];
   }
 
-  const storedPageFilters = skipLoadLastUsed ? null : getPageFilterStorage(orgSlug);
+  const isStarfishPage = router.location.pathname.startsWith('/starfish');
+  console.log(isStarfishPage);
+  const storedPageFilters = skipLoadLastUsed
+    ? null
+    : getPageFilterStorage(orgSlug, isStarfishPage);
   let shouldUsePinnedDatetime = false;
 
   // We may want to restore some page filters from local storage. In the new
@@ -451,7 +455,8 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
     return;
   }
 
-  const storedPageFilters = getPageFilterStorage(organization.slug);
+  const isStarfishPage = router.location.pathname.startsWith('/starfish');
+  const storedPageFilters = getPageFilterStorage(organization.slug, isStarfishPage);
 
   // If we don't have any stored page filters then we do not check desynced state
   if (!storedPageFilters) {

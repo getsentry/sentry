@@ -6,6 +6,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
 
 import {getStateFromQuery} from './parse';
+import {STARFISH_PROJECT_KEY} from 'sentry/views/starfish/utils/constants';
 
 function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;
@@ -96,7 +97,7 @@ export function setPageFiltersStorage(
 /**
  * Retrieves the page filters from local storage
  */
-export function getPageFilterStorage(orgSlug: string) {
+export function getPageFilterStorage(orgSlug: string, isStarfishPage?: boolean) {
   const localStorageKey = makeLocalStorageKey(orgSlug);
   const value = localStorage.getItem(localStorageKey);
 
@@ -117,10 +118,11 @@ export function getPageFilterStorage(orgSlug: string) {
   }
 
   const {projects, environments, start, end, period, utc, pinnedFilters} = decoded;
+  const starfishProject = JSON.parse(localStorage.getItem(STARFISH_PROJECT_KEY) ?? '');
 
   const state = getStateFromQuery(
     {
-      project: projects.map(String),
+      project: isStarfishPage ? [new String(starfishProject)] : projects.map(String),
       environment: environments,
       start,
       end,
@@ -129,6 +131,8 @@ export function getPageFilterStorage(orgSlug: string) {
     },
     {allowAbsoluteDatetime: true}
   );
+
+  console.dir(state);
 
   return {state, pinnedFilters: new Set(pinnedFilters)};
 }

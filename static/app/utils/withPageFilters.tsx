@@ -21,7 +21,7 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
     const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
 
     const selectionProps = {
-      selection,
+      selection: {...selection},
       isGlobalSelectionReady,
     };
 

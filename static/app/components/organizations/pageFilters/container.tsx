@@ -86,7 +86,9 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
-  const doInitialization = () =>
+  const doInitialization = () => {
+    console.log('do init');
+    console.dir(router);
     initializeUrlState({
       organization,
       queryParams: location.query,
@@ -101,6 +103,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       showAbsolute,
       skipInitializeUrlParams,
     });
+  };
 
   // Initializes GlobalSelectionHeader
   //

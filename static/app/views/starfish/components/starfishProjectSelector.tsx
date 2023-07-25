@@ -1,5 +1,3 @@
-import {useEffect} from 'react';
-
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
@@ -16,12 +14,9 @@ export function StarfishProjectSelector() {
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
+  console.dir(router);
 
   const [selectedProjectId, setSelectedProjectId] = useStarfishProject();
-
-  useEffect(() => {
-    router.push({...location, query: {...location.query, project: selectedProjectId}});
-  }, [selectedProjectId, location, router]);
 
   if (!projectsLoaded) {
     return (
@@ -51,7 +46,10 @@ export function StarfishProjectSelector() {
     projectOptions.find(option => option.value === selectedProjectId) ??
     projectOptions[0];
 
-  const handleProjectChange = option => setSelectedProjectId(option.value);
+  const handleProjectChange = option => {
+    setSelectedProjectId(option.value);
+    router.push({...location, query: {...location.query, project: option.value}});
+  };
 
   return (
     <CompactSelect

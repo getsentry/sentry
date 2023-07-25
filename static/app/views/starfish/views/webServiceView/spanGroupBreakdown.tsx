@@ -67,7 +67,10 @@ export function SpanGroupBreakdown({
   const dataAsPercentages = cloneDeep(visibleSeries);
   const numDataPoints = data[0]?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
-    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    const totalTimeAtIndex = data.reduce(
+      (acc, datum) => acc + datum.data?.[i]?.value ?? 0,
+      0
+    );
     dataAsPercentages.forEach(segment => {
       const clone = {...segment.data[i]};
       clone.value = totalTimeAtIndex === 0 ? 0 : clone.value / totalTimeAtIndex;
