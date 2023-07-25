@@ -41,6 +41,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
@@ -398,10 +399,12 @@ class DifAssembleEndpoint(ProjectEndpoint):
         }
 
         try:
-            files = request.json_body
+            files = json.loads(request.body)
             jsonschema.validate(files, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
+        except Exception:
+            return Response({"error": "Invalid json body"}, status=400)
 
         file_response = {}
 

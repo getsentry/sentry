@@ -16,6 +16,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.utils import json
 
 
 class OrganizationArtifactBundleAssembleMixin:
@@ -59,10 +60,12 @@ class OrganizationArtifactBundleAssembleEndpoint(
         }
 
         try:
-            data = request.json_body
+            data = json.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
+        except Exception:
+            return Response({"error": "Invalid json body"}, status=400)
 
         projects = set(data.get("projects", []))
         if len(projects) == 0:

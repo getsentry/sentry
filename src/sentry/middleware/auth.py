@@ -112,7 +112,7 @@ class HybridCloudAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: Request):
         from sentry.web.frontend.accounts import expired
 
-        auth_result = auth_service.authenticate(request=authentication_request_from(request))
+        auth_result = auth_service.authenticate(request=authentication_request_from(request, False))
         request.user_from_signed_request = auth_result.user_from_signed_request
 
         # Simulate accessing attributes on the session to trigger side effects related to doing so.
