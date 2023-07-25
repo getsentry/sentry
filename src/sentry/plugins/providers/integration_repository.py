@@ -171,6 +171,8 @@ class IntegrationRepositoryProvider:
                     )
 
                 raise RepoExistsError
+            else:
+                repo = new_repository
 
         return result, repo
 
