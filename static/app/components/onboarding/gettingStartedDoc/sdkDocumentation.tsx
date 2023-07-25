@@ -37,6 +37,7 @@ export function SdkDocumentation({
     default: React.ComponentType<ModuleProps>;
   }>(null);
 
+  // TODO: This will be removed once we no longer rely on sentry-docs to load platform icons
   const platformPath =
     platform?.type === 'framework'
       ? platform.language === 'minidump'
@@ -58,6 +59,12 @@ export function SdkDocumentation({
         : platform?.id === 'dart'
         ? `dart/dart`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : platform?.id === 'python-celery'
+      ? `python/celery`
+      : platform?.id === 'python-rq'
+      ? `python/rq`
+      : platform?.id === 'python-pymongo'
+      ? `python/mongo`
       : `${platform?.language}/${platform?.id}`;
 
   const {
