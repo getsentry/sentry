@@ -57,6 +57,7 @@ type LoadingStatus = {
 
 // Can hold additional data from the root an events stat object (eg. start, end, order, isMetricsData).
 interface AdditionalSeriesInfo {
+  isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
 }
 
@@ -483,7 +484,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   }
 
   processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
-    const {data, isMetricsData, totals, meta} = response;
+    const {data, isMetricsData, totals, meta, isExtrapolatedData} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
@@ -540,6 +541,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       previousData,
       timeAggregatedData,
       timeframe,
+      isExtrapolatedData,
     };
 
     return processedData;
@@ -642,10 +644,14 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         timeAggregatedData,
         timeframe,
         isMetricsData,
+        isExtrapolatedData,
       } = this.processData(timeseriesData);
 
       const seriesAdditionalInfo = {
-        [this.props.currentSeriesNames?.[0] ?? 'current']: {isMetricsData},
+        [this.props.currentSeriesNames?.[0] ?? 'current']: {
+          isMetricsData,
+          isExtrapolatedData,
+        },
       };
 
       return children({

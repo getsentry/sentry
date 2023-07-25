@@ -321,11 +321,27 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       thresholdType,
     } = this.props;
 
-    const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
+    const extrapolatedAreaStyle = {
+      color: {
+        repeat: 'repeat',
+        image:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==',
+        rotation: 0.785,
+        scaleX: 0.5,
+      },
+      opacity: 1.0,
+    };
+
+    const dataWithoutRecentBucket_temp: AreaChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
         data: eventData.slice(0, -1),
       })
+    );
+
+    const dataWithoutRecentBucket = dataWithoutRecentBucket_temp.map(d =>
+      // @ts-expect-error adsa
+      d.isExtrapolatedData ? {...d, areaStyle: extrapolatedAreaStyle} : d
     );
 
     const comparisonDataWithoutRecentBucket = comparisonData?.map(

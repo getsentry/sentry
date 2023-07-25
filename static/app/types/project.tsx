@@ -54,7 +54,6 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
-  sampleRate?: number;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;

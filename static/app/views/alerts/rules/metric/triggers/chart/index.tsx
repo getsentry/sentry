@@ -260,6 +260,7 @@ class TriggersChart extends PureComponent<Props, State> {
     isQueryValid,
     errored,
     orgFeatures,
+    seriesAdditionalInfo,
   }: {
     isLoading: boolean;
     isQueryValid: boolean;
@@ -271,6 +272,7 @@ class TriggersChart extends PureComponent<Props, State> {
     errorMessage?: string;
     errored?: boolean;
     minutesThresholdToDisplaySeconds?: number;
+    seriesAdditionalInfo?: Record<string, any>;
   }) {
     const {
       triggers,
@@ -289,6 +291,16 @@ class TriggersChart extends PureComponent<Props, State> {
       ? errored || errorMessage
       : errored || errorMessage || !isQueryValid;
 
+    const newTSD = timeseriesData.map(series => {
+      if (seriesAdditionalInfo && seriesAdditionalInfo[series.seriesName]) {
+        return {
+          ...series,
+          isExtrapolatedData: seriesAdditionalInfo[series.seriesName].isExtrapolatedData,
+        };
+      }
+      return series;
+    });
+
     return (
       <Fragment>
         {header}
@@ -304,9 +316,9 @@ class TriggersChart extends PureComponent<Props, State> {
         ) : (
           <ThresholdsChart
             period={statsPeriod}
-            minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
-            maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
-            data={timeseriesData}
+            minValue={minBy(newTSD[0]?.data, ({value}) => value)?.value}
+            maxValue={maxBy(newTSD[0]?.data, ({value}) => value)?.value}
+            data={newTSD}
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
@@ -395,7 +407,7 @@ class TriggersChart extends PureComponent<Props, State> {
           currentSeriesNames={[aggregate]}
           partial={false}
           queryExtras={queryExtras}
-          sampleRate={projects[0]?.sampleRate}
+          sampleRate={1.0}
         >
           {({
             loading,
@@ -404,6 +416,7 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
+            seriesAdditionalInfo,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -426,6 +439,7 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
+              seriesAdditionalInfo,
             });
           }}
         </OnDemandMetricRequest>

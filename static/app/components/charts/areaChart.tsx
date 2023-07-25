@@ -35,6 +35,7 @@ export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
             color: colors?.[i],
             opacity: 1.0,
           },
+
           animation: false,
           animationThreshold: 1,
           animationDuration: 0,

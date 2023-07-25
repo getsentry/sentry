@@ -15,7 +15,7 @@ export type Series = {
   data: SeriesDataUnit[];
   seriesName: string;
   areaStyle?: {
-    color: string;
+    color: string | any;
     opacity: number;
   };
   color?: string;
