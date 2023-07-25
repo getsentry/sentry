@@ -45,6 +45,8 @@ class TransformTestCase(TestCase):
                 scope_identifier=self.user.id,
             ),
         ]
+        for ns in self.notification_settings:
+            ns.save()
 
         with assume_test_silo_mode(SiloMode.REGION):
             self.user_actor = RpcActor.from_orm_user(self.user)
