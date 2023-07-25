@@ -33,4 +33,12 @@ class DiscordMessageEmbed:
 
     def build(self) -> dict[str, object]:
         attributes = vars(self).items()
-        return {k: v for k, v in attributes if v}
+        embed = {k: v for k, v in attributes if v is not None}
+
+        if self.footer is not None:
+            embed["footer"] = self.footer.build()
+
+        if self.fields is not None:
+            embed["fields"] = [field.build() for field in self.fields]
+
+        return embed

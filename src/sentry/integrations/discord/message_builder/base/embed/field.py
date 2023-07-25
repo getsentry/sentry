@@ -9,4 +9,4 @@ class DiscordMessageEmbedField:
 
     def build(self) -> dict[str, str]:
         attributes = vars(self).items()
-        return {k: v for k, v in attributes if v}
+        return {k: v for k, v in attributes if v is not None}
