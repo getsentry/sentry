@@ -130,7 +130,7 @@ class SiloModeTestDecorator:
         def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
             return type(
                 name,
-                (test_class, _SiloModeTestCase),
+                (_SiloModeTestCase, test_class),
                 {
                     "silo_mode": silo_mode,
                     "regions": tuple(regions or _DEFAULT_TEST_REGIONS),
