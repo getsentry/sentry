@@ -76,8 +76,8 @@ def mark_bundle_for_flat_file_indexing(
 
 class FlatFileIdentifier(NamedTuple):
     project_id: int
-    release: str = NULL_STRING
-    dist: str = NULL_STRING
+    release: str
+    dist: str
 
     def is_indexing_by_release(self) -> bool:
         # An identifier is indexing by release if release is set.
@@ -173,7 +173,7 @@ class FlatFileIndex:
         bundles = [
             {
                 # NOTE: Symbolicator is using the `bundle_id` as the `?download=...`
-                # parameter is passes to the artifact-lookup API to download the
+                # parameter it passes to the artifact-lookup API to download the
                 # linked bundle from, so this has to match whatever download_id
                 # the artifact-lookup API accepts.
                 "bundle_id": f"artifact_bundle/{bundle.id}",
@@ -190,7 +190,7 @@ class FlatFileIndex:
         return json.dumps(json_idx)
 
     def merge_urls(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
-        bundle_index = self._update_bundles(bundle_meta)
+        bundle_index = self._add_or_update_bundle(bundle_meta)
         if bundle_index is None:
             return
 
@@ -198,14 +198,14 @@ class FlatFileIndex:
             self._add_sorted_entry(self._files_by_url, url, bundle_index)
 
     def merge_debug_ids(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
-        bundle_index = self._update_bundles(bundle_meta)
+        bundle_index = self._add_or_update_bundle(bundle_meta)
         if bundle_index is None:
             return
 
         for debug_id, _ in bundle_archive.get_all_debug_ids():
             self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
-    def _update_bundles(self, bundle_meta: BundleMeta) -> Optional[int]:
+    def _add_or_update_bundle(self, bundle_meta: BundleMeta) -> Optional[int]:
         index_and_bundle_meta = self._index_and_bundle_meta_for_id(bundle_meta.id)
         if index_and_bundle_meta is None:
             self._bundles.append(bundle_meta)

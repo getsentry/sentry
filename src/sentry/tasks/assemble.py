@@ -747,7 +747,9 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
     @sentry_sdk.tracing.trace
     def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
-        identifiers = mark_bundle_for_flat_file_indexing(artifact_bundle)
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, self.project_ids, self.release, self.dist
+        )
 
         bundle_meta = BundleMeta(
             id=artifact_bundle.id,

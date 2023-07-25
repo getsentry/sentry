@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
@@ -666,8 +667,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             dist=dist,
         )
 
-    @patch("sentry.tasks.assemble.index_artifact_bundle")
-    def test_bundle_flat_file_indexing(self, index_artifact_bundle):
+    def test_bundle_flat_file_indexing(self):
         release = "1.0"
         dist = "android"
 
@@ -688,16 +688,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 upload_as_artifact_bundle=True,
             )
 
-        artifact_bundle = ArtifactBundle.objects.get(
-            bundle_id="67429b2f-1d9e-43bb-a626-771a1e37555c"
+        flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name=release, dist_name=dist
         )
-
-        index_artifact_bundle.assert_called_with(
-            artifact_bundle_id=artifact_bundle.id,
-            project_id=self.project.id,
-            release=release,
-            dist=dist,
-        )
+        assert flat_file_index.load_flat_file_index() is not None
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
