@@ -21,6 +21,7 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -209,6 +210,7 @@ export default function EndpointOverview() {
                 disableXAxis
                 chartColors={[THROUGHPUT_COLOR]}
                 aggregateOutputFormat="rate"
+                rateUnit={RateUnits.PER_SECOND}
                 grid={{
                   left: '8px',
                   right: '0',

@@ -257,6 +257,7 @@ function SpanSummaryPage({params, location}: Props) {
                           isLineChart
                           definedAxisTicks={4}
                           aggregateOutputFormat="rate"
+                          rateUnit={RateUnits.PER_MINUTE}
                           tooltipFormatterOptions={{
                             valueFormatter: value => formatThroughput(value),
                           }}

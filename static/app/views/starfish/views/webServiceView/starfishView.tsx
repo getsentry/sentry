@@ -15,6 +15,7 @@ import {useTheme} from '@emotion/react';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -123,6 +124,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
                     bottom: '0',
                   }}
                   aggregateOutputFormat="rate"
+                  rateUnit={RateUnits.PER_SECOND}
                   definedAxisTicks={2}
                   stacked
                   isLineChart
