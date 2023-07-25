@@ -6,6 +6,8 @@ from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMappin
 
 from typing_extensions import TypedDict
 
+from sentry.replays.validators import VALID_FIELD_SET
+
 
 class DeviceResponseType(TypedDict, total=False):
     name: Optional[str]
@@ -65,15 +67,6 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
-
-
-def process_raw_response(
-    response: List[Dict[str, Any]],
-    fields: List[str],
-) -> List[ReplayDetailsResponse]:
-from typing import Any, Generator, Iterable, Iterator, MutableMapping
-
-from sentry.replays.validators import VALID_FIELD_SET
 
 
 def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
