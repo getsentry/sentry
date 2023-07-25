@@ -2370,7 +2370,7 @@ PROJECT_URLS = [
         name="sentry-api-0-project-profiling-transactions",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling//$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
         ProjectDynamicSamplingEndpoint.as_view(),
         name="sentry-api-0-project-dynamic-sampling",
     ),

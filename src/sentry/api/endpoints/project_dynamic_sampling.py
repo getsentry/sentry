@@ -43,7 +43,7 @@ class DynamicSamplingPermission(ProjectPermission):
 class ProjectDynamicSamplingEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
 
-    def get(self, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         try:
             sample_rate = get_guarded_blended_sample_rate(project.organization, project)
             return Response(
@@ -52,8 +52,11 @@ class ProjectDynamicSamplingEndpoint(ProjectEndpoint):
                 },
                 status=status.HTTP_200_OK,
             )
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response(
+                {"detail": "Unable to fetch project sample rate"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 @region_silo_endpoint
