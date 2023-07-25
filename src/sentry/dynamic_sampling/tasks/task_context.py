@@ -88,10 +88,18 @@ class TaskContext:
             "seconds": time.monotonic() - self.expiration_time + self.num_seconds,
         }
         if self.context_data is not None:
-            ret_val["taskData"] = {k: v.to_dict() for k, v in self.context_data.items()}
             # update the execution time for each function
             for name, state in self.context_data.items():
                 state.execution_time = self.timers.current(name)
+            ret_val["taskData"] = {k: v.to_dict() for k, v in self.context_data.items()}
+        # create entries for timer data without context data
+        for name in self.timers.timers.keys():
+            if name not in ret_val["taskData"]:
+                # timer with no state
+                timer = self.timers.get_timer(name)
+                ret_val["taskData"][name] = DynamicSamplingLogState(
+                    execution_time=timer.current()
+                ).to_dict()
         return ret_val
 
 
