@@ -4,7 +4,6 @@ import functools
 import inspect
 import re
 import sys
-import unittest.result
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -92,33 +91,42 @@ class SiloModeTestDecorator:
         is_acceptance_test = self._is_acceptance_test(test_class)
 
         def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
-            def run(
-                self: Any, result: unittest.result.TestResult | None = None
-            ) -> unittest.result.TestResult | None:
-                with override_settings(
-                    SILO_MODE=self.silo_mode,
-                    SINGLE_SERVER_SILO_MODE=self.is_acceptance_test,
-                    SENTRY_SUBNET_SECRET="secret",
-                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                ):
-                    with override_regions(self.regions):
-                        if self.silo_mode == SiloMode.REGION:
-                            with override_settings(SENTRY_REGION=self.regions[0].name):
-                                return super(test_class, self).run()  # type: ignore
-                        else:
-                            with override_settings(SENTRY_MONOLITH_REGION=self.regions[0].name):
-                                return super(test_class, self).run()  # type: ignore
+            final_regions = tuple(regions or _DEFAULT_TEST_REGIONS)
 
-            return type(
+            def decorate_with_context(callable: Callable[[...], Any]) -> Callable[[...], Any]:
+                def wrapper(*args, **kwds):
+                    with override_settings(
+                        SILO_MODE=silo_mode,
+                        SINGLE_SERVER_SILO_MODE=is_acceptance_test,
+                        SENTRY_SUBNET_SECRET="secret",
+                        SENTRY_CONTROL_ADDRESS="http://controlserver/",
+                    ):
+                        with override_regions(final_regions):
+                            if silo_mode == SiloMode.REGION:
+                                with override_settings(SENTRY_REGION=final_regions[0].name):
+                                    return callable(*args, **kwds)
+                            else:
+                                with override_settings(
+                                    SENTRY_MONOLITH_REGION=final_regions[0].name
+                                ):
+                                    return callable(*args, **kwds)
+
+                functools.update_wrapper(wrapper, callable)
+                return wrapper
+
+            new_type = type(
                 name,
                 (test_class,),
                 {
                     "silo_mode": silo_mode,
                     "regions": tuple(regions or _DEFAULT_TEST_REGIONS),
                     "is_acceptance_test": is_acceptance_test,
-                    "run": run,
+                    "_callSetUp": decorate_with_context(test_class._callSetUp),
+                    "_callTestMethod": decorate_with_context(test_class._callTestMethod),
                 },
             )
+
+            return new_type
 
         for silo_mode in self.silo_modes:
             silo_mode_name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
