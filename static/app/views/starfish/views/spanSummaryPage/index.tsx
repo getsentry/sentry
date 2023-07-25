@@ -234,7 +234,7 @@ function SpanSummaryPage({params, location}: Props) {
                             <DescriptionTitle>
                               {spanDescriptionCardTitle}
                             </DescriptionTitle>
-                            <SpanDescription spanMeta={span} />
+                            <SpanDescription span={span} />
                           </DescriptionContainer>
                         </DescriptionPanelBody>
                       </Panel>
