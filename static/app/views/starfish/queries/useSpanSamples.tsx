@@ -55,7 +55,9 @@ export const useSpanSamples = (options: Options) => {
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
 
-  const enabled = Boolean(groupId && transactionName && !isLoadingSeries);
+  const enabled = Boolean(
+    groupId && transactionName && !isLoadingSeries && pageFilter.isReady
+  );
 
   const result = useQuery<SpanSample[]>({
     queryKey: [
@@ -75,6 +77,7 @@ export const useSpanSamples = (options: Options) => {
           firstBound: maxYValue * (1 / 3),
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
+          project: pageFilter.selection.projects,
           query: query.formatString(),
         })}`
       );
