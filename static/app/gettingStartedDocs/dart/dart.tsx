@@ -37,7 +37,7 @@ dependencies:
     description: (
       <p>
         {tct('Import [sentry: sentry] and initialize it', {
-          sentryFlutter: <code />,
+          sentry: <code />,
         })}
       </p>
     ),
