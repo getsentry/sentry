@@ -6,12 +6,13 @@ from django.utils import timezone
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.silo import SiloMode
 from sentry.tasks.check_auth import AUTH_CHECK_INTERVAL, check_auth, check_auth_identity
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class CheckAuthTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):
@@ -20,9 +21,12 @@ class CheckAuthTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        OrganizationMember.objects.create(
-            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMember.objects.create(
+                user_id=user.id,
+                organization=organization,
+                flags=OrganizationMember.flags["sso:linked"],
+            )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_synced=timezone.now() - timedelta(days=1)
@@ -39,7 +43,7 @@ class CheckAuthTest(TestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class CheckAuthIdentityTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):
@@ -48,9 +52,12 @@ class CheckAuthIdentityTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        om = OrganizationMember.objects.create(
-            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.create(
+                user_id=user.id,
+                organization=organization,
+                flags=OrganizationMember.flags["sso:linked"],
+            )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_verified=timezone.now() - timedelta(days=1)
@@ -63,7 +70,8 @@ class CheckAuthIdentityTest(TestCase):
             mock_refresh_identity.assert_called_once_with(ai)
 
         # because of an error, it should become inactive
-        om = OrganizationMember.objects.get(id=om.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            om = OrganizationMember.objects.get(id=om.id)
         assert not om.flags["sso:linked"]
         assert om.flags["sso:invalid"]
 
