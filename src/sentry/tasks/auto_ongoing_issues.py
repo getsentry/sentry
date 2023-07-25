@@ -131,7 +131,7 @@ def schedule_auto_transition_to_ongoing() -> None:
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
-    first_seen_lte: int,  # TODO(nisanthan): Remove this arg in next PR
+    first_seen_lte: int,
     **kwargs,
 ) -> None:
     """
