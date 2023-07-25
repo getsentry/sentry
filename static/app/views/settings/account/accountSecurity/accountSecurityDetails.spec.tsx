@@ -14,8 +14,11 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurityDetails', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
   describe('Totp', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         body: TestStubs.AllAuthenticators(),
