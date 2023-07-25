@@ -67,7 +67,7 @@ def record_error(sentryapp: SentryApp, error: Exception):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_error()
     if buffer.is_integration_broken():
-        disable_app()
+        disable_app(error)
 
 def record_request_error(sentryapp: SentryApp, resp: Response):
     redis_key = sentryapp._get_redis_key()
@@ -76,7 +76,7 @@ def record_request_error(sentryapp: SentryApp, resp: Response):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_error()
     if buffer.is_integration_broken():
-        disable_app()
+        disable_app(resp)
 
 def record_request_success(sentryapp: SentryApp, resp: Response):
     redis_key = sentryapp._get_redis_key()
@@ -92,7 +92,7 @@ def record_request_timeout(sentryapp: SentryApp, resp: Response):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_timeout()
     if buffer.is_integration_broken():
-        disable_app()
+        disable_app(resp)
 
 def record_response(sentryapp: SentryApp, response: Response):
     if is_response_error(response):

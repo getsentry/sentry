@@ -26,6 +26,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
 from sentry.utils import metrics
+from sentry.sentry_apps.apps import SentryAppUpdater
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
 # listening to a list of specific events. This is a mapping of what those
@@ -218,3 +219,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     def _get_redis_key(self):
         return f"sentry-app-error:{self.id}"
+
+    def _disable(self, request: Request):
+        SentryAppUpdater(
+            sentry_app=self,
+            events=[], # remove all events
+        ).run(user=request.user)
