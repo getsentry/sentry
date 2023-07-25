@@ -32,7 +32,6 @@ function SampleTable({
   onMouseOverSample,
   transactionMethod,
 }: Props) {
-  console.log(groupId, transactionMethod);
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
