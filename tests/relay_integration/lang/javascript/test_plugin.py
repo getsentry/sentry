@@ -26,6 +26,7 @@ from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
@@ -3078,6 +3079,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
     @requires_symbolicator
     @pytest.mark.symbolicator
     @with_feature("organizations:sourcemaps-bundle-flat-file-indexing")
+    @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 1.0})
     def test_bundle_index(self, process_with_symbolicator):
         if not process_with_symbolicator:
             return

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import base64
 import logging
+import random
 import sys
 from copy import deepcopy
 from datetime import datetime
-from typing import Tuple
+from typing import Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -207,8 +208,11 @@ def get_internal_artifact_lookup_source_url(project: Project):
 
 
 def get_bundle_index_urls(
-    project: Project, release: str | None, dist: str | None
-) -> Tuple[str | None, str | None]:
+    project: Project, release: Optional[str], dist: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
+    if options.get("symbolicator.sourcemaps-bundle-index-sample-rate") <= random.random():
+        return (None, None)
+
     base_url = get_internal_artifact_lookup_source_url(project)
 
     def make_download_url(bundle: ArtifactBundleFlatFileIndex):
