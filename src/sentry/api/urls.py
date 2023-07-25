@@ -415,7 +415,7 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_dynamic_sampling import (
     ProjectDynamicSamplingDistributionEndpoint,
-    ProjectDynamicSamplingEndpoint,
+    ProjectDynamicSamplingRateEndpoint,
 )
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
@@ -2371,8 +2371,8 @@ PROJECT_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
-        ProjectDynamicSamplingEndpoint.as_view(),
-        name="sentry-api-0-project-dynamic-sampling",
+        ProjectDynamicSamplingRateEndpoint.as_view(),
+        name="sentry-api-0-project-dynamic-sampling-rate",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",

@@ -41,7 +41,7 @@ class DynamicSamplingPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-class ProjectDynamicSamplingEndpoint(ProjectEndpoint):
+class ProjectDynamicSamplingRateEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
