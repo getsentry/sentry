@@ -1460,7 +1460,7 @@ SENTRY_FEATURES = {
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
     # Enable Discord integration notifications
-    "organizations:integrations-discord-notifications"
+    "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
