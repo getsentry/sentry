@@ -30,12 +30,12 @@ class ArtifactBundleTest(TestCase):
     def test_artifact_bundle_flat_index_is_created(self):
         file_contents = self.mock_flat_file_index_contents_with_urls()
 
-        index = ArtifactBundleFlatFileIndex.create_flat_file_index(
+        index = ArtifactBundleFlatFileIndex.objects.create(
             project_id=self.project.id,
-            release="1.0",
-            dist="android",
-            file_contents=json.dumps(file_contents),
+            release_name="1.0",
+            dist_name="android",
         )
+        index.update_flat_file_index(json.dumps(file_contents))
 
         assert index.project_id == self.project.id
         assert index.release_name == "1.0"
@@ -45,11 +45,10 @@ class ArtifactBundleTest(TestCase):
         assert json.loads(flat_file_index) == file_contents
 
     def test_artifact_bundle_flat_index_is_created_with_empty_contents(self):
-        index = ArtifactBundleFlatFileIndex.create_flat_file_index(
+        index = ArtifactBundleFlatFileIndex.objects.create(
             project_id=self.project.id,
-            release="1.0",
-            dist="android",
-            file_contents=None,
+            release_name="1.0",
+            dist_name="android",
         )
 
         assert index.project_id == self.project.id
@@ -58,12 +57,12 @@ class ArtifactBundleTest(TestCase):
         assert index.load_flat_file_index() is None
 
     def test_artifact_bundle_flat_index_is_updated(self):
-        index = ArtifactBundleFlatFileIndex.create_flat_file_index(
+        index = ArtifactBundleFlatFileIndex.objects.create(
             project_id=self.project.id,
-            release="1.0",
-            dist="android",
-            file_contents=json.dumps(self.mock_flat_file_index_contents_with_urls()),
+            release_name="1.0",
+            dist_name="android",
         )
+        index.update_flat_file_index(json.dumps(self.mock_flat_file_index_contents_with_urls()))
 
         updated_file_contents = self.mock_flat_file_index_contents_with_debug_ids()
         index.update_flat_file_index(json.dumps(updated_file_contents))

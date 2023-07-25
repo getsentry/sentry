@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
@@ -665,6 +666,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
             release=release,
             dist=dist,
         )
+
+    def test_bundle_flat_file_indexing(self):
+        release = "1.0"
+        dist = "android"
+
+        bundle_file_1 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        total_checksum_1 = sha1(bundle_file_1).hexdigest()
+
+        with self.feature("organizations:sourcemaps-bundle-flat-file-indexing"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version=release,
+                dist=dist,
+                checksum=total_checksum_1,
+                chunks=[blob1_1.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
+            project_id=self.project.id, release_name=release, dist_name=dist
+        )
+        assert flat_file_index.load_flat_file_index() is not None
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
