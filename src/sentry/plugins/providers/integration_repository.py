@@ -140,9 +140,7 @@ class IntegrationRepositoryProvider:
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
-            repository_service.update_repository(
-                organization_id=organization.id, update=existing_repo
-            )
+            repository_service.update_repository(organization_id=organization.id, update=repo)
         else:
             create_repository = RpcCreateRepository.parse_obj(repo_update_params)
             new_repository = repository_service.create_repository(

@@ -74,12 +74,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
         if repository is None:
             return
 
-        repository.name = update.name
-        repository.external_id = update.external_id
-        repository.config = update.config
-        repository.integration_id = update.integration_id
-        repository.provider = update.provider
-        repository.status = update.status
+        update_dict = update.dict()
+        del update_dict["id"]
+
+        for field_name, field_value in update_dict.items():
+            setattr(repository, field_name, field_value)
+
         repository.save()
 
     def reinstall_repositories_for_integration(
