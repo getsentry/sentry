@@ -13,6 +13,7 @@ DEFAULT_PROMPTS = {
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "vitals_alert": {"required_fields": ["organization_id"]},
+    "actionable_items": {"required_fields": ["organization_id", "project_id", "group_id"]},
 }
 
 
