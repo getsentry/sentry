@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Sequence, Tuple
 
-import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -38,13 +37,9 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     get_sliding_window_size,
     mark_sliding_window_executed,
 )
-from sentry.dynamic_sampling.tasks.logging import (
-    log_query_timeout,
-    log_task_execution,
-    log_task_timeout,
-)
+from sentry.dynamic_sampling.tasks.logging import log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -63,50 +58,40 @@ from sentry.utils.snuba import raw_snql_query
     soft_time_limit=2 * 60 * 60,  # 2 hours
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task
-def sliding_window() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_TASK_SECONDS)
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def sliding_window(**kwargs) -> None:
+    context: TaskContext = kwargs["context"]
 
     window_size = get_sliding_window_size()
+    # In case the size is None it means that we disabled the sliding window entirely.
+    if window_size is not None:
+        # It is important to note that this query will return orgs that in the last hour have had at least 1
+        # transaction.
+        for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY):
+            # This query on the other hand, fetches with a dynamic window size because we care about being able
+            # to extrapolate monthly volume with a bigger window than the hour used in the orgs query. Thus, it can
+            # be that an org is not detected because it didn't have traffic for this hour but its projects have
+            # traffic in the last window_size, however this isn't a big deal since we cache the sample rate and if
+            # not found we fall back to 100% (only if the sliding window has run).
+            for (
+                org_id,
+                projects_with_total_root_count,
+            ) in fetch_projects_with_total_root_transactions_count(
+                org_ids=orgs, window_size=window_size
+            ).items():
+                with metrics.timer(
+                    "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
+                ):
+                    adjust_base_sample_rates_of_projects(
+                        org_id,
+                        projects_with_total_root_count,
+                        window_size,
+                        context,
+                    )
 
-    try:
-        # In case the size is None it means that we disabled the sliding window entirely.
-        if window_size is not None:
-            # It is important to note that this query will return orgs that in the last hour have had at least 1
-            # transaction.
-            for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY):
-                # This query on the other hand, fetches with a dynamic window size because we care about being able
-                # to extrapolate monthly volume with a bigger window than the hour used in the orgs query. Thus, it can
-                # be that an org is not detected because it didn't have traffic for this hour but its projects have
-                # traffic in the last window_size, however this isn't a big deal since we cache the sample rate and if
-                # not found we fall back to 100% (only if the sliding window has run).
-                for (
-                    org_id,
-                    projects_with_total_root_count,
-                ) in fetch_projects_with_total_root_transactions_count(
-                    org_ids=orgs, window_size=window_size
-                ).items():
-                    with metrics.timer(
-                        "sentry.dynamic_sampling.tasks.sliding_window.adjust_base_sample_rate_per_project"
-                    ):
-                        adjust_base_sample_rates_of_projects(
-                            org_id,
-                            projects_with_total_root_count,
-                            window_size,
-                            context,
-                        )
-
-            # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
-            # execution of the sliding window was successful. We will keep this state for 1 hour.
-            mark_sliding_window_executed()
-    except TimeoutException:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        sentry_sdk.capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
-        log_task_execution(context)
+        # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+        # execution of the sliding window was successful. We will keep this state for 1 hour.
+        mark_sliding_window_executed()
 
 
 def adjust_base_sample_rates_of_projects(

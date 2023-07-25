@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence, Tuple
 
-import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -49,13 +48,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_sample_rate_source,
-    log_task_execution,
-    log_task_timeout,
-)
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -74,31 +72,18 @@ from sentry.utils.snuba import raw_snql_query
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task
-def boost_low_volume_projects() -> None:
-    context = TaskContext(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_TASK_SECONDS
-    )
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_projects(**kwargs) -> None:
+    context: TaskContext = kwargs["context"]
 
-    try:
-        for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
-            for (
-                org_id,
-                projects_with_tx_count_and_rates,
-            ) in fetch_projects_with_total_root_transaction_count_and_rates(
-                context, org_ids=orgs
-            ).items():
-                boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
-    except TimeoutException:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        sentry_sdk.capture_message(
-            "timing for sentry.dynamic_sampling.tasks.boost_low_volume_projects"
-        )
-        log_task_execution(context)
+    for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
+        for (
+            org_id,
+            projects_with_tx_count_and_rates,
+        ) in fetch_projects_with_total_root_transaction_count_and_rates(
+            context, org_ids=orgs
+        ).items():
+            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(

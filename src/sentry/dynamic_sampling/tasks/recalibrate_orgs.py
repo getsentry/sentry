@@ -27,11 +27,9 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
-    log_task_execution,
-    log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 from sentry.tasks.base import instrumented_task
 
 # Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
@@ -54,33 +52,24 @@ class RecalibrationError(Exception):
     soft_time_limit=2 * 60 * 60,  # 2hours
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task
-def recalibrate_orgs() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.recalibrate_orgs", MAX_TASK_SECONDS)
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def recalibrate_orgs(**kwargs) -> None:
+    context: TaskContext = kwargs["context"]
 
-    try:
-        for org_volumes in TimedIterator(
-            context,
-            GetActiveOrgsVolumes(
-                max_orgs=CHUNK_SIZE,
-                time_interval=RECALIBRATE_ORGS_QUERY_INTERVAL,
-                granularity=Granularity(60),
-            ),
-        ):
-            for org_volume in org_volumes:
-                try:
-                    recalibrate_org(org_volume, context)
-                except RecalibrationError as e:
-                    sentry_sdk.set_extra("context-data", context.to_dict())
-                    log_recalibrate_org_error(org_volume.org_id, str(e))
-    except TimeoutException:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        sentry_sdk.set_extra("context-data", context.to_dict())
-        sentry_sdk.capture_message("timing for sentry.dynamic_sampling.tasks.recalibrate_orgs")
-        log_task_execution(context)
+    for org_volumes in TimedIterator(
+        context,
+        GetActiveOrgsVolumes(
+            max_orgs=CHUNK_SIZE,
+            time_interval=RECALIBRATE_ORGS_QUERY_INTERVAL,
+            granularity=Granularity(60),
+        ),
+    ):
+        for org_volume in org_volumes:
+            try:
+                recalibrate_org(org_volume, context)
+            except RecalibrationError as e:
+                sentry_sdk.set_extra("context-data", context.to_dict())
+                log_recalibrate_org_error(org_volume.org_id, str(e))
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) -> None:
