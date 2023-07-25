@@ -7,12 +7,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export const useDismissReqRespBodiesAlert = () => {
   const organization = useOrganization();
@@ -116,7 +116,7 @@ export function Setup({
   showSnippet,
   visibleTab,
 }: {
-  item: NetworkSpan;
+  item: SpanFrame;
   projectId: string;
   showSnippet: Output;
   visibleTab: TabKey;

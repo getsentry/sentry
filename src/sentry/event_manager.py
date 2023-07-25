@@ -105,6 +105,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.release import follows_semver_versioning_scheme
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -1822,6 +1823,8 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             update_fields=["last_seen", "active_at", "status", "substatus"],
         )
 
+    follows_semver = False
+    resolved_in_activity = None
     if is_regression and release:
         resolution = None
 
@@ -1842,7 +1845,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
-                activity = Activity.objects.filter(
+                resolved_in_activity = Activity.objects.filter(
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     ident=resolution.id,
@@ -1857,17 +1860,40 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
                     # We also should not override the `data` attribute here because it might have
                     # a `current_release_version` for semver releases and we wouldn't want to
                     # lose that
-                    if activity.data["version"] == "":
-                        activity.update(data={**activity.data, "version": release.version})
+                    if resolved_in_activity.data["version"] == "":
+                        resolved_in_activity.update(
+                            data={**resolved_in_activity.data, "version": release.version}
+                        )
                 except KeyError:
                     # Safeguard in case there is no "version" key. However, should not happen
-                    activity.update(data={"version": release.version})
+                    resolved_in_activity.update(data={"version": release.version})
+
+            # Record how we compared the two releases
+            follows_semver = follows_semver_versioning_scheme(
+                project_id=group.project.id,
+                org_id=group.organization.id,
+                release_version=release.version,
+            )
 
     if is_regression:
+        activity_data: dict[str, str | bool] = {
+            "event_id": event.event_id,
+            "version": release.version if release else "",
+        }
+        if resolved_in_activity and release:
+            activity_data.update(
+                {
+                    "follows_semver": follows_semver,
+                    "resolved_in_version": resolved_in_activity.data.get(
+                        "version", release.version
+                    ),
+                }
+            )
+
         Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
-            data={"version": release.version if release else "", "event_id": event.event_id},
+            data=activity_data,
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
