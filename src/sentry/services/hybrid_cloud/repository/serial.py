@@ -10,4 +10,8 @@ def serialize_repository(repository: Repository) -> RpcRepository:
         organization_id=repository.organization_id,
         name=repository.name,
         external_id=repository.external_id,
+        config=repository.config,
+        integration_id=repository.integration_id,
+        provider=repository.provider,
+        status=repository.status,
     )

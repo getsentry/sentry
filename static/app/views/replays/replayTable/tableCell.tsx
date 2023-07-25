@@ -21,6 +21,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -62,7 +63,7 @@ export function ReplayCell({
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/replays/${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),

@@ -13,7 +13,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.tasks import check_monitors
+from sentry.monitors.tasks import check_missing, check_timeout
 from sentry.testutils import TestCase
 
 
@@ -65,7 +65,7 @@ class CheckMonitorsTest(TestCase):
             status=MonitorStatus.OK,
         )
 
-        check_monitors(task_run_ts)
+        check_missing(task_run_ts)
 
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
@@ -105,7 +105,7 @@ class CheckMonitorsTest(TestCase):
             status=MonitorStatus.ACTIVE,
         )
 
-        check_monitors(task_run_ts)
+        check_missing(task_run_ts)
 
         # The monitor does not get set to a timeout state
         assert MonitorEnvironment.objects.filter(
@@ -164,7 +164,7 @@ class CheckMonitorsTest(TestCase):
         # Running the task will not mark the monitor as missed, since the next
         # checkin time will be exactly the same as the reference time for the
         # monitor.
-        check_monitors(task_run_ts)
+        check_missing(task_run_ts)
 
         # Monitor stays in OK state
         assert MonitorEnvironment.objects.filter(
@@ -223,7 +223,7 @@ class CheckMonitorsTest(TestCase):
 
         # Running check monitor will mark the first checkin as timed out, but
         # the second checkin is not yet timed out.
-        check_monitors(task_run_ts)
+        check_timeout(task_run_ts)
 
         # First checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin1.id, status=CheckInStatus.TIMEOUT).exists()
@@ -286,7 +286,7 @@ class CheckMonitorsTest(TestCase):
 
         # Running check monitor will mark the first checkin as timed out. The
         # second checkin was already marked as OK.
-        check_monitors(task_run_ts)
+        check_timeout(task_run_ts)
 
         # The first checkin is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin1.id, status=CheckInStatus.TIMEOUT).exists()
@@ -330,14 +330,14 @@ class CheckMonitorsTest(TestCase):
 
         assert checkin.date_added == checkin.date_updated == next_checkin_ts
 
-        # Running the check_monitors at 35 minutes does not mark the timeout as missed, it's still allowed to be running
-        check_monitors(task_run_ts + timedelta(minutes=35))
+        # Running the check_monitors at 35 minutes does not mark the check-in as timed out, it's still allowed to be running
+        check_timeout(task_run_ts + timedelta(minutes=35))
         assert MonitorCheckIn.objects.filter(
             id=checkin.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        # After 60 minutes the checkin will be marked as missed
-        check_monitors(task_run_ts + timedelta(minutes=60))
+        # After 60 minutes the checkin will be marked as timed out
+        check_timeout(task_run_ts + timedelta(minutes=60))
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
 
         assert MonitorEnvironment.objects.filter(
@@ -382,12 +382,12 @@ class CheckMonitorsTest(TestCase):
             status=MonitorStatus.OK,
         )
 
-        check_monitors(task_run_ts)
+        check_missing(task_run_ts)
 
         # Logged the exception
         assert logger.exception.call_count == 1
 
-        # We still amrked a monitor as missed
+        # We still marked a monitor as missed
         assert MonitorEnvironment.objects.filter(
             id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
         ).exists()
@@ -468,7 +468,7 @@ class CheckMonitorsTest(TestCase):
 
         assert checkin1.date_added == checkin1.date_updated == check_in_24hr_ago
 
-        check_monitors(task_run_ts)
+        check_timeout(task_run_ts)
 
         # Logged the exception
         assert logger.exception.call_count == 1

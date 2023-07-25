@@ -1,3 +1,4 @@
+import importlib.metadata
 import sys
 import types
 
@@ -105,12 +106,14 @@ def install_plugin_apps(entry_point, settings):
     #         'phabricator = sentry_phabricator'
     #     ],
     # },
-    from pkg_resources import iter_entry_points
-
     installed_apps = list(settings.INSTALLED_APPS)
-    for ep in iter_entry_points(entry_point):
-        if ep.module_name not in installed_apps:
-            installed_apps.append(ep.module_name)
+    for dist in importlib.metadata.distributions():
+        for ep in dist.entry_points:
+            if ep.group == entry_point:
+                assert ":" not in ep.value, ep.value
+                if ep.value not in installed_apps:
+                    installed_apps.append(ep.value)
+
     settings.INSTALLED_APPS = tuple(installed_apps)
 
 
