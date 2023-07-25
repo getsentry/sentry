@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.opsgenie import OpsgenieNotifyTeamAction
+from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
 from sentry.models import Integration, OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -63,6 +63,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
+        assert event.group is not None
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
 
@@ -138,6 +139,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
+        assert event.group is not None
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
 
