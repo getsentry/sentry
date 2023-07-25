@@ -79,6 +79,15 @@ class MetricsQueryBuilder(QueryBuilder):
         if granularity is not None:
             self._granularity = granularity
 
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            dataset,
+            kwargs.get("selected_columns", []),
+            kwargs.get("query", ""),
+            kwargs.get("on_demand_metrics_enabled", False),
+        )
+
+        self.use_on_demand_metrics = self._on_demand_spec is not None
+
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
@@ -86,12 +95,6 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-
-        self._on_demand_spec = self._resolve_on_demand_spec(
-            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
-        )
-
-        self.use_on_demand_metrics = self._on_demand_spec is not None
 
         org_id = self.filter_params.get("organization_id")
         if org_id is None and self.params.organization is not None:
@@ -101,9 +104,13 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def _resolve_on_demand_spec(
-        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
+        self,
+        dataset: Optional[Dataset],
+        selected_cols: List[Optional[str]],
+        query: str,
+        on_demand_metrics_enabled: bool,
     ) -> Optional[OndemandMetricSpec]:
-        if not self.on_demand_metrics_enabled:
+        if not on_demand_metrics_enabled:
             return None
 
         field = selected_cols[0] if selected_cols else None
@@ -209,12 +216,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        try:
-            use_on_demand_metrics = self.on_demand_metrics_enabled and self._on_demand_spec
-        except AttributeError:
-            use_on_demand_metrics = False
         # on-demand metrics require metrics layer behavior
-        if self.use_metrics_layer or use_on_demand_metrics:
+        if self.use_metrics_layer or self.use_on_demand_metrics:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -800,7 +803,6 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        # use_on_demand_metrics = self.on_demand_metrics_enabled and self._on_demand_spec
 
         if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
@@ -1001,7 +1003,6 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
         and returns one or more equivalent snql query(ies).
         """
-        # use_on_demand_metrics = self.on_demand_metrics_enabled and self._on_demand_spec
 
         if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics import SnubaQueryBuilder
@@ -1231,7 +1232,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        # use_on_demand_metrics = self.on_demand_metrics_enabled and self._on_demand_spec
 
         if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
