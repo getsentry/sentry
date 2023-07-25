@@ -19,4 +19,4 @@ class DiscordMessageComponent:
 
     def build(self) -> dict[str, object]:
         attributes = vars(self).items()
-        return {k: v for k, v in attributes if v}
+        return {k: v for k, v in attributes if v is not None}

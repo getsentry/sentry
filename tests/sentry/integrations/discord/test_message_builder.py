@@ -1,5 +1,9 @@
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.component.button import (
+    DiscordButton,
+    DiscordButtonStyle,
+)
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
@@ -13,13 +17,48 @@ class TestBaseDiscordMessageBuilder(TestCase):
         assert result == {}
 
 
+class TestDiscordButton(TestCase):
+    def test_some_fields(self):
+        button = DiscordButton(
+            style=DiscordButtonStyle.PRIMARY,
+            custom_id="test_button",
+            label="button label",
+        )
+        result = button.build()
+        assert result == {
+            "type": 2,
+            "style": 1,
+            "custom_id": "test_button",
+            "label": "button label",
+            "disabled": False,
+        }
+
+    def test_all_fields(self):
+        button = DiscordButton(
+            style=DiscordButtonStyle.PRIMARY,
+            custom_id="test_button",
+            label="button label",
+            url="https://sentry.io",
+            disabled=True,
+        )
+        result = button.build()
+        assert result == {
+            "type": 2,
+            "style": 1,
+            "custom_id": "test_button",
+            "label": "button label",
+            "url": "https://sentry.io",
+            "disabled": True,
+        }
+
+
 class TestDiscordMessageEmbed(TestCase):
     def test_empty(self):
         embed = DiscordMessageEmbed()
         result = embed.build()
         assert result == {}
 
-    def test_not_all_fields(self):
+    def test_some_fields(self):
         embed = DiscordMessageEmbed(
             title="Title",
             url="https://sentry.io",
