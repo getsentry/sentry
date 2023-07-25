@@ -6,7 +6,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    List,
     Mapping,
     MutableMapping,
     NamedTuple,
@@ -40,8 +39,6 @@ logger = logging.getLogger(__name__)
 # Do not change these values without also changing the corresponding MAX_INDEXED_COLUMN_LENGTH to
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
-MAX_TAG_KEY_LENGTH = MAX_INDEXED_COLUMN_LENGTH
-MAX_TAG_VALUE_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
 ACCEPTED_METRIC_TYPES = {"s", "c", "d"}  # set, counter, distribution
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
@@ -66,17 +63,6 @@ def valid_metric_name(name: Optional[str]) -> bool:
 def _should_sample_debug_log() -> bool:
     rate: float = settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE
     return (rate > 0) and random.random() <= rate
-
-
-def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
-    invalid_strs: List[str] = []
-    for key, value in tags.items():
-        if key is None or len(key) > MAX_TAG_KEY_LENGTH:
-            invalid_strs.append(key)
-        if value is None or len(value) > MAX_TAG_VALUE_LENGTH:
-            invalid_strs.append(value)
-
-    return invalid_strs
 
 
 # TODO: Move this to where we do use case registration
