@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from django.db import models
 from django.utils import timezone
@@ -13,7 +14,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -80,11 +82,11 @@ class AuthProvider(Model):
         return self.get_provider().name
 
     def get_scim_token(self):
-        from sentry.models import SentryAppInstallationToken
+        from sentry.services.hybrid_cloud.app import app_service
 
         if self.flags.scim_enabled:
-            return SentryAppInstallationToken.objects.get_token(
-                self.organization_id, f"{self.provider}_scim"
+            return app_service.get_installation_token(
+                organization_id=self.organization_id, provider=f"{self.provider}_scim"
             )
         else:
             logger.warning(
@@ -141,7 +143,19 @@ class AuthProvider(Model):
         )
         self.flags.scim_enabled = True
 
-    def disable_scim(self, user):
+    def outboxes_for_reset_idp_flags(self) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=self.organization_id,
+                category=OutboxCategory.RESET_IDP_FLAGS,
+                object_identifier=self.organization_id,
+                region_name=region_name,
+            )
+            for region_name in find_regions_for_orgs([self.organization_id])
+        ]
+
+    def disable_scim(self):
         from sentry import deletions
         from sentry.models import SentryAppInstallationForProvider
 
@@ -152,7 +166,8 @@ class AuthProvider(Model):
             # Only one SCIM installation allowed per organization. So we can reset the idp flags for the orgs
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
-            organization_service.reset_idp_flags(organization_id=self.organization_id)
+            for outbox in self.outboxes_for_reset_idp_flags():
+                outbox.save()
             sentry_app = install.sentry_app_installation.sentry_app
             assert (
                 sentry_app.is_internal

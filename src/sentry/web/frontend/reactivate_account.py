@@ -1,4 +1,3 @@
-from django.db import transaction
 from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
@@ -13,7 +12,6 @@ class ReactivateAccountView(BaseView):
     auth_required = False
 
     @never_cache
-    @transaction.atomic
     def handle(self, request: Request) -> HttpResponse:
         if not request.user.is_authenticated:
             return self.handle_auth_required(request)

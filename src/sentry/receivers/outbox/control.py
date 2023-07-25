@@ -120,3 +120,8 @@ def process_send_signal(
             args=payload["args"],
             signal=RpcOrganizationSignal(payload["signal"]),
         )
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
+def process_reset_idp_flags(shard_identifier: int, **kwds: Any):
+    organization_service.reset_idp_flags(organization_id=shard_identifier)

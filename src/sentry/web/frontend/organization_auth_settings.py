@@ -12,11 +12,18 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, Organization, OrganizationMember, User
+from sentry.models import (
+    AuthProvider,
+    Organization,
+    OrganizationMember,
+    OutboxCategory,
+    OutboxScope,
+    RegionOutbox,
+    outbox_context,
+)
 from sentry.plugins.base import Response
-from sentry.services.hybrid_cloud.auth import RpcAuthProvider
+from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.silo import unguarded_write
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView
@@ -81,36 +88,40 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
 
-    def _disable_provider(self, request: Request, organization: RpcOrganization, auth_provider):
-        self.create_audit_entry(
-            request,
-            organization=organization,
-            target_object=auth_provider.id,
-            event=audit_log.get_event_id("SSO_DISABLE"),
-            data=auth_provider.get_audit_log_data(),
-        )
+    def _disable_provider(
+        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
+    ):
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            self.create_audit_entry(
+                request,
+                organization=organization,
+                target_object=auth_provider.id,
+                event=audit_log.get_event_id("SSO_DISABLE"),
+                data=auth_provider.get_audit_log_data(),
+            )
 
-        # This is safe -- we're not syncing flags to the org member mapping table.
-        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            # This is safe -- we're not syncing flags to the org member mapping table.
             OrganizationMember.objects.filter(organization_id=organization.id).update(
                 flags=F("flags")
                 .bitand(~OrganizationMember.flags["sso:linked"])
                 .bitand(~OrganizationMember.flags["sso:invalid"])
             )
 
-        user_ids = OrganizationMember.objects.filter(organization_id=organization.id).values(
-            "user_id"
-        )
-        User.objects.filter(id__in=user_ids).update(is_managed=False)
-
-        email_unlink_notifications.delay(organization.id, request.user.id, auth_provider.provider)
-
-        if auth_provider.flags.scim_enabled:
-            auth_provider.disable_scim(request.user)
-        auth_provider.delete()
+            RegionOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=organization.id,
+                category=OutboxCategory.DISABLE_AUTH_PROVIDER,
+                object_identifier=auth_provider.id,
+            ).save()
+            transaction.on_commit(
+                lambda: email_unlink_notifications.delay(
+                    organization.id, request.user.id, auth_provider.provider
+                ),
+                router.db_for_write(OrganizationMember),
+            )
 
     def handle_existing_provider(
-        self, request: Request, organization: RpcOrganization, auth_provider
+        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
     ):
         provider = auth_provider.get_provider()
 
@@ -139,16 +150,14 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         form = auth_provider_settings_form(provider, auth_provider, organization, request)
 
         if form.is_valid():
-            auth_provider.flags.allow_unlinked = not form.cleaned_data["require_link"]
-
+            allow_unlinked = not form.cleaned_data["require_link"]
             form_scim_enabled = form.cleaned_data.get("enable_scim", False)
-            if auth_provider.flags.scim_enabled != form_scim_enabled:
-                if form_scim_enabled:
-                    auth_provider.enable_scim(request.user)
-                else:
-                    auth_provider.disable_scim(request.user)
-
-            auth_provider.save()
+            auth_service.change_scim(
+                provider_id=auth_provider.id,
+                user_id=request.user.id,
+                enabled=form_scim_enabled,
+                allow_unlinked=allow_unlinked,
+            )
 
             organization = organization_service.update_default_role(
                 organization_id=organization.id, default_role=form.cleaned_data["default_role"]
@@ -204,18 +213,14 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
-    @transaction.atomic
     def handle(self, request: Request, organization: RpcOrganization) -> HttpResponse:
-        try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
-        except AuthProvider.DoesNotExist:
-            pass
-        else:
+        providers = auth_service.get_auth_providers(organization_id=organization.id)
+        if providers:
             # if the org has SSO set up already, allow them to modify the existing provider
             # regardless if the feature flag is set up. This allows orgs who might no longer
             # have the SSO feature to be able to turn it off
             return self.handle_existing_provider(
-                request=request, organization=organization, auth_provider=auth_provider
+                request=request, organization=organization, auth_provider=providers[0]
             )
 
         if request.method == "POST":

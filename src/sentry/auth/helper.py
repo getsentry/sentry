@@ -302,61 +302,61 @@ class AuthIdentityHandler:
         except AuthIdentity.DoesNotExist:
             return None
 
-    @transaction.atomic
     def handle_attach_identity(self, member: RpcOrganizationMember | None = None) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
         # prioritize identifying by the SSO provider's user ID
-        auth_identity = self._get_auth_identity(ident=self.identity["id"])
-        if auth_identity is None:
-            # otherwise look for an already attached identity
-            # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=self.user)
+        with transaction.atomic(router.db_for_write(AuthIdentity)):
+            auth_identity = self._get_auth_identity(ident=self.identity["id"])
+            if auth_identity is None:
+                # otherwise look for an already attached identity
+                # this can happen if the SSO provider's internal ID changes
+                auth_identity = self._get_auth_identity(user=self.user)
 
-        if auth_identity is None:
-            auth_is_new = True
-            auth_identity = AuthIdentity.objects.create(
-                auth_provider=self.auth_provider,
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.identity.get("data", {}),
-            )
-        else:
-            auth_is_new = False
-
-            # TODO(dcramer): this might leave the user with duplicate accounts,
-            # and in that kind of situation its very reasonable that we could
-            # test email addresses + is_managed to determine if we can auto
-            # merge
-            if auth_identity.user != self.user:
-                wipe = self._wipe_existing_identity(auth_identity)
+            if auth_identity is None:
+                auth_is_new = True
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=self.auth_provider,
+                    user=self.user,
+                    ident=self.identity["id"],
+                    data=self.identity.get("data", {}),
+                )
             else:
-                wipe = None
+                auth_is_new = False
 
-            now = timezone.now()
-            auth_identity.update(
-                user=self.user,
-                ident=self.identity["id"],
-                data=self.provider.update_identity(
-                    new_data=self.identity.get("data", {}), current_data=auth_identity.data
-                ),
-                last_verified=now,
-                last_synced=now,
-            )
+                # TODO(dcramer): this might leave the user with duplicate accounts,
+                # and in that kind of situation its very reasonable that we could
+                # test email addresses + is_managed to determine if we can auto
+                # merge
+                if auth_identity.user != self.user:
+                    wipe = self._wipe_existing_identity(auth_identity)
+                else:
+                    wipe = None
 
-            logger.info(
-                "sso.login-pipeline.attach-existing-identity",
-                extra={
-                    "wipe_result": repr(wipe),
-                    "organization_id": self.organization.id,
-                    "user_id": self.user.id,
-                    "auth_identity_user_id": auth_identity.user.id,
-                    "auth_provider_id": self.auth_provider.id,
-                    "idp_identity_id": self.identity["id"],
-                    "idp_identity_email": self.identity.get("email"),
-                },
-            )
+                now = timezone.now()
+                auth_identity.update(
+                    user=self.user,
+                    ident=self.identity["id"],
+                    data=self.provider.update_identity(
+                        new_data=self.identity.get("data", {}), current_data=auth_identity.data
+                    ),
+                    last_verified=now,
+                    last_synced=now,
+                )
+
+                logger.info(
+                    "sso.login-pipeline.attach-existing-identity",
+                    extra={
+                        "wipe_result": repr(wipe),
+                        "organization_id": self.organization.id,
+                        "user_id": self.user.id,
+                        "auth_identity_user_id": auth_identity.user.id,
+                        "auth_provider_id": self.auth_provider.id,
+                        "idp_identity_id": self.identity["id"],
+                        "idp_identity_email": self.identity.get("email"),
+                    },
+                )
 
         if member is None:
             member = self._get_organization_member(auth_identity)
@@ -843,7 +843,6 @@ class AuthHelper(Pipeline):
 
             return auth_handler.handle_existing_identity(self.state, auth_identity)
 
-    @transaction.atomic
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
         the setup flow here is configuring SSO for an organization.
@@ -877,20 +876,24 @@ class AuthHelper(Pipeline):
 
         auth.mark_sso_complete(request, self.organization.id)
 
-        sso_enabled.send_robust(
-            organization=self.organization,
-            user=request.user,
-            provider=self.provider.key,
-            sender=self.__class__,
+        organization_service.schedule_signal(
+            sso_enabled,
+            organization_id=self.organization.id,
+            args=dict(
+                user_id=request.user.id,
+                provider=self.provider.key,
+            ),
         )
 
-        AuditLogEntry.objects.create(
-            organization_id=self.organization.id,
-            actor=request.user,
-            ip_address=request.META["REMOTE_ADDR"],
-            target_object=self.provider_model.id,
-            event=audit_log.get_event_id("SSO_ENABLE"),
-            data=self.provider_model.get_audit_log_data(),
+        log_service.record_audit_log(
+            event=AuditLogEvent(
+                organization_id=self.organization.id,
+                actor_user_id=request.user.id,
+                ip_address=request.META["REMOTE_ADDR"],
+                target_object_id=self.provider_model.id,
+                event_id=audit_log.get_event_id("SSO_ENABLE"),
+                data=self.provider_model.get_audit_log_data(),
+            )
         )
 
         email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)

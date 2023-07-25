@@ -82,6 +82,8 @@ class OutboxCategory(IntEnum):
     ORGAUTHTOKEN_UPDATE = 16
     PROVISION_ORGANIZATION = 17
     PROVISION_SUBSCRIPTION = 18
+    DISABLE_AUTH_PROVIDER = 19
+    RESET_IDP_FLAGS = 20
 
     @classmethod
     def as_choices(cls):

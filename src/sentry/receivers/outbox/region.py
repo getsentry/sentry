@@ -20,6 +20,7 @@ from sentry.models import (
 )
 from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
@@ -120,3 +121,8 @@ def process_organization_mapping_customer_id_update(
         organization_mapping_service.update(
             organization_id=org.id, update={"customer_id": payload["customer_id"]}
         )
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
+def process_disable_auth_provider(object_identifier: int, **kwds: Any):
+    auth_service.disable_provider(provider_id=object_identifier)
