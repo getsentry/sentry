@@ -274,7 +274,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
     return alert_rule_data
 
 
-def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+def update_alert_rule(
+    request: Request, project: Project, monitor: Monitor, alert_rule: Rule, alert_rule_data: dict
+):
     actions = []
     for target in alert_rule_data.get("targets", []):
         target_identifier = target["target_identifier"]
@@ -293,6 +295,16 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
         data={
             "actions": actions,
             "environment": alert_rule_data.get("environment", None),
+            "filters": [
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "name": f"The event's tags match monitor.slug contains {monitor.slug}",
+                    "value": monitor.slug,
+                }
+            ],
+            "name": f"Monitor Alert: {monitor.name}"[:64],
         },
         partial=True,
     )
@@ -304,6 +316,8 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
+            "filters": data.get("filters", []),
+            "name": data.get("name", None),
         }
 
         updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)

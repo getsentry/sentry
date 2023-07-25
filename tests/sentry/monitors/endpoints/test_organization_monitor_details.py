@@ -204,17 +204,29 @@ class UpdateMonitorTest(MonitorTestCase):
             monitor.slug,
             method="PUT",
             **{
+                "name": "new-name",
+                "slug": "new-slug",
                 "alert_rule": {
                     "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
                     "environment": new_environment.name,
-                }
+                },
             },
         )
-        assert resp.data["slug"] == monitor.slug
+        assert resp.data["slug"] == "new-slug"
 
         monitor = Monitor.objects.get(id=monitor.id)
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
+        assert monitor_rule.data["name"] == "Monitor Alert: new-name"
+        assert monitor_rule.data["filters"] == [
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "name": "The event's tags match monitor.slug contains new-slug",
+                "value": "new-slug",
+            }
+        ]
         assert monitor_rule.data["actions"] != rule.data["actions"]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
