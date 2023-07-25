@@ -144,7 +144,7 @@ class ArtifactBundleFlatFileIndex(Model):
             # By default, we can create a flat index file which has not `File` object bound to it.
             file = None
             if file_contents:
-                file = cls._create_flat_file_index_object(project_id, release, dist, file_contents)
+                file = cls._create_flat_file_index_object(file_contents)
 
             index = ArtifactBundleFlatFileIndex.objects.create(
                 project_id=project_id, release_name=release, dist_name=dist, flat_file_index=file
