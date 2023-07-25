@@ -482,11 +482,13 @@ class _RemoteSiloCall:
     def address(self) -> str:
         if self.region is None:
             if not settings.SENTRY_CONTROL_ADDRESS:
-                raise RpcSendException("Control silo address is not configured")
+                raise RpcServiceSetupException("Control silo address is not configured")
             return settings.SENTRY_CONTROL_ADDRESS
         else:
             if not self.region.address:
-                raise RpcSendException(f"Address for region {self.region.name!r} is not configured")
+                raise RpcServiceSetupException(
+                    f"Address for region {self.region.name!r} is not configured"
+                )
             return self.region.address
 
     @property
@@ -661,7 +663,3 @@ class RpcSenderCredentials:
         if isinstance(setting_values, str):
             setting_values = json.loads(setting_values)
         return cls(**setting_values) if setting_values else cls()
-
-
-class RpcSendException(RpcServiceUnimplementedException):
-    """Indicates the system is not configured to send RPCs."""
