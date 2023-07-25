@@ -118,7 +118,7 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
 
 
 def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
-    archived_obj = {
+    archived_replay_response = {
         "id": _strip_dashes(replay_id),
         "project_id": str(project_id),
         "trace_ids": [],
@@ -139,12 +139,18 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "finished_at": None,
         "started_at": None,
         "is_archived": True,
+        "count_segments": None,
+        "count_urls": None,
+        "dist": None,
+        "platform": None,
+        "releases": None,
+        "clicks": None,
     }
     for field in VALID_FIELD_SET:
-        if field not in archived_obj.keys():
-            archived_obj[field] = None
+        if field not in archived_replay_response:
+            archived_replay_response[field] = None
 
-    return archived_obj
+    return archived_replay_response
 
 
 CLICK_FIELD_MAP = {
