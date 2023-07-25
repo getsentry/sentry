@@ -87,11 +87,17 @@ class OpsgenieClient(IntegrationProxyClient):
             }
 
         else:
+            # if we're acknowledging the alert
+            if data.get("identifier"):
+                alias = data["identifier"]
+                resp = self.post(
+                    f"/alerts/{alias}/acknowledge",
+                    data={},
+                    params={"identifierType": "alias"},
+                    headers=headers,
+                )
+                return resp
             # this is a metric alert
             payload = data
-            # if we're acknowledging the alert
-            if payload.get("identifier"):
-                return self.post(
-                    "/alerts/:identifier/acknowledge", data={}, params=payload, headers=headers
-                )
-        return self.post("/alerts", data=payload, headers=headers)
+        resp = self.post("/alerts", data=payload, headers=headers)
+        return resp

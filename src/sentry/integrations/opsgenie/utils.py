@@ -15,7 +15,7 @@ def build_incident_attachment(incident, new_status: IncidentStatus, metric_value
     data = incident_attachment_info(incident, new_status, metric_value)
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
-        payload = {"identifier": alert_key, "identifierType": "alias"}
+        payload = {"identifier": alert_key}
     else:
         payload = {
             "message": incident.alert_rule.name,
