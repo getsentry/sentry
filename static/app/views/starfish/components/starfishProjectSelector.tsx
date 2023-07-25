@@ -1,16 +1,15 @@
 import {useEffect} from 'react';
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {ALLOWED_PROJECT_IDS_FOR_ORG_SLUG} from 'sentry/views/starfish/allowedProjects';
-import {STARFISH_PROJECT_KEY} from 'sentry/views/starfish/utils/constants';
+import {useStarfishProject} from 'sentry/views/starfish/utils/useStarfishProject';
 
 export function StarfishProjectSelector() {
   const {projects, initiallyLoaded: projectsLoaded, fetchError} = useProjects();
@@ -18,14 +17,11 @@ export function StarfishProjectSelector() {
   const location = useLocation();
   const router = useRouter();
 
-  const [selectedProjectId, setSelectedProjectId] = useLocalStorageState(
-    STARFISH_PROJECT_KEY,
-    1
-  );
+  const [selectedProjectId, setSelectedProjectId] = useStarfishProject();
 
   useEffect(() => {
     router.push({...location, query: {...location.query, project: selectedProjectId}});
-  }, [selectedProjectId]);
+  }, [selectedProjectId, location, router]);
 
   if (!projectsLoaded) {
     return (
@@ -55,10 +51,7 @@ export function StarfishProjectSelector() {
     projectOptions.find(option => option.value === selectedProjectId) ??
     projectOptions[0];
 
-  const handleProjectChange = option => {
-    setSelectedProjectId(option.value);
-    updateProjects([parseInt(option.value, 10)], router, {replace: true});
-  };
+  const handleProjectChange = option => setSelectedProjectId(option.value);
 
   return (
     <CompactSelect
