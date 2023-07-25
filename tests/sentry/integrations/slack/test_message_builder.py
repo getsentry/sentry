@@ -268,6 +268,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
 
+@region_silo_test(stable=True)
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -390,6 +391,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
 
+@region_silo_test(stable=True)
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()
