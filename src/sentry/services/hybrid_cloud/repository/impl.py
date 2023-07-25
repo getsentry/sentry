@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -62,31 +62,36 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self, *, organization_id: int, create: RpcCreateRepository
     ) -> RpcRepository | None:
         try:
-            repository = Repository.objects.create(organization_id=organization_id, **create.dict())
-            return serialize_repository(repository)
+            with transaction.atomic(router.db_for_write(Repository)):
+                repository = Repository.objects.create(
+                    organization_id=organization_id, **create.dict()
+                )
+                return serialize_repository(repository)
         except IntegrityError:
             return None
 
     def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
-        repository = Repository.objects.filter(
-            organization_id=organization_id, id=update.id
-        ).first()
-        if repository is None:
-            return
+        with transaction.atomic(router.db_for_write(Repository)):
+            repository = Repository.objects.filter(
+                organization_id=organization_id, id=update.id
+            ).first()
+            if repository is None:
+                return
 
-        update_dict = update.dict()
-        del update_dict["id"]
+            update_dict = update.dict()
+            del update_dict["id"]
 
-        for field_name, field_value in update_dict.items():
-            setattr(repository, field_name, field_value)
+            for field_name, field_value in update_dict.items():
+                setattr(repository, field_name, field_value)
 
-        repository.save()
+            repository.save()
 
     def reinstall_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:
-        Repository.objects.filter(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-        ).update(status=ObjectStatus.ACTIVE)
+        with transaction.atomic(router.db_for_write(Repository)):
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+            ).update(status=ObjectStatus.ACTIVE)
