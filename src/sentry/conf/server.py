@@ -1686,6 +1686,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
