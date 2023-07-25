@@ -99,7 +99,13 @@ function ArchiveActions({
         priority="primary"
         size="xs"
         title={t('Change status to unresolved')}
-        onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})}
+        onClick={() =>
+          onUpdate({
+            status: ResolutionStatus.UNRESOLVED,
+            statusDetails: {},
+            substatus: GroupSubstatus.ONGOING,
+          })
+        }
         aria-label={t('Unarchive')}
       />
     );

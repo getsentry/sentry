@@ -749,7 +749,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
-    "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
 )
@@ -1108,12 +1107,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 3600},
     },
-    "schedule_auto_archive_issues": {
-        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
-        "options": {"expires": 3600},
-    },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
@@ -1364,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enables data secrecy mode
+    "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow in MS Teams
@@ -1636,8 +1631,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page
-    "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1681,6 +1674,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3204,9 +3199,9 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "nodestore",
+    "replays",
     "sentry",
     "social_auth",
-    "sentry.replays",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
