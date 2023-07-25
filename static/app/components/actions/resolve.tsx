@@ -13,8 +13,8 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
-  Project,
   GroupSubstatus,
+  Project,
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
