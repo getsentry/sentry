@@ -15,6 +15,7 @@ from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_dist_prefix
@@ -250,7 +251,7 @@ def get_client_config(request=None):
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=getattr(request, "auth", None),
-                user=request.user,
+                user=serialize_rpc_user(request.user),
             ),
         )
 
