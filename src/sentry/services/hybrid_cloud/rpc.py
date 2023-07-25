@@ -474,8 +474,8 @@ def dispatch_remote_call(
 @dataclass(frozen=True)
 class _RemoteSiloCall:
     region: Region | None
-    method_name: str
     service_name: str
+    method_name: str
     serial_arguments: ArgumentDict
 
     def __post_init__(self) -> None:
