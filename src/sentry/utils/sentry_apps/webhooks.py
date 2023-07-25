@@ -38,8 +38,8 @@ def ignore_unpublished_app_errors(func):
 def is_considered_error(error: Exception) -> bool:
     return True
 
-def is_response_timeout(resp: Response) -> bool:
-    if Response is Timeout:
+def is_timeout(e: Exception) -> bool:
+    if e is Timeout:
         return True
     return False
 
@@ -58,6 +58,9 @@ def is_response_success(resp: Response) -> bool:
 def record_error(sentryapp: SentryApp, error: Exception):
     redis_key = sentryapp._get_redis_key()
     if not len(redis_key):
+        return
+    if is_timeout(error):
+        record_request_timeout(sentryapp, error)
         return
     if not is_considered_error(error):
         return
@@ -91,13 +94,11 @@ def record_request_timeout(sentryapp: SentryApp, resp: Response):
     if buffer.is_integration_broken():
         disable_app()
 
-def record_response( response: Response):
-    if is_response_fatal(response):
-        record_request_fatal(response)
-    elif is_response_error(response):
-        record_request_error(response)
+def record_response(sentryapp: SentryApp, response: Response):
+    if is_response_error(response):
+        record_request_error(sentryapp, response)
     elif is_response_success(response):
-        record_request_success(response)
+        record_request_success(sentryapp, response)
 
 def disable_app(sentryapp: SentryApp):
     #sentryapp.update(status=ObjectStatus.DISABLED)
@@ -148,6 +149,7 @@ def send_and_save_webhook_request(
             url=url,
             headers=app_platform_event.headers,
         )
+        record_error(sentry_app, e)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -162,6 +164,7 @@ def send_and_save_webhook_request(
         response=response,
         headers=app_platform_event.headers,
     )
+    record_response(sentry_app, response)
 
     if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
         raise ApiHostError.from_request(response.request)
