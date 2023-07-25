@@ -142,7 +142,7 @@ class FeatureManager(RegisteredFeatureManager):
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
         """
-        return {k: v for k, v in self._feature_registry.items() if v == feature_type}
+        return {k: v for k, v in self._feature_registry.items() if issubclass(v, feature_type)}
 
     def add(
         self,

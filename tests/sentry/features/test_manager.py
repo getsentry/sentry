@@ -9,6 +9,7 @@ from sentry.features.base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
     ProjectFeature,
+    SystemFeature,
     UserFeature,
 )
 from sentry.models import User
@@ -291,3 +292,13 @@ class FeatureManagerTest(TestCase):
 
         assert "feat:4" in manager.entity_features
         assert "feat:5" in manager.entity_features
+
+    def test_all(self):
+        manager = features.FeatureManager()
+
+        manager.add("feat:org", OrganizationFeature)
+        manager.add("feat:project", ProjectFeature, False)
+        manager.add("feat:system", SystemFeature, False)
+
+        assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
+        assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
