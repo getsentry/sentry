@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
@@ -81,12 +81,12 @@ describe('ProjectInstallPlatform', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should redirect to neutral docs if no matching platform', async function () {
+  it('should display info for a non-supported platform', async function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
     };
 
-    const {organization, router, route, project, routerContext} = initializeOrg({
+    const {organization, router, route, project} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -111,13 +111,12 @@ describe('ProjectInstallPlatform', function () {
       />,
       {
         organization,
-        context: routerContext,
       }
     );
 
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledTimes(1);
-    });
+    expect(
+      await screen.findByText(/We cannot provide instructions for 'other' projects/)
+    ).toBeInTheDocument();
   });
 
   it('should render getting started docs for correct platform', async function () {

@@ -5,7 +5,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
@@ -13,7 +12,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -176,17 +175,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
-              {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
-                ),
-              }
+            {t(
+              "Make sure you've typed the platform correctly. If that doesn't help, we have several SDKs that are still useful if you use a lesser-known platform. For example, Browser JavaScript, Python, Node, .NET & Java."
             )}
           </EmptyMessage>
         )}

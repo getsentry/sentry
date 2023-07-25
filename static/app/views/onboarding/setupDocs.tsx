@@ -164,6 +164,11 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
       return;
     }
 
+    // There are no docs for the other platform
+    if (project.platform === 'other') {
+      return;
+    }
+
     try {
       const loadedDocs = await loadDocs({
         api,

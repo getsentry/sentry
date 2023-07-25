@@ -45,6 +45,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
+import {OtherPlatformsInfo} from './otherPlatformsInfo';
+
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
 });
@@ -242,18 +244,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     link: platformIntegration?.link,
   };
 
-  const redirectToNeutralDocs = useCallback(() => {
-    if (!project?.slug) {
-      return;
-    }
-
-    router.push(
-      normalizeUrl(
-        `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
-      )
-    );
-  }, [organization.slug, project?.slug, router]);
-
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
       return;
@@ -311,18 +301,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     });
   }, [organization, currentPlatform, project?.id]);
 
-  useEffect(() => {
-    // redirect if platform is not known.
-    if (!platform.key || platform.key === 'other') {
-      redirectToNeutralDocs();
-    }
-  }, [platform.key, redirectToNeutralDocs]);
-
   if (!project) {
     return null;
   }
 
-  if (!platform.id) {
+  if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
   }
 
@@ -341,7 +324,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         <ProductUnavailableCTAHook organization={organization} />
       )}
       <StyledPageHeader>
-        <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
+        <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
         <ButtonBar gap={1}>
           <Confirm
             bypass={!shallProjectBeDeleted}
@@ -376,34 +359,46 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
               {t('Back to Platform Selection')}
             </Button>
           </Confirm>
-          <Button size="sm" href={platform.link ?? undefined} external>
-            {t('Full Documentation')}
-          </Button>
+          {platform.key !== 'other' && (
+            <Button size="sm" href={platform.link ?? undefined} external>
+              {t('Full Documentation')}
+            </Button>
+          )}
         </ButtonBar>
       </StyledPageHeader>
-      {currentPlatform && showLoaderOnboarding ? (
-        <SetupDocsLoader
-          organization={organization}
-          project={project}
-          location={location}
-          platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
-        />
-      ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
-        <SdkDocumentation
-          platform={currentPlatform}
-          organization={organization}
+      {platform.key === 'other' ? (
+        <OtherPlatformsInfo
           projectSlug={project.slug}
-          projectId={project.id}
-          activeProductSelection={products}
+          platform={platform.name ?? 'other'}
         />
       ) : (
-        <SetUpGeneralSdkDoc
-          organization={organization}
-          projectSlug={project.slug}
-          platform={platform}
-        />
+        <Fragment>
+          {currentPlatform && showLoaderOnboarding ? (
+            <SetupDocsLoader
+              organization={organization}
+              project={project}
+              location={location}
+              platform={currentPlatform.id}
+              close={hideLoaderOnboarding}
+            />
+          ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+            <SdkDocumentation
+              platform={currentPlatform}
+              organization={organization}
+              projectSlug={project.slug}
+              projectId={project.id}
+              activeProductSelection={products}
+            />
+          ) : (
+            <SetUpGeneralSdkDoc
+              organization={organization}
+              projectSlug={project.slug}
+              platform={platform}
+            />
+          )}
+        </Fragment>
       )}
+
       <div>
         {isGettingStarted && showPerformancePrompt && (
           <Feature

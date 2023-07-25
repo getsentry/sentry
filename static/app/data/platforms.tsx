@@ -1,28 +1,11 @@
 import integrationDocsPlatforms from 'integration-docs-platforms';
 import sortBy from 'lodash/sortBy';
 
-import {t} from 'sentry/locale';
 import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 
-const otherPlatform = {
-  integrations: [
-    {
-      link: 'https://docs.sentry.io/platforms/',
-      type: 'language',
-      id: 'other',
-      name: t('Other'),
-    },
-  ],
-  id: 'other',
-  name: t('Other'),
-};
-
-const platformIntegrations: PlatformIntegration[] = [
-  ...integrationDocsPlatforms.platforms,
-  otherPlatform,
-]
+const platformIntegrations: PlatformIntegration[] = integrationDocsPlatforms.platforms
   .map(platform => {
     const integrations = platform.integrations.reduce((acc, value) => {
       // filter out any javascript-[angular|angularjs|ember|gatsby|nextjs|react|remix|svelte|sveltekit|vue]-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
