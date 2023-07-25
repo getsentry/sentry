@@ -242,9 +242,6 @@ export function getWidgetDiscoverUrl(
 
   // Visualization specific transforms
   switch (widget.displayType) {
-    case DisplayType.WORLD_MAP:
-      discoverLocation.query.display = DisplayModes.WORLDMAP;
-      break;
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;

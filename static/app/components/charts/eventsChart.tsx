@@ -47,7 +47,6 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
 
-import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
 
 type ChartComponent =
@@ -671,34 +670,6 @@ class EventsChart extends Component<EventsChartProps> {
         {...props}
       >
         {zoomRenderProps => {
-          if (chartComponent === WorldMapChart) {
-            return (
-              <EventsGeoRequest
-                api={api}
-                organization={organization}
-                yAxis={yAxis}
-                query={query}
-                orderby={orderby}
-                projects={projects}
-                period={period}
-                start={start}
-                end={end}
-                environments={environments}
-                referrer={props.referrer}
-                dataset={dataset}
-              >
-                {({errored, loading, reloading, tableData}) =>
-                  chartImplementation({
-                    errored,
-                    loading,
-                    reloading,
-                    zoomRenderProps,
-                    tableData,
-                  })
-                }
-              </EventsGeoRequest>
-            );
-          }
           return (
             <EventsRequest
               {...props}

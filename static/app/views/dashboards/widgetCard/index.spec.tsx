@@ -168,42 +168,6 @@ describe('Dashboards > WidgetCard', function () {
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('Opens in Discover with World Map', async function () {
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
-          queries: [
-            {
-              ...multipleQueryWidget.queries[0],
-              fields: ['count()'],
-              aggregates: ['count()'],
-              columns: [],
-            },
-          ],
-        }}
-        selection={selection}
-        isEditing={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-      />
-    );
-
-    await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/discover/results/?display=worldmap&environment=prod&field=geo.country_code&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
-    );
-  });
-
   it('Opens in Discover with prepended fields pulled from equations', async function () {
     renderWithProviders(
       <WidgetCard
