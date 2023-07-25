@@ -151,6 +151,20 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {"detail": "start and end are both required"}
 
+    @freeze_time(datetime(2021, 3, 14, 12, 27, 28, tzinfo=pytz.utc))
+    def test_future_start(self):
+        response = self.do_request(
+            {
+                "field": ["sum(quantity)"],
+                "interval": "1d",
+                "category": ["error"],
+                "start": "2021-03-14T15:30:00",
+                "end": "2021-03-14T16:30:00",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "start must be before the current time"}
+
     def test_unknown_category(self):
         response = self.do_request(
             {

@@ -68,6 +68,14 @@ def test_inclusive_end():
     assert end == datetime(2021, 2, 25, 1, tzinfo=pytz.utc)
 
 
+@freeze_time("2021-03-05T11:00:00.000Z")
+def test_future_start():
+    with pytest.raises(InvalidParams):
+        get_constrained_date_range(
+            {"start": "2021-03-05T12:00:00", "end": "2021-03-05T13:00:00", "interval": "1h"},
+        )
+
+
 @freeze_time("2021-03-05T11:14:17.105Z")
 def test_interval_restrictions():
     # making sure intervals are cleanly divisible
