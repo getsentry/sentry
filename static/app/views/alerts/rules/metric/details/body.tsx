@@ -35,7 +35,7 @@ import {
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-import MetricDetailsSidebar from './sidebar';
+import {MetricDetailsSidebar} from './sidebar';
 
 interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   api: Client;
