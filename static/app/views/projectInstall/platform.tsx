@@ -242,18 +242,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     link: platformIntegration?.link,
   };
 
-  const redirectToNeutralDocs = useCallback(() => {
-    if (!project?.slug) {
-      return;
-    }
-
-    router.push(
-      normalizeUrl(
-        `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
-      )
-    );
-  }, [organization.slug, project?.slug, router]);
-
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
       return;
@@ -311,15 +299,12 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     });
   }, [organization, currentPlatform, project?.id]);
 
-  useEffect(() => {
-    // redirect if platform is not known.
-    if (!platform.key || platform.key === 'other') {
-      redirectToNeutralDocs();
-    }
-  }, [platform.key, redirectToNeutralDocs]);
-
   if (!project) {
     return null;
+  }
+
+  if (platform.key === 'other') {
+    return <div>oi</div>;
   }
 
   if (!platform.id) {
