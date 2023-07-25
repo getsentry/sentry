@@ -912,6 +912,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "finished_at": None,
                     "duration": None,
                     "is_archived": True,
+                    "releases": None,
+                    "platform": None,
+                    "dist": None,
+                    "count_segments": None,
+                    "count_urls": None,
+                    "clicks": None,
                 }
             ]
 
