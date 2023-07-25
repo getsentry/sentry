@@ -6,6 +6,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
+import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -17,7 +19,13 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Member, MemberRole, Organization, OrganizationAuthProvider} from 'sentry/types';
+import {
+  Member,
+  MemberRole,
+  MissingMember,
+  Organization,
+  OrganizationAuthProvider,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
@@ -27,6 +35,7 @@ import {
   RenderSearch,
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
+import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
@@ -42,6 +51,7 @@ interface State extends AsyncComponentState {
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
+  missingMembers: MissingMember[];
 }
 
 const MemberListHeader = HookOrDefault({
@@ -55,6 +65,33 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       ...super.getDefaultState(),
       members: [],
       invited: {},
+      missingMembers: [
+        {
+          commitCount: 1,
+          email: 'hello@sentry.io',
+          userId: 'hello',
+        },
+        {
+          commitCount: 2,
+          email: 'abcd@sentry.io',
+          userId: 'abcd',
+        },
+        {
+          commitCount: 3,
+          email: 'hola@sentry.io',
+          userId: 'hola',
+        },
+        {
+          commitCount: 4,
+          email: 'test@sentry.io',
+          userId: 'test',
+        },
+        {
+          commitCount: 5,
+          email: 'five@sentry.io',
+          userId: 'five',
+        },
+      ],
     };
   }
 
@@ -158,6 +195,27 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
   };
 
+  handleInviteMissingMember = async (email: string) => {
+    const {organization} = this.props;
+
+    try {
+      const data = await this.api.requestPromise(
+        `/organizations/${organization.slug}/members/`,
+        {
+          method: 'POST',
+          data: {email},
+        }
+      );
+      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      this.setState({members: [...this.state.members, data]});
+      this.setState(state => ({
+        missingMembers: state.missingMembers.filter(member => member.email !== email),
+      }));
+    } catch {
+      addErrorMessage(t('Error sending invite'));
+    }
+  };
+
   updateInviteRequest = (id: string, data: Partial<Member>) =>
     this.setState(state => {
       const inviteRequests = [...state.inviteRequests];
@@ -244,7 +302,13 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
+    const {
+      membersPageLinks,
+      members,
+      member: currentMember,
+      inviteRequests,
+      missingMembers,
+    } = this.state;
     const {access} = organization;
 
     const canAddMembers = access.includes('member:write');
@@ -274,6 +338,14 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
 
     return (
       <Fragment>
+        <Feature organization={organization} features={['gh-invite']}>
+          <Access access={['org:write']}>
+            <InviteBanner
+              missingMembers={missingMembers}
+              onSendInvite={this.handleInviteMissingMember}
+            />
+          </Access>
+        </Feature>
         <ClassNames>
           {({css}) =>
             this.renderSearchInput({

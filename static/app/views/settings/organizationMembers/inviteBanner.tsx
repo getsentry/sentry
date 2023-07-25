@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -10,66 +9,33 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconInfo, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, MissingMember, Organization} from 'sentry/types';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {MissingMember} from 'sentry/types';
 
-type Props = {organization: Organization};
+type Props = {
+  missingMembers: MissingMember[];
+  onSendInvite: (email: string) => void;
+  // organization: Organization;
+};
 
-type CreateMemberVariables = {email: string};
-
-export function InviteBanner({organization}: Props) {
-  // TODO(cathy): replace with call to get uninvited org members
-  const api = useApi();
-  const {data: missingMembers} = useApiQuery<Member[]>(
-    [`/organizations/${organization.slug}/users/`],
-    {
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
-      retry: false,
-      notifyOnChangeProps: ['data'],
-    }
-  );
-
-  const {mutate} = useMutation<Member, RequestError, CreateMemberVariables>({
-    mutationFn: ({email}: CreateMemberVariables) =>
-      api.requestPromise(`/organizations/${organization.slug}/members/`, {
-        method: 'POST',
-        data: {email},
-      }),
-    onSuccess: response => {
-      addSuccessMessage(`Successfully invited member ${response.email}`);
-    },
-  });
-
-  const missingOrgMembers: MissingMember[] = [
-    {email: 'hello@sentry.io', commitCount: 5, userId: 'hello'},
-    {email: 'cathy.teng@sentry.io', commitCount: 10, userId: 'cathteng'},
-    {email: 'test@sentry.io', commitCount: 234, userId: 'testy'},
-    {email: 'test2@sentry.io', commitCount: 34, userId: 'test2'},
-  ];
-
+export function InviteBanner({missingMembers, onSendInvite}: Props) {
   // TODO(cathy): include docs link and snooze option
+
   const menuItems: MenuItemProps[] = [
     {
       key: 'invite-banner-snooze',
-      label: t('Delete'),
+      label: t('Hide Missing Members'),
       priority: 'default',
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to snooze this banner?'),
-          onConfirm: () => {
-            return true;
-          },
+          onConfirm: () => true,
         });
       },
     },
   ];
 
-  const cards = missingOrgMembers.map(member => (
-    <MemberCard key={member.userId}>
+  const cards = missingMembers.slice(0, 4).map(member => (
+    <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
       <MemberCardContent>
         <MemberCardContentRow>
           <IconGithub size="sm" />
@@ -85,14 +51,44 @@ export function InviteBanner({organization}: Props) {
       </MemberCardContent>
       <Button
         size="sm"
-        onClick={() => mutate({email: member.email})}
-        data-test-id="view-all-missing-members"
+        onClick={() => onSendInvite(member.email)}
+        data-test-id="invite-missing-member"
         icon={<IconMail />}
       >
         {t('Invite')}
       </Button>
     </MemberCard>
   ));
+
+  cards.push(
+    <MemberCard key="see-more" data-test-id="see-more-card">
+      <MemberCardContent>
+        <MemberCardContentRow>
+          <SeeMoreContainer>
+            {tct('See all [missingMembersCount] missing members', {
+              missingMembersCount: missingMembers.length,
+            })}
+          </SeeMoreContainer>
+        </MemberCardContentRow>
+        <Subtitle>
+          {tct('Accounting for [totalCommits] missing commits', {
+            totalCommits: missingMembers?.reduce(
+              (acc, curr) => acc + curr.commitCount,
+              0
+            ),
+          })}
+        </Subtitle>
+      </MemberCardContent>
+      <Button
+        size="sm"
+        priority="primary"
+        // onClick={() => onSendInvite(member.email)}
+        data-test-id="view-all-missing-members"
+      >
+        {t('View All')}
+      </Button>
+    </MemberCard>
+  );
 
   return (
     <StyledCard>
@@ -101,7 +97,7 @@ export function InviteBanner({organization}: Props) {
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
             {tct('[missingMemberCount] missing members that are active in your GitHub', {
-              missingMemberCount: missingOrgMembers.length,
+              missingMemberCount: missingMembers.length,
             })}
             <Tooltip title="Based on the last 30 days of commit data">
               <IconInfo size="xs" />
@@ -137,7 +133,7 @@ export function InviteBanner({organization}: Props) {
   );
 }
 
-export default withOrganization(InviteBanner);
+export default InviteBanner;
 
 const StyledCard = styled(Card)`
   padding: ${space(2)};
@@ -169,6 +165,8 @@ const Subtitle = styled('div')`
   align-items: center;
   & > *:first-child {
     margin-left: ${space(0.5)};
+    display: flex;
+    align-items: center;
   }
 `;
 
@@ -185,10 +183,12 @@ const MemberCard = styled(Card)`
   align-items: center;
   margin: ${space(1)} ${space(0.5)} 0 0;
   min-width: 330px;
+  justify-content: space-between;
 `;
 
 const MemberCardsContainer = styled('div')`
   display: flex;
+  overflow-x: scroll;
 `;
 
 const MemberCardContent = styled('div')`
@@ -209,4 +209,8 @@ const MemberCardContentRow = styled('div')`
 
 const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const SeeMoreContainer = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
