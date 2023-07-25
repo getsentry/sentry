@@ -286,7 +286,7 @@ class BaseTestCase(Fixtures):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         request.user = user
 
@@ -1673,7 +1673,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[int] | int,
+        value: List[float] | float,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
