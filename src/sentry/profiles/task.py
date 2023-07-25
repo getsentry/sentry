@@ -624,8 +624,12 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
+
+            if "signature" in method and method["signature"]:
+                method["signature"] = deobfuscate_signature(mapper, method["signature"])
+
             if len(mapped) >= 1:
-                new_frame = mapped[0]
+                new_frame = mapped[-1]
                 new_frame_attributes = {
                     "class_name": new_frame.class_name,
                     "name": new_frame.method,
@@ -651,8 +655,11 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         else "",
                         "source_line": new_frame.line,
                     }
-                    for new_frame in mapped[1:]
+                    for new_frame in reversed(mapped)
                 ]
+
+                if len(method["inline_frames"]) > 0:
+                    method["inline_frames"][0]["signature"] = method.get("signature", "")
             else:
                 mapped_class = mapper.remap_class(method["class_name"])
                 if mapped_class:
@@ -660,9 +667,6 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     method["data"]["deobfuscation_status"] = "partial"
                 else:
                     method["data"]["deobfuscation_status"] = "missing"
-
-            if "signature" in method and method["signature"]:
-                method["signature"] = deobfuscate_signature(mapper, method["signature"])
 
 
 @metrics.wraps("process_profile.track_outcome")
