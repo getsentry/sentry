@@ -152,7 +152,7 @@ class ApiGatewayTestCase(APITestCase):
         self.middleware = provision_middleware()
 
     def run(
-        self, result: unittest.result.TestResult | None = ...
+        self, result: unittest.result.TestResult | None = None
     ) -> unittest.result.TestResult | None:
         with override_regions([self._REGION]):
             return super().run(result)
