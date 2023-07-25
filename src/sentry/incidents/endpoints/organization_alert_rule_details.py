@@ -13,6 +13,7 @@ from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSeri
 from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
@@ -83,6 +84,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 "access": request.access,
                 "user": request.user,
                 "ip_address": request.META.get("REMOTE_ADDR"),
+                "installations": app_service.get_installed_for_organization(
+                    organization_id=organization.id
+                ),
             },
             instance=alert_rule,
             data=request.data,

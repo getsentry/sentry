@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Sequence, Set, Tuple
+from typing import List, Sequence, Set, Tuple
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -21,10 +21,10 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.notificationsetting import NotificationSetting
-from sentry.models.options.user_option import UserOption
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -249,9 +249,11 @@ def generate_incident_trigger_email_context(
 
     tz = settings.SENTRY_DEFAULT_TIME_ZONE
     if user is not None:
-        user_option_tz = UserOption.objects.get_value(user=user, key="timezone")
-        if user_option_tz is not None:
-            tz = user_option_tz
+        options: List[RpcUserOption] = user_option_service.get_many(
+            filter=dict(keys=["timezone"], user_ids=[user.id])
+        )
+        if options and options[0].value is not None:
+            tz = options[0].value
 
     organization = incident.organization
 

@@ -41,7 +41,7 @@ class AlertRuleSerializer(Serializer):
 
         sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
             organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],
-            sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
+            sentry_app_ids=list(trigger_actions.values_list("sentry_app_id", flat=True)),
             type="alert-rule-action",
         )
 
