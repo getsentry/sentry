@@ -100,7 +100,8 @@ _parameterization_regex = re.compile(
     (?P<quoted_str>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all quoted strings
-        ='([\w\s]+)'
+        ='([^']+)' |
+        ="([^"]+)"
     )
 """
 )
