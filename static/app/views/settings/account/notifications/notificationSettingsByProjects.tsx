@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -10,24 +11,24 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {
-  MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'sentry/views/settings/account/notifications/constants';
-import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
+import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {
   getParentData,
   getParentField,
   groupByOrganization,
 } from 'sentry/views/settings/account/notifications/utils';
-import {
-  RenderSearch,
-  SearchWrapper,
-} from 'sentry/views/settings/components/defaultSearchBar';
+import {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
 
 export type NotificationSettingsByProjectsBaseProps = {
   notificationSettings: NotificationSettingsObject;
@@ -40,11 +41,10 @@ export type NotificationSettingsByProjectsBaseProps = {
 };
 
 export type Props = {
-  handleOrgChange: Function;
-  organizationId: string;
   organizations: Organization[];
 } & NotificationSettingsByProjectsBaseProps &
-  DeprecatedAsyncComponent['props'];
+  DeprecatedAsyncComponent['props'] &
+  WithRouterProps;
 
 type State = {
   projects: Project[];
@@ -59,15 +59,28 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
+    const organizationId = this.getOrganizationId();
     return [
       [
         'projects',
         `/projects/`,
         {
-          query: {organizationId: this.props.organizationId},
+          query: {
+            organizationId,
+            cursor: this.props.location.query.cursor,
+          },
         },
       ],
     ];
+  }
+
+  getOrganizationId(): string | undefined {
+    const {location, organizations} = this.props;
+    const customerDomain = ConfigStore.get('customerDomain');
+    const orgFromSubdomain = organizations.find(
+      ({slug}) => slug === customerDomain?.subdomain
+    )?.id;
+    return location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
   }
 
   /**
@@ -93,10 +106,11 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
     );
   };
 
-  handleOrgChange = (option: {label: string; value: string}) => {
-    // handleOrgChange(option: {label: string; value: string}) {
-    this.props.handleOrgChange(option);
-    setTimeout(() => this.reloadData(), 0);
+  handleOrgChange = (organizationId: string) => {
+    this.props.router.replace({
+      ...this.props.location,
+      query: {organizationId},
+    });
   };
 
   renderBody() {
@@ -105,71 +119,80 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
     const {projects, projectsPageLinks} = this.state;
 
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
-    const shouldPaginate = projects.length >= MIN_PROJECTS_FOR_PAGINATION;
+    const paginationObject = parseLinkHeader(projectsPageLinks ?? '');
+    const hasMore = paginationObject?.next?.results;
+    const hasPrevious = paginationObject?.previous?.results;
 
-    const renderSearch: RenderSearch = ({defaultSearchBar}) => (
-      <StyledSearchWrapper>{defaultSearchBar}</StyledSearchWrapper>
-    );
+    const renderSearch: RenderSearch = ({defaultSearchBar}) => defaultSearchBar;
+    const orgId = this.getOrganizationId();
 
     return (
       <Fragment>
-        <PanelHeader>
-          <OrganizationSelectHeader
-            organizations={this.props.organizations}
-            organizationId={this.props.organizationId}
-            handleOrgChange={this.handleOrgChange}
-          />
+        <Panel>
+          <StyledPanelHeader>
+            <OrganizationSelectHeader
+              organizations={this.props.organizations}
+              organizationId={orgId}
+              handleOrgChange={this.handleOrgChange}
+            />
 
-          {canSearch &&
-            this.renderSearchInput({
-              stateKey: 'projects',
-              url: `/projects/?organizationId=${this.props.organizationId}`,
-              placeholder: t('Search Projects'),
-              children: renderSearch,
-            })}
-        </PanelHeader>
-        <PanelBody>
-          <Form
-            saveOnBlur
-            apiMethod="PUT"
-            apiEndpoint="/users/me/notification-settings/"
-            initialData={getParentData(notificationType, notificationSettings, projects)}
-            onSubmitSuccess={onSubmitSuccess}
-          >
-            {projects.length === 0 ? (
-              <EmptyMessage>{t('No projects found')}</EmptyMessage>
-            ) : (
-              Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
-                <StyledJsonForm
-                  collapsible
-                  key={groupTitle}
-                  // title={groupTitle}
-                  fields={parents.map(parent =>
-                    getParentField(
-                      notificationType,
-                      notificationSettings,
-                      parent,
-                      onChange
-                    )
-                  )}
-                />
-              ))
-            )}
-          </Form>
-        </PanelBody>
-        {canSearch && shouldPaginate && (
-          <Pagination pageLinks={projectsPageLinks} {...this.props} />
+            {canSearch &&
+              this.renderSearchInput({
+                stateKey: 'projects',
+                url: `/projects/?organizationId=${orgId}`,
+                placeholder: t('Search Projects'),
+                children: renderSearch,
+              })}
+          </StyledPanelHeader>
+          <PanelBody>
+            <Form
+              saveOnBlur
+              apiMethod="PUT"
+              apiEndpoint="/users/me/notification-settings/"
+              initialData={getParentData(
+                notificationType,
+                notificationSettings,
+                projects
+              )}
+              onSubmitSuccess={onSubmitSuccess}
+            >
+              {projects.length === 0 ? (
+                <EmptyMessage>{t('No projects found')}</EmptyMessage>
+              ) : (
+                Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
+                  <StyledJsonForm
+                    collapsible
+                    key={groupTitle}
+                    // title={groupTitle}
+                    fields={parents.map(parent =>
+                      getParentField(
+                        notificationType,
+                        notificationSettings,
+                        parent,
+                        onChange
+                      )
+                    )}
+                  />
+                ))
+              )}
+            </Form>
+          </PanelBody>
+        </Panel>
+        {canSearch && (hasMore || hasPrevious) && (
+          <Pagination pageLinks={projectsPageLinks} />
         )}
       </Fragment>
     );
   }
 }
 
-export default NotificationSettingsByProjects;
+export default withSentryRouter(NotificationSettingsByProjects);
 
-const StyledSearchWrapper = styled(SearchWrapper)`
-  * {
-    width: 100%;
+const StyledPanelHeader = styled(PanelHeader)`
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  & > form:last-child {
+    flex-grow: 1;
   }
 `;
 
