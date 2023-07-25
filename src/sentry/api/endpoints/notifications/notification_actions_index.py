@@ -57,7 +57,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "trigger_type_query": trigger_type_query,
-                "project_query": self.get_requested_project_ids_unchecked(request)
+                "project_query": self.get_requested_project_ids_unchecked(request),
             },
         )
         return self.paginate(
