@@ -127,7 +127,7 @@ function ArchiveActions({
           'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
           {
             docs: (
-              <ExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/" />
+              <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/issue-archiving/" />
             ),
           }
         )}
