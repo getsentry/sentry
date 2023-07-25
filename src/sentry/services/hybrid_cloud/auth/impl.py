@@ -21,6 +21,7 @@ from sentry.models import (
     OrgAuthToken,
     SentryAppInstallationToken,
     User,
+    outbox_context,
 )
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
@@ -41,6 +42,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 
@@ -234,6 +236,42 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
         return list(AuthProvider.objects.filter(organization_id=organization_id))
+
+    def change_scim(
+        self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool
+    ) -> None:
+        try:
+            auth_provider = AuthProvider.objects.get(id=provider_id)
+            user = User.objects.get(id=user_id)
+        except (AuthProvider.DoesNotExist, User.DoesNotExist):
+            return
+
+        with outbox_context(transaction.atomic(router.db_for_write(AuthProvider))):
+            auth_provider.flags.allow_unlinked = allow_unlinked
+            if auth_provider.flags.scim_enabled != enabled:
+                if enabled:
+                    auth_provider.enable_scim(user)
+                else:
+                    auth_provider.disable_scim()
+
+            auth_provider.save()
+
+    def disable_provider(self, *, provider_id: int) -> None:
+        with outbox_context(transaction.atomic(router.db_for_write(AuthProvider))):
+            try:
+                auth_provider: AuthProvider = AuthProvider.objects.get(id=provider_id)
+            except AuthProvider.DoesNotExist:
+                return
+
+            user_ids = OrganizationMemberMapping.objects.filter(
+                organization_id=auth_provider.organization_id
+            ).values_list("user_id", flat=True)
+            with unguarded_write(router.db_for_write(User)):
+                User.objects.filter(id__in=user_ids).update(is_managed=False)
+
+            if auth_provider.flags.scim_enabled:
+                auth_provider.disable_scim()
+            auth_provider.delete()
 
 
 class FakeRequestDict:
