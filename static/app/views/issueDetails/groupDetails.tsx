@@ -248,14 +248,15 @@ function useEventApiQuery({
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
-  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'helpful' : 'latest');
+  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'recommended' : 'latest');
   const helpfulEventQuery =
     hasMostHelpfulEventFeature && typeof location.query.query === 'string'
       ? location.query.query
       : undefined;
 
+  const endpointEventId = eventIdUrl === 'recommended' ? 'helpful' : eventIdUrl;
   const queryKey: ApiQueryKey = [
-    `/issues/${groupId}/events/${eventIdUrl}/`,
+    `/issues/${groupId}/events/${endpointEventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
@@ -267,7 +268,7 @@ function useEventApiQuery({
   const tab = getCurrentTab({router});
   const isOnDetailsTab = tab === Tab.DETAILS;
 
-  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
+  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'recommended';
   const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
     // Latest/helpful event will change over time, so only cache for 30 seconds
     staleTime: 30000,

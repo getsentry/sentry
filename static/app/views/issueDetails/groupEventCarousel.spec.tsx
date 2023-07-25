@@ -1,5 +1,8 @@
+import {browserHistory} from 'react-router';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 describe('GroupEventCarousel', () => {
@@ -21,7 +24,7 @@ describe('GroupEventCarousel', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     Object.assign(navigator, {
       clipboard: {
         writeText: jest.fn().mockResolvedValue(''),
@@ -30,13 +33,47 @@ describe('GroupEventCarousel', () => {
     window.open = jest.fn();
   });
 
+  it('can use event dropdown to navigate events', async () => {
+    // Because it isn't rendered on smaller screens
+    jest.spyOn(useMedia, 'default').mockReturnValue(true);
+
+    render(<GroupEventCarousel {...defaultProps} />, {
+      organization: TestStubs.Organization({
+        features: [
+          'issue-details-most-helpful-event',
+          'issue-details-most-helpful-event-ui',
+        ],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: /recommended event/i}));
+    await userEvent.click(screen.getByRole('option', {name: /oldest event/i}));
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+      query: {referrer: 'oldest-event'},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: /oldest event/i}));
+    await userEvent.click(screen.getByRole('option', {name: /latest event/i}));
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+      query: {referrer: 'oldest-event'},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: /latest event/i}));
+    await userEvent.click(screen.getByRole('option', {name: /recommended event/i}));
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
+      query: {referrer: 'recommended-event'},
+    });
+  });
+
   it('can navigate next/previous events', () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    expect(screen.getByLabelText(/First Event/)).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/issues/group-id/events/oldest/?referrer=oldest-event`
-    );
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event`
@@ -44,10 +81,6 @@ describe('GroupEventCarousel', () => {
     expect(screen.getByLabelText(/Next Event/)).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
-    );
-    expect(screen.getByLabelText(/Latest Event/)).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/issues/group-id/events/latest/?referrer=latest-event`
     );
   });
 
