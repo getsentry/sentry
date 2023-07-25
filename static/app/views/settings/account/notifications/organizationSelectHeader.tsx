@@ -29,7 +29,7 @@ export function OrganizationSelectHeader({
         onChange={option => handleOrgChange(option.value)}
         value={organizationId}
         styles={{
-          container: (provided: {[x: string]: string | number | boolean}) => ({
+          container: (provided: Record<string, string>) => ({
             ...provided,
             minWidth: `200px`,
           }),
@@ -39,6 +39,7 @@ export function OrganizationSelectHeader({
   );
 }
 
+// Resetting styles because its in a panel header
 const StyledSelectControl = styled(SelectControl)`
   text-transform: initial;
   font-weight: normal;

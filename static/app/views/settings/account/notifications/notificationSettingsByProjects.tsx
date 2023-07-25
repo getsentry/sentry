@@ -125,7 +125,6 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
 
     const renderSearch: RenderSearch = ({defaultSearchBar}) => defaultSearchBar;
     const orgId = this.getOrganizationId();
-
     return (
       <Fragment>
         <Panel>
@@ -135,7 +134,6 @@ class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, Sta
               organizationId={orgId}
               handleOrgChange={this.handleOrgChange}
             />
-
             {canSearch &&
               this.renderSearchInput({
                 stateKey: 'projects',

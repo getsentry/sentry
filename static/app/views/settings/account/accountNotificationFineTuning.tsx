@@ -142,16 +142,6 @@ type State = DeprecatedAsyncView['state'] & {
 };
 
 class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      emails: [],
-      fineTuneData: null,
-      notifications: [],
-      projects: [],
-    };
-  }
-
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
@@ -223,7 +213,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
 
-    const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
+    const [stateKey] = isProject ? this.getEndpoints()[2] : [];
     const hasProjects = !!projects?.length;
 
     if (fineTuneType === 'email') {
@@ -272,7 +262,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
                 />
                 {this.renderSearchInput({
                   placeholder: t('Search Projects'),
-                  url,
+                  url: `/projects/?organizationId=${orgId}`,
                   stateKey,
                 })}
               </Fragment>
