@@ -195,16 +195,14 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(
-        stacktrace: dict[str, Any],
-        container: dict[str, Any],
-        is_exception: bool = False,
+        stacktrace: dict[str, Any], container: dict[str, Any], is_exception: bool = False
     ) -> None:
-        # We do not use a default value to allow for None
-        frames = get_path(stacktrace, "frames", filter=True)
-        if not is_exception and (not stacktrace or not frames):
+        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
+        platforms = _get_frames_metadata(
+            get_path(stacktrace, "frames", filter=True, default=()), data.get("platform", "unknown")
+        )
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
