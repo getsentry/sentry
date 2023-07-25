@@ -1,9 +1,10 @@
 from functools import cached_property
 from time import time
+from unittest.mock import patch
 
 import pytest
 import responses
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from responses.matchers import query_string_matcher
 
 from fixtures.vsts import (
@@ -24,9 +25,10 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -36,22 +38,23 @@ class VstsIssueBase(TestCase):
         return RequestFactory()
 
     def setUp(self):
-        model = Integration.objects.create(
-            provider="vsts",
-            external_id="vsts_external_id",
-            name="fabrikam-fiber-inc",
-            metadata={
-                "domain_name": "https://fabrikam-fiber-inc.visualstudio.com/",
-                "default_project": "0987654321",
-            },
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
-            user=self.user,
-            external_id="vsts",
-            data={"access_token": "123456789", "expires": time() + 1234567},
-        )
-        model.add_organization(self.organization, self.user, identity.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            model = Integration.objects.create(
+                provider="vsts",
+                external_id="vsts_external_id",
+                name="fabrikam-fiber-inc",
+                metadata={
+                    "domain_name": "https://fabrikam-fiber-inc.visualstudio.com/",
+                    "default_project": "0987654321",
+                },
+            )
+            identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(type="vsts", config={}),
+                user=self.user,
+                external_id="vsts",
+                data={"access_token": "123456789", "expires": time() + 1234567},
+            )
+            model.add_organization(self.organization, self.user, identity.id)
         self.config = {
             "resolve_status": "Resolved",
             "resolve_when": "Resolved",
@@ -116,7 +119,11 @@ class VstsIssueBase(TestCase):
         )
 
 
-@region_silo_test
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
+@region_silo_test(stable=True)
 class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
         responses.reset()
@@ -171,20 +178,36 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert request.headers["Content-Type"] == "application/json"
 
     @responses.activate
-    def test_sync_assignee_outbound(self):
+    @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
+    def test_sync_assignee_outbound(self, use_proxy_url_for_tests):
+        use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
-        responses.add(
-            responses.PATCH,
-            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-        )
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
-            body=GET_USERS_RESPONSE,
-            content_type="application/json",
-        )
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            responses.add(
+                responses.PATCH,
+                f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+                body=WORK_ITEM_RESPONSE,
+                content_type="application/json",
+            )
+            responses.add(
+                responses.GET,
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+                body=GET_USERS_RESPONSE,
+                content_type="application/json",
+            )
+        else:
+            responses.add(
+                responses.PATCH,
+                f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}",
+                body=WORK_ITEM_RESPONSE,
+                content_type="application/json",
+            )
+            responses.add(
+                responses.GET,
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
+                body=GET_USERS_RESPONSE,
+                content_type="application/json",
+            )
 
         user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
@@ -196,16 +219,28 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         self.integration.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 2
-        assert (
-            responses.calls[0].request.url
-            == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
-        )
-        assert responses.calls[0].response.status_code == 200
-        assert (
-            responses.calls[1].request.url
-            == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id
-        )
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert (
+                responses.calls[0].request.url
+                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users"
+            )
+            assert responses.calls[0].response.status_code == 200
+            assert (
+                responses.calls[1].request.url
+                == "http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/%d"
+                % vsts_work_item_id
+            )
+        else:
+            assert (
+                responses.calls[0].request.url
+                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
+            )
+            assert responses.calls[0].response.status_code == 200
+            assert (
+                responses.calls[1].request.url
+                == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
+                % vsts_work_item_id
+            )
 
         request_body = json.loads(responses.calls[1].request.body)
         assert len(request_body) == 1
@@ -215,34 +250,64 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[1].response.status_code == 200
 
     @responses.activate
-    def test_sync_assignee_outbound_with_paging(self):
+    @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
+    def test_sync_assignee_outbound_with_paging(self, use_proxy_url_for_tests):
+        use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
-        responses.add(
-            responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-        )
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
-            json={
-                "value": [
-                    {"mailAddress": "example1@example.com"},
-                    {"mailAddress": "example2@example.com"},
-                    {"mailAddress": "example3@example.com"},
-                ]
-            },
-            headers={"X-MS-ContinuationToken": "continuation-token"},
-        )
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
-            match=[query_string_matcher("continuationToken=continuation-token")],
-            body=GET_USERS_RESPONSE,
-            content_type="application/json",
-        )
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            responses.add(
+                responses.PATCH,
+                "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
+                % vsts_work_item_id,
+                body=WORK_ITEM_RESPONSE,
+                content_type="application/json",
+            )
+            responses.add(
+                responses.GET,
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+                json={
+                    "value": [
+                        {"mailAddress": "example1@example.com"},
+                        {"mailAddress": "example2@example.com"},
+                        {"mailAddress": "example3@example.com"},
+                    ]
+                },
+                headers={"X-MS-ContinuationToken": "continuation-token"},
+            )
+            responses.add(
+                responses.GET,
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+                match=[query_string_matcher("continuationToken=continuation-token")],
+                body=GET_USERS_RESPONSE,
+                content_type="application/json",
+            )
+        else:
+            responses.add(
+                responses.PATCH,
+                "http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/%d"
+                % vsts_work_item_id,
+                body=WORK_ITEM_RESPONSE,
+                content_type="application/json",
+            )
+            responses.add(
+                responses.GET,
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
+                json={
+                    "value": [
+                        {"mailAddress": "example1@example.com"},
+                        {"mailAddress": "example2@example.com"},
+                        {"mailAddress": "example3@example.com"},
+                    ]
+                },
+                headers={"X-MS-ContinuationToken": "continuation-token"},
+            )
+            responses.add(
+                responses.GET,
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
+                match=[query_string_matcher("continuationToken=continuation-token")],
+                body=GET_USERS_RESPONSE,
+                content_type="application/json",
+            )
 
         user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
@@ -254,22 +319,40 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         self.integration.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 3
-        assert (
-            responses.calls[0].request.url
-            == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
-        )
-        assert responses.calls[0].response.status_code == 200
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert (
+                responses.calls[0].request.url
+                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users"
+            )
+            assert responses.calls[0].response.status_code == 200
 
-        assert (
-            responses.calls[1].request.url
-            == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token"
-        )
-        assert responses.calls[1].response.status_code == 200
+            assert (
+                responses.calls[1].request.url
+                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users?continuationToken=continuation-token"
+            )
+            assert responses.calls[1].response.status_code == 200
 
-        assert (
-            responses.calls[2].request.url
-            == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
-        )
+            assert (
+                responses.calls[2].request.url
+                == f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}"
+            )
+        else:
+            assert (
+                responses.calls[0].request.url
+                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
+            )
+            assert responses.calls[0].response.status_code == 200
+
+            assert (
+                responses.calls[1].request.url
+                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token"
+            )
+            assert responses.calls[1].response.status_code == 200
+
+            assert (
+                responses.calls[2].request.url
+                == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
+            )
         request_body = json.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
@@ -313,12 +396,13 @@ class VstsIssueSyncTest(VstsIssueBase):
             description="I'm a description.",
         )
 
-        IntegrationExternalProject.objects.create(
-            external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
-            organization_integration_id=self.integration.org_integration.id,
-            resolved_status="Resolved",
-            unresolved_status="New",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            IntegrationExternalProject.objects.create(
+                external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                organization_integration_id=self.integration.org_integration.id,
+                resolved_status="Resolved",
+                unresolved_status="New",
+            )
         self.integration.sync_status_outbound(external_issue, True, self.project.id)
         assert len(responses.calls) == 3
         req = responses.calls[2].request
@@ -409,7 +493,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
         super().setUp()

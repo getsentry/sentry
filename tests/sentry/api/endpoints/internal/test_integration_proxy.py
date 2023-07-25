@@ -70,11 +70,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         signature = encode_subnet_signature(
             secret=self.secret,
+            base_url="https://example.com/api",
             path=self.proxy_path,
             identifier=str(self.org_integration.id),
             request_body=b"",
         )
         self.valid_header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_BASE_URL="https://example.com/api",
             HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
         )
@@ -195,11 +197,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         signature = encode_subnet_signature(
             secret=self.secret,
+            base_url="https://example.com/api",
             path="",
             identifier=str(self.org_integration.id),
             request_body=json.dumps(expected_proxy_payload).encode("utf-8"),
         )
         headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_BASE_URL="https://example.com/api",
             HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
         )

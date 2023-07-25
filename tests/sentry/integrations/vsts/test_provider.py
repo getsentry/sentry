@@ -60,6 +60,7 @@ class TestVSTSOAuthCallbackView(TestCase):
         assert result["refresh_token"] == "zzzzzzzzzz"
 
 
+@control_silo_test(stable=True)
 class TestAccountConfigView(TestCase):
     def setUp(self):
         responses.reset()

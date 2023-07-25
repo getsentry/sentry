@@ -12,14 +12,17 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
+    serialize_integration_external_project,
     serialize_organization_integration,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
@@ -400,3 +403,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if integration is None:
             return
         integration.delete()
+
+    def get_integration_external_project(
+        self, *, organization_id: int, integration_id: int, external_id: str
+    ) -> RpcIntegrationExternalProject | None:
+        external_project = IntegrationExternalProject.objects.filter(
+            external_id=external_id,
+            organization_integration_id__in=OrganizationIntegration.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+            ),
+        ).first()
+        if external_project is None:
+            return None
+        return serialize_integration_external_project(external_project)

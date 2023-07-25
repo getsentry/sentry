@@ -62,3 +62,13 @@ class RpcOrganizationIntegration(RpcModel):
             if status_id == self.status:
                 return display
         return "disabled"
+
+
+class RpcIntegrationExternalProject(RpcModel):
+    id: int
+    organization_integration_id: int
+    date_added: datetime
+    name: str
+    external_id: str
+    resolved_status: str
+    unresolved_status: str
