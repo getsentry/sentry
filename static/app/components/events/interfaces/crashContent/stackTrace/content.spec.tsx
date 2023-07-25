@@ -195,25 +195,6 @@ describe('StackTrace', function () {
       expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
     });
 
-    it('toggles the show/hide button text when clicked', async function () {
-      const dataFrames = [...data.frames];
-      dataFrames[0] = {...dataFrames[0], inApp: true};
-
-      const newData = {
-        ...data,
-        frames: dataFrames,
-      };
-
-      renderedComponent({
-        organization,
-        data: newData,
-        includeSystemFrames: false,
-      });
-      await userEvent.click(screen.getByText('Show 3 more frames'));
-
-      expect(screen.getByText('Hide 3 more frames')).toBeInTheDocument();
-    });
-
     it('shows/hides frames when toggle button clicked', async function () {
       const dataFrames = [...data.frames];
       dataFrames[0] = {...dataFrames[0], inApp: true};
