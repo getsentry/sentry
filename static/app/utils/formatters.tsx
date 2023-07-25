@@ -286,7 +286,7 @@ const numberFormats = [
   [1000, 'k'],
 ] as const;
 
-export function formatAbbreviatedNumber(number: number | string) {
+export function formatAbbreviatedNumber(number: number | string): string {
   number = Number(number);
 
   let lookup: (typeof numberFormats)[number];
@@ -302,11 +302,11 @@ export function formatAbbreviatedNumber(number: number | string) {
     }
 
     return shortValue / 10 > 1 || !fitsBound
-      ? `${shortValue}${suffix}`
+      ? `${formatFloat(shortValue, 1)}${suffix}`
       : `${formatFloat(number / suffixNum, 1)}${suffix}`;
   }
 
-  return number.toLocaleString();
+  return `${formatFloat(number, 1)}`;
 }
 
 export function formatRate(value: number, unit?: RateUnits) {

@@ -198,7 +198,7 @@ describe('formatAbbreviatedNumber()', function () {
   });
 
   it('should round to 1 decimal place', function () {
-    expect(formatAbbreviatedNumber(100.12)).toBe('100.12');
+    expect(formatAbbreviatedNumber(100.12)).toBe('100.1');
     expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
     expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
   });
