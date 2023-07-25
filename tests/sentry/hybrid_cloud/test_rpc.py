@@ -18,7 +18,7 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.rpc import (
-    RpcSendException,
+    RpcServiceSetupException,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
@@ -145,7 +145,7 @@ class DispatchRemoteCallTest(TestCase):
         SENTRY_CONTROL_ADDRESS="",
     )
     def test_while_not_allowed(self):
-        with pytest.raises(RpcSendException):
+        with pytest.raises(RpcServiceSetupException):
             dispatch_remote_call(None, "user", "get_user", {"user_id": 0})
 
     @staticmethod
