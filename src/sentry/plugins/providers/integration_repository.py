@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
