@@ -478,10 +478,6 @@ class _RemoteSiloCall:
     method_name: str
     serial_arguments: ArgumentDict
 
-    def __post_init__(self) -> None:
-        if not settings.RPC_SHARED_SECRET:
-            raise RpcSendException("RPC shared secret is not configured")
-
     @property
     def address(self) -> str:
         if self.region is None:
