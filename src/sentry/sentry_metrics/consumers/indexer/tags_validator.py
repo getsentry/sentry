@@ -11,7 +11,7 @@ class TagsValidator:
     MAX_TAG_KEY_LENGTH = MAX_INDEXED_COLUMN_LENGTH
     MAX_TAG_VALUE_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-    def is_allowed(self, tags: Mapping[str, str]) -> bool:
+    def is_allowed(self, tags: Mapping[str, str] | None) -> bool:
         """
         Returns True if the tags key value pairs are within limits.
         """
