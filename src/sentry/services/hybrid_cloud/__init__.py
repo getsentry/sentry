@@ -252,7 +252,9 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     def __getattr__(self, item: str) -> Any:
         for model, constructor in self._constructors.items():
             if in_test_environment():
-                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+                from sentry.testutils.hybrid_cloud import (  # NOQA:S007
+                    simulated_transaction_watermarks,
+                )
 
                 open_transaction = (
                     simulated_transaction_watermarks.connection_transaction_depth_above_watermark(

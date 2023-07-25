@@ -31,7 +31,7 @@ def django_test_transaction_water_mark(using: str | None = None):
             yield
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     connection = transaction.get_connection(using)
 
@@ -88,7 +88,7 @@ def in_test_assert_no_transaction(msg: str):
     if not in_test_environment() or not in_test_transaction_enforcement.enabled:
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     for conn in connections.all():
         assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(

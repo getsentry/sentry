@@ -10,7 +10,7 @@ from functools import cached_property
 from typing import Callable, Iterable, List, Mapping, Set, Tuple
 
 from sentry.silo.base import SiloMode
-from sentry.testutils.modelmanifest import ModelManifest
+from sentry.testutils.modelmanifest import ModelManifest  # NOQA:S007
 
 logger = logging.getLogger()
 
