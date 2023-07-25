@@ -1,5 +1,6 @@
 import {CSSProperties} from 'react';
 
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -46,7 +47,8 @@ function SampleInfo(props: Props) {
       <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])}>
         <ThroughputCell
           containerProps={{style}}
-          throughputPerSecond={spanMetrics?.['sps()']}
+          rate={spanMetrics?.['sps()']}
+          unit={RateUnits.PER_SECOND}
         />
       </Block>
       <Block title={DataTitles.avg}>

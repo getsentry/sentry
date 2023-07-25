@@ -168,7 +168,7 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-enum RateUnits {
+export enum RateUnits {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
   PER_HOUR = '1/hour',

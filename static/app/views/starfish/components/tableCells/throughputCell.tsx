@@ -1,24 +1,20 @@
-import {t} from 'sentry/locale';
+import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
-  throughputUnit: string;
+  unit: RateUnits;
   containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >;
-  throughput?: number;
+  rate?: number;
 };
 
-export default function ThroughputCell({throughputPerSecond, containerProps}: Props) {
-  const throughput = throughputPerSecond
-    ? formatAbbreviatedNumber(throughputPerSecond)
-    : '--';
-
+export default function ThroughputCell({rate, unit, containerProps}: Props) {
   return (
     <NumberContainer {...containerProps}>
-      {throughput}/{t('s')}
+      {rate ? formatAbbreviatedNumber(rate) : '--'}/{RATE_UNIT_LABELS[unit]}
     </NumberContainer>
   );
 }

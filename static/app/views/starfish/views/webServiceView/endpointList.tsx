@@ -23,7 +23,7 @@ import DiscoverQuery, {
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -125,7 +125,9 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // TODO: This can be removed if/when the backend returns this field's type
     // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
+      return (
+        <ThroughputCell rate={dataRow[field] as number} unit={RateUnits.PER_SECOND} />
+      );
     }
 
     if (field === 'project') {

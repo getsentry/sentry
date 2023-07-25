@@ -12,6 +12,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
 import {
   PageErrorAlert,
@@ -182,7 +183,10 @@ function SpanSummaryPage({params, location}: Props) {
                         spanType: spanDescriptionCardTitle,
                       })}
                     >
-                      <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
+                      <ThroughputCell
+                        rate={spanMetrics?.['sps()']}
+                        unit={RateUnits.PER_SECOND}
+                      />
                     </Block>
                     <Block
                       title={DataTitles.avg}
