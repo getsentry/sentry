@@ -2,90 +2,25 @@ from __future__ import annotations
 
 import collections
 from itertools import zip_longest
-from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
-
-from typing_extensions import TypedDict
+from typing import Any, Generator, Iterable, Iterator, MutableMapping
 
 from sentry.replays.validators import VALID_FIELD_SET
 
 
-class DeviceResponseType(TypedDict, total=False):
-    name: Optional[str]
-    brand: Optional[str]
-    model: Optional[str]
-    family: Optional[str]
-
-
-class SDKResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
-
-
-class OSResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
-
-
-class BrowserResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
-
-
-class UserResponseType(TypedDict, total=False):
-    id: Optional[str]
-    username: Optional[str]
-    email: Optional[str]
-    ip: Optional[str]
-    display_name: Optional[str]
-
-
-class ReplayDetailsResponse(TypedDict, total=False):
-    id: str
-    project_id: str
-    trace_ids: List[str]
-    error_ids: List[str]
-    environment: Optional[str]
-    tags: Union[Dict[str, List[str]], List]
-    user: UserResponseType
-    sdk: SDKResponseType
-    os: OSResponseType
-    browser: BrowserResponseType
-    device: DeviceResponseType
-    is_archived: Optional[bool]
-    urls: Optional[List[str]]
-    clicks: List[Dict[str, Any]]
-    count_dead_clicks: Optional[int]
-    count_rage_clicks: Optional[int]
-    count_errors: Optional[int]
-    duration: Optional[int]
-    finished_at: Optional[str]
-    started_at: Optional[str]
-    activity: Optional[int]
-    count_urls: Optional[int]
-    replay_type: str
-    count_segments: Optional[int]
-    platform: Optional[str]
-    releases: List[str]
-    dist: Optional[str]
-
-
-def process_raw_response(
-    response: List[Dict[str, Any]],
-    fields: List[str],
-) -> List[ReplayDetailsResponse]:
+def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
-    fields: List[str],
-    response: Generator[ReplayDetailsResponse, None, None],
-) -> Iterator[ReplayDetailsResponse]:
+    fields: list[str] | None,
+    response: Generator[dict[str, Any], None, None],
+) -> Iterator[dict[str, Any]]:
 
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
-            yield {field: item[field] for field in fields}  # type: ignore
+            yield {field: item[field] for field in fields}
     else:
         yield from response
 
@@ -97,51 +32,50 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: List[Dict[str, Any]],
-) -> Generator[ReplayDetailsResponse, None, None]:
+    response: list[dict[str, Any]]
+) -> Generator[dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
-        ret_item: ReplayDetailsResponse = {}
         if item["isArchived"]:
             yield _archived_row(item["replay_id"], item["project_id"])
             continue
 
-        ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
-        ret_item["project_id"] = str(item["project_id"])
-        ret_item["trace_ids"] = item.pop("traceIds", [])
-        ret_item["error_ids"] = item.pop("errorIds", [])
-        ret_item["environment"] = item.pop("agg_environment", None)
-        ret_item["tags"] = dict_unique_list(
+        item["id"] = _strip_dashes(item.pop("replay_id", None))
+        item["project_id"] = str(item["project_id"])
+        item["trace_ids"] = item.pop("traceIds", [])
+        item["error_ids"] = item.pop("errorIds", [])
+        item["environment"] = item.pop("agg_environment", None)
+        item["tags"] = dict_unique_list(
             zip(
                 item.pop("tk", None) or [],
                 item.pop("tv", None) or [],
             )
         )
-        ret_item["user"] = {
+        item["user"] = {
             "id": item.pop("user_id", None),
             "username": item.pop("user_username", None),
             "email": item.pop("user_email", None),
             "ip": item.pop("user_ip", None),
         }
-        ret_item["user"]["display_name"] = (
-            ret_item["user"]["username"]
-            or ret_item["user"]["email"]
-            or ret_item["user"]["id"]
-            or ret_item["user"]["ip"]
+        item["user"]["display_name"] = (
+            item["user"]["username"]
+            or item["user"]["email"]
+            or item["user"]["id"]
+            or item["user"]["ip"]
         )
-        ret_item["sdk"] = {
+        item["sdk"] = {
             "name": item.pop("sdk_name", None),
             "version": item.pop("sdk_version", None),
         }
-        ret_item["os"] = {
+        item["os"] = {
             "name": item.pop("os_name", None),
             "version": item.pop("os_version", None),
         }
-        ret_item["browser"] = {
+        item["browser"] = {
             "name": item.pop("browser_name", None),
             "version": item.pop("browser_version", None),
         }
-        ret_item["device"] = {
+        item["device"] = {
             "name": item.pop("device_name", None),
             "brand": item.pop("device_brand", None),
             "model": item.pop("device_model", None),
@@ -149,40 +83,27 @@ def generate_normalized_output(
         }
 
         item.pop("agg_urls", None)
-        ret_item["urls"] = item.pop("urls_sorted", None)
+        item["urls"] = item.pop("urls_sorted", None)
 
-        ret_item["is_archived"] = bool(item.pop("isArchived", 0))
+        item["is_archived"] = bool(item.pop("isArchived", 0))
 
         item.pop("clickClass", None)
         item.pop("click_selector", None)
         # don't need clickClass or click_selector
         #  for the click field, as they are only used for searching.
         # (click.classes contains the full list of classes for a click)
-        ret_item["clicks"] = extract_click_fields(item)
-        ret_item["activity"] = item.pop("activity", None)
-        ret_item["count_errors"] = item.pop("count_errors", None)
-        ret_item["count_dead_clicks"] = item.pop("count_dead_clicks", None)
-        ret_item["count_rage_clicks"] = item.pop("count_rage_clicks", None)
-        ret_item["duration"] = item.pop("duration", None)
-        ret_item["started_at"] = item.pop("started_at", None)
-        ret_item["finished_at"] = item.pop("finished_at", None)
-        ret_item["count_urls"] = item.pop("count_urls", None)
-        ret_item["replay_type"] = item.pop("replay_type", "session")
-        ret_item["count_segments"] = item.pop("count_segments", None)
-        ret_item["platform"] = item.pop("platform", None)
-        ret_item["releases"] = item.pop("releases", [])
-        ret_item["dist"] = item.pop("dist", None)
+        item["clicks"] = extract_click_fields(item)
 
-        yield ret_item
+        yield item
 
 
-def generate_sorted_urls(url_groups: List[tuple[int, List[str]]]) -> Iterator[str]:
+def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[str]:
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
 
 
-def dict_unique_list(items: Iterable[tuple[str, str]]) -> Dict[str, List[str]]:
+def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys
@@ -245,9 +166,7 @@ CLICK_FIELD_MAP = {
 }
 
 
-def extract_click_fields(
-    item: MutableMapping[str, Any],
-) -> List[Dict[str, Any]]:
+def extract_click_fields(item: MutableMapping[str, Any]) -> list[dict[str, Any]]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """
