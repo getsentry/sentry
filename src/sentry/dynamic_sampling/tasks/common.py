@@ -34,7 +34,6 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 )
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -79,9 +78,10 @@ def timed_function(name=None):
             func_name = inner.__name__
 
         @wraps(inner)
-        def wrapped(context: TaskContext, timer: Timer, *args, **kwargs):
+        def wrapped(context: TaskContext, *args, **kwargs):
             if time.monotonic() > context.expiration_time:
                 raise TimeoutException(context)
+            timer = context.get_timer(func_name)
             with timer:
                 state = context.get_function_state(func_name)
                 val = inner(state, *args, **kwargs)
@@ -135,7 +135,6 @@ class TimedIterator(Iterator[Any]):
         context: TaskContext,
         inner: ContextIterator,
         name: Optional[str] = None,
-        timer: Optional[Timer] = None,
     ):
         self.context = context
         self.inner = inner
@@ -143,11 +142,6 @@ class TimedIterator(Iterator[Any]):
         if name is None:
             name = inner.__class__.__name__
         self.name = name
-
-        if timer is None:
-            self.iterator_execution_time = Timer()
-        else:
-            self.iterator_execution_time = timer
 
         # in case the iterator is part of a logical state spanning multiple instantiations
         # pick up where you last left of
@@ -159,10 +153,11 @@ class TimedIterator(Iterator[Any]):
     def __next__(self):
         if time.monotonic() > self.context.expiration_time:
             raise TimeoutException(self.context)
-        with self.iterator_execution_time:
+        timer = self.context.get_timer(self.name)
+        with timer:
             val = next(self.inner)
             state = self.inner.get_current_state()
-            state.execution_time = self.iterator_execution_time.current()
+            state.execution_time = timer.current()
             self.context.set_function_state(self.name, state)
             return val
 
