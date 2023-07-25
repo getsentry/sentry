@@ -632,7 +632,11 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 new_frame = mapped[-1]
                 method["class_name"] = new_frame.class_name
                 method["name"] = new_frame.method
-                method["data"] = {"deobfuscation_status": "deobfuscated"}
+                method["data"] = {
+                    "deobfuscation_status": "deobfuscated"
+                    if method.get("signature", None)
+                    else "partial"
+                }
 
                 if new_frame.file:
                     method["source_file"] = new_frame.file
@@ -659,6 +663,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 # the frame we deobfuscated, we update it to set
                 # the deobfuscated signature.
                 if len(method["inline_frames"]) > 0:
+                    method["inline_frames"][0]["data"] = method["data"]
                     method["inline_frames"][0]["signature"] = method.get("signature", "")
             else:
                 mapped_class = mapper.remap_class(method["class_name"])
