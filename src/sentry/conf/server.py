@@ -112,7 +112,6 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
-SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
@@ -1342,8 +1341,6 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Allow disabling integrations when broken is detected
-    "organizations:slack-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
