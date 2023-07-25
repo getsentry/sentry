@@ -131,13 +131,20 @@ def schedule_auto_transition_to_ongoing() -> None:
 @log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
-    first_seen_lte: int,
-    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
+    first_seen_lte: int,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
-    # TODO(nisanthan): Remove this conditional in next PR
-    if project_id is not None:
-        project_ids = [project_id]
+    """
+    We will update all NEW Groups to ONGOING that were created before the
+    most recent Group first seen 7 days ago.
+    """
+    most_recent_group_first_seen_seven_days_ago = (
+        Group.objects.filter(
+            first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
+        )
+        .order_by("-id")
+        .first()
+    )
 
     for new_groups in chunked(
         RangeQuerySetWrapper(
@@ -145,7 +152,7 @@ def auto_transition_issues_new_to_ongoing(
                 project_id__in=project_ids,
                 status=GroupStatus.UNRESOLVED,
                 substatus=GroupSubStatus.NEW,
-                first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
+                id__lte=most_recent_group_first_seen_seven_days_ago.id,
             ),
             step=ITERATOR_CHUNK,
         ),
