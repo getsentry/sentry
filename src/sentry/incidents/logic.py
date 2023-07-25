@@ -14,7 +14,6 @@ from snuba_sdk import Column, Condition, Limit, Op
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -40,7 +39,7 @@ from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
@@ -1328,10 +1327,7 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
         # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
         # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
         # which we would like to avoid. We should refactor to obviate the need for this watermark
-        with django_test_transaction_water_mark():
-            installations = app_service.get_installed_for_organization(
-                organization_id=organization.id
-            )
+        installations = app_service.get_installed_for_organization(organization_id=organization.id)
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
@@ -1440,6 +1436,9 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         "access": SystemAccess(),
                         "user": user,
                         "input_channel_id": action.get("inputChannelId"),
+                        "installations": app_service.get_installed_for_organization(
+                            organization_id=organization.id
+                        ),
                     },
                     data=action,
                 )
