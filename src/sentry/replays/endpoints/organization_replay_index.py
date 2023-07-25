@@ -1,3 +1,6 @@
+from typing import List
+
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,15 +10,22 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.post_process import process_raw_response
+from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.validators import ReplayValidator
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
+    public = {"GET"}
+
     def get_replay_filter_params(self, request, organization):
 
         query_referrer = request.GET.get("queryReferrer", None)
@@ -32,7 +42,21 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         return filter_params
 
+    @extend_schema(
+        operation_id="Query for a list of replays",
+        parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
+        responses={
+            200: inline_sentry_response_serializer("data", List[ReplayDetailsResponse]),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReplayExamples.GET_REPLAYS,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Query for a list of replays using the Replays GET Request.
+        """
+
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
         try:
