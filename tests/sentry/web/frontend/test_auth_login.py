@@ -16,10 +16,11 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import AuthProvider, OrganizationMember, User
 from sentry.models.organization import Organization
 from sentry.receivers import create_default_projects
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -188,7 +189,8 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
@@ -203,7 +205,8 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_registration_single_org(self):
-        create_default_projects()
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            create_default_projects()
         options.set("auth.allow-registration", True)
         with self.feature("auth:register"):
             resp = self.client.post(
@@ -221,15 +224,20 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
 
         # User is part of the default org
-        default_org = Organization.get_default()
-        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user_id=user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            default_org = Organization.get_default()
+        with assume_test_silo_mode(SiloMode.REGION):
+            org_member = OrganizationMember.objects.get(
+                organization_id=default_org.id, user_id=user.id
+            )
         assert org_member.role == default_org.default_role
         self.assert_org_member_mapping(org_member=org_member)
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_registration_single_org_with_invite(self, from_session):
-        create_default_projects()
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            create_default_projects()
         self.session["can_register"] = True
         self.save_session()
 
@@ -253,7 +261,8 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # An organization member should NOT have been created, even though
         # we're in single org mode, accepting the invite will handle that
         # (which we assert next)
-        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import re
@@ -95,21 +96,26 @@ class SiloModeTestDecorator:
 
             def decorate_with_context(callable: Callable[[...], Any]) -> Callable[[...], Any]:
                 def wrapper(*args, **kwds):
-                    with override_settings(
-                        SILO_MODE=silo_mode,
-                        SINGLE_SERVER_SILO_MODE=is_acceptance_test,
-                        SENTRY_SUBNET_SECRET="secret",
-                        SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                    ):
-                        with override_regions(final_regions):
-                            if silo_mode == SiloMode.REGION:
-                                with override_settings(SENTRY_REGION=final_regions[0].name):
-                                    return callable(*args, **kwds)
-                            else:
-                                with override_settings(
-                                    SENTRY_MONOLITH_REGION=final_regions[0].name
-                                ):
-                                    return callable(*args, **kwds)
+                    with contextlib.ExitStack() as stack:
+                        stack.enter_context(
+                            override_settings(
+                                SILO_MODE=silo_mode,
+                                SINGLE_SERVER_SILO_MODE=is_acceptance_test,
+                                SENTRY_SUBNET_SECRET="secret",
+                                SENTRY_CONTROL_ADDRESS="http://controlserver/",
+                            )
+                        )
+                        stack.enter_context(override_regions(final_regions))
+                        if silo_mode == SiloMode.REGION:
+                            stack.enter_context(
+                                override_settings(SENTRY_REGION=final_regions[0].name)
+                            )
+                        else:
+                            stack.enter_context(
+                                override_settings(SENTRY_MONOLITH_REGION=final_regions[0].name)
+                            )
+
+                        return callable(*args, **kwds)
 
                 functools.update_wrapper(wrapper, callable)
                 return wrapper
@@ -125,6 +131,9 @@ class SiloModeTestDecorator:
                     "_callTestMethod": decorate_with_context(test_class._callTestMethod),
                 },
             )
+
+            if hasattr(test_class, "_overridden_settings"):
+                return override_settings(**test_class._overridden_settings)(test_class)
 
             return new_type
 
