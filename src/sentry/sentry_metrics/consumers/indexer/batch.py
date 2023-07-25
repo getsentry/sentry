@@ -127,6 +127,7 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+            """
             try:
                 if self.__input_codec:
                     self.__input_codec.validate(parsed_payload)
@@ -141,6 +142,7 @@ class IndexerBatch:
                     extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
                 )
+            """
 
             try:
                 parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
