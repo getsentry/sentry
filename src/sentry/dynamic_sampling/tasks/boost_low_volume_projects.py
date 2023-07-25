@@ -36,7 +36,6 @@ from sentry.dynamic_sampling.tasks.common import (
     TimedIterator,
     TimeoutException,
     are_equal_with_epsilon,
-    get_adjusted_base_rate_from_cache_or_compute,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
@@ -49,6 +48,7 @@ from sentry.dynamic_sampling.tasks.constants import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import (
     log_sample_rate_source,
     log_task_execution,
@@ -257,7 +257,7 @@ def adjust_sample_rates_of_projects(
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id, context)
+        sample_rate = get_sliding_window_org_sample_rate(org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )

@@ -8,7 +8,6 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     TimedIterator,
     TimeoutException,
-    get_adjusted_base_rate_from_cache_or_compute,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
@@ -23,6 +22,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     get_adjusted_factor,
     set_guarded_adjusted_factor,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import (
     log_action_if,
     log_recalibrate_org_error,
@@ -114,9 +114,7 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
             "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
         )
 
-        target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(
-            org_volume.org_id, context
-        )
+        target_sample_rate = get_sliding_window_org_sample_rate(org_volume.org_id)
         log_sample_rate_source(
             org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
         )
