@@ -18,6 +18,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         member.user_email = "b@example.com"
         member.save()
 
+        self.commit_author = self.create_commit_author(project=self.project, email="b@example.com")
         self.commit_author1 = self.create_commit_author(project=self.project, email="c@example.com")
         self.commit_author1.external_id = "c"
         self.commit_author1.save()
@@ -27,6 +28,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.commit_author2.save()
 
         self.repo = self.create_repo(project=self.project, provider="integrations:github")
+        self.create_commit(repo=self.repo, author=self.commit_author)
         self.create_commit(repo=self.repo, author=self.commit_author1)
         self.create_commit(repo=self.repo, author=self.commit_author1)
         self.create_commit(repo=self.repo, author=self.commit_author2)
