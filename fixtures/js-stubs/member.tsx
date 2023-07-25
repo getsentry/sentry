@@ -3,7 +3,6 @@ import type {Member as MemberType} from 'sentry/types';
 import {User} from './user';
 
 export function Member(params: Partial<MemberType> = {}): MemberType {
-  // test
   return {
     id: '1',
     email: 'sentry1@test.com',
