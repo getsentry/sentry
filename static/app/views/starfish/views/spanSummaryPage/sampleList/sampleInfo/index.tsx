@@ -27,7 +27,7 @@ function SampleInfo(props: Props) {
       SPAN_OP,
       'sps()',
       `sum(${SPAN_SELF_TIME})`,
-      `p95(${SPAN_SELF_TIME})`,
+      `avg(${SPAN_SELF_TIME})`,
       'time_spent_percentage(local)',
     ],
     'api.starfish.span-summary-panel-metrics'
@@ -49,10 +49,10 @@ function SampleInfo(props: Props) {
           throughputPerSecond={spanMetrics?.['sps()']}
         />
       </Block>
-      <Block title={DataTitles.p95}>
+      <Block title={DataTitles.avg}>
         <DurationCell
           containerProps={{style}}
-          milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+          milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </Block>
     </BlockContainer>

@@ -27,8 +27,8 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
+  'avg(span.self_time)': number;
   'http_error_count()': number;
-  'p95(span.self_time)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -58,14 +58,11 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
 
 const SORTABLE_FIELDS = new Set([
-  `p95(${SPAN_SELF_TIME})`,
-  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+  `avg(${SPAN_SELF_TIME})`,
   'sps()',
-  'sps_percent_change()',
   'time_spent_percentage()',
   'time_spent_percentage(local)',
   'http_error_count()',
-  'http_error_count_percent_change()',
 ]);
 
 export default function SpansTable({
@@ -253,8 +250,8 @@ function getColumns(
       width: COL_WIDTH_UNDEFINED,
     },
     {
-      key: `p95(${SPAN_SELF_TIME})`,
-      name: DataTitles.p95,
+      key: `avg(${SPAN_SELF_TIME})`,
+      name: DataTitles.avg,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName === ModuleName.HTTP
