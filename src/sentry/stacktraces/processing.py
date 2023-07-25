@@ -194,9 +194,7 @@ def find_stacktraces_in_data(
     """
     rv = []
 
-    def _append_stacktrace(
-        stacktrace: dict[str, Any], container: dict[str, Any], is_exception: bool = False
-    ) -> None:
+    def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
@@ -214,19 +212,19 @@ def find_stacktraces_in_data(
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _append_stacktrace(exc.get("stacktrace", {}), exc, is_exception=with_exceptions)
+        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
 
     # Look for stacktraces under the key `stacktrace`
-    _append_stacktrace(data.get("stacktrace", {}), {})
+    _append_stacktrace(data.get("stacktrace"), None)
 
     # The native family includes stacktraces under threads
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _append_stacktrace(thread.get("stacktrace", {}), thread)
+        _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
         for info in rv:
             if info.container is not None:
-                _append_stacktrace(info.container.get("raw_stacktrace", {}), info.container)
+                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
     return rv
 
