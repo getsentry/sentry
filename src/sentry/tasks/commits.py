@@ -93,7 +93,9 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
     for ref in refs:
         try:
             repo = Repository.objects.get(
-                organization_id=release.organization_id, name=ref["repository"]
+                organization_id=release.organization_id,
+                external_id=ref["repository_id"],
+                provider=ref["provider"],
             )
         except Repository.DoesNotExist:
             logger.info(

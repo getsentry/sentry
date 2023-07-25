@@ -891,7 +891,13 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
                 kwargs={
                     "release_id": release.id,
                     "user_id": None,
-                    "refs": [{"repository": target_repo.name, "commit": release.version}],
+                    "refs": [
+                        {
+                            "repository_id": target_repo.external_id,
+                            "provider": target_repo.provider,
+                            "commit": release.version,
+                        }
+                    ],
                     "prev_release_id": previous_release.id
                     if previous_release is not None
                     else None,
