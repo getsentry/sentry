@@ -40,6 +40,7 @@ class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
+@region_silo_endpoint
 class ProjectDynamicSamplingEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
 
