@@ -64,7 +64,10 @@ def byte_code_type_to_java_type(mapper, byte_code_type: str) -> str:
     if token in JAVA_BASE_TYPES:
         return JAVA_BASE_TYPES[token]
     elif token == "L":
-        obfuscated = byte_code_type[1 : len(byte_code_type) - 1].replace("/", ".")
+        # invalid signature
+        if byte_code_type[-1] != ";":
+            return byte_code_type
+        obfuscated = byte_code_type[1:-1].replace("/", ".")
         mapped = mapper.remap_class(obfuscated)
         if mapped:
             return mapped
