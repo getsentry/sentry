@@ -44,7 +44,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -66,7 +66,6 @@ from sentry.utils.snuba import raw_snql_query
 @dynamic_sampling_task
 def sliding_window() -> None:
     context = TaskContext("sentry.dynamic_sampling.tasks.sliding_window", MAX_TASK_SECONDS)
-    adjust_base_sample_rate_of_projects_timer = Timer()
 
     window_size = get_sliding_window_size()
 
@@ -95,12 +94,8 @@ def sliding_window() -> None:
                             projects_with_total_root_count,
                             window_size,
                             context,
-                            adjust_base_sample_rate_of_projects_timer,
                         )
 
-            # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
-            # execution of the sliding window was successful. We will keep this state for 1 hour.
-            mark_sliding_window_executed()
     except TimeoutException:
         set_extra("context-data", context.to_dict())
         log_task_timeout(context)
@@ -109,6 +104,13 @@ def sliding_window() -> None:
         set_extra("context-data", context.to_dict())
         capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
         log_task_execution(context)
+    finally:
+        # TODO (RaduW) Hot fix, we need to see if this is indeed what we want to do, or we can mark the sliding window
+        #   as executed only when the task is successful.
+
+        # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+        # execution of the sliding window was successful. We will keep this state for 1 hour.
+        mark_sliding_window_executed()
 
 
 def adjust_base_sample_rates_of_projects(
@@ -116,7 +118,6 @@ def adjust_base_sample_rates_of_projects(
     projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
     window_size: int,
     context: TaskContext,
-    timer: Timer,
 ) -> None:
     """
     Adjusts the base sample rate per project by computing the sliding window sample rate, considering the total
@@ -125,12 +126,18 @@ def adjust_base_sample_rates_of_projects(
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
 
+    func_name = adjust_base_sample_rates_of_projects.__name__
+    timer = context.get_timer(func_name)
     with timer:
         projects_with_rebalanced_sample_rate = []
 
         for project_id, total_root_count in projects_with_total_root_count:
             sample_rate = compute_guarded_sliding_window_sample_rate(
-                org_id, project_id, total_root_count, window_size
+                org_id,
+                project_id,
+                total_root_count,
+                window_size,
+                context,
             )
 
             # If the sample rate is None, we want to add a sentinel value into Redis, the goal being that when generating
@@ -177,13 +184,11 @@ def adjust_base_sample_rates_of_projects(
                     )
 
             pipeline.execute()
-    name = adjust_base_sample_rates_of_projects.__name__
-    state = context.get_function_state(name)
+    state = context.get_function_state(func_name)
     state.num_orgs += 1
     state.num_projects += len(projects_with_total_root_count)
     state.num_iterations += 1
-    state.execution_time = timer.current()
-    context.set_function_state(name, state)
+    context.set_function_state(func_name, state)
 
 
 def fetch_projects_with_total_root_transactions_count(

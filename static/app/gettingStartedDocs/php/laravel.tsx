@@ -7,16 +7,20 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'This guide is for Laravel 8+. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-  {
-    otherVersionsLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-    ),
-    lumenSpecificLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      'This guide is for Laravel 8+. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+      {
+        otherVersionsLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+        ),
+        lumenSpecificLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -64,9 +68,10 @@ public function register() {
     additionalInfo: (
       <p>
         {tct(
-          'Alternatively, you can configure Sentry in your [laravelLogChannelLink:Laravel Log Channel], allowing you to log [code:info] and [code:debug] as well.',
+          'Alternatively, you can configure Sentry in your [laravelLogChannelLink:Laravel Log Channel], allowing you to log [codeInfo:info] and [codeDebug:debug] as well.',
           {
-            code: <code />,
+            codeInfo: <code />,
+            codeDebug: <code />,
             laravelLogChannelLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/usage/#log-channels" />
             ),
@@ -87,8 +92,8 @@ public function register() {
         description: (
           <p>
             {tct(
-              'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your ".env" file.',
-              {code: <code />}
+              'It creates the config file ([sentryPHPCode:config/sentry.php]) and adds the [dsnCode:DSN] to your ".env" file.',
+              {dsnCode: <code />, sentryPHPCode: <code />}
             )}
           </p>
         ),
@@ -147,8 +152,12 @@ Route::get('/debug-sentry', function () {
         description: (
           <p>
             {tct(
-              'Set [code:traces_sample_rate] in [code:config/sentry.php] or [code:SENTRY_TRACES_SAMPLE_RATE] in your ".env" to a value greater than "0.0". Setting a value greater than "0.0" will enable Performance Monitoring, "0" (the default) will disable Performance Monitoring.',
-              {code: <code />}
+              'Set [tracesSampleRateCode:traces_sample_rate] in [sentryPhpCode:config/sentry.php] or [sentryTracesSampleRateCode:SENTRY_TRACES_SAMPLE_RATE] in your ".env" to a value greater than "0.0". Setting a value greater than "0.0" will enable Performance Monitoring, "0" (the default) will disable Performance Monitoring.',
+              {
+                tracesSampleRateCode: <code />,
+                sentryPhpCode: <code />,
+                sentryTracesSampleRateCode: <code />,
+              }
             )}
           </p>
         ),
@@ -204,8 +213,12 @@ SENTRY_TRACES_SAMPLE_RATE=1.0
         </p>
         <p>
           {tct(
-            'You can also do this by not defining [code:SENTRY_LARAVEL_DSN] in your [code:.env] or by defining it as [code:SENTRY_LARAVEL_DSN=null].',
-            {code: <code />}
+            'You can also do this by not defining [sentryLaravelDsnCode:SENTRY_LARAVEL_DSN] in your [envCode:.env] or by defining it as [sentryLaravelDsnNullCode:SENTRY_LARAVEL_DSN=null].',
+            {
+              sentryLaravelDsnNullCode: <code />,
+              envCode: <code />,
+              sentryLaravelDsnCode: <code />,
+            }
           )}
         </p>
         <p>

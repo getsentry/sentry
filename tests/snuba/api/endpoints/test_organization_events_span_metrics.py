@@ -172,6 +172,27 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_avg(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["avg()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg()"] == 1
+        assert meta["dataset"] == "spansMetrics"
+
     def test_eps(self):
         for _ in range(6):
             self.store_span_metric(

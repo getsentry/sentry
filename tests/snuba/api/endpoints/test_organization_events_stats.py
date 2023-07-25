@@ -101,6 +101,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "prod",
             self.day_ago.replace(tzinfo=utc),
         )
+        assert group_info is not None
         self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -143,6 +144,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
+        assert group_info is not None
         self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -1170,7 +1172,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.events = []
         for index, event_data in enumerate(self.event_data):
             data = event_data["data"].copy()
-            event = {}
             for i in range(event_data["count"]):
                 data["event_id"] = f"{index}{i}" * 16
                 event = self.store_event(data, project_id=event_data["project"].id)

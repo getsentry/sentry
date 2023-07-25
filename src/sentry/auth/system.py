@@ -29,7 +29,7 @@ def get_system_token() -> str:
     token = options.get("sentry:system-token")
     if not token:
         token = uuid4().hex
-        options.set("sentry:system-token", token)
+        options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
     return token
 
 

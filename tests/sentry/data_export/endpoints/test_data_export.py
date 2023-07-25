@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from freezegun import freeze_time
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
@@ -24,7 +28,7 @@ class DataExportTest(APITestCase):
         self.login_as(user=self.user)
 
     def make_payload(self, payload_type, extras=None, overwrite=False):
-        payload = {}
+        payload: dict[str, Any] = {}
         if payload_type == "issue":
             payload = {
                 "query_type": ExportQueryType.ISSUES_BY_TAG_STR,

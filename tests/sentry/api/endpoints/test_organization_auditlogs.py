@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test  # TODO(hybrid-cloud): blocked on org member mapping in control silo
+@control_silo_test(stable=True)
 class OrganizationAuditLogsTest(APITestCase):
     endpoint = "sentry-api-0-organization-audit-logs"
 

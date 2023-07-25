@@ -25,9 +25,13 @@ export const steps = ({
     type: StepType.INSTALL,
     description: (
       <p>
-        {tct('Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:', {
-          code: <code />,
-        })}
+        {tct(
+          'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryBotteCode:bottle] extra:',
+          {
+            sentrySdkCode: <code />,
+            sentryBotteCode: <code />,
+          }
+        )}
       </p>
     ),
     configurations: [

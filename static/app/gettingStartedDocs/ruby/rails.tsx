@@ -21,9 +21,14 @@ export const steps = ({
     type: StepType.INSTALL,
     description: (
       <p>
-        {tct('Add [code:sentry-ruby] and [code:sentry-rails] to your [code:Gemfile]:', {
-          code: <code />,
-        })}
+        {tct(
+          'Add [sentryRubyCode:sentry-ruby] and [sentryRailsCode:sentry-rails] to your [sentryGemfileCode:Gemfile]:',
+          {
+            sentryRubyCode: <code />,
+            sentryRailsCode: <code />,
+            sentryGemfileCode: <code />,
+          }
+        )}
       </p>
     ),
     configurations: [

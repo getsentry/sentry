@@ -1,4 +1,3 @@
-import base64
 from functools import cached_property
 from unittest.mock import patch
 
@@ -50,7 +49,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
             self.middleware.process_request(request)
             # Force the user object to materialize
             request.user.id  # noqa
+
         with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.refresh_from_db()
             assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated
@@ -114,9 +115,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
                 organization_id=self.organization.id, allowed_origins="*"
             )
             request = self.make_request(method="GET")
-            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-                apikey.key.encode("utf-8")
-            )
+            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
         self.middleware.process_request(request)
         # ApiKey is tied to an organization not user
