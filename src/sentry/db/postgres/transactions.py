@@ -27,12 +27,13 @@ def django_test_transaction_water_mark(using: str | None = None):
 
     if using is None:
         with contextlib.ExitStack() as stack:
-            for db_name in settings.DATABASES:  # type: ignore
+            for db_name in settings.DATABASES:
                 stack.enter_context(django_test_transaction_water_mark(db_name))
             yield
         return
 
-    from sentry.testutils import assume_test_silo_mode, hybrid_cloud
+    from sentry.testutils import hybrid_cloud
+    from sentry.testutils.silo import assume_test_silo_mode
 
     # Exempt get_connection call from silo validation checks
     with assume_test_silo_mode(SiloMode.MONOLITH):
