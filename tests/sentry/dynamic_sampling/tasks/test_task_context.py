@@ -285,3 +285,59 @@ def test_named_timer_context_manager():
         assert t.current("b") == 3 * 2
         assert t.current("c") == 3 * 3
         assert t.current("global") == 3 * 7
+
+
+def test_task_context_serialisation():
+    task = TaskContext("my-task", 100)
+    with freeze_time("2023-07-12 10:00:00") as frozen_time:
+        # a timer without state
+        with task.get_timer("a"):
+            frozen_time.tick(delta=SECOND)
+        # a timer with state
+        with task.get_timer("b"):
+            frozen_time.tick(delta=SECOND * 2)
+            state = task.get_function_state("b")
+            state.num_iterations = 1
+            state.num_orgs = 2
+            state.num_projects = 3
+            state.num_db_calls = 4
+            state.num_rows_total = 5
+            task.set_function_state("b", state)
+        # some state without a timer
+        state = task.get_function_state("c")
+        state.num_iterations = 1
+        task.set_function_state("c", state)
+
+    result = task.to_dict()
+    # remove "seconds" since we can't control it
+    del result["seconds"]
+    assert result == {
+        "maxSeconds": 100,
+        "taskName": "my-task",
+        "taskData": {
+            "a": {
+                "executionTime": 1.0,
+                "numDbCalls": 0,
+                "numIterations": 0,
+                "numOrgs": 0,
+                "numProjects": 0,
+                "numRowsTotal": 0,
+            },
+            "b": {
+                "executionTime": 2.0,
+                "numDbCalls": 4,
+                "numIterations": 1,
+                "numOrgs": 2,
+                "numProjects": 3,
+                "numRowsTotal": 5,
+            },
+            "c": {
+                "executionTime": 0,
+                "numDbCalls": 0,
+                "numIterations": 1,
+                "numOrgs": 0,
+                "numProjects": 0,
+                "numRowsTotal": 0,
+            },
+        },
+    }

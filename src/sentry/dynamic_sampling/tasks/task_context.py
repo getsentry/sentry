@@ -87,11 +87,20 @@ class TaskContext:
             "maxSeconds": self.num_seconds,
             "seconds": time.monotonic() - self.expiration_time + self.num_seconds,
         }
+        task_data: Dict[str, Any] = {}
         if self.context_data is not None:
-            ret_val["taskData"] = {k: v.to_dict() for k, v in self.context_data.items()}
             # update the execution time for each function
             for name, state in self.context_data.items():
                 state.execution_time = self.timers.current(name)
+            task_data = {k: v.to_dict() for k, v in self.context_data.items()}
+
+        # create entries for timer data without context data
+        for name in self.timers.timers.keys():
+            if name not in task_data:
+                # timer with no state
+                timer = self.timers.get_timer(name)
+                task_data[name] = DynamicSamplingLogState(execution_time=timer.current()).to_dict()
+        ret_val["taskData"] = task_data
         return ret_val
 
 

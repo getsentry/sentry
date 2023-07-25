@@ -86,7 +86,8 @@ def adjust_base_sample_rate_of_org(
     func_name = adjust_base_sample_rate_of_org.__name__
     timer = context.get_timer(func_name)
     with timer:
-        with context.get_timer(compute_guarded_sliding_window_sample_rate.__name__):
+        guarded_sliding_window_name = compute_guarded_sliding_window_sample_rate.__name__
+        with context.get_timer(guarded_sliding_window_name):
             sample_rate = compute_guarded_sliding_window_sample_rate(
                 org_id,
                 None,
@@ -94,18 +95,25 @@ def adjust_base_sample_rate_of_org(
                 window_size,
                 context,
             )
+            state = context.get_function_state(guarded_sliding_window_name)
+            state.num_iterations += 1
+            context.set_function_state(guarded_sliding_window_name, state)
         # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
         # with the old value.
         if sample_rate is None:
             return
 
-        with context.get_timer("redis_updates"):
+        redis_update_name = "redis_updates"
+        with context.get_timer(redis_update_name):
             redis_client = get_redis_client_for_ds()
             with redis_client.pipeline(transaction=False) as pipeline:
                 cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
                 pipeline.set(cache_key, sample_rate)
                 pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
                 pipeline.execute()
+            state = context.get_function_state(redis_update_name)
+            state.num_iterations += 1
+            context.set_function_state(redis_update_name, state)
 
     state = context.get_function_state(func_name)
     state.num_orgs += 1
