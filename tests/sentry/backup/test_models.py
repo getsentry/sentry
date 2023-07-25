@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Type
+from typing import Literal, Type
 from uuid import uuid4
 
 from django.core.management import call_command
@@ -9,6 +9,7 @@ from django.db import router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.db.models import BaseModel
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
@@ -89,17 +90,30 @@ from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TransactionTestCase
 from sentry.utils.json import JSONData
-from tests.sentry.backup import import_export_then_validate, targets
+from tests.sentry.backup import (
+    get_exportable_final_derivations_of,
+    import_export_then_validate,
+    targets,
+)
 
 UNIT_TESTED_MODELS = set()
 
 
-def mark(*marking: Type):
+def mark(*marking: Type | Literal["__all__"]):
     """A function that runs at module load time (which is why this logic can't be folded into the
     `targets` decorator) and marks all models that appear in at least one test. This is then used by
     test_coverage.py to ensure that all final derivations of django's "Model" that set
-    `__include_in_export__ = True` are exercised by at least one test here."""
+    `__include_in_export__ = True` are exercised by at least one test here.
+
+    Use the sentinel string "__all__" to indicate that all models are expected."""
+
+    all: Literal["__all__"] = "__all__"
     for model in marking:
+        if model == all:
+            all_models = get_exportable_final_derivations_of(BaseModel)
+            UNIT_TESTED_MODELS.update({c.__name__ for c in all_models})
+            return list(all_models)
+
         UNIT_TESTED_MODELS.add(model.__name__)
     return marking
 
