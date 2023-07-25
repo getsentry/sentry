@@ -694,6 +694,24 @@ class SpansMetricsLayerDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "avg",
+                    optional_args=[
+                        fields.with_default(
+                            "span.self_time",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "avg",
+                        [self.resolve_mri(args["column"])],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
