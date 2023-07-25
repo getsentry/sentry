@@ -43,8 +43,11 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
-import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  AggregationOutputType,
+  RateUnits,
+} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';

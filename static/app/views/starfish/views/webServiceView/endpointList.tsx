@@ -23,8 +23,8 @@ import DiscoverQuery, {
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, RateUnits} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';

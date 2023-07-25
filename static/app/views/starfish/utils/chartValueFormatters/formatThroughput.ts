@@ -1,4 +1,4 @@
-import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 const formatThroughput = (rate?: number, unit?: RateUnits) => {

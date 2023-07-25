@@ -31,6 +31,7 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  RATE_UNIT_LABELS,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -170,18 +171,6 @@ export const DURATION_UNITS = {
   hour: 1000 * 60 * 60,
   day: 1000 * 60 * 60 * 24,
   week: 1000 * 60 * 60 * 24 * 7,
-};
-
-export enum RateUnits {
-  PER_SECOND = '1/second',
-  PER_MINUTE = '1/minute',
-  PER_HOUR = '1/hour',
-}
-
-export const RATE_UNIT_LABELS = {
-  [RateUnits.PER_SECOND]: '/s',
-  [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/hr',
 };
 
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];

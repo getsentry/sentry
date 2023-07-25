@@ -5,7 +5,7 @@ import {LegendComponentOption} from 'echarts';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DAY,

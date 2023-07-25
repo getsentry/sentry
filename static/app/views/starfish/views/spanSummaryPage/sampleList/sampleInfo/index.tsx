@@ -1,6 +1,6 @@
 import {CSSProperties} from 'react';
 
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';

@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';

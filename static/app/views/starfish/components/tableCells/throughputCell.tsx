@@ -1,4 +1,4 @@
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 

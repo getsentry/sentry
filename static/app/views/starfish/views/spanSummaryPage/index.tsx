@@ -12,8 +12,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
-import {Sort} from 'sentry/utils/discover/fields';
+import {RateUnits, Sort} from 'sentry/utils/discover/fields';
 import {
   PageErrorAlert,
   PageErrorProvider,
