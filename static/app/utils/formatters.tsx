@@ -309,8 +309,8 @@ export function formatAbbreviatedNumber(number: number | string) {
   return number.toLocaleString();
 }
 
-export function formatRate(value: number, unit?: RateUnits) {
+export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
   return `${formatAbbreviatedNumber(value)}${
-    RATE_UNIT_LABELS[unit ?? RateUnits.PER_SECOND]
+    RATE_UNIT_LABELS[unit]
   }`;
 }
