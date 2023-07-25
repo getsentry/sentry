@@ -479,14 +479,18 @@ class _RemoteSiloCall:
     serial_arguments: ArgumentDict
 
     def __post_init__(self) -> None:
-        if not (self.address and settings.RPC_SHARED_SECRET):
-            raise RpcSendException("Not configured for RPC network requests")
+        if not settings.RPC_SHARED_SECRET:
+            raise RpcSendException("RPC shared secret is not configured")
 
     @property
     def address(self) -> str:
         if self.region is None:
+            if not settings.SENTRY_CONTROL_ADDRESS:
+                raise RpcSendException("Control silo address is not configured")
             return settings.SENTRY_CONTROL_ADDRESS
         else:
+            if not self.region.address:
+                raise RpcSendException(f"Address for region {self.region.name!r} is not configured")
             return self.region.address
 
     @property
