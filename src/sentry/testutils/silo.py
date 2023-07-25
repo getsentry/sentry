@@ -132,7 +132,7 @@ class SiloModeTestDecorator:
                 },
             )
 
-            if hasattr(test_class, "_overridden_settings"):
+            if hasattr(test_class, "_overridden_settings") and test_class._overridden_settings:
                 return override_settings(**test_class._overridden_settings)(test_class)
 
             return new_type
