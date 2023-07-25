@@ -62,7 +62,8 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.DISABLED
 
     @responses.activate
     @with_feature("organizations:disable-on-broken")
@@ -92,7 +93,8 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.ACTIVE
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_error_integration(self):
@@ -132,7 +134,8 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.ACTIVE
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
 
     # fake slow test w disable on
     @responses.activate
@@ -155,4 +158,5 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.DISABLED
