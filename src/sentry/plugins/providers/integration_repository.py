@@ -122,7 +122,6 @@ class IntegrationRepositoryProvider:
             "provider": self.id,
             "integration_id": integration_id,
             "name": name,
-            "status": ObjectStatus.ACTIVE,
         }
 
         if repo:
@@ -142,7 +141,9 @@ class IntegrationRepositoryProvider:
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
         else:
-            create_repository = RpcCreateRepository.parse_obj(repo_update_params)
+            create_repository = RpcCreateRepository.parse_obj(
+                {**repo_update_params, "status": ObjectStatus.ACTIVE}
+            )
             new_repository = repository_service.create_repository(
                 organization_id=organization.id, create=create_repository
             )
