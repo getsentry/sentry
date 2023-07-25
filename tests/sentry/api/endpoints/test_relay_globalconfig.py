@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
-from sentry.relay.config.measurements import BUILTIN_MEASUREMENTS
+from sentry.relay.config.measurements import BUILTIN_MEASUREMENTS, CUSTOM_MEASUREMENT_LIMIT
 from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
@@ -62,7 +62,10 @@ def test_return_global_config(call_global_config):
     assert status_code < 400
     assert result == {
         "global": {
-            "measurements": BUILTIN_MEASUREMENTS,
+            "measurements": {
+                "builtinMeasurements": BUILTIN_MEASUREMENTS,
+                "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
+            },
             "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
         }
     }
