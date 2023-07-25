@@ -51,11 +51,13 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
       isLoading: false,
       error: null,
       data: [],
+      isEnabled: enabled,
     };
   }
 
   return {
     ...response,
+    isEnabled: enabled,
     data,
   };
 }

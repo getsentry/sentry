@@ -3,7 +3,9 @@ from rest_framework import serializers
 VALID_FIELD_SET = {
     "activity",
     "browser",
+    "count_dead_clicks",
     "count_errors",
+    "count_rage_clicks",
     "count_segments",
     "count_urls",
     "device",
@@ -51,7 +53,7 @@ class ReplayValidator(serializers.Serializer):
         required=False,
     )
     field = serializers.MultipleChoiceField(
-        VALID_FIELD_SET,
+        choices=VALID_FIELD_SET,
         help_text="Specifies a field that should be marshaled in the output. Invalid fields will be rejected.",
         required=False,
     )

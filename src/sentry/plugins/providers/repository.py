@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -66,7 +66,7 @@ class RepositoryProvider(ProviderMixin):
             return Response({"errors": {"__all__": str(e)}}, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Repository)):
                 repo = Repository.objects.create(
                     organization_id=organization.id,
                     name=result["name"],

@@ -42,6 +42,7 @@ TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
 DEVICE_CLASS_ALIAS = "device.class"
 TOTAL_SPAN_DURATION_ALIAS = "total.span_duration"
+SPAN_MODULE_ALIAS = "span.module"
 
 
 class ThresholdDict(TypedDict):

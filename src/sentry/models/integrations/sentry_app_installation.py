@@ -4,7 +4,7 @@ import uuid
 from itertools import chain
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
@@ -170,7 +170,9 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(SentryAppInstallation)), flush=False
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)

@@ -231,6 +231,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             data={},
             project_id=self.project.id,
         )
+        assert event.group is not None
         event_group = event.for_group(event.group)
         event_group.occurrence = occurrence = self.build_occurrence()
         result = serialize(event_group)

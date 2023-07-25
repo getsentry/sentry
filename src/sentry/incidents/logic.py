@@ -4,9 +4,9 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
@@ -104,7 +104,7 @@ def create_incident(
     if date_detected is None:
         date_detected = date_started
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Incident)):
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
@@ -156,7 +156,7 @@ def update_incident_status(
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
         return incident
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Incident)):
         create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
@@ -226,7 +226,7 @@ def set_incident_seen(incident, user=None):
     return False
 
 
-@transaction.atomic
+@transaction.atomic(router.db_for_write(Incident))
 def create_incident_activity(
     incident,
     activity_type,
@@ -508,7 +508,7 @@ def create_alert_rule(
     elif owner and isinstance(owner, Actor):
         actor = owner
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(SnubaQuery)):
         snuba_query = create_snuba_query(
             query_type,
             dataset,
@@ -569,7 +569,7 @@ def create_alert_rule(
 def snapshot_alert_rule(alert_rule, user=None):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         snuba_query_snapshot = deepcopy(alert_rule.snuba_query)
@@ -697,7 +697,7 @@ def update_alert_rule(
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             snapshot_alert_rule(alert_rule, user)
@@ -816,7 +816,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
 def enable_alert_rule(alert_rule):
     if alert_rule.status != AlertRuleStatus.DISABLED.value:
         return
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
@@ -824,7 +824,7 @@ def enable_alert_rule(alert_rule):
 def disable_alert_rule(alert_rule):
     if alert_rule.status != AlertRuleStatus.PENDING.value:
         return
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRule)):
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
@@ -837,7 +837,7 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         if user:
             create_audit_entry_from_user(
                 user,
@@ -896,7 +896,7 @@ def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_proje
     if excluded_projects:
         excluded_subs = get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule, label=label, alert_threshold=alert_threshold
         )
@@ -950,7 +950,7 @@ def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, exclude
         ]
         new_subs = [sub for sub in excluded_subs if sub.id not in existing_sub_ids]
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
 
@@ -984,7 +984,7 @@ def trigger_incident_triggers(incident):
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=triggers)
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         for trigger in incident_triggers:
             trigger.status = TriggerStatus.RESOLVED.value
             trigger.save()
@@ -998,7 +998,8 @@ def trigger_incident_triggers(incident):
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
-                    ).delay
+                    ).delay,
+                    router.db_for_write(AlertRuleTrigger),
                 )
 
 
@@ -1310,14 +1311,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
     input_channel_id=None,
     integrations=None,
 ):
-    try:
-        # TODO: query the org as well to make sure we don't allow
-        # cross org access
-        service = PagerDutyService.objects.get(id=target_value)
-    except PagerDutyService.DoesNotExist:
+    service = integration_service.find_pagerduty_service(
+        organization_id=organization.id, integration_id=integration_id, service_id=target_value
+    )
+    if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
-    return (service.id, service.service_name)
+    return service["id"], service["service_name"]
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
@@ -1360,11 +1360,14 @@ def get_available_action_integrations_for_org(organization):
     )
 
 
-def get_pagerduty_services(organization_id, integration_id):
-    return PagerDutyService.objects.filter(
-        organization_id=organization_id,
-        integration_id=integration_id,
-    ).values("id", "service_name")
+def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+    org_int = integration_service.get_organization_integration(
+        organization_id=organization_id, integration_id=integration_id
+    )
+    if org_int is None:
+        return []
+    services = PagerDutyService.services_in(org_int.config)
+    return [(s["id"], s["service_name"]) for s in services]
 
 
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.

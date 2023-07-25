@@ -58,9 +58,11 @@ export const steps = ({
         <List symbol="bullet">
           <ListItem>
             {tct(
-              'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
+              'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
               {
-                code: <code />,
+                hookClientCode: <code />,
+                hookServerCode: <code />,
+                sentryInitCode: <code />,
               }
             )}
           </ListItem>
@@ -74,9 +76,10 @@ export const steps = ({
           </ListItem>
           <ListItem>
             {tct(
-              'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+              'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
               {
-                code: <code />,
+                sentryClircCode: <code />,
+                sentryPropertiesCode: <code />,
               }
             )}
           </ListItem>
@@ -97,8 +100,8 @@ export const steps = ({
             <strong>{t('Configure the Sentry SDK:')}</strong>
             <p>
               {tct(
-                'To configure the Sentry SDK, edit the [code:Sentry.init] options in [code:hooks.(client|server).(js|ts)]:',
-                {code: <code />}
+                'To configure the Sentry SDK, edit the [sentryInitCode:Sentry.init] options in [hooksCode:hooks.(client|server).(js|ts)]:',
+                {hooksCode: <code />, sentryInitCode: <code />}
               )}
             </p>
           </Fragment>

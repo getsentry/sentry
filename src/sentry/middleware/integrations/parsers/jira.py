@@ -48,8 +48,7 @@ class JiraRequestParser(BaseRequestParser):
         return None
 
     def get_response(self):
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class in self.control_classes:
+        if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
@@ -63,8 +62,8 @@ class JiraRequestParser(BaseRequestParser):
             logger.error("too_many_regions", extra={"path": self.request.path, "regions": regions})
             return self.get_response_from_control_silo()
 
-        if view_class in self.immediate_response_region_classes:
+        if self.view_class in self.immediate_response_region_classes:
             return self.get_response_from_region_silo(region=regions[0])
 
-        if view_class in self.outbox_response_region_classes:
+        if self.view_class in self.outbox_response_region_classes:
             return self.get_response_from_outbox_creation(regions=regions)

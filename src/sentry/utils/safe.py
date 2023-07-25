@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -22,7 +22,7 @@ def safe_execute(func, *args, **kwargs):
     try:
         if _with_transaction:
             with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
-                with transaction.atomic(), django_test_transaction_water_mark():
+                with transaction.atomic("default"), django_test_transaction_water_mark():
                     result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
@@ -116,7 +116,7 @@ def get_path(data: PathSearchable, *path, **kwargs):
     only filter ``None`` values.
     """
     default = kwargs.pop("default", None)
-    f = kwargs.pop("filter", None)
+    f: Optional[bool] = kwargs.pop("filter", None)
     for k in kwargs:
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 

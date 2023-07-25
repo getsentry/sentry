@@ -2,7 +2,7 @@ import time
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
@@ -225,7 +225,7 @@ def handle_remaining_events(
 def finish_reprocessing(project_id, group_id):
     from sentry.models import Activity, Group, GroupRedirect
 
-    with transaction.atomic():
+    with transaction.atomic(router.db_for_write(Group)):
         group = Group.objects.get(id=group_id)
 
         # While we migrated all associated models at the beginning of

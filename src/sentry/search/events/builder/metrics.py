@@ -50,7 +50,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
-    is_timeseries_query = False
+
     organization_column: str = "organization_id"
 
     def __init__(
@@ -66,6 +66,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
+        self.percentiles: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
@@ -75,12 +76,18 @@ class MetricsQueryBuilder(QueryBuilder):
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
 
-        self._on_demand_spec = self._resolve_on_demand_spec(
-            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
-        )
-
         if granularity is not None:
             self._granularity = granularity
+
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            dataset,
+            kwargs.get("selected_columns", []),
+            kwargs.get("query", ""),
+            kwargs.get("on_demand_metrics_enabled", False),
+        )
+
+        self.use_on_demand_metrics = self._on_demand_spec is not None
+
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
@@ -88,6 +95,7 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
+
         org_id = self.filter_params.get("organization_id")
         if org_id is None and self.params.organization is not None:
             org_id = self.params.organization.id
@@ -96,8 +104,15 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def _resolve_on_demand_spec(
-        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
+        self,
+        dataset: Optional[Dataset],
+        selected_cols: List[Optional[str]],
+        query: str,
+        on_demand_metrics_enabled: bool,
     ) -> Optional[OndemandMetricSpec]:
+        if not on_demand_metrics_enabled:
+            return None
+
         field = selected_cols[0] if selected_cols else None
         if not field:
             return None
@@ -111,16 +126,18 @@ class MetricsQueryBuilder(QueryBuilder):
             sentry_sdk.capture_exception(e)
             return None
 
-    def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
+    def _get_on_demand_metrics_query(self, snuba_query: Query) -> Optional[MetricsQuery]:
         spec = self._on_demand_spec
 
         # TimeseriesQueryBuilder specific parameters
-        if self.is_timeseries_query:
+        if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = None
             alias = "count"
         else:
             limit = self.limit
             alias = spec.mri
+
+        granularity = snuba_query.granularity or self.resolve_granularity()
 
         return MetricsQuery(
             select=[MetricField(spec.op, spec.mri, alias=alias)],
@@ -133,8 +150,8 @@ class MetricsQueryBuilder(QueryBuilder):
             ],
             limit=limit,
             offset=self.offset,
-            granularity=self.resolve_granularity(),
-            is_alerts_query=self.is_alerts_query,
+            granularity=granularity,
+            is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=True,
@@ -200,7 +217,7 @@ class MetricsQueryBuilder(QueryBuilder):
             col = tag_match.group("tag") if tag_match else col
 
         # on-demand metrics require metrics layer behavior
-        if self.use_metrics_layer or self._on_demand_spec:
+        if self.use_metrics_layer or self.use_on_demand_metrics:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -420,6 +437,13 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
+        if snql_function.snql_percentile is not None:
+            resolved_function = snql_function.snql_percentile(arguments, alias)
+            if not resolve_only:
+                self.percentiles.append(resolved_function)
+                # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
         if snql_function.snql_set is not None:
             resolved_function = snql_function.snql_set(arguments, alias)
             if not resolve_only:
@@ -566,7 +590,7 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba SDK.
         """
 
-        if not self.use_metrics_layer and not self._on_demand_spec:
+        if not self.use_metrics_layer and not self.on_demand_metrics_enabled:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -676,16 +700,19 @@ class MetricsQueryBuilder(QueryBuilder):
                 functions=self.sets,
                 entity=Entity(f"{prefix}metrics_sets", sample=self.sample_rate),
             ),
+            # Percentiles are a part of distributions but they're expensive, treat them as their own entity so we'll run
+            # a query with the cheap distributions first then only get page_size quantiles
+            "percentiles": QueryFramework(
+                orderby=[],
+                having=[],
+                functions=self.percentiles,
+                entity=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+            ),
         }
         primary = None
         # if orderby spans more than one table, the query isn't possible with metrics
         for orderby in self.orderby:
-            if orderby.exp in self.distributions:
-                query_framework["distribution"].orderby.append(orderby)
-                if primary not in [None, "distribution"]:
-                    raise IncompatibleMetricsQuery("Can't order across tables")
-                primary = "distribution"
-            elif orderby.exp in self.sets:
+            if orderby.exp in self.sets:
                 query_framework["set"].orderby.append(orderby)
                 if primary not in [None, "set"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
@@ -695,6 +722,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 if primary not in [None, "counter"]:
                     raise IncompatibleMetricsQuery("Can't order across tables")
                 primary = "counter"
+            elif orderby.exp in self.distributions:
+                query_framework["distribution"].orderby.append(orderby)
+                if primary not in [None, "distribution"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "distribution"
+            elif orderby.exp in self.percentiles:
+                query_framework["percentiles"].orderby.append(orderby)
+                if primary not in [None, "percentiles"]:
+                    raise IncompatibleMetricsQuery("Can't order across tables")
+                primary = "percentiles"
             else:
                 # An orderby that isn't on a function add it to all of them
                 for framework in query_framework.values():
@@ -702,14 +739,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         having_entity: Optional[str] = None
         for condition in self.flattened_having:
-            if condition.lhs in self.distributions:
-                if having_entity is None:
-                    having_entity = "distribution"
-                elif having_entity != "distribution":
-                    raise IncompatibleMetricsQuery(
-                        "Can only have aggregate conditions on one entity"
-                    )
-            elif condition.lhs in self.sets:
+            if condition.lhs in self.sets:
                 if having_entity is None:
                     having_entity = "set"
                 elif having_entity != "set":
@@ -723,6 +753,20 @@ class MetricsQueryBuilder(QueryBuilder):
                     raise IncompatibleMetricsQuery(
                         "Can only have aggregate conditions on one entity"
                     )
+            elif condition.lhs in self.distributions:
+                if having_entity is None:
+                    having_entity = "distribution"
+                elif having_entity != "distribution":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
+            elif condition.lhs in self.percentiles:
+                if having_entity is None:
+                    having_entity = "percentiles"
+                elif having_entity != "percentiles":
+                    raise IncompatibleMetricsQuery(
+                        "Can only have aggregate conditions on one entity"
+                    )
 
         if primary is not None and having_entity is not None and having_entity != primary:
             raise IncompatibleMetricsQuery(
@@ -733,12 +777,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if primary is None:
             if having_entity is not None:
                 primary = having_entity
-            elif len(self.distributions) > 0:
-                primary = "distribution"
             elif len(self.counters) > 0:
                 primary = "counter"
             elif len(self.sets) > 0:
                 primary = "set"
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.percentiles) > 0:
+                primary = "percentiles"
             else:
                 raise IncompatibleMetricsQuery("Need at least one function")
 
@@ -757,7 +803,8 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer or self._on_demand_spec:
+
+        if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -765,16 +812,17 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._on_demand_spec:
-                        metric_query = self._get_on_demand_metrics_query()
+                    snuba_query = self.get_metrics_layer_snql_query()
+                    if self.use_on_demand_metrics:
+                        metrics_query = self._get_on_demand_metrics_query(snuba_query.query)
                     else:
-                        metric_query = transform_mqb_query_to_metrics_query(
-                            self.get_metrics_layer_snql_query().query, self.is_alerts_query
+                        metrics_query = transform_mqb_query_to_metrics_query(
+                            snuba_query.query, self.is_alerts_query
                         )
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
-                        metrics_query=metric_query,
+                        metrics_query=metrics_query,
                         use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
                         else UseCaseID.SESSIONS,
@@ -956,7 +1004,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         and returns one or more equivalent snql query(ies).
         """
 
-        if self.use_metrics_layer or self._on_demand_spec:
+        if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -964,8 +1012,8 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
 
             snuba_request = self.get_metrics_layer_snql_query()
 
-            if self._on_demand_spec:
-                metrics_query = self._get_on_demand_metrics_query()
+            if self.use_on_demand_metrics:
+                metrics_query = self._get_on_demand_metrics_query(snuba_request.query)
             else:
                 metrics_query = transform_mqb_query_to_metrics_query(
                     snuba_request.query, is_alerts_query=self.is_alerts_query
@@ -1040,7 +1088,6 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
-    is_timeseries_query = True
 
     def __init__(
         self,
@@ -1054,6 +1101,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         limit: Optional[int] = 10000,
         use_metrics_layer: Optional[bool] = False,
         groupby: Optional[Column] = None,
+        on_demand_metrics_enabled: Optional[bool] = False,
     ):
         super().__init__(
             params=params,
@@ -1064,6 +1112,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             auto_fields=False,
             functions_acl=functions_acl,
             use_metrics_layer=use_metrics_layer,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
@@ -1183,7 +1232,8 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer or self._on_demand_spec:
+
+        if self.use_metrics_layer or self.use_on_demand_metrics:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -1192,9 +1242,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             snuba_query = self.get_snql_query()[0].query
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._on_demand_spec:
-                        metrics_query = self._get_on_demand_metrics_query()
-                    else:
+                    if self.use_on_demand_metrics:
+                        metrics_query = self._get_on_demand_metrics_query(snuba_query)
+                    elif self.use_metrics_layer:
                         metrics_query = transform_mqb_query_to_metrics_query(
                             snuba_query, self.is_alerts_query
                         )

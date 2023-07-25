@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 import pytz
+from django.db import router
 from django.test import override_settings
 from django.utils import timezone
 
@@ -1376,7 +1377,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
-        with unguarded_write():
+        with unguarded_write(using=router.db_for_write(Integration)):
             Integration.objects.all().delete()
         integration = Integration.objects.create(provider="bitbucket")
         integration.add_organization(self.organization)

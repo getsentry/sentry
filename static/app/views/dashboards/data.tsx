@@ -165,7 +165,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
       },
       {
         title: t('Errors by Country'),
-        displayType: DisplayType.WORLD_MAP,
+        displayType: DisplayType.TABLE,
         interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
@@ -179,9 +179,9 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         queries: [
           {
             name: '',
-            fields: ['count()'],
+            fields: ['geo.country_code', 'geo.region', 'count()'],
             aggregates: ['count()'],
-            columns: [],
+            columns: ['geo.country_code', 'geo.region'],
             conditions: '!event.type:transaction has:geo.country_code',
             orderby: 'count()',
           },
@@ -568,7 +568,7 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
       },
       {
         title: t('LCP by Country'),
-        displayType: DisplayType.WORLD_MAP,
+        displayType: DisplayType.TABLE,
         interval: '5m',
         widgetType: WidgetType.DISCOVER,
         tempId: uniqueId(),
@@ -582,9 +582,9 @@ export const DASHBOARDS_TEMPLATES: DashboardTemplate[] = [
         queries: [
           {
             name: '',
-            fields: ['p75(measurements.lcp)'],
+            fields: ['geo.country_code', 'geo.region', 'p75(measurements.lcp)'],
             aggregates: ['p75(measurements.lcp)'],
-            columns: [],
+            columns: ['geo.country_code', 'geo.region'],
             conditions: 'has:geo.country_code',
             orderby: '',
           },

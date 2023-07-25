@@ -7,6 +7,7 @@ from sentry.integrations.slack.message_builder import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -23,14 +24,19 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] 
     assert "Here are the commands you can use" in text
 
 
-@control_silo_test(stable=True)
+@control_silo_test(
+    stable=True,
+    regions=[
+        Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    ],
+)
 class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
     def test_missing_command(self):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
-                url="http://testserver/extensions/slack/commands/",
+                url="http://na.testserver/extensions/slack/commands/",
                 json=MISSING_COMMAND,
             )
         data = self.send_slack_message("")
@@ -41,7 +47,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
-                url="http://testserver/extensions/slack/commands/",
+                url="http://na.testserver/extensions/slack/commands/",
                 json=INVALID_COMMAND,
             )
         data = self.send_slack_message("invalid command")
@@ -52,7 +58,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
-                url="http://testserver/extensions/slack/commands/",
+                url="http://na.testserver/extensions/slack/commands/",
                 json=HELP_COMMAND,
             )
         data = self.send_slack_message("help")

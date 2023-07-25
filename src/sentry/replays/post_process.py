@@ -130,6 +130,8 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "device": {"name": None, "brand": None, "model": None, "family": None},
         "urls": None,
         "activity": None,
+        "count_dead_clicks": None,
+        "count_rage_clicks": None,
         "count_errors": None,
         "duration": None,
         "finished_at": None,

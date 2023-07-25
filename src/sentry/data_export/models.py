@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -82,7 +82,7 @@ class ExportedData(Model):
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
-        transaction.on_commit(lambda: self.email_success())
+        transaction.on_commit(lambda: self.email_success(), router.db_for_write(ExportedData))
 
     def email_success(self):
         from sentry.utils.email import MessageBuilder

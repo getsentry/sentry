@@ -45,6 +45,7 @@ function SampleTable({
   const {
     data: spans,
     isFetching: isFetchingSamples,
+    isEnabled: isSamplesEnabled,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -56,6 +57,7 @@ function SampleTable({
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
+    isEnabled: isTransactionsEnabled,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
@@ -91,6 +93,8 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
+    !isSamplesEnabled ||
+    !isTransactionsEnabled ||
     (!areNoSamples && isFetchingTransactions);
 
   if (sampleError || transactionError) {

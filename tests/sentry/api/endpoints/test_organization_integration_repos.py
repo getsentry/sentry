@@ -39,6 +39,37 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
+    @patch("sentry.integrations.github.GitHubAppsClient.get_repositories", return_value=[])
+    def test_hide_hidden_repos(self, get_repositories):
+        get_repositories.return_value = [
+            {
+                "name": "rad-repo",
+                "full_name": "Example/rad-repo",
+                "default_branch": "main",
+            },
+            {"name": "cool-repo", "full_name": "Example/cool-repo"},
+        ]
+
+        self.create_repo(
+            project=self.project,
+            integration_id=self.integration.id,
+            name="Example/rad-repo",
+        )
+
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "repos": [
+                {
+                    "name": "cool-repo",
+                    "identifier": "Example/cool-repo",
+                    "defaultBranch": None,
+                },
+            ],
+            "searchable": True,
+        }
+
     def test_no_repository_method(self):
         integration = self.create_integration(
             organization=self.org, provider="jira", name="Example", external_id="example:1"

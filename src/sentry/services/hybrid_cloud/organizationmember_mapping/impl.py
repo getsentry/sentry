@@ -105,5 +105,5 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            with unguarded_write():
+            with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
                 org_member_map.delete()

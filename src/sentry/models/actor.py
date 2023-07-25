@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_save
 from rest_framework import serializers
 
@@ -122,7 +122,7 @@ def get_actor_for_user(user: Union[int, "User", RpcUser]) -> "Actor":
     else:
         user_id = user.id
     try:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Actor)):
             actor, _ = Actor.objects.get_or_create(type=ACTOR_TYPES["user"], user_id=user_id)
     except IntegrityError as err:
         # Likely a race condition. Long term these need to be eliminated.

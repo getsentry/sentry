@@ -119,7 +119,7 @@ class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> 
       notificationSettings: {},
       identities: [],
       organizationIntegrations: [],
-      organizationId: this.props.organizations[0].id,
+      organizationId: null,
     };
   }
 

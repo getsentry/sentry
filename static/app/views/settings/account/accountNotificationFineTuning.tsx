@@ -136,7 +136,7 @@ type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[] | null;
   fineTuneData: Record<string, any> | null;
   notifications: Record<string, any> | null;
-  organizationId: string;
+  organizationId: string | null;
   projects: Project[] | null;
 };
 
@@ -148,20 +148,20 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
       fineTuneData: null,
       notifications: [],
       projects: [],
-      organizationId: this.props.organizations[0].id,
+      organizationId: null,
     };
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
-    const orgId = this.state?.organizationId || this.props.organizations[0].id;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints = [
       ['notifications', '/users/me/notifications/'],
       ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
     ];
 
-    if (isGroupedByProject(fineTuneType)) {
+    if (isGroupedByProject(fineTuneType) && this.props.organizations.length > 0) {
+      const orgId = this.state?.organizationId || this.props.organizations[0].id;
       endpoints.push(['projects', `/projects/?organization_id=${orgId}`]);
     }
 
@@ -211,7 +211,8 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
 
     const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
 
-    const isProject = isGroupedByProject(fineTuneType);
+    const isProject =
+      isGroupedByProject(fineTuneType) && this.props.organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
     const {title, description} = field;
 
@@ -253,7 +254,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
               <Fragment>
                 <OrganizationSelectHeader
                   organizations={this.props.organizations}
-                  organizationId={this.state.organizationId}
+                  organizationId={this.state.organizationId || ''}
                   handleOrgChange={this.handleOrgChange}
                 />
                 {this.renderSearchInput({

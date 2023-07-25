@@ -34,8 +34,11 @@ export const steps = ({
         description: (
           <p>
             {tct(
-              'Due to a bug in all versions below "6.0" of the [code:SensioFrameworkExtraBundle] bundle, you will likely receive an error during the execution of the command above related to the missing [code:NyholmPsr7FactoryPsr17Factory] class. To workaround the issue, if you are not using the PSR-7 bridge, please change the configuration of that bundle as follows:',
-              {code: <code />}
+              'Due to a bug in all versions below "6.0" of the [sensioFrameworkExtraBundleCode:SensioFrameworkExtraBundle] bundle, you will likely receive an error during the execution of the command above related to the missing [nyholmPsr7FactoryPsr17FactoryCode:NyholmPsr7FactoryPsr17Factory] class. To workaround the issue, if you are not using the PSR-7 bridge, please change the configuration of that bundle as follows:',
+              {
+                sensioFrameworkExtraBundleCode: <code />,
+                nyholmPsr7FactoryPsr17FactoryCode: <code />,
+              }
             )}
           </p>
         ),
@@ -103,11 +106,11 @@ SENTRY_DSN="${dsn}"
         code: `
 <?php
 
-namespace App\Controller;
+namespace App\\Controller;
 
-use Psr\Log\LoggerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use Psr\\Log\\LoggerInterface;
+use Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController;
+use Symfony\\Component\\Routing\\Annotation\\Route;
 
 class SentryTestController extends AbstractController {
   /**
@@ -129,7 +132,7 @@ class SentryTestController extends AbstractController {
     $this->logger->error('My custom logged error.');
 
     // the following code will test if an uncaught exception logs to sentry
-    throw new \RuntimeException('Example exception.');
+    throw new \\RuntimeException('Example exception.');
   }
 }
         `,
@@ -185,7 +188,7 @@ class SentryTestController extends AbstractController {
 
   return [
     // ...
-    Sentry\SentryBundle\SentryBundle::class => ['all' => true],
+    Sentry\\SentryBundle\\SentryBundle::class => ['all' => true],
   ];
         `,
       },
@@ -215,8 +218,8 @@ monolog:
   handlers:
     sentry:
       type: sentry
-      level: !php/const Monolog\Logger::ERROR
-      hub_id: Sentry\State\HubInterface
+      level: !php/const Monolog\\Logger::ERROR
+      hub_id: Sentry\\State\\HubInterface
         `,
       },
       {
@@ -239,13 +242,13 @@ monolog:
   handlers:
     sentry:
       type: service
-      id: Sentry\Monolog\Handler
+      id: Sentry\\Monolog\\Handler
 
 services:
-  Sentry\Monolog\Handler:
+  Sentry\\Monolog\\Handler:
     arguments:
-      $hub: '@Sentry\State\HubInterface'
-      $level: !php/const Monolog\Logger::ERROR
+      $hub: '@Sentry\\State\\HubInterface'
+      $level: !php/const Monolog\\Logger::ERROR
         `,
       },
       {
@@ -262,7 +265,7 @@ services:
         language: 'yaml',
         code: `
 services:
-  Monolog\Processor\PsrLogMessageProcessor:
+  Monolog\\Processor\\PsrLogMessageProcessor:
     tags: { name: monolog.processor, handler: sentry }
         `,
       },

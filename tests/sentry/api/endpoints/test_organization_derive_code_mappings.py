@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.db import router
 from django.urls import reverse
 
 from sentry.models.integrations.integration import Integration
@@ -86,7 +87,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stacktraceFilename": "stack/root/file.py",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write():
+        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+            using=router.db_for_write(Integration)
+        ):
             Integration.objects.all().delete()
         response = self.client.get(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
@@ -132,7 +135,9 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "defaultBranch": "master",
             "repoName": "name",
         }
-        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write():
+        with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+            using=router.db_for_write(Integration)
+        ):
             Integration.objects.all().delete()
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content

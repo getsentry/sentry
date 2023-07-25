@@ -17,9 +17,6 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
     ConsecutiveHTTPSpanDetectorExtended,
 )
-from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
-    NPlusOneAPICallsDetectorExtended,
-)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -183,6 +180,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "http_request_delay_threshold": options.get(
             "performance.issues.http_overhead.http_request_delay_threshold"
         ),
+        "n_plus_one_api_calls_total_duration_threshold": options.get(
+            "performance.issues.n_plus_one_api_calls.total_duration"
+        ),
     }
 
     default_project_settings = (
@@ -265,17 +265,11 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             }
         ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
-            "duration_threshold": 50,  # ms
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
             "concurrency_threshold": 5,  # ms
             "count": 10,
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
-        },
-        DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
-            "total_duration": 500,  # ms
-            "concurrency_threshold": 5,  # ms
-            "count": 10,
-            "allowed_span_ops": ["http.client"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
@@ -300,8 +294,8 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
-            # time saved by running all queries in parallel
-            "min_time_saved": 2000,
+            "span_duration_threshold": 500,  # ms
+            "min_time_saved": 2000,  # time saved by running all queries in parallel
             "consecutive_count_threshold": 3,
             "max_duration_between_spans": 1000,  # ms
         },
@@ -334,7 +328,6 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
-        NPlusOneAPICallsDetectorExtended(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
@@ -450,6 +443,7 @@ def report_metrics_for_detectors(
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
     }
+
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:

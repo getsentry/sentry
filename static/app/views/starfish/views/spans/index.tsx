@@ -1,12 +1,13 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 
 import SpansView from './spansView';
 
@@ -33,16 +34,16 @@ export default function Spans() {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{getTitle(spanCategory)}</Layout.Title>
+            <Layout.Title>{getTitle(moduleName, spanCategory)}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <PageFiltersContainer>
+            <StarfishPageFiltersContainer>
               <SpansView moduleName={moduleName} spanCategory={spanCategory} />
-            </PageFiltersContainer>
+            </StarfishPageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
@@ -50,12 +51,12 @@ export default function Spans() {
   );
 }
 
-const getTitle = (spanCategory?: string) => {
+const getTitle = (moduleName: ModuleName, spanCategory?: string) => {
   if (spanCategory === 'http') {
     return t('API Calls');
   }
   if (spanCategory === 'db') {
-    return t('Database Queries');
+    return ROUTE_NAMES.database;
   }
   if (spanCategory === 'cache') {
     return t('Cache Queries');
@@ -64,12 +65,12 @@ const getTitle = (spanCategory?: string) => {
     return t('Serializers');
   }
   if (spanCategory === 'middleware') {
-    return t('Middleware Tasks');
+    return t('Middleware Components/Calls');
   }
   if (spanCategory === 'app') {
     return t('Application Tasks');
   }
-  if (spanCategory === 'Other') {
+  if (moduleName === 'other') {
     return t('Other Requests');
   }
   return t('Spans');

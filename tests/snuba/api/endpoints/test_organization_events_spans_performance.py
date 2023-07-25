@@ -18,6 +18,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
+    URL: str
     FEATURES = [
         "organizations:global-views",
     ]
@@ -819,6 +820,45 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 lhs=Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
                 op=Op.IN,
                 rhs=Function("tuple", ["django.middleware"]),
+            )
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
+        )
+
+    @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
+    def test_exclude_op_filter(self, mock_raw_snql_query):
+        event = self.create_event()
+
+        mock_raw_snql_query.side_effect = [
+            {
+                "data": [
+                    self.suspect_span_group_snuba_results("django.middleware", event),
+                ],
+            },
+        ]
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "excludeSpanOp": "http.server",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        self.assert_suspect_span(
+            response.data,
+            [self.suspect_span_results("django.middleware", event)],
+        )
+
+        assert mock_raw_snql_query.call_count == 1
+        # the first call should also contain the additional condition on the span op
+        assert (
+            Condition(
+                lhs=Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
+                op=Op.NOT_IN,
+                rhs=Function("tuple", ["http.server"]),
             )
             in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )

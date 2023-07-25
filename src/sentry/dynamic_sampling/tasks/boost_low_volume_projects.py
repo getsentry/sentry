@@ -43,7 +43,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -55,7 +55,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_timeout,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -76,8 +76,9 @@ from sentry.utils.snuba import raw_snql_query
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
-    context = TaskContext("sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_SECONDS)
-    fetch_projects_timer = Timer()
+    context = TaskContext(
+        "sentry.dynamic_sampling.tasks.boost_low_volume_projects", MAX_TASK_SECONDS
+    )
 
     try:
         for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
@@ -85,7 +86,7 @@ def boost_low_volume_projects() -> None:
                 org_id,
                 projects_with_tx_count_and_rates,
             ) in fetch_projects_with_total_root_transaction_count_and_rates(
-                context, fetch_projects_timer, org_ids=orgs
+                context, org_ids=orgs
             ).items():
                 boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
     except TimeoutException:
@@ -113,12 +114,14 @@ def boost_low_volume_projects_of_org(
         Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
+    # secondary tasks should not log the context, I need the context only for calling
+    # `adjust_sample_rates_of_projects`, the accumulated info will be ignored.
+    context = TaskContext("not_used", MAX_TASK_SECONDS)
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates, context)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
-    timer: Timer,
     org_ids: List[int],
     granularity: Optional[Granularity] = None,
     query_interval: Optional[timedelta] = None,
@@ -128,6 +131,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     dropped.
     """
     function_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
+    timer = context.get_timer(function_name)
     with timer:
         current_context = context.get_function_state(function_name)
         current_context.num_iterations += 1
@@ -223,7 +227,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
             current_context.num_db_calls += 1
             current_context.num_rows_total += count
             current_context.num_orgs += len(aggregated_projects)
-            current_context.execution_time = timer.current()
 
             context.set_function_state(function_name, current_context)
 
@@ -239,6 +242,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 def adjust_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    context: TaskContext,
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
@@ -253,7 +257,7 @@ def adjust_sample_rates_of_projects(
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
+        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id, context)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )

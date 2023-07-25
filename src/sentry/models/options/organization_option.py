@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.models import Organization
 
 
-class OrganizationOptionManager(OptionManager["Organization"]):
+class OrganizationOptionManager(OptionManager["OrganizationOption"]):
     def get_value_bulk(
         self, instances: Sequence[Organization], key: str
     ) -> Mapping[Organization, Any]:
