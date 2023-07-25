@@ -73,9 +73,7 @@ from sentry.utils.snuba import raw_snql_query
     time_limit=2 * 60 * 60 + 5,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def boost_low_volume_projects(**kwargs) -> None:
-    context: TaskContext = kwargs["context"]
-
+def boost_low_volume_projects(context: TaskContext) -> None:
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
         for (
             org_id,

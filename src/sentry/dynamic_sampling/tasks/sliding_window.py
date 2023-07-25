@@ -59,9 +59,7 @@ from sentry.utils.snuba import raw_snql_query
     time_limit=2 * 60 * 60 + 5,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def sliding_window(**kwargs) -> None:
-    context: TaskContext = kwargs["context"]
-
+def sliding_window(context: TaskContext) -> None:
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.
     if window_size is not None:

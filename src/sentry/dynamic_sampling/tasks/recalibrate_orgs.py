@@ -53,9 +53,7 @@ class RecalibrationError(Exception):
     time_limit=2 * 60 * 60 + 5,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def recalibrate_orgs(**kwargs) -> None:
-    context: TaskContext = kwargs["context"]
-
+def recalibrate_orgs(context: TaskContext) -> None:
     for org_volumes in TimedIterator(
         context,
         GetActiveOrgsVolumes(

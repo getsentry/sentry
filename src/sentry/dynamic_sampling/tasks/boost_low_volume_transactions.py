@@ -94,9 +94,7 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     time_limit=2 * 60 * 60 + 5,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def boost_low_volume_transactions(**kwargs) -> None:
-    context: TaskContext = kwargs["context"]
-
+def boost_low_volume_transactions(context: TaskContext) -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )

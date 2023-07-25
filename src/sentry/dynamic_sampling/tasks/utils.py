@@ -15,7 +15,7 @@ def _compute_task_name(function_name: str) -> str:
 def dynamic_sampling_task_with_context(max_task_execution: int):
     def wrapper(func):
         @wraps(func)
-        def _wrapper(*args, **kwargs):
+        def _wrapper():
             function_name = func.__name__
             task_name = _compute_task_name(function_name)
 
@@ -26,7 +26,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
                 context = TaskContext(task_name, max_task_execution)
 
                 try:
-                    func(context=context, *args, **kwargs)
+                    func(context=context)
                 except TimeoutException:
                     sentry_sdk.set_extra("context-data", context.to_dict())
                     log_task_timeout(context)
@@ -43,7 +43,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
 
 def dynamic_sampling_task(func):
     @wraps(func)
-    def wrapped_func(*args, **kwargs):
+    def wrapped_func():
         function_name = func.__name__
         task_name = _compute_task_name(function_name)
 
@@ -51,6 +51,6 @@ def dynamic_sampling_task(func):
         metrics.incr(f"{task_name}.start", sample_rate=1.0)
         # We will count how much it takes to run the function.
         with metrics.timer(task_name, sample_rate=1.0):
-            return func(*args, **kwargs)
+            return func()
 
     return wrapped_func
