@@ -26,7 +26,7 @@ function SampleInfo(props: Props) {
     {transactionName, 'transaction.method': transactionMethod},
     [
       SPAN_OP,
-      'sps()',
+      'spm()',
       `sum(${SPAN_SELF_TIME})`,
       `avg(${SPAN_SELF_TIME})`,
       'time_spent_percentage(local)',
@@ -47,8 +47,8 @@ function SampleInfo(props: Props) {
       <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])}>
         <ThroughputCell
           containerProps={{style}}
-          rate={spanMetrics?.['sps()']}
-          unit={RateUnits.PER_SECOND}
+          rate={spanMetrics?.['spm()']}
+          unit={RateUnits.PER_MINUTE}
         />
       </Block>
       <Block title={DataTitles.avg}>

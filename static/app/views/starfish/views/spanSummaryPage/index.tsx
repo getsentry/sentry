@@ -85,7 +85,7 @@ function SpanSummaryPage({params, location}: Props) {
       SpanMetricsFields.SPAN_ACTION,
       SpanMetricsFields.SPAN_DOMAIN,
       'count()',
-      'sps()',
+      'spm()',
       `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
       `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
@@ -109,7 +109,7 @@ function SpanSummaryPage({params, location}: Props) {
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
+      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
@@ -119,7 +119,7 @@ function SpanSummaryPage({params, location}: Props) {
     seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
       ? 'Queries'
       : 'Requests',
-    data: spanMetricsSeriesData?.['sps()'].data,
+    data: spanMetricsSeriesData?.['spm()'].data,
   };
 
   const title = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP], true);
@@ -179,13 +179,13 @@ function SpanSummaryPage({params, location}: Props) {
                       )}
                     <Block
                       title={getThroughputTitle(span?.[SpanMetricsFields.SPAN_OP])}
-                      description={tct('Throughput of this [spanType] per second', {
+                      description={tct('Throughput of this [spanType] per minute', {
                         spanType: spanDescriptionCardTitle,
                       })}
                     >
                       <ThroughputCell
-                        rate={spanMetrics?.['sps()']}
-                        unit={RateUnits.PER_SECOND}
+                        rate={spanMetrics?.['spm()']}
+                        unit={RateUnits.PER_MINUTE}
                       />
                     </Block>
                     <Block

@@ -98,7 +98,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
     {
       'avg(span.self_time)': number;
       interval: number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -113,7 +113,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
     return {
       seriesName: label ?? 'Throughput',
       data: (groupData ?? []).map(datum => ({
-        value: datum['sps()'],
+        value: datum['spm()'],
         name: datum.interval,
       })),
     };
@@ -153,7 +153,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
     {
       'avg(span.self_time)': number;
       interval: number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -242,7 +242,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', `avg(${SPAN_SELF_TIME})`],
+      yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
