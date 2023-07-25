@@ -22,7 +22,7 @@ interface StatusData {
   Icon: React.ComponentType<SVGIconProps>;
   color: ColorOrAlias;
 }
-// TODO(ts): Use satisfies
+
 export const statusMap: Record<MonitorStatus, StatusData> = {
   ok: {
     Icon: IconCheckmark,
