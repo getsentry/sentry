@@ -58,6 +58,7 @@ class ConfigurableThresholds(Enum):
     RENDER_BLOCKING_ASSET_FCP_RATIO = "render_blocking_fcp_ratio"
     SLOW_DB_QUERY_DURATION = "slow_db_query_duration_threshold"
     N_PLUS_API_CALLS_DURATION = "n_plus_one_api_calls_total_duration_threshold"
+    CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED = "consecutive_http_spans_min_time_saved_threshold"
 
 
 internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
@@ -84,6 +85,7 @@ configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
     ConfigurableThresholds.RENDER_BLOCKING_ASSET_FCP_RATIO.value: InternalProjectOptions.RENDER_BLOCKING_ASSET.value,
     ConfigurableThresholds.SLOW_DB_QUERY_DURATION.value: InternalProjectOptions.SLOW_DB_QUERY.value,
     ConfigurableThresholds.N_PLUS_API_CALLS_DURATION.value: InternalProjectOptions.N_PLUS_ONE_API_CALLS.value,
+    ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value,
 }
 
 
@@ -124,6 +126,9 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     )
     n_plus_one_api_calls_total_duration_threshold = serializers.IntegerField(
         required=False, min_value=100, max_value=TEN_SECONDS  # ms
+    )
+    consecutive_http_spans_min_time_saved_threshold = serializers.IntegerField(
+        required=False, min_value=1000, max_value=TEN_SECONDS  # ms
     )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
