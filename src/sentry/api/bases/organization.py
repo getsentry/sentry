@@ -6,6 +6,7 @@ import sentry_sdk
 from django.core.cache import cache
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint, resolve_region
@@ -238,7 +239,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
 
 class OrganizationEndpoint(Endpoint):
-    permission_classes = (OrganizationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def get_projects(
         self,

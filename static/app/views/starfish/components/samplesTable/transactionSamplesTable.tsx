@@ -191,7 +191,9 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
       return (
         <DurationComparisonCell
           duration={row['transaction.duration']}
-          p95={(aggregatesData?.['p95(transaction.duration)'] as number) ?? 0}
+          compareToDuration={
+            (aggregatesData?.['p95(transaction.duration)'] as number) ?? 0
+          }
         />
       );
     }
