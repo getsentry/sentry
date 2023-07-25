@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
@@ -16,10 +16,10 @@ ACTION_BITSIZE = {
 }
 assert len(ACTIONS) < 1 << max(ACTION_BITSIZE.values())
 ACTION_FLAGS = {
-    (True, None): 0,
+    (True, ""): 0,
     (True, "up"): 1,
     (True, "down"): 2,
-    (False, None): 3,
+    (False, ""): 3,
     (False, "up"): 4,
     (False, "down"): 5,
 }
@@ -31,7 +31,11 @@ class Action:
     _is_updater: bool
 
     def apply_modifications_to_frame(
-        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+        self,
+        frames: Sequence[dict[str, Any]],
+        match_frames: Sequence[dict[str, Any]],
+        idx: int,
+        rule: Any = None,
     ) -> None:
         pass
 
@@ -62,12 +66,12 @@ class Action:
 
 
 class FlagAction(Action):
-    def __init__(self, key: str, flag: bool, range: str | None) -> None:
+    def __init__(self, key: str, flag: bool, range: Optional[str]) -> None:
         self.key = key
         self._is_updater = key in {"group", "app", "prefix", "sentinel"}
         self._is_modifier = key == "app"
         self.flag = flag
-        self.range = range
+        self.range = range  # e.g. "", "up", "down"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
@@ -82,7 +86,7 @@ class FlagAction(Action):
         )
 
     def _slice_to_range(self, seq, idx):
-        if self.range is None:
+        if self.range == "":
             return [seq[idx]]
         elif self.range == "down":
             return seq[:idx]
@@ -101,7 +105,11 @@ class FlagAction(Action):
             return self.flag == component.contributes
 
     def apply_modifications_to_frame(
-        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+        self,
+        frames: Sequence[dict[str, Any]],
+        match_frames: Sequence[dict[str, Any]],
+        idx: int,
+        rule: Any = None,
     ) -> None:
         # Change a frame or many to be in_app
         if self.key == "app":
@@ -181,7 +189,11 @@ class VarAction(Action):
             state.set(self.var, self.value, rule)
 
     def apply_modifications_to_frame(
-        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+        self,
+        frames: Sequence[dict[str, Any]],
+        match_frames: Sequence[dict[str, Any]],
+        idx: int,
+        rule: Any = None,
     ) -> None:
         if self.var == "category":
             frame = frames[idx]
