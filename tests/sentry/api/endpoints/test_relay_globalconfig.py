@@ -5,11 +5,12 @@ from sentry.relay.config.measurements import BUILTIN_MEASUREMENTS
 from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
+from tests.sentry.api.endpoints.conftest import private_key, relay
 
 
 @pytest.fixture
-def call_global_config(client, relay, private_key):
-    def inner():
+def call_global_config():
+    def inner(client):
         path = reverse("sentry-api-0-relay-projectconfigs")
 
         raw_json, signature = private_key.pack({"globalConfig": True})
