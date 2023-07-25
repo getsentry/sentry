@@ -583,7 +583,11 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
 
 
 def compute_guarded_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+    org_id: int,
+    project_id: Optional[int],
+    total_root_count: int,
+    window_size: int,
+    context: TaskContext,
 ) -> Optional[float]:
     """
     Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
@@ -592,14 +596,16 @@ def compute_guarded_sliding_window_sample_rate(
     try:
         # We want to compute the sliding window sample rate by considering a window of time.
         # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
+        return compute_sliding_window_sample_rate(
+            org_id, project_id, total_root_count, window_size, context
+        )
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return None
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int
+    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int, context
 ) -> Optional[float]:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
@@ -608,7 +614,8 @@ def compute_sliding_window_sample_rate(
     The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
     enabled in the first place for that project.
     """
-    extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+    with context.get_timer("extrapolate_monthly_volume"):
+        extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
     if extrapolated_volume is None:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("org_id", org_id)
@@ -622,9 +629,10 @@ def compute_sliding_window_sample_rate(
         org_id, project_id, total_root_count, extrapolated_volume, window_size
     )
 
-    sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
-        org_id, extrapolated_volume
-    )
+    with context.get_timer("get_transaction_sampling_tier_for_volume"):
+        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
+            org_id, extrapolated_volume
+        )
     if sampling_tier is None:
         return None
 
@@ -636,7 +644,9 @@ def compute_sliding_window_sample_rate(
     return float(sample_rate)
 
 
-def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]:
+def get_adjusted_base_rate_from_cache_or_compute(
+    org_id: int, context: TaskContext
+) -> Optional[float]:
     """
     Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
     it synchronously.
@@ -656,7 +666,11 @@ def get_adjusted_base_rate_from_cache_or_compute(org_id: int) -> Optional[float]
         )
         if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
             return compute_guarded_sliding_window_sample_rate(
-                org_id, None, org_total_root_count, window_size
+                org_id,
+                None,
+                org_total_root_count,
+                window_size,
+                context,
             )
 
     return None

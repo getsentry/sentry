@@ -133,7 +133,11 @@ def adjust_base_sample_rates_of_projects(
 
         for project_id, total_root_count in projects_with_total_root_count:
             sample_rate = compute_guarded_sliding_window_sample_rate(
-                org_id, project_id, total_root_count, window_size
+                org_id,
+                project_id,
+                total_root_count,
+                window_size,
+                context,
             )
 
             # If the sample rate is None, we want to add a sentinel value into Redis, the goal being that when generating
