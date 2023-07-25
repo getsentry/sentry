@@ -62,9 +62,7 @@ Future<void> main() async {
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
 }
         `,
-      },
-      {
-        description: (
+        additionalInfo: (
           <p>
             {tct(
               'You can configure the [sentryDsn: SENTRY_DSN], [sentryRelease: SENTRY_RELEASE], [sentryDist: SENTRY_DIST], and [sentryEnv: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [dartDefine: --dart-define] flag to the compiler, as noted in the code sample.',
@@ -101,15 +99,11 @@ try {
   );
 }
         `,
-      },
-      {
-        description: t(
-          "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-        ),
-      },
-      {
-        description: t(
-          "If you're an existing user and have disabled alerts, you won't receive this email."
+        additionalInfo: tct(
+          "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
+          {
+            break: <br />,
+          }
         ),
       },
     ],
@@ -150,9 +144,7 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }
         `,
-      },
-      {
-        description: (
+        additionalInfo: (
           <p>
             {tct(
               'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',

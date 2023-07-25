@@ -97,15 +97,11 @@ try {
   );
 }
         `,
-      },
-      {
-        description: t(
-          "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-        ),
-      },
-      {
-        description: t(
-          "If you're an existing user and have disabled alerts, you won't receive this email."
+        additionalInfo: tct(
+          "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
+          {
+            break: <br />,
+          }
         ),
       },
     ],
@@ -146,9 +142,7 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }
         `,
-      },
-      {
-        description: (
+        additionalInfo: (
           <p>
             {tct(
               'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
