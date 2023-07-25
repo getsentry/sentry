@@ -18,6 +18,7 @@ from sentry.lang.javascript.processing import generate_scraping_config
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import EventError, Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.profiles.java import deobfuscate_signature
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
@@ -618,35 +619,52 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
+            method.setdefault("data", {})
+
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
-            method.setdefault("data", {})
-            if len(mapped) == 1:
-                new_frame = mapped[0]
-                method.update(
-                    {
-                        "class_name": new_frame.class_name,
-                        "name": new_frame.method,
-                        "source_file": new_frame.file,
-                        "source_line": new_frame.line,
-                    }
-                )
-                method["data"]["deobfuscation_status"] = "deobfuscated"
-            elif len(mapped) > 1:
+
+            if "signature" in method and method["signature"]:
+                method["signature"] = deobfuscate_signature(mapper, method["signature"])
+
+            if len(mapped) >= 1:
+                new_frame = mapped[-1]
+                method["class_name"] = new_frame.class_name
+                method["name"] = new_frame.method
+                method["data"] = {
+                    "deobfuscation_status": "deobfuscated"
+                    if method.get("signature", None)
+                    else "partial"
+                }
+
+                if new_frame.file:
+                    method["source_file"] = new_frame.file
+
+                if new_frame.line:
+                    method["source_line"] = new_frame.line
+
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
                     {
                         "class_name": new_frame.class_name,
+                        "data": {"deobfuscation_status": "deobfuscated"},
                         "name": new_frame.method,
                         "source_file": method["source_file"]
                         if bottom_class == new_frame.class_name
-                        else None,
+                        else "",
                         "source_line": new_frame.line,
-                        "data": {"deobfuscation_status": "deobfuscated"},
                     }
-                    for new_frame in mapped
+                    for new_frame in reversed(mapped)
                 ]
+
+                # vroom will only take into account frames in this list
+                # if it exists. since symbolic does not return a signature for
+                # the frame we deobfuscated, we update it to set
+                # the deobfuscated signature.
+                if len(method["inline_frames"]) > 0:
+                    method["inline_frames"][0]["data"] = method["data"]
+                    method["inline_frames"][0]["signature"] = method.get("signature", "")
             else:
                 mapped_class = mapper.remap_class(method["class_name"])
                 if mapped_class:
