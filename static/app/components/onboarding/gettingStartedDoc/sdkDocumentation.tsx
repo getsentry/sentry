@@ -82,6 +82,9 @@ export const migratedDocs = [
   'capacitor',
   'cordova',
   'unreal',
+  'apple',
+  'apple-ios',
+  'apple-macos',
 ];
 
 type SdkDocumentationProps = {
