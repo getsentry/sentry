@@ -9,7 +9,15 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconCopy, IconEllipsis, IconOpen, IconWarning} from 'sentry/icons';
+import {
+  IconChevron,
+  IconCopy,
+  IconEllipsis,
+  IconNext,
+  IconOpen,
+  IconPrevious,
+  IconWarning,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
@@ -122,7 +130,11 @@ function EventNavigationDropdown({group}: {group: Group}) {
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
-  if (!largeViewport) {
+  const isHelpfulEventUiEnabled =
+    organization.features.includes('issue-details-most-helpful-event') &&
+    organization.features.includes('issue-details-most-helpful-event-ui');
+
+  if (!isHelpfulEventUiEnabled || !largeViewport) {
     return null;
   }
 
@@ -214,6 +226,10 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
       ...getAnalyticsDataForEvent(event),
     });
   };
+
+  const isHelpfulEventUiEnabled =
+    organization.features.includes('issue-details-most-helpful-event') &&
+    organization.features.includes('issue-details-most-helpful-event-ui');
 
   return (
     <CarouselAndButtonsWrapper>
@@ -342,6 +358,16 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
         )}
         <EventNavigationDropdown group={group} />
         <NavButtons>
+          {!isHelpfulEventUiEnabled && (
+            <EventNavigationButton
+              group={group}
+              icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
+              disabled={!hasPreviousEvent}
+              title={t('First Event')}
+              eventId="oldest"
+              referrer="oldest-event"
+            />
+          )}
           <EventNavigationButton
             group={group}
             icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
@@ -358,6 +384,16 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             eventId={event.nextEventID}
             referrer="next-event"
           />
+          {!isHelpfulEventUiEnabled && (
+            <EventNavigationButton
+              group={group}
+              icon={<IconNext size={BUTTON_ICON_SIZE} />}
+              disabled={!hasNextEvent}
+              title={t('Latest Event')}
+              eventId="latest"
+              referrer="latest-event"
+            />
+          )}
         </NavButtons>
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>
