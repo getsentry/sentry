@@ -132,6 +132,7 @@ def assert_proxy_request(request, is_proxy=True):
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
+    RPC_SHARED_SECRET=["abcdef"],
 )
 class MsTeamsProxyApiClientTest(TestCase):
     def setUp(self):
