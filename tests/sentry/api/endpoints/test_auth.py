@@ -1,5 +1,3 @@
-import base64
-
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
@@ -13,10 +11,12 @@ class LoginTest(APITestCase):
         user.set_password("test")
         user.save()
 
-        auth_header = b"Basic " + base64.b64encode(b"a@example.com:test")
-
         url = reverse("sentry-api-0-auth")
-        response = self.client.post(url, format="json", HTTP_AUTHORIZATION=auth_header)
+        response = self.client.post(
+            url,
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header("a@example.com", "test"),
+        )
 
         assert response.status_code == 200, response.content
 

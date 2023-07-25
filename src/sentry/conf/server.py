@@ -326,7 +326,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
-    "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
@@ -359,6 +358,11 @@ TEMPLATES = [
         },
     }
 ]
+
+SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+    "CONTROL": ["sentry.ControlOutbox"],
+    "REGION": ["sentry.RegionOutbox"],
+}
 
 INSTALLED_APPS = (
     "django.contrib.auth",
@@ -659,9 +663,6 @@ CELERY_ALWAYS_EAGER = False
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
 
-# Complain about bad use of pickle in PickledObjectField
-PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -953,8 +954,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors": {
-        "task": "sentry.monitors.tasks.check_monitors",
+    "check-monitors-missing": {
+        "task": "sentry.monitors.tasks.check_missing",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "check-monitors-timeout": {
+        "task": "sentry.monitors.tasks.check_timeout",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1474,8 +1481,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enable experimental performance improvements.
-    "organizations:enterprise-perf": False,
     # Enables inviting new members based on GitHub commit activity.
     "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1490,6 +1495,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1567,6 +1574,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable linking from 'new issue' slack notifs to the issue replay list
+    "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
@@ -1672,8 +1681,6 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable indexing of artifact bundles for sourcemaps.
-    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

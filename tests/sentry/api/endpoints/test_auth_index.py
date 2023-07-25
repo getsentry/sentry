@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import urlencode
@@ -38,7 +37,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:admin".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "admin"),
         )
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
@@ -47,7 +46,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:foobar".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "foobar"),
         )
         assert response.status_code == 401
 

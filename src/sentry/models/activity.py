@@ -68,7 +68,7 @@ class ActivityManager(BaseManager):
         send_notification: bool = True,
     ) -> Activity:
         if user:
-            user_id = user.id  # type: ignore[assignment]
+            user_id = user.id
         activity_args = {
             "project_id": group.project_id,
             "group": group,

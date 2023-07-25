@@ -115,12 +115,12 @@ describe('RepositoryRow', function () {
       access: ['org:integrations'],
     });
 
-    it('sends api request on delete', async function () {
+    it('sends api request to hide upon clicking delete', async function () {
       const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
-        method: 'DELETE',
+        method: 'PUT',
         statusCode: 204,
-        body: {},
+        body: {status: 'hidden'},
       });
 
       render(

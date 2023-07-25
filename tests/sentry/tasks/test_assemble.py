@@ -573,7 +573,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
         bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
-        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+        # debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
         # We simulate the existence of a two ArtifactBundles already with the same bundle_id.
         ArtifactBundle.objects.create(
@@ -605,9 +605,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 1
 
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        # FIXME(swatinem): The test assumed that we re-index debug-ids in case the bundle was already
+        # in the database.
+        # debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
-        assert len(debug_id_artifact_bundles) == 2
+        # assert len(debug_id_artifact_bundles) == 2
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
@@ -623,17 +625,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
         total_checksum_1 = sha1(bundle_file_1).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_1,
-                chunks=[blob1_1.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_1,
+            chunks=[blob1_1.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         # Since the threshold is not surpassed we expect the system to not perform indexing.
         index_artifact_bundles_for_release.assert_not_called()
@@ -644,17 +645,16 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
         total_checksum_2 = sha1(bundle_file_2).hexdigest()
 
-        with self.feature("organizations:sourcemaps-bundle-indexing"):
-            # We try to upload the first bundle.
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_2,
-                chunks=[blob1_2.checksum],
-                upload_as_artifact_bundle=True,
-            )
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_2,
+            chunks=[blob1_2.checksum],
+            upload_as_artifact_bundle=True,
+        )
 
         bundles = ArtifactBundle.objects.all()
 

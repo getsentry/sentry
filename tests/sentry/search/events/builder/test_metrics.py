@@ -1956,7 +1956,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
-            interval=900,
+            interval=3600,
             query="transaction.duration:>0",
             selected_columns=["count()"],
             on_demand_metrics_enabled=True,

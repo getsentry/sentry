@@ -21,6 +21,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -51,12 +52,18 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  showUrl,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  showUrl: boolean;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/replays/${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
@@ -90,7 +97,7 @@ export function ReplayCell({
 
   const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
