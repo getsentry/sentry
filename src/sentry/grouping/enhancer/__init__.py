@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import Any, Dict, List, Sequence
+from typing import List, Sequence
 
 import msgpack
 import sentry_sdk
@@ -127,13 +127,12 @@ class Enhancements:
                 self._updater_rules.append(updater_rule)
 
     def apply_modifications_to_frame(
-        self, frames: Sequence[Any], platform: str, exception_data: Any
+        self, frames: Sequence, platform: str, exception_data, rule=None
     ):
         """This applies the frame modifications to the frames itself.  This
         does not affect grouping.
         """
-        # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -148,8 +147,7 @@ class Enhancements:
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
-        # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 

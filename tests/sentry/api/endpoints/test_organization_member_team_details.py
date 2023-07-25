@@ -40,11 +40,13 @@ class OrganizationMemberTeamTestBase(APITestCase):
 
     @cached_property
     def admin(self):
-        return self.create_member(organization=self.org, user=self.create_user(), role="admin")
+        self.admin_user = self.create_user()
+        return self.create_member(organization=self.org, user=self.admin_user, role="admin")
 
     @cached_property
     def manager(self):
-        return self.create_member(organization=self.org, user=self.create_user(), role="manager")
+        self.manager_user = self.create_user()
+        return self.create_member(organization=self.org, user=self.manager_user, role="manager")
 
     @cached_property
     def member_on_team(self):
@@ -54,8 +56,9 @@ class OrganizationMemberTeamTestBase(APITestCase):
 
     @cached_property
     def admin_on_team(self):
+        self.admin_on_team_user = self.create_user()
         return self.create_member(
-            organization=self.org, user=self.create_user(), role="admin", teams=[self.team]
+            organization=self.org, user=self.admin_on_team_user, role="admin", teams=[self.team]
         )
 
     @cached_property
@@ -72,7 +75,8 @@ class OrganizationMemberTeamTestBase(APITestCase):
 
     @cached_property
     def team_admin(self):
-        member = self.create_member(organization=self.org, user=self.create_user(), role="member")
+        self.team_admin_user = self.create_user()
+        member = self.create_member(organization=self.org, user=self.team_admin_user, role="member")
         OrganizationMemberTeam.objects.create(
             team=self.team, organizationmember=member, role="admin"
         )
@@ -263,6 +267,18 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.member
         ).exists()
 
+    @with_feature("organizations:team-roles")
+    def test_team_admin_can_add_member(self):
+        self.login_as(self.team_admin)
+
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status_code=status.HTTP_201_CREATED
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
 
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
@@ -325,6 +341,61 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
 
         assert OrganizationAccessRequest.objects.filter(
             team=self.team, member=self.member, requester_id=self.admin.user_id
+        ).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_team_admin_can_add_member(self):
+        self.login_as(self.team_admin)
+
+        self.get_success_response(
+            self.org.slug, self.member.id, self.team.slug, status_code=status.HTTP_201_CREATED
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_team_admin_can_add_member_using_user_token(self):
+        self.login_as(self.team_admin)
+
+        # Team admins needs both org:read and team:write to pass the permissions checks when open
+        # membership is off
+        token = self.create_user_auth_token(
+            user=self.team_admin_user, scope_list=["org:read", "team:write"]
+        )
+
+        self.get_success_response(
+            self.org.slug,
+            self.member.id,
+            self.team.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_201_CREATED,
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
+    def test_org_token_needs_elevated_permissions(self):
+        # Org tokens with org:read should generate an access request when open membership is off
+        org_token = self.create_org_auth_token(self.org, self.user, ["org:read"])
+
+        self.get_success_response(
+            self.org.slug,
+            self.member.id,
+            self.team.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {org_token.token}"},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+
+        assert OrganizationAccessRequest.objects.filter(
+            team=self.team,
+            member=self.member,
         ).exists()
 
     def test_multiple_of_the_same_access_request(self):
@@ -415,6 +486,22 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.member_on_team
         ).exists()
 
+    def test_admin_cannot_remove_member_using_user_token(self):
+        # admin not in team
+        self.login_as(self.admin)
+        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:write"])
+        self.get_error_response(
+            self.org.slug,
+            self.member_on_team.id,
+            self.team.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=400,
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
     def test_admin_on_team_can_remove_members(self):
         self.login_as(self.admin_on_team)
 
@@ -436,6 +523,31 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.manager_on_team
         ).exists()
 
+        # owner
+        self.get_success_response(
+            self.org.slug, self.owner_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.owner_on_team
+        ).exists()
+
+    def test_admin_on_team_can_remove_members_using_user_token(self):
+        self.login_as(self.admin_on_team)
+
+        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:write"])
+        self.get_success_response(
+            self.org.slug,
+            self.member_on_team.id,
+            self.team.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=200,
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
     def test_manager_can_remove_members(self):
         self.login_as(self.manager_on_team)
 
@@ -448,6 +560,15 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.member_on_team
         ).exists()
 
+        # manager
+        self.get_success_response(
+            self.org.slug, self.manager_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.manager_on_team
+        ).exists()
+
         # owner
         self.get_success_response(
             self.org.slug, self.owner_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
@@ -456,6 +577,26 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.owner_on_team
         ).exists()
+
+    def test_manager_can_remove_members_using_user_token(self):
+        self.login_as(self.manager)
+
+        scopes = ["org:write", "team:write"]
+        members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
+        for scope in scopes:
+            for member in members:
+                token = self.create_user_auth_token(user=self.manager_user, scope_list=[scope])
+                self.get_success_response(
+                    self.org.slug,
+                    member.id,
+                    self.team.slug,
+                    extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+                    status_code=200,
+                )
+
+                assert not OrganizationMemberTeam.objects.filter(
+                    team=self.team, organizationmember=member
+                ).exists()
 
     def test_owner_can_remove_members(self):
         self.login_as(self.owner)
@@ -486,6 +627,26 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.owner_on_team
         ).exists()
+
+    def test_owner_can_remove_members_using_user_token(self):
+        self.login_as(self.owner)
+
+        scopes = ["org:write", "org:admin", "team:write"]
+        members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
+        for scope in scopes:
+            for member in members:
+                token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+                self.get_success_response(
+                    self.org.slug,
+                    member.id,
+                    self.team.slug,
+                    extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+                    status_code=200,
+                )
+
+                assert not OrganizationMemberTeam.objects.filter(
+                    team=self.team, organizationmember=self.member
+                ).exists()
 
     def test_access_revoked_after_leaving_team(self):
         user = self.create_user()

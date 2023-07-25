@@ -79,6 +79,9 @@ export const migratedDocs = [
   'android',
   'ionic',
   'unity',
+  'capacitor',
+  'cordova',
+  'unreal',
   'flutter',
   'dart',
 ];
@@ -126,6 +129,10 @@ export function SdkDocumentation({
         ? `ionic/ionic`
         : platform?.id === 'unity'
         ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
         : platform?.id === 'flutter'
         ? `flutter/flutter`
         : platform?.id === 'dart'

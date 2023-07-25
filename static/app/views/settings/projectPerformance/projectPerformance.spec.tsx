@@ -197,17 +197,23 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues,
       defaultValue: 100,
       newValue: 500,
-      newValueIndex: 5,
       sliderIndex: 1,
     },
     {
       title: 'Slow DB Queries',
       threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
-      allowedValues: allowedDurationValues.slice(1),
+      allowedValues: allowedDurationValues.slice(5),
       defaultValue: 1000,
       newValue: 3000,
-      newValueIndex: 7,
       sliderIndex: 2,
+    },
+    {
+      title: 'N+1 API Calls',
+      threshold: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+      allowedValues: allowedDurationValues.slice(5),
+      defaultValue: 300,
+      newValue: 500,
+      sliderIndex: 3,
     },
     {
       title: 'Large Render Blocking Asset',
@@ -215,8 +221,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedPercentageValues,
       defaultValue: 0.33,
       newValue: 0.5,
-      newValueIndex: 6,
-      sliderIndex: 3,
+      sliderIndex: 4,
     },
     {
       title: 'Large HTTP Payload',
@@ -224,8 +229,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
-      newValueIndex: 13,
-      sliderIndex: 4,
+      sliderIndex: 5,
     },
     {
       title: 'DB on Main Thread',
@@ -233,8 +237,7 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 33,
-      newValueIndex: 2,
-      sliderIndex: 5,
+      sliderIndex: 6,
     },
     {
       title: 'File I/O on Main Thread',
@@ -242,17 +245,15 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 50,
-      newValueIndex: 3,
-      sliderIndex: 6,
+      sliderIndex: 7,
     },
     {
       title: 'Consecutive DB Queries',
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-      allowedValues: allowedDurationValues.slice(0, 11),
+      allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
       newValue: 5000,
-      newValueIndex: 10,
-      sliderIndex: 7,
+      sliderIndex: 8,
     },
     {
       title: 'Uncompressed Asset',
@@ -260,29 +261,19 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 512000,
       newValue: 700000,
-      newValueIndex: 6,
-      sliderIndex: 8,
+      sliderIndex: 9,
     },
     {
       title: 'Uncompressed Asset',
       threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
-      allowedValues: allowedDurationValues.slice(1),
+      allowedValues: allowedDurationValues.slice(5),
       defaultValue: 500,
       newValue: 400,
-      newValueIndex: 3,
-      sliderIndex: 9,
+      sliderIndex: 10,
     },
   ])(
     'renders detector thresholds settings for $title issue',
-    async ({
-      title,
-      threshold,
-      allowedValues,
-      defaultValue,
-      newValue,
-      newValueIndex,
-      sliderIndex,
-    }) => {
+    async ({title, threshold, allowedValues, defaultValue, newValue, sliderIndex}) => {
       // Mock endpoints
       const mockGETBody = {
         [threshold]: defaultValue,
@@ -294,6 +285,7 @@ describe('projectPerformance', function () {
         large_render_blocking_asset_detection_enabled: true,
         uncompressed_assets_detection_enabled: true,
         large_http_payload_detection_enabled: true,
+        n_plus_one_api_calls_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -329,6 +321,7 @@ describe('projectPerformance', function () {
 
       const slider = screen.getAllByRole('slider')[sliderIndex];
       const indexOfValue = allowedValues.indexOf(defaultValue);
+      const newValueIndex = allowedValues.indexOf(newValue);
 
       // The value of the slider should be equal to the index
       // of the value returned from the GET method,
