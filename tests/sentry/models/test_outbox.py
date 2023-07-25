@@ -10,7 +10,7 @@ import pytz
 import responses
 from django.conf import settings
 from django.db import connections
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
 from rest_framework import status
@@ -227,14 +227,6 @@ class ControlOutboxTest(TestCase):
 
 @region_silo_test(stable=True)
 class OutboxDrainTest(TransactionTestCase):
-    @staticmethod
-    def _create_drain_callback(outbox: RegionOutbox, **kwargs: Any) -> Callable[[], None]:
-        def callback():
-            with override_settings(RPC_SHARED_SECRET=["abcdef"]):
-                return outbox.drain_shard(**kwargs)
-
-        return wrap_with_connection_closure(callback)
-
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization.outbox_for_update(org_id=1)
         outbox2 = Organization.outbox_for_update(org_id=1)
@@ -243,7 +235,9 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
         barrier: threading.Barrier = threading.Barrier(2, timeout=10)
         processing_thread = threading.Thread(
-            target=self._create_drain_callback(outbox1, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread.start()
 
@@ -269,13 +263,17 @@ class OutboxDrainTest(TransactionTestCase):
 
         barrier: threading.Barrier = threading.Barrier(2, timeout=1)
         processing_thread_1 = threading.Thread(
-            target=self._create_drain_callback(outbox1, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread_1.start()
 
         # This concurrent process will block on, and not duplicate, the effort of the first thread.
         processing_thread_2 = threading.Thread(
-            target=self._create_drain_callback(outbox2, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+            )
         )
 
         barrier.wait()
@@ -300,8 +298,8 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
         barrier: threading.Barrier = threading.Barrier(2, timeout=10)
         processing_thread = threading.Thread(
-            target=self._create_drain_callback(
-                outbox1, flush_all=True, _test_processing_barrier=barrier
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
             )
         )
         processing_thread.start()
@@ -334,13 +332,15 @@ class OutboxDrainTest(TransactionTestCase):
 
         barrier: threading.Barrier = threading.Barrier(2, timeout=1)
         processing_thread_1 = threading.Thread(
-            target=self._create_drain_callback(outbox1, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread_1.start()
 
         processing_thread_2 = threading.Thread(
-            target=self._create_drain_callback(
-                outbox2, flush_all=True, _test_processing_barrier=barrier
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
             )
         )
 

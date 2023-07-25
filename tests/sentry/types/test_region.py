@@ -158,9 +158,7 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(
-            SILO_MODE=SiloMode.CONTROL, RPC_SHARED_SECRET=["a"]
-        ), override_region_config(region_config):
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
             organization = self.create_organization(name="test name", region="na")
 
             user = self.create_user()
