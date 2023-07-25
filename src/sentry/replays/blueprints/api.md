@@ -267,7 +267,7 @@ Deletes a replay instance.
 
 ### Browse Replay Selectors [GET]
 
-Retrieve a collection of replays.
+Retrieve a collection of selectors.
 
 **Attributes**
 
