@@ -90,7 +90,7 @@ class OpsgenieClient(IntegrationProxyClient):
                         "Triggering Rules": ", ".join([rule.label for rule in rules]),
                         "Release": data.release,
                     },
-                    "entity": group.culprit,
+                    "entity": group.culprit if group.culprit else "",
                     "tags": [
                         f'{str(x).replace(",", "")}:{str(y).replace(",", "")}'
                         for x, y in event.tags

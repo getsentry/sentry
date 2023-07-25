@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -26,6 +27,8 @@ class OpsgenieNotifyTeamForm(forms.Form):
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
+    # mypy is incorrectly flagging the fields as Field types instead of
+    # ChoiceFields, which is the reason for the top-level type : ignore-errors.
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         teams = kwargs.pop("teams")
@@ -74,8 +77,8 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
-        integration_id = _validate_int_field("account", cleaned_data)  # type: ignore
-        team_id = cleaned_data.get("team")
-        self._validate_team(team_id, integration_id)
-
+        if cleaned_data:
+            integration_id = _validate_int_field("account", cleaned_data)
+            team_id = cleaned_data.get("team")
+            self._validate_team(team_id, integration_id)
         return cleaned_data

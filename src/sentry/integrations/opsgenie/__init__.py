@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from sentry.rules import rules
 
 from .actions import OpsgenieNotifyTeamAction

@@ -31,7 +31,9 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             "team": {"type": "choice", "choices": self.get_teams()},
         }
 
-    def _get_team(self, org_integration: RpcOrganizationIntegration):
+    def _get_team(self, org_integration: RpcOrganizationIntegration | None):
+        if not org_integration:
+            return None
         teams = org_integration.config.get("team_table")
         if not teams:
             return None
@@ -106,7 +108,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         key = f"opsgenie:{integration.id}:{team['id']}"
         yield self.future(send_notification, key=key)
 
-    def get_teams(self) -> list[dict]:
+    def get_teams(self) -> list[tuple[str, str]]:
         from sentry.services.hybrid_cloud.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(
