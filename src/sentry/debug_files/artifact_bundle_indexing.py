@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -36,7 +34,7 @@ FLAT_FILE_INDEXING_CACHE_TIMEOUT = 600
 def mark_bundle_for_flat_file_indexing(
     artifact_bundle: ArtifactBundle,
     project_ids: List[int],
-    release: Optional[release],
+    release: Optional[str],
     dist: Optional[str],
 ):
     identifiers = []
@@ -47,7 +45,7 @@ def mark_bundle_for_flat_file_indexing(
                 FlatFileIdentifier(project_id, release=release, dist=dist or NULL_STRING)
             )
 
-        identifiers.append(FlatFileIdentifier(project_id, release=NULL_STRING, dist=NULL_STRING))
+        identifiers.append(FlatFileIdentifier.for_debug_id(project_id))
 
     # Create / Update the indexing state in the database
     with atomic_transaction(
@@ -79,6 +77,10 @@ class FlatFileIdentifier(NamedTuple):
     release: str
     dist: str
 
+    @staticmethod
+    def for_debug_id(project_id: int) -> "FlatFileIdentifier":
+        return FlatFileIdentifier(project_id, release=NULL_STRING, dist=NULL_STRING)
+
     def is_indexing_by_release(self) -> bool:
         # An identifier is indexing by release if release is set.
         return bool(self.release)
@@ -95,8 +97,14 @@ class FlatFileIdentifier(NamedTuple):
 
 @sentry_sdk.tracing.trace
 def update_artifact_bundle_index(
-    bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
+    bundle_meta: "BundleMeta", bundle_archive: ArtifactBundleArchive, identifier: FlatFileIdentifier
 ):
+    """
+    This will merge the `ArtifactBundle` given via `bundle_meta` and `bundle_archive`
+    into the index identified via `identifier`.
+
+    If this function fails for any reason, it can be, and *has to be* retried at a later point.
+    """
     # TODO: maybe query `FlatFileIndexState` to avoid double-indexing?
 
     lock = identifier.get_lock()
