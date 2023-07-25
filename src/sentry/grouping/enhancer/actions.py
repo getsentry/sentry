@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Sequence
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
@@ -66,7 +66,7 @@ class Action:
 
 
 class FlagAction(Action):
-    def __init__(self, key: str, flag: bool, range: Optional[str]) -> None:
+    def __init__(self, key: str, flag: bool, range: str) -> None:
         self.key = key
         self._is_updater = key in {"group", "app", "prefix", "sentinel"}
         self._is_modifier = key == "app"
