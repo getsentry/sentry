@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
 import pytz
 import sentry_sdk
@@ -410,11 +410,6 @@ class CheckAM2Compatibility:
 
     @classmethod
     def get_organization_metrics_compatibility(cls, organization, project_objects):
-        data: Dict[str, List[Any]] = {
-            "incompatible_projects": [],
-            "compatible_projects": [],
-        }
-
         params = {
             "organization_id": organization.id,
             "project_objects": project_objects,
@@ -422,7 +417,7 @@ class CheckAM2Compatibility:
             "end": datetime.now(tz=pytz.UTC),
         }
 
-        project_ids = [project.id for project in project_objects]
+        projects = {project.id: project for project in project_objects}
 
         count_has_txn = "count_has_transaction_name()"
         count_null = "count_null_transactions()"
@@ -439,14 +434,19 @@ class CheckAM2Compatibility:
             use_aggregate_conditions=True,
         )
 
-        data["compatible_projects"] = sorted(
-            row["project.id"] for row in compatible_results["data"]
-        )
-        data["incompatible_projects"] = sorted(
-            list(set(project_ids) - set(data["compatible_projects"]))
-        )
+        compatible_project_ids = {row["project.id"] for row in compatible_results["data"]}
+        incompatible_project_ids = set(projects.keys()) - compatible_project_ids
 
-        return data
+        return {
+            "compatible_projects": [
+                {"id": project_id, "slug": projects[project_id].slug}
+                for project_id in compatible_project_ids
+            ],
+            "incompatible_projects": [
+                {"id": project_id, "slug": projects[project_id].slug}
+                for project_id in incompatible_project_ids
+            ],
+        }
 
     @classmethod
     def run_compatibility_check(cls, org_id):
