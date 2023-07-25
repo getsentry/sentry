@@ -11,7 +11,7 @@ import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import DeprecatedLine from '../../frame/deprecatedLine';
+import DeprecatedLine, {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
@@ -54,6 +54,7 @@ function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
 function Content({
   data,
   event,
+  className,
   newestFirst,
   expandFirstFrame = true,
   platform,
@@ -182,12 +183,12 @@ function Content({
 
   function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
+    setShowingAbsoluteAddresses(oldShowAbsAddresses => !oldShowAbsAddresses);
   }
 
   function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
     mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowCompleteFunctionName(!showCompleteFunctionName);
+    setShowCompleteFunctionName(oldShowCompleteName => !oldShowCompleteName);
   }
 
   const handleToggleFrames = (
@@ -274,7 +275,7 @@ function Content({
         (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
-        const frameProps = {
+        const frameProps: DeprecatedLineProps = {
           event,
           data: frame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
@@ -345,14 +346,14 @@ function Content({
     convertedFrames = convertedFrames.slice(-maxDepth);
   }
 
-  const className = `traceback ${
+  const wrapperClassName = `${!!className && className} traceback ${
     includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
   }`;
 
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper className={className} data-test-id="stack-trace-content">
+    <Wrapper className={wrapperClassName} data-test-id="stack-trace-content">
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <GuideAnchor target="stack_trace">
         <StyledList data-test-id="frames">
