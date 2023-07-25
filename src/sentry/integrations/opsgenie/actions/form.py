@@ -44,7 +44,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
     def _team_is_valid(
-        self, team_id: int, org_integrations: list[RpcOrganizationIntegration]
+        self, team_id: str | None, org_integrations: list[RpcOrganizationIntegration]
     ) -> bool:
         for oi in org_integrations:
             teams = oi.config.get("team_table")
@@ -55,7 +55,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
                     return True
         return False
 
-    def _validate_team(self, team_id: int, integration_id: int | None) -> None:
+    def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
         params = {
             "account": dict(self.fields["account"].choices).get(integration_id),
             "team": dict(self.fields["team"].choices).get(team_id),
@@ -74,7 +74,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
-        integration_id = _validate_int_field("account", cleaned_data)
+        integration_id = _validate_int_field("account", cleaned_data)  # type: ignore
         team_id = cleaned_data.get("team")
         self._validate_team(team_id, integration_id)
 

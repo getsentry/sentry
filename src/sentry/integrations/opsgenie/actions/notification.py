@@ -5,6 +5,7 @@ import logging
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.rules.actions import IntegrationEventAction
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -47,6 +48,13 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             return
 
         org_integration = self.get_organization_integration()
+        if not org_integration:
+            org_integration_id = infer_org_integration(
+                integration_id=integration.id, ctx_logger=logger
+            )
+            org_integration = integration_service.get_organization_integration(
+                integration_id=integration.id, organization_id=org_integration_id
+            )
         team = self._get_team(org_integration)
         if not team:
             logger.exception(
@@ -110,7 +118,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             team_table = oi.config.get("team_table")
             if team_table:
                 teams += [(team["id"], team["team"]) for team in team_table]
-        # print("TEAMS:", teams)
         return teams
 
     def render_label(self) -> str:
@@ -123,7 +130,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         return self.label.format(account=self.get_integration_name(), team=team_name)
 
     def get_form_instance(self):
-        # print("DATA:", self.data)
         return self.form_cls(
             self.data,
             integrations=self.get_integrations(),

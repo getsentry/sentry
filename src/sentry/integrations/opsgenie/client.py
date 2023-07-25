@@ -62,30 +62,43 @@ class OpsgenieClient(IntegrationProxyClient):
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
-            payload = {
-                "message": event.message or event.title,
-                "alias": f"sentry: {group.id}",
-                "source": "Sentry",
-                "details": {
-                    "Sentry ID": str(group.id),
-                    "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
-                    "Project ID": group.project.slug,
-                    "Project Name": group.project.name,
-                    "Logger": group.logger,
-                    "Level": group.get_level_display(),
-                    "URL": group.get_absolute_url(),
-                    "Triggering Rules": ", ".join([str(rule.id) for rule in rules]),
-                    "Release": data.release,
-                },
-                "entity": group.culprit,
-                "tags": [
-                    f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags
-                ],
-            }
+            if group is None:
+                payload = {
+                    "message": event.message or event.title,
+                    "source": "Sentry",
+                    "details": {
+                        "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                    },
+                    "tags": [
+                        f'{str(x).replace(",", "")}:{str(y).replace(",", "")}'
+                        for x, y in event.tags
+                    ],
+                }
+            else:
+                payload = {
+                    "message": event.message or event.title,
+                    "alias": f"sentry: {group.id}",
+                    "source": "Sentry",
+                    "details": {
+                        "Sentry ID": str(group.id),
+                        "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
+                        "Project ID": group.project.slug,
+                        "Project Name": group.project.name,
+                        "Logger": group.logger,
+                        "Level": group.get_level_display(),
+                        "URL": group.get_absolute_url(),
+                        "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                        "Release": data.release,
+                    },
+                    "entity": group.culprit,
+                    "tags": [
+                        f'{str(x).replace(",", "")}:{str(y).replace(",", "")}'
+                        for x, y in event.tags
+                    ],
+                }
 
         else:
+            # this is for metric alerts, which will be in the next PR
             pass
-            # print("Not implemented hehe")
-        # print("PAYLOAD:", payload)
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.post("/alerts", data=payload, headers=headers)

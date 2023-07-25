@@ -121,7 +121,7 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self, integration_key: str) -> Any:
+    def get_client(self, integration_key: str) -> Any:  # type: ignore
         org_integration_id = self.org_integration.id if self.org_integration else None
         return OpsgenieClient(
             integration=self.model,
