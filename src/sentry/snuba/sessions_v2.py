@@ -415,7 +415,7 @@ def get_constrained_date_range(
     now = get_now()
 
     if start > now:
-        raise InvalidParams("start must be before the current time")
+        start = now
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
