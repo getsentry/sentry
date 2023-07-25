@@ -781,8 +781,8 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   time_spent_percentage: fieldName => data => {
     return (
       <TimeSpentCell
-        timeSpentPercentage={data[fieldName]}
-        totalSpanTime={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+        percentage={data[fieldName]}
+        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
       />
     );
   },
