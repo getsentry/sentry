@@ -43,7 +43,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # otherwise, include them but still ensure project permissions are enforced
         project_query = (
             Q(projects__in=self.get_projects(request, organization))
-            if request.GET.getlist("project")
+            if self.get_requested_project_ids_unchecked(request)
             else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
         )
         queryset = queryset.filter(project_query).distinct()
@@ -57,7 +57,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "trigger_type_query": trigger_type_query,
-                "project_query": request.GET.getlist("project"),
+                "project_query": self.get_requested_project_ids_unchecked(request)
             },
         )
         return self.paginate(
