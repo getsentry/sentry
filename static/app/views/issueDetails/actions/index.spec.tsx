@@ -273,7 +273,9 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'resolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
@@ -295,7 +297,9 @@ describe('GroupActions', function () {
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
-      expect.objectContaining({data: {status: 'unresolved', statusDetails: {}}})
+      expect.objectContaining({
+        data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
+      })
     );
   });
 

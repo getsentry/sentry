@@ -105,7 +105,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -158,7 +158,7 @@ describe('IssueListActions', function () {
             query: {
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -186,7 +186,7 @@ describe('IssueListActions', function () {
               id: ['1'],
               project: [1],
             },
-            data: {status: 'resolved', statusDetails: {}},
+            data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
       });
@@ -234,6 +234,7 @@ describe('IssueListActions', function () {
                 ignoreUserCount: 300,
                 ignoreUserWindow: 10080,
               },
+              substatus: 'archived_until_condition_met',
             },
           })
         );

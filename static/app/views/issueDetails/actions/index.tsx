@@ -34,6 +34,7 @@ import {space} from 'sentry/styles/space';
 import {
   Group,
   GroupStatusResolution,
+  GroupSubstatus,
   IssueCategory,
   Organization,
   Project,
@@ -134,7 +135,7 @@ export function Actions(props: Props) {
       | 'discarded'
       | 'open_in_discover'
       | ResolutionStatus,
-    substatus?: string,
+    substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
     const {alert_date, alert_rule_id, alert_type} = query;
@@ -142,7 +143,7 @@ export function Actions(props: Props) {
       organization,
       project_id: parseInt(project.id, 10),
       action_type: action,
-      action_substatus: substatus,
+      action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -502,6 +503,7 @@ export function Actions(props: Props) {
             onUpdate({
               status: ResolutionStatus.UNRESOLVED,
               statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
             })
           }
         >
