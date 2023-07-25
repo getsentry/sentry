@@ -1,4 +1,4 @@
-import {cloneElement, Component} from 'react';
+import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -11,7 +11,7 @@ import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import DeprecatedLine from '../../frame/deprecatedLine';
+import DeprecatedLine, {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
@@ -38,45 +38,42 @@ type Props = {
   threadId?: number;
 } & Partial<DefaultProps>;
 
-type State = {
-  showCompleteFunctionName: boolean;
-  showingAbsoluteAddresses: boolean;
-  toggleFrameMap: {[frameIndex: number]: boolean};
-};
-
-class Content extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    includeSystemFrames: true,
-    expandFirstFrame: true,
-  };
-
-  constructor(props) {
-    super(props);
-    this.state.toggleFrameMap = this.setInitialFrameMap();
+function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
+  if (!nextFrame) {
+    return false;
   }
+  return (
+    frame.lineNo === nextFrame.lineNo &&
+    frame.instructionAddr === nextFrame.instructionAddr &&
+    frame.package === nextFrame.package &&
+    frame.module === nextFrame.module &&
+    frame.function === nextFrame.function
+  );
+}
 
-  state: State = {
-    showingAbsoluteAddresses: false,
-    showCompleteFunctionName: false,
-    toggleFrameMap: {},
-  };
+function Content({
+  data,
+  event,
+  className,
+  newestFirst,
+  expandFirstFrame = true,
+  platform,
+  includeSystemFrames = true,
+  isHoverPreviewed,
+  maxDepth,
+  meta,
+  debugFrames,
+  hideIcon,
+  threadId,
+  lockAddress,
+}: Props) {
+  const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
+  const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
+  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
-  setInitialFrameMap(): {[frameIndex: number]: boolean} {
-    const {data} = this.props;
-    const indexMap = {};
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
-      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
-        indexMap[frameIdx] = false;
-      }
-    });
-    return indexMap;
-  }
+  const {frames = [], framesOmitted, registers} = data;
 
-  frameIsVisible = (frame: Frame, nextFrame: Frame) => {
-    const {includeSystemFrames} = this.props;
-
+  function frameIsVisible(frame: Frame, nextFrame: Frame) {
     return (
       includeSystemFrames ||
       frame.inApp ||
@@ -84,16 +81,27 @@ class Content extends Component<Props, State> {
       // the last non-app frame
       (!frame.inApp && !nextFrame)
     );
-  };
+  }
 
-  getInitialFrameCounts(): {[frameIndex: number]: number} {
-    const {data} = this.props;
+  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+    const indexMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        indexMap[frameIdx] = false;
+      }
+    });
+    return indexMap;
+  }
+
+  function getInitialFrameCounts(): {[frameIndex: number]: number} {
     let count = 0;
     const countMap = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
-      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
         countMap[frameIdx] = count;
         count = 0;
       } else {
@@ -105,12 +113,11 @@ class Content extends Component<Props, State> {
     return countMap;
   }
 
-  getRepeatedFrameIndices() {
-    const {data} = this.props;
+  function getRepeatedFrameIndices() {
     const repeats: number[] = [];
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         repeats.push(frameIdx);
@@ -119,11 +126,8 @@ class Content extends Component<Props, State> {
     return repeats;
   }
 
-  getHiddenFrameIndices(
-    toggleFrameMap: {[frameIndex: number]: boolean},
-    frameCountMap: {[frameIndex: number]: number}
-  ) {
-    const repeatedIndeces = this.getRepeatedFrameIndices();
+  function getHiddenFrameIndices(frameCountMap: {[frameIndex: number]: number}) {
+    const repeatedIndeces = getRepeatedFrameIndices();
     let hiddenFrameIndices: number[] = [];
     Object.keys(toggleFrameMap)
       .filter(frameIndex => toggleFrameMap[frameIndex] === true)
@@ -144,24 +148,29 @@ class Content extends Component<Props, State> {
     return hiddenFrameIndices;
   }
 
-  renderOmittedFrames = (firstFrameOmitted, lastFrameOmitted) => {
-    const props = {
-      className: 'frame frames-omitted',
-      key: 'omitted',
-    };
-    const text = t(
-      'Frames %d until %d were omitted and not available.',
-      firstFrameOmitted,
-      lastFrameOmitted
-    );
-    return <li {...props}>{text}</li>;
-  };
+  function findImageForAddress(
+    address: Frame['instructionAddr'],
+    addrMode: Frame['addrMode']
+  ) {
+    const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
 
-  isFrameAfterLastNonApp(): boolean {
-    const {data} = this.props;
+    if (!images || !address) {
+      return null;
+    }
 
-    const frames = data.frames ?? [];
+    const image = images.find((img, idx) => {
+      if (!addrMode || addrMode === 'abs') {
+        const [startAddress, endAddress] = getImageRange(img);
+        return address >= (startAddress as any) && address < (endAddress as any);
+      }
 
+      return addrMode === `rel:${idx}`;
+    });
+
+    return image;
+  }
+
+  function isFrameAfterLastNonApp(): boolean {
     if (!frames.length || frames.length < 2) {
       return false;
     }
@@ -172,240 +181,196 @@ class Content extends Component<Props, State> {
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
 
-  isRepeatedFrame(frame: Frame, nextFrame?: Frame): boolean {
-    if (!nextFrame) {
-      return false;
-    }
-    return (
-      frame.lineNo === nextFrame.lineNo &&
-      frame.instructionAddr === nextFrame.instructionAddr &&
-      frame.package === nextFrame.package &&
-      frame.module === nextFrame.module &&
-      frame.function === nextFrame.function
-    );
+  function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
+    setShowingAbsoluteAddresses(oldShowAbsAddresses => !oldShowAbsAddresses);
   }
 
-  findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
-    const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
-      ?.data?.images;
-
-    return images && address
-      ? images.find((img, idx) => {
-          if (!addrMode || addrMode === 'abs') {
-            const [startAddress, endAddress] = getImageRange(img);
-            return address >= (startAddress as any) && address < (endAddress as any);
-          }
-
-          return addrMode === `rel:${idx}`;
-        })
-      : null;
+  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
+    setShowCompleteFunctionName(oldShowCompleteName => !oldShowCompleteName);
   }
 
-  handleToggleAddresses = (event: React.MouseEvent<SVGElement>) => {
-    event.stopPropagation(); // to prevent collapsing if collapsible
+  const handleToggleFrames = (
+    mouseEvent: React.MouseEvent<HTMLElement>,
+    frameIndex: number
+  ) => {
+    mouseEvent.stopPropagation(); // to prevent toggling frame context
 
-    this.setState(prevState => ({
-      showingAbsoluteAddresses: !prevState.showingAbsoluteAddresses,
+    setToggleFrameMap(prevState => ({
+      ...prevState,
+      [frameIndex]: !prevState[frameIndex],
     }));
   };
 
-  handleToggleFunctionName = (event: React.MouseEvent<SVGElement>) => {
-    event.stopPropagation(); // to prevent collapsing if collapsible
-
-    this.setState(prevState => ({
-      showCompleteFunctionName: !prevState.showCompleteFunctionName,
-    }));
-  };
-
-  handleToggleFrames = (event: React.MouseEvent<HTMLElement>, frameIndex: number) => {
-    event.stopPropagation(); // to prevent toggling frame context
-
-    this.setState(prevState => ({
-      toggleFrameMap: {
-        ...prevState.toggleFrameMap,
-        [frameIndex]: !prevState.toggleFrameMap[frameIndex],
-      },
-    }));
-  };
-
-  getClassName() {
-    const {className = '', includeSystemFrames} = this.props;
-
-    if (includeSystemFrames) {
-      return `${className} traceback full-traceback`;
-    }
-
-    return `${className} traceback in-app-traceback`;
-  }
-
-  render() {
-    const {
-      data,
-      event,
-      newestFirst,
-      expandFirstFrame,
-      platform,
-      includeSystemFrames,
-      isHoverPreviewed,
-      maxDepth,
-      meta,
-      debugFrames,
-      hideIcon,
-      threadId,
-      lockAddress,
-    } = this.props;
-
-    const {showingAbsoluteAddresses, showCompleteFunctionName, toggleFrameMap} =
-      this.state;
-
-    let firstFrameOmitted = null;
-    let lastFrameOmitted = null;
-
-    if (data.framesOmitted) {
-      firstFrameOmitted = data.framesOmitted[0];
-      lastFrameOmitted = data.framesOmitted[1];
-    }
-
-    let lastFrameIdx: number | null = null;
-
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      if (frame.inApp) {
-        lastFrameIdx = frameIdx;
-      }
-    });
-
-    if (lastFrameIdx === null) {
-      lastFrameIdx = (data.frames ?? []).length - 1;
-    }
-
-    let frames: React.ReactElement[] = [];
-    let nRepeats = 0;
-
-    const maxLengthOfAllRelativeAddresses = (data.frames ?? []).reduce(
-      (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = this.findImageForAddress(
-          frame.instructionAddr,
-          frame.addrMode
-        );
-
-        try {
-          const relativeAddress = (
-            parseAddress(frame.instructionAddr) -
-            parseAddress(correspondingImage.image_addr)
-          ).toString(16);
-
-          return maxLengthUntilThisPoint > relativeAddress.length
-            ? maxLengthUntilThisPoint
-            : relativeAddress.length;
-        } catch {
-          return maxLengthUntilThisPoint;
+  function getLastFrameIndex() {
+    const inAppFrameIndexes = frames
+      .map((frame, frameIndex) => {
+        if (frame.inApp) {
+          return frameIndex;
         }
-      },
-      0
+        return undefined;
+      })
+      .filter(frame => frame !== undefined);
+
+    return !inAppFrameIndexes.length
+      ? frames.length - 1
+      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  }
+
+  function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
+    const props = {
+      className: 'frame frames-omitted',
+      key: 'omitted',
+    };
+    return (
+      <li {...props}>
+        {t(
+          'Frames %d until %d were omitted and not available.',
+          firstFrameOmitted,
+          lastFrameOmitted
+        )}
+      </li>
     );
+  }
 
-    const frameCountMap = this.getInitialFrameCounts();
-    const hiddenFrameIndices: number[] = this.getHiddenFrameIndices(
-      toggleFrameMap,
-      frameCountMap
-    );
+  const firstFrameOmitted = framesOmitted?.[0] ?? null;
+  const lastFrameOmitted = framesOmitted?.[1] ?? null;
+  const lastFrameIndex = getLastFrameIndex();
+  const frameCountMap = getInitialFrameCounts();
+  const hiddenFrameIndices: number[] = getHiddenFrameIndices(frameCountMap);
 
-    const isFrameAfterLastNonApp = this.isFrameAfterLastNonApp();
-    const mechanism =
-      platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
-    const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
+  const mechanism =
+    platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
 
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const prevFrame = (data.frames ?? [])[frameIdx - 1];
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = this.isRepeatedFrame(frame, nextFrame);
+  let nRepeats = 0;
+
+  const maxLengthOfAllRelativeAddresses = frames.reduce(
+    (maxLengthUntilThisPoint, frame) => {
+      const correspondingImage = findImageForAddress(
+        frame.instructionAddr,
+        frame.addrMode
+      );
+
+      try {
+        const relativeAddress = (
+          parseAddress(frame.instructionAddr) -
+          parseAddress(correspondingImage.image_addr)
+        ).toString(16);
+
+        return maxLengthUntilThisPoint > relativeAddress.length
+          ? maxLengthUntilThisPoint
+          : relativeAddress.length;
+      } catch {
+        return maxLengthUntilThisPoint;
+      }
+    },
+    0
+  );
+
+  let convertedFrames = frames
+    .map((frame, frameIndex) => {
+      const prevFrame = frames[frameIndex - 1];
+      const nextFrame = frames[frameIndex + 1];
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         nRepeats++;
       }
 
       if (
-        (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
-        hiddenFrameIndices.includes(frameIdx)
+        (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
+        hiddenFrameIndices.includes(frameIndex)
       ) {
-        const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
-        frames.push(
-          <DeprecatedLine
-            key={frameIdx}
-            event={event}
-            data={frame}
-            isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
-            emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
-            isOnlyFrame={(data.frames ?? []).length === 1}
-            nextFrame={nextFrame}
-            prevFrame={prevFrame}
-            platform={platform}
-            timesRepeated={nRepeats}
-            showingAbsoluteAddress={showingAbsoluteAddresses}
-            onAddressToggle={this.handleToggleAddresses}
-            image={image}
-            maxLengthOfRelativeAddress={maxLengthOfAllRelativeAddresses}
-            registers={{}} // TODO: Fix registers
-            isFrameAfterLastNonApp={isFrameAfterLastNonApp}
-            includeSystemFrames={includeSystemFrames}
-            onFunctionNameToggle={this.handleToggleFunctionName}
-            onShowFramesToggle={e => {
-              this.handleToggleFrames(e, frameIdx);
-            }}
-            isSubFrame={hiddenFrameIndices.includes(frameIdx)}
-            isShowFramesToggleExpanded={toggleFrameMap[frameIdx]}
-            showCompleteFunctionName={showCompleteFunctionName}
-            isHoverPreviewed={isHoverPreviewed}
-            frameMeta={meta?.frames?.[frameIdx]}
-            registersMeta={meta?.registers}
-            debugFrames={debugFrames}
-            isANR={isANR}
-            threadId={threadId}
-            lockAddress={lockAddress}
-            hiddenFrameCount={frameCountMap[frameIdx]}
-          />
-        );
+        const frameProps: DeprecatedLineProps = {
+          event,
+          data: frame,
+          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
+          emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
+          isOnlyFrame: (data.frames ?? []).length === 1,
+          nextFrame,
+          prevFrame,
+          platform,
+          timesRepeated: nRepeats,
+          showingAbsoluteAddress: showingAbsoluteAddresses,
+          onAddressToggle: handleToggleAddresses,
+          image: findImageForAddress(frame.instructionAddr, frame.addrMode),
+          maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
+          registers: {}, // TODO: Fix registers
+          isFrameAfterLastNonApp: isFrameAfterLastNonApp(),
+          includeSystemFrames,
+          onFunctionNameToggle: handleToggleFunctionName,
+          onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
+            handleToggleFrames(e, frameIndex);
+          },
+          isSubFrame: hiddenFrameIndices.includes(frameIndex),
+          isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
+          showCompleteFunctionName,
+          isHoverPreviewed,
+          frameMeta: meta?.frames?.[frameIndex],
+          registersMeta: meta?.registers,
+          debugFrames,
+          isANR,
+          threadId,
+          lockAddress,
+          hiddenFrameCount: frameCountMap[frameIndex],
+        };
+
+        nRepeats = 0;
+
+        if (frameIndex === firstFrameOmitted) {
+          return (
+            <Fragment key={frameIndex}>
+              <DeprecatedLine {...frameProps} />
+              {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
+            </Fragment>
+          );
+        }
+
+        return <DeprecatedLine key={frameIndex} {...frameProps} />;
       }
 
       if (!repeatedFrame) {
         nRepeats = 0;
       }
 
-      if (frameIdx === firstFrameOmitted) {
-        frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
+      if (frameIndex !== firstFrameOmitted) {
+        return null;
       }
+
+      return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
+    })
+    .filter(frame => !!frame) as React.ReactElement[];
+
+  if (convertedFrames.length > 0 && registers) {
+    const lastFrame = convertedFrames.length - 1;
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+      registers,
     });
-
-    if (frames.length > 0 && data.registers) {
-      const lastFrame = frames.length - 1;
-      frames[lastFrame] = cloneElement(frames[lastFrame], {
-        registers: data.registers,
-      });
-    }
-
-    if (defined(maxDepth)) {
-      frames = frames.slice(-maxDepth);
-    }
-
-    if (newestFirst) {
-      frames.reverse();
-    }
-
-    const className = this.getClassName();
-    const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
-
-    return (
-      <Wrapper className={className} data-test-id="stack-trace-content">
-        {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">{frames}</StyledList>
-        </GuideAnchor>
-      </Wrapper>
-    );
   }
-}
 
-export default withOrganization(Content);
+  if (defined(maxDepth)) {
+    convertedFrames = convertedFrames.slice(-maxDepth);
+  }
+
+  const wrapperClassName = `${!!className && className} traceback ${
+    includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
+  }`;
+
+  const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
+
+  return (
+    <Wrapper className={wrapperClassName} data-test-id="stack-trace-content">
+      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
+      <GuideAnchor target="stack_trace">
+        <StyledList data-test-id="frames">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </StyledList>
+      </GuideAnchor>
+    </Wrapper>
+  );
+}
 
 const Wrapper = styled(Panel)`
   position: relative;
@@ -415,3 +380,5 @@ const Wrapper = styled(Panel)`
 const StyledList = styled('ul')`
   list-style: none;
 `;
+
+export default withOrganization(Content);

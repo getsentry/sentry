@@ -139,6 +139,22 @@ describe('StackTrace', function () {
     expect(frames.children).toHaveLength(5);
   });
 
+  it('if frames are omitted, renders omitted frames', function () {
+    const newData = {
+      ...data,
+      framesOmitted: [0, 3],
+    };
+
+    renderedComponent({
+      data: newData,
+    });
+
+    const omittedFrames = screen.getByText(
+      'Frames 0 until 3 were omitted and not available.'
+    );
+    expect(omittedFrames).toBeInTheDocument();
+  });
+
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
     it('displays crashed from only', function () {
       const dataFrames = [...data.frames];
