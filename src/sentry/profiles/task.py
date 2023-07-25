@@ -630,19 +630,15 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
             if len(mapped) >= 1:
                 new_frame = mapped[-1]
-                new_frame_attributes = {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "data": {"deobfuscation_status": "deobfuscated"},
-                }
+                method["class_name"] = new_frame.class_name
+                method["name"] = new_frame.method
+                method["data"] = {"deobfuscation_status": "deobfuscated"}
 
                 if new_frame.file:
-                    new_frame_attributes["source_file"] = new_frame.file
+                    method["source_file"] = new_frame.file
 
                 if new_frame.line:
-                    new_frame_attributes["source_line"] = new_frame.line
-
-                method.update(new_frame_attributes)
+                    method["source_line"] = new_frame.line
 
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
