@@ -599,6 +599,7 @@ class MonitorEnvironment(Model):
                         "monitor.id": str(self.monitor.guid),
                         "monitor.slug": self.monitor.slug,
                     },
+                    "trace_id": occurrence_context.get("trace_id"),
                     "timestamp": current_timestamp.isoformat(),
                 },
             )
