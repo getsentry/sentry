@@ -54,13 +54,14 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
-from ..utils.pagination_factory import (
+from sentry.services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
+from sentry.utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
     get_cursor,
     get_paginator,
 )
+
 from .utils import generate_organization_url
 
 ONE_MINUTE = 60
@@ -156,6 +157,9 @@ class Endpoint(APIView):
         Aggregates together authenticators that should be called cross silo, while
         leaving methods that should be run locally.
         """
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return super().get_authenticators()
+
         last_api_authenticator = RpcAuthentication([])
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
