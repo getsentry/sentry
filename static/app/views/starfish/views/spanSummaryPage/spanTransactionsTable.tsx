@@ -173,7 +173,6 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   const label = row.transactionMethod
     ? `${row.transactionMethod} ${row.transaction}`
     : row.transaction;
-
   return (
     <Fragment>
       <Link
