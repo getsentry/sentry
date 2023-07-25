@@ -147,32 +147,32 @@ class IntegrationRepositoryProvider:
             new_repository = repository_service.create_repository(
                 organization_id=organization.id, create=create_repository
             )
-            if new_repository is None:
-                # Try to delete webhook we just created
-                try:
-                    repo = Repository(organization_id=organization.id, **repo_update_params)
-                    self.on_delete_repository(repo)
-                except IntegrationError:
-                    pass
+            if new_repository is not None:
+                return result, new_repository
 
-                # if possible update the repo with matching integration
-                repositories = repository_service.get_repositories(
+            # Try to delete webhook we just created
+            try:
+                repo = Repository(organization_id=organization.id, **repo_update_params)
+                self.on_delete_repository(repo)
+            except IntegrationError:
+                pass
+
+            # if possible update the repo with matching integration
+            repositories = repository_service.get_repositories(
+                organization_id=organization.id,
+                integration_id=integration_id,
+                external_id=external_id,
+            )
+            repo = repositories[0] if repositories else None
+            if repo:
+                for field_name, field_value in repo_update_params.items():
+                    setattr(repo, field_name, field_value)
+                repository_service.update_repository(
                     organization_id=organization.id,
-                    integration_id=integration_id,
-                    external_id=external_id,
+                    update=repo,
                 )
-                repo = repositories[0] if repositories else None
-                if repo:
-                    for field_name, field_value in repo_update_params.items():
-                        setattr(repo, field_name, field_value)
-                    repository_service.update_repository(
-                        organization_id=organization.id,
-                        update=repo,
-                    )
 
-                raise RepoExistsError
-            else:
-                repo = new_repository
+            raise RepoExistsError
 
         return result, repo
 
