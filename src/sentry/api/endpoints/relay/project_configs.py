@@ -13,7 +13,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
 from sentry.relay.config.measurements import get_measurements_config
-from sentry.relay.config.metric_extraction import _HISTOGRAM_OUTLIER_RULES
+from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -27,8 +27,11 @@ ProjectConfig = MutableMapping[str, Any]
 
 def get_global_config():
     return {
-        "measurements": get_measurements_config(),
-        "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
+        "global": {
+            "measurements": get_measurements_config(),
+            # Subset of conditional tagging rules that does not depend on the project:
+            "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+        }
     }
 
 
