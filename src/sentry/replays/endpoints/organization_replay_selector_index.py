@@ -29,7 +29,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import Number, QueryConfig, get_valid_sort_commands
 from sentry.replays.query import Paginators, make_pagination_values
-from sentry.replays.validators import ReplayValidator
+from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -54,7 +54,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response({"data": []}, status=200)
 
-        result = ReplayValidator(data=request.GET)
+        result = ReplaySelectorValidator(data=request.GET)
         if not result.is_valid():
             raise ParseError(result.errors)
 
