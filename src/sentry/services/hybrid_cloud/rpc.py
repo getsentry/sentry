@@ -409,7 +409,7 @@ class RpcArgumentException(Exception):
 
 
 class RpcRemoteException(Exception):
-    """Indicate that a remote RPC service returned an error status code."""
+    """Indicate that an RPC service returned an error status code."""
 
 
 class RpcResponseException(Exception):
