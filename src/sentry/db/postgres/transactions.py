@@ -6,6 +6,7 @@ import threading
 from django.conf import settings
 from django.db import connections, transaction
 
+from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
 
 
@@ -31,9 +32,11 @@ def django_test_transaction_water_mark(using: str | None = None):
             yield
         return
 
-    from sentry.testutils import hybrid_cloud
+    from sentry.testutils import assume_test_silo_mode, hybrid_cloud
 
-    connection = transaction.get_connection(using)
+    # Exempt get_connection call from silo validation checks
+    with assume_test_silo_mode(SiloMode.MONOLITH):
+        connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
     hybrid_cloud.simulated_transaction_watermarks.state[
