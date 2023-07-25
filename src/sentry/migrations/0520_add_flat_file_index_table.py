@@ -67,13 +67,13 @@ class Migration(CheckedMigration):
                 ("indexing_state", models.IntegerField()),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
-                    "artifact_bundle_id",
+                    "artifact_bundle",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.artifactbundle"
                     ),
                 ),
                 (
-                    "flat_file_index_id",
+                    "flat_file_index",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         to="sentry.artifactbundleflatfileindex",
