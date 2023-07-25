@@ -35,7 +35,7 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User, outbox_context
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
 from sentry.services.hybrid_cloud.organization import (
@@ -298,7 +298,7 @@ class AuthIdentityHandler:
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
-            return AuthIdentity.objects.get(auth_provider=self.auth_provider, **params)
+            return AuthIdentity.objects.get(auth_provider_id=self.auth_provider.id, **params)
         except AuthIdentity.DoesNotExist:
             return None
 
@@ -312,13 +312,13 @@ class AuthIdentityHandler:
             if auth_identity is None:
                 # otherwise look for an already attached identity
                 # this can happen if the SSO provider's internal ID changes
-                auth_identity = self._get_auth_identity(user=self.user)
+                auth_identity = self._get_auth_identity(user_id=self.user.id)
 
             if auth_identity is None:
                 auth_is_new = True
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
-                    user=self.user,
+                    user_id=self.user.id,
                     ident=self.identity["id"],
                     data=self.identity.get("data", {}),
                 )
@@ -329,14 +329,14 @@ class AuthIdentityHandler:
                 # and in that kind of situation its very reasonable that we could
                 # test email addresses + is_managed to determine if we can auto
                 # merge
-                if auth_identity.user != self.user:
+                if auth_identity.user_id != self.user.id:
                     wipe = self._wipe_existing_identity(auth_identity)
                 else:
                     wipe = None
 
                 now = timezone.now()
                 auth_identity.update(
-                    user=self.user,
+                    user_id=self.user.id,
                     ident=self.identity["id"],
                     data=self.provider.update_identity(
                         new_data=self.identity.get("data", {}), current_data=auth_identity.data
@@ -386,23 +386,15 @@ class AuthIdentityHandler:
         # so that the new identifier gets used (other we'll hit a constraint)
         # violation since one might exist for (provider, user) as well as
         # (provider, ident)
-        deletion_result = (
-            AuthIdentity.objects.exclude(id=auth_identity.id)
-            .filter(auth_provider=self.auth_provider, user=self.user)
-            .delete()
-        )
+        with outbox_context(transaction.atomic(router.db_for_write(AuthIdentity))):
+            deletion_result = (
+                AuthIdentity.objects.exclude(id=auth_identity.id)
+                .filter(auth_provider=self.auth_provider, user_id=self.user.id)
+                .delete()
+            )
 
-        # since we've identified an identity which is no longer valid
-        # lets preemptively mark it as such
-        other_member = organization_service.check_membership_by_id(
-            user_id=auth_identity.user_id, organization_id=self.organization.id
-        )
-        if other_member is None:
-            return
-
-        other_member.flags.sso__invalid = True
-        other_member.flags.sso__linked = False
-        organization_service.update_membership_flags(organization_member=other_member)
+            for outbox in self.auth_provider.outboxes_for_mark_invalid_sso(auth_identity.user_id):
+                outbox.save()
 
         return deletion_result
 
@@ -785,7 +777,6 @@ class AuthHelper(Pipeline):
             self.provider_model, self.provider, self.organization, self.request, identity
         )
 
-    @transaction.atomic
     def _finish_login_pipeline(self, identity: Mapping[str, Any]) -> HttpResponse:
         """
         The login flow executes both with anonymous and authenticated users.

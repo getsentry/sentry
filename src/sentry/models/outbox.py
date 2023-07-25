@@ -86,6 +86,7 @@ class OutboxCategory(IntEnum):
     SEND_MODEL_SIGNAL = 19
     DISABLE_AUTH_PROVIDER = 20
     RESET_IDP_FLAGS = 21
+    MARK_INVALID_SSO = 22
 
     @classmethod
     def as_choices(cls):

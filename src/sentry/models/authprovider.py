@@ -177,3 +177,15 @@ class AuthProvider(Model):
 
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
+
+    def outboxes_for_mark_invalid_sso(self, user_id: int) -> List[ControlOutbox]:
+        return [
+            ControlOutbox(
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=self.organization_id,
+                category=OutboxCategory.MARK_INVALID_SSO,
+                object_identifier=user_id,
+                region_name=region_name,
+            )
+            for region_name in find_regions_for_orgs([self.organization_id])
+        ]

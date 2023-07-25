@@ -125,3 +125,19 @@ def process_send_signal(
 @receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
 def process_reset_idp_flags(shard_identifier: int, **kwds: Any):
     organization_service.reset_idp_flags(organization_id=shard_identifier)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.MARK_INVALID_SSO)
+def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # since we've identified an identity which is no longer valid
+    # lets preemptively mark it as such
+    other_member = organization_service.check_membership_by_id(
+        user_id=object_identifier,
+        organization_id=shard_identifier,
+    )
+    if other_member is None:
+        return
+
+    other_member.flags.sso__invalid = True
+    other_member.flags.sso__linked = False
+    organization_service.update_membership_flags(organization_member=other_member)
