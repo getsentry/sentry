@@ -89,47 +89,50 @@ describe('SpanTreeModel', () => {
     ],
   } as unknown as EventTransaction;
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
-    body: {
-      ...event,
-      contexts: {
-        trace: {
-          trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
-          span_id: 'a5702f287954a9ef',
-          parent_span_id: 'b23703998ae619e7',
-          op: 'something',
-          status: 'unknown',
-          type: 'trace',
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
+      body: {
+        ...event,
+        contexts: {
+          trace: {
+            trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
+            span_id: 'a5702f287954a9ef',
+            parent_span_id: 'b23703998ae619e7',
+            op: 'something',
+            status: 'unknown',
+            type: 'trace',
+          },
         },
+        entries: [
+          {
+            data: [
+              {
+                timestamp: 1622079937.227645,
+                start_timestamp: 1622079936.90689,
+                description: 'something child',
+                op: 'child',
+                span_id: 'bcbea9f18a11e161',
+                parent_span_id: 'a5702f287954a9ef',
+                trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
+                status: 'ok',
+                data: {},
+              },
+            ],
+            type: EntryType.SPANS,
+          },
+        ],
       },
-      entries: [
-        {
-          data: [
-            {
-              timestamp: 1622079937.227645,
-              start_timestamp: 1622079936.90689,
-              description: 'something child',
-              op: 'child',
-              span_id: 'bcbea9f18a11e161',
-              parent_span_id: 'a5702f287954a9ef',
-              trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
-              status: 'ok',
-              data: {},
-            },
-          ],
-          type: EntryType.SPANS,
-        },
-      ],
-    },
-  });
+    });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/sentry/events/project:broken/',
-    body: {
-      ...event,
-    },
-    statusCode: 500,
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/events/project:broken/',
+      body: {
+        ...event,
+      },
+      statusCode: 500,
+    });
   });
 
   it('makes children', () => {
