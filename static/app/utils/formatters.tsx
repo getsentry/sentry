@@ -310,7 +310,5 @@ export function formatAbbreviatedNumber(number: number | string) {
 }
 
 export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
-  return `${formatAbbreviatedNumber(value)}${
-    RATE_UNIT_LABELS[unit]
-  }`;
+  return `${formatAbbreviatedNumber(value)}${RATE_UNIT_LABELS[unit]}`;
 }
