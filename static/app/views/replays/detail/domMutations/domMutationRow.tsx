@@ -7,7 +7,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import {getBreadcrumbType, getColor, getTitle} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -49,9 +49,7 @@ function DomMutationRow({
   const isBeforeHover =
     currentHoverTime === undefined || currentHoverTime >= breadcrumb.offsetMs;
 
-  const color = getColor(breadcrumb);
-  const title = getTitle(breadcrumb);
-  const type = getBreadcrumbType(breadcrumb);
+  const {color, title, type} = getFrameDetails(breadcrumb);
 
   return (
     <MutationListItem

@@ -1,7 +1,7 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
+from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -46,7 +46,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ]
 
         for filename, artifact_name, expected in cases:
-            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
+            assert _find_url_prefix(filename, artifact_name) == expected
 
     def test_missing_event(self):
         resp = self.get_error_response(
@@ -747,7 +747,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    def test_not_part_of_pipeline(self):
+    def test_valid_debugid_sdk_no_sourcemaps(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -785,5 +785,5 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         error = resp.data["errors"][0]
-        assert error["type"] == "not_part_of_pipeline"
-        assert error["message"] == "Sentry is not part of your build pipeline"
+        assert error["type"] == "debug_id_no_sourcemaps"
+        assert error["message"] == "Can use debug id but no sourcemaps"

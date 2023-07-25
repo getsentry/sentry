@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from sentry import analytics
 from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -178,7 +179,7 @@ class SlackLinkTeamView(BaseView):
             external_provider=ExternalProviders.SLACK,
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
-            team_id=team.id,
+            actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(

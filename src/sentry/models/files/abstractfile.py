@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import mmap
 import os
 import tempfile
@@ -8,9 +9,10 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
 from typing import ClassVar, Type
 
+import sentry_sdk
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.celery import SentryTask
@@ -19,6 +21,8 @@ from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
+
+logger = logging.getLogger(__name__)
 
 
 class ChunkedFileBlobIndexWrapper:
@@ -266,6 +270,7 @@ class AbstractFile(Model):
                 except Exception:
                     pass
 
+    @sentry_sdk.tracing.trace
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Save a fileobj into a number of chunks.
@@ -297,6 +302,7 @@ class AbstractFile(Model):
             self.save()
         return results
 
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
         """
         This creates a file, from file blobs and returns a temp file with the
@@ -309,16 +315,31 @@ class AbstractFile(Model):
                 router.db_for_write(self.FILE_BLOB_INDEX_MODEL),
             )
         ):
-            file_blobs = self.FILE_BLOB_MODEL.objects.filter(id__in=file_blob_ids).all()
+            try:
+                file_blobs = self.FILE_BLOB_MODEL.objects.filter(id__in=file_blob_ids).all()
 
-            # Ensure blobs are in the order and duplication as provided
-            blobs_by_id = {blob.id: blob for blob in file_blobs}
-            file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
+                # Ensure blobs are in the order and duplication as provided
+                blobs_by_id = {blob.id: blob for blob in file_blobs}
+                file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
+            except Exception:
+                # Most likely a `KeyError` like `SENTRY-11QP` because an `id` in
+                # `file_blob_ids` does suddenly not exist anymore
+                logger.error("`FileBlob` disappeared during `assemble_file`", exc_info=True)
+                raise
 
             new_checksum = sha1(b"")
             offset = 0
             for blob in file_blobs:
-                self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
+                try:
+                    self.FILE_BLOB_INDEX_MODEL.objects.create(file=self, blob=blob, offset=offset)
+                except IntegrityError:
+                    # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
+                    # the blob we want to link does not exist anymore
+                    logger.error(
+                        "`FileBlob` disappeared trying to link `FileBlobIndex`", exc_info=True
+                    )
+                    raise
+
                 with blob.getfile() as blobfile:
                     for chunk in blobfile.chunks():
                         new_checksum.update(chunk)

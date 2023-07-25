@@ -3,7 +3,9 @@ from __future__ import annotations
 import io
 import os
 import random
+from base64 import b64encode
 from binascii import hexlify
+from contextlib import contextmanager
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
@@ -16,6 +18,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.db import router, transaction
+from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
@@ -91,6 +94,7 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -106,12 +110,13 @@ from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
@@ -262,11 +267,30 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(name=None, owner=None, **kwargs):
+    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        org = Organization.objects.create(name=name, **kwargs)
+        if isinstance(region, str):
+            region = get_region_by_name(region)
+
+        @contextmanager
+        def org_creation_context():
+            if region is None:
+                yield
+            else:
+                with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
+                    yield
+
+        with org_creation_context():
+            org = Organization.objects.create(name=name, **kwargs)
+
+        if region is not None:
+            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+                using=router.db_for_write(OrganizationMapping)
+            ):
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name=region.name)
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
@@ -332,6 +356,15 @@ class Factories:
     def create_api_key(organization, scope_list=None, **kwargs):
         return ApiKey.objects.create(
             organization_id=organization.id if organization else None, scope_list=scope_list
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_auth_token(user, scope_list: List[str], **kwargs) -> ApiToken:
+        return ApiToken.objects.create(
+            user=user,
+            scope_list=scope_list,
+            **kwargs,
         )
 
     @staticmethod
@@ -908,6 +941,20 @@ class Factories:
         return SentryAppInstallationTokenCreator(sentry_app_installation=install, **kwargs).run(
             user=user, request=request
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(organization, user, scopes, **kwargs):
+        sentry_app = Factories.create_sentry_app(
+            name="Org Token",
+            organization=organization,
+            scopes=scopes,
+        )
+
+        install = Factories.create_sentry_app_installation(
+            organization=organization, slug=sentry_app.slug, user=user
+        )
+        return Factories.create_internal_integration_token(install=install, user=user)
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):
@@ -1509,6 +1556,10 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    def create_basic_auth_header(username: str, password: str = "") -> str:
+        return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

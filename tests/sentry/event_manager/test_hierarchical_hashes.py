@@ -4,7 +4,8 @@ import uuid
 import pytest
 
 from sentry.event_manager import _save_aggregate
-from sentry.eventstore.models import CalculatedHashes, Event
+from sentry.eventstore.models import Event
+from sentry.grouping.result import CalculatedHashes
 from sentry.models import Group, GroupHash
 from sentry.utils.pytest.fixtures import django_db_all
 
@@ -26,15 +27,47 @@ def fast_save(default_project, task_runner):
                     hashes=["a" * 32, "b" * 32],
                     hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
                     tree_labels=[
-                        [{"function": "foo"}],
-                        [{"function": "bar"}],
-                        [{"function": "baz"}],
-                        [{"function": "bam"}],
+                        [
+                            {
+                                "function": "foo",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "bar",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "baz",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
+                        [
+                            {
+                                "function": "bam",
+                                "package": "",
+                                "is_sentinel": False,
+                                "is_prefix": False,
+                                "datapath": "",
+                            }
+                        ],
                     ],
                 ),
                 release=None,
                 metadata={},
-                received_timestamp=None,
+                received_timestamp=0,
                 level=10,
                 culprit="",
             )

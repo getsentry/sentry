@@ -15,7 +15,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {Footer} from 'sentry/components/onboarding/footer';
 import {
   migratedDocs,
   SdkDocumentation,
@@ -44,6 +43,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
+
+import {OtherPlatformsInfo} from './otherPlatformsInfo';
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
@@ -119,7 +120,7 @@ export function SetUpGeneralSdkDoc({
   );
 }
 
-export function ProjectInstallPlatform({location, params, route, router}: Props) {
+export function ProjectInstallPlatform({location, params, router}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
@@ -200,10 +201,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     projectAlertRulesIsError,
   ]);
 
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
-  );
-
   const projectDeletionOnBackClick = !!organization?.features.includes(
     'onboarding-project-deletion-on-back-click'
   );
@@ -241,18 +238,6 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     name: platformIntegration?.name,
     link: platformIntegration?.link,
   };
-
-  const redirectToNeutralDocs = useCallback(() => {
-    if (!project?.slug) {
-      return;
-    }
-
-    router.push(
-      normalizeUrl(
-        `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`
-      )
-    );
-  }, [organization.slug, project?.slug, router]);
 
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
@@ -311,18 +296,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     });
   }, [organization, currentPlatform, project?.id]);
 
-  useEffect(() => {
-    // redirect if platform is not known.
-    if (!platform.key || platform.key === 'other') {
-      redirectToNeutralDocs();
-    }
-  }, [platform.key, redirectToNeutralDocs]);
-
   if (!project) {
     return null;
   }
 
-  if (!platform.id) {
+  if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
   }
 
@@ -341,7 +319,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         <ProductUnavailableCTAHook organization={organization} />
       )}
       <StyledPageHeader>
-        <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
+        <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
         <ButtonBar gap={1}>
           <Confirm
             bypass={!shallProjectBeDeleted}
@@ -376,34 +354,46 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
               {t('Back to Platform Selection')}
             </Button>
           </Confirm>
-          <Button size="sm" href={platform.link ?? undefined} external>
-            {t('Full Documentation')}
-          </Button>
+          {platform.key !== 'other' && (
+            <Button size="sm" href={platform.link ?? undefined} external>
+              {t('Full Documentation')}
+            </Button>
+          )}
         </ButtonBar>
       </StyledPageHeader>
-      {currentPlatform && showLoaderOnboarding ? (
-        <SetupDocsLoader
-          organization={organization}
-          project={project}
-          location={location}
-          platform={currentPlatform.id}
-          close={hideLoaderOnboarding}
-        />
-      ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
-        <SdkDocumentation
-          platform={currentPlatform}
-          organization={organization}
+      {platform.key === 'other' ? (
+        <OtherPlatformsInfo
           projectSlug={project.slug}
-          projectId={project.id}
-          activeProductSelection={products}
+          platform={platform.name ?? 'other'}
         />
       ) : (
-        <SetUpGeneralSdkDoc
-          organization={organization}
-          projectSlug={project.slug}
-          platform={platform}
-        />
+        <Fragment>
+          {currentPlatform && showLoaderOnboarding ? (
+            <SetupDocsLoader
+              organization={organization}
+              project={project}
+              location={location}
+              platform={currentPlatform.id}
+              close={hideLoaderOnboarding}
+            />
+          ) : currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+            <SdkDocumentation
+              platform={currentPlatform}
+              organization={organization}
+              projectSlug={project.slug}
+              projectId={project.id}
+              activeProductSelection={products}
+            />
+          ) : (
+            <SetUpGeneralSdkDoc
+              organization={organization}
+              projectSlug={project.slug}
+              platform={platform}
+            />
+          )}
+        </Fragment>
       )}
+
       <div>
         {isGettingStarted && showPerformancePrompt && (
           <Feature
@@ -425,38 +415,28 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Feature>
         )}
 
-        {isGettingStarted && heartbeatFooter ? (
-          <Footer
-            projectSlug={params.projectId}
-            projectId={project?.id}
-            route={route}
-            router={router}
-            location={location}
-          />
-        ) : (
-          <StyledButtonBar gap={1}>
-            <Button
-              priority="primary"
-              busy={loadingProjects}
-              to={{
-                pathname: issueStreamLink,
-                query: project?.id,
-                hash: '#welcome',
-              }}
-            >
-              {t('Take me to Issues')}
-            </Button>
-            <Button
-              busy={loadingProjects}
-              to={{
-                pathname: performanceOverviewLink,
-                query: project?.id,
-              }}
-            >
-              {t('Take me to Performance')}
-            </Button>
-          </StyledButtonBar>
-        )}
+        <StyledButtonBar gap={1}>
+          <Button
+            priority="primary"
+            busy={loadingProjects}
+            to={{
+              pathname: issueStreamLink,
+              query: project?.id,
+              hash: '#welcome',
+            }}
+          >
+            {t('Take me to Issues')}
+          </Button>
+          <Button
+            busy={loadingProjects}
+            to={{
+              pathname: performanceOverviewLink,
+              query: project?.id,
+            }}
+          >
+            {t('Take me to Performance')}
+          </Button>
+        </StyledButtonBar>
       </div>
     </Fragment>
   );

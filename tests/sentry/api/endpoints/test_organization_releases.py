@@ -1,5 +1,4 @@
 import unittest
-from base64 import b64encode
 from datetime import datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
@@ -1633,7 +1632,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{bad_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(bad_api_key.key),
         )
         assert response.status_code == 403
 
@@ -1645,7 +1644,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(wrong_org_api_key.key),
         )
         assert response.status_code == 403
 
@@ -1657,7 +1656,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(good_api_key.key),
         )
         assert response.status_code == 201, response.content
 

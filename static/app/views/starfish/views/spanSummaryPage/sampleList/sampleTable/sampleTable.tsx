@@ -33,7 +33,7 @@ function SampleTable({
   transactionMethod,
 }: Props) {
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-p95'

@@ -146,7 +146,6 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
         {
             "sentry-metrics.writes-limiter.limits.spans.global": [],
             "sentry-metrics.writes-limiter.limits.spans.per-org": [],
-            "sentry-metrics.writes-limiter.apply-uca-limiting": True,
         },
     ):
         results = static_indexer.bulk_record(strings=strings)

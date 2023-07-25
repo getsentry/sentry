@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -198,10 +198,10 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     # The frustration threshold is always four times the threshold
                     # (see https://docs.sentry.io/product/performance/metrics/#apdex)
-                    "value": cast(int, threshold.threshold) * 4,
+                    "value": threshold.threshold * 4,
                 },
                 *extra_conditions,
             ],
@@ -216,7 +216,7 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     "value": threshold.threshold,
                 },
                 *extra_conditions,
