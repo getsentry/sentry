@@ -6,6 +6,7 @@ import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 export enum StarfishType {
   BACKEND = 'backend',
   MOBILE = 'mobile',
+  FRONTEND = 'frontend',
 }
 
 export enum ModuleName {
