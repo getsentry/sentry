@@ -1,7 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {GettingStartedWithApple, steps} from 'sentry/gettingStartedDocs/apple/apple';
+
+import {GettingStartedWithApple, steps} from './apple';
 
 describe('GettingStartedWithApple', function () {
   it('renders doc correctly', function () {
