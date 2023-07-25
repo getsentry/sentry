@@ -97,6 +97,8 @@ class RatelimitMiddleware:
                             extra={
                                 "key": request.rate_limit_key,
                                 "url": request.build_absolute_uri(),
+                                "limit": request.rate_limit_metadata.limit,
+                                "window": request.rate_limit_metadata.window,
                             },
                         )
                         return HttpResponse(
