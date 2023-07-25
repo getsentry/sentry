@@ -94,8 +94,7 @@ function SampleTable({
     isFetchingSpanMetrics ||
     isFetchingSamples ||
     !isSamplesEnabled ||
-    !isTransactionsEnabled ||
-    (!areNoSamples && isFetchingTransactions);
+    (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
     setPageError(t('An error has occured while loading the samples table'));
