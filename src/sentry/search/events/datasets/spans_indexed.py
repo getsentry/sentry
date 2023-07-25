@@ -103,7 +103,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p50",
                     optional_args=[
-                        with_default("span.duration", NumericColumn("column", spans=True)),
+                        with_default("span.self_time", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
                     result_type_fn=self.reflective_result_type(),
@@ -113,7 +113,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p75",
                     optional_args=[
-                        with_default("span.duration", NumericColumn("column", spans=True)),
+                        with_default("span.self_tmie", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
                     result_type_fn=self.reflective_result_type(),
@@ -123,7 +123,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p95",
                     optional_args=[
-                        with_default("span.duration", NumericColumn("column", spans=True)),
+                        with_default("span.self_time", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
                     result_type_fn=self.reflective_result_type(),
@@ -133,7 +133,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p99",
                     optional_args=[
-                        with_default("span.duration", NumericColumn("column", spans=True)),
+                        with_default("span.self_time", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
                     result_type_fn=self.reflective_result_type(),
@@ -143,7 +143,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "p100",
                     optional_args=[
-                        with_default("span.duration", NumericColumn("column", spans=True)),
+                        with_default("span.self_time", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
                     result_type_fn=self.reflective_result_type(),
