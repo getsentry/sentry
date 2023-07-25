@@ -64,9 +64,13 @@ def byte_code_type_to_java_type(mapper, byte_code_type: str) -> str:
     if token in JAVA_BASE_TYPES:
         return JAVA_BASE_TYPES[token]
     elif token == "L":
-        return byte_code_type[1 : len(byte_code_type) - 1].replace("/", ".")
+        obfuscated = byte_code_type[1 : len(byte_code_type) - 1].replace("/", ".")
+        mapped = mapper.remap_class(obfuscated)
+        if mapped:
+            return mapped
+        return obfuscated
     elif token == "[":
-        return f"{byte_code_type_to_java_type(byte_code_type[1:])}[]"
+        return f"{byte_code_type_to_java_type(mapper, byte_code_type[1:])}[]"
     else:
         return byte_code_type
 
@@ -83,15 +87,8 @@ def deobfuscate_signature(mapper, signature: str) -> str:
 
     parameter_java_types = []
     for parameter_type in parameter_types:
-        new_class = byte_code_type_to_java_type(parameter_type)
-        mapped = mapper.remap_class(new_class)
-        if mapped:
-            new_class = mapped
+        new_class = byte_code_type_to_java_type(mapper, parameter_type)
         parameter_java_types.append(new_class)
 
-    return_java_type = byte_code_type_to_java_type(return_type) if return_type else ""
-    mapped = mapper.remap_class(return_java_type)
-    if mapped:
-        return_java_type = mapped
-
+    return_java_type = byte_code_type_to_java_type(mapper, return_type)
     return format_signature(parameter_java_types, return_java_type)
