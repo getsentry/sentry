@@ -7,12 +7,16 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'Sentry for Java is a collection of modules provided by Sentry; it supports Java 1.8 and above. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, or Log4j2], we recommend visiting our Sentry Java documentation for installation instructions.',
-  {
-    strong: <strong />,
-    link: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      'Sentry for Java is a collection of modules provided by Sentry; it supports Java 1.8 and above. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, or Log4j2], we recommend visiting our Sentry Java documentation for installation instructions.',
+      {
+        strong: <strong />,
+        link: <ExternalLink href="https://docs.sentry.io/platforms/java/" />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({

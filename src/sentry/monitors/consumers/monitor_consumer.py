@@ -305,12 +305,14 @@ def _process_message(wrapper: Dict) -> None:
                 if use_latest_checkin:
                     check_in = (
                         MonitorCheckIn.objects.select_for_update()
+                        .filter(monitor_environment=monitor_environment)
                         .exclude(status__in=CheckInStatus.FINISHED_VALUES)
                         .order_by("-date_added")[:1]
                         .get()
                     )
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
+                        monitor_environment=monitor_environment,
                         guid=check_in_id,
                     )
 

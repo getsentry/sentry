@@ -13,6 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
+  GroupSubstatus,
   Project,
   ResolutionStatus,
   ResolutionStatusDetails,
@@ -60,6 +61,7 @@ function ResolveActions({
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
   }
 
@@ -69,6 +71,7 @@ function ResolveActions({
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
     trackAnalytics('resolve_issue', {
       organization,
@@ -83,6 +86,7 @@ function ResolveActions({
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
+        substatus: null,
       });
     }
 
@@ -99,6 +103,7 @@ function ResolveActions({
         statusDetails: {
           inNextRelease: true,
         },
+        substatus: null,
       });
     }
 
@@ -125,7 +130,11 @@ function ResolveActions({
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
         />
       </Tooltip>
@@ -151,7 +160,7 @@ function ResolveActions({
     };
 
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const hasIssueResolveSemver = organization.features.includes('issue-resolve-semver');
+    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -162,14 +171,14 @@ function ResolveActions({
       {
         key: 'current-release',
         label:
-          hasIssueResolveSemver || !latestRelease
+          hasIssueReleaseSemver || !latestRelease
             ? t('The current release')
             : t('The current release (%s)', formatVersion(latestRelease.version)),
         details: actionTitle
           ? actionTitle
-          : hasIssueResolveSemver && latestRelease
+          : hasIssueReleaseSemver && latestRelease
           ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('timestamp')
+              isSemver ? t('semver') : t('non-semver')
             })`
           : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
@@ -254,7 +263,11 @@ function ResolveActions({
             openConfirmModal({
               bypass: !shouldConfirm,
               onConfirm: () =>
-                onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                }),
               message: confirmMessage,
               confirmText: confirmLabel,
             })

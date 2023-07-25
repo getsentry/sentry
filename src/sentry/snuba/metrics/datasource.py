@@ -153,6 +153,12 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence
             "d": "generic_metrics_distributions",
             "g": "generic_metrics_gauges",
         },
+        "spans": {
+            "c": "generic_metrics_counters",
+            "s": "generic_metrics_sets",
+            "d": "generic_metrics_distributions",
+            "g": "generic_metrics_gauges",
+        },
     }
 
     result = []

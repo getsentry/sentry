@@ -9,8 +9,10 @@ from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 

@@ -1,6 +1,6 @@
+import pytz
 from croniter import croniter
 from django.core.exceptions import ValidationError
-from django.utils.timezone import pytz
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field

@@ -549,7 +549,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus: GroupSubstatus | null;
 };
 
 // TODO(ts): incomplete
@@ -605,7 +605,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    GroupStatusResolution {}
+    Omit<GroupStatusResolution, 'substatus'> {}
 
 export type Group = GroupResolution | GroupReprocessing;
 
