@@ -10,7 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.models import Commit, Integration, RegionScheduledDeletion, Repository
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
@@ -118,8 +118,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.rename_on_pending_deletion()
 
                 if has_commits:
-                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
                 else:
-                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)
