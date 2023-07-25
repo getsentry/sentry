@@ -236,12 +236,9 @@ class SymbolicatorSession:
             self.session.close()
             self.session = None
 
-    def _ensure_open(self):
+    def _request(self, method, path, **kwargs):
         if not self.session:
             raise RuntimeError("Session not opened")
-
-    def _request(self, method, path, **kwargs):
-        self._ensure_open()
 
         url = urljoin(self.url, path)
 

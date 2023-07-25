@@ -36,6 +36,7 @@ class GroupNoteTest(APITestCase):
 
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
+        assert event1.group is not None
         group1 = event1.group
         note1 = Activity.objects.create(
             group=group1,

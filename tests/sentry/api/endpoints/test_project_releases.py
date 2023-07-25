@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
 from sentry.models import (
     CommitAuthor,

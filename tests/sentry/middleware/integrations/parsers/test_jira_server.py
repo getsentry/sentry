@@ -16,7 +16,6 @@ from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
-from sentry.utils import json
 
 
 @control_silo_test()
@@ -75,7 +74,7 @@ class JiraServerRequestParserTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_webhook(self):
+    def test_routing_search_endpoint(self):
         route = reverse(
             "sentry-extensions-jiraserver-search",
             kwargs={
@@ -86,23 +85,11 @@ class JiraServerRequestParserTest(TestCase):
         request = self.factory.get(route)
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        # Missing region
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "eu"}
-        )
         with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo:
             parser.get_response()
             assert get_response_from_control_silo.called
-
-        # Valid region
-        proxy_response = responses.add(
-            responses.GET, f"{self.region.address}{route}", json={"some": "data"}
-        )
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update={"region_name": "na"}
-        )
-        with override_regions(self.region_config):
-            response = parser.get_response()
-            assert json.loads(proxy_response.body) == json.loads(response.content)  # type: ignore
+            assert not get_response_from_outbox_creation.called

@@ -2,7 +2,7 @@
 
 covdefaults>=2.3.0
 docker>=3.7.0,<3.8.0
-freezegun>=1.1.0
+freezegun>=1.2.2
 honcho>=1.1.0
 openapi-core>=0.14.2
 pytest>=7.2.1
@@ -37,7 +37,6 @@ mypy>=1.4.1
 types-beautifulsoup4
 types-cachetools
 types-croniter
-types-freezegun
 types-jsonschema
 types-oauthlib
 types-parsimonious

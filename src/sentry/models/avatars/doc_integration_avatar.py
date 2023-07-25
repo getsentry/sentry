@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import ClassVar
-
 from django.db import models
 from django.utils import timezone
 
@@ -16,9 +14,9 @@ class DocIntegrationAvatar(ControlAvatarBase):
     A DocIntegrationAvatar associates a DocIntegration with a logo photo File.
     """
 
-    AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]] = ((0, "upload"),)
+    AVATAR_TYPES = ((0, "upload"),)
 
-    FILE_TYPE: ClassVar[str] = "avatar.file"
+    FILE_TYPE = "avatar.file"
 
     doc_integration = FlexibleForeignKey("sentry.DocIntegration", related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=((0, "upload"),))

@@ -5,16 +5,18 @@ from django.core.files.base import ContentFile
 from django.urls import reverse
 
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.team = self.create_team(organization=self.organization)
         self.release = self.create_release(version="my-unique-release.1")
         self.url = reverse(

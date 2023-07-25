@@ -61,7 +61,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
-    value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    value = serializers.JSONField(required=False)
     path = serializers.CharField(required=False)
     # TODO: define exact schema for value
     # TODO: actually use these in the patch request for validation
@@ -153,9 +153,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         request=inline_serializer(
             name="SCIMTeamRequestBody",
             fields={
-                "schemas": serializers.ListField(serializers.CharField()),
+                "schemas": serializers.ListField(child=serializers.CharField()),
                 "displayName": serializers.CharField(),
-                "members": serializers.ListField(serializers.IntegerField()),
+                "members": serializers.ListField(child=serializers.IntegerField()),
             },
         ),
         responses={

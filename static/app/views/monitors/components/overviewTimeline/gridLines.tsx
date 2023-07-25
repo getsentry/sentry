@@ -98,7 +98,7 @@ export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
 
 const Overlay = styled('div')`
   grid-row: 1;
-  grid-column: 2;
+  grid-column: 3;
   height: 100%;
   width: 100%;
   position: absolute;

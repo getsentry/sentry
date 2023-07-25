@@ -64,14 +64,14 @@ function DurationChart({
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'api.starfish.span-summary-panel-samples-table-p95'
@@ -172,14 +172,11 @@ function DurationChart({
     <div onMouseLeave={handleMouseLeave}>
       <h5>{DataTitles.p95}</h5>
       <Chart
-        statsPeriod="24h"
         height={140}
         onClick={handleChartClick}
         onHighlight={handleChartHighlight}
         aggregateOutputFormat="duration"
         data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`], baselineP95Series]}
-        start=""
-        end=""
         loading={isLoading}
         scatterPlot={
           areSpanSamplesLoading || areSpanSamplesRefetching

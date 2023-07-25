@@ -57,7 +57,7 @@ export function Layout({
     <Wrapper>
       {introduction && (
         <Fragment>
-          {introduction}
+          <Introduction>{introduction}</Introduction>
           <Divider />
         </Fragment>
       )}
@@ -108,6 +108,12 @@ const Steps = styled('div')<{withTopSpacing?: boolean}>`
   flex-direction: column;
   gap: 1.5rem;
   ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const Wrapper = styled('div')`

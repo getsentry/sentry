@@ -1,5 +1,3 @@
-from base64 import b64encode
-
 from django.urls import reverse
 
 from sentry.models import ApiKey
@@ -29,7 +27,7 @@ class OrganizationProjectsTestBase(APITestCase):
         path = reverse(self.endpoint, args=[self.organization.slug])
         response = self.client.get(
             path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
         )
         self.check_valid_response(response, [project])
 

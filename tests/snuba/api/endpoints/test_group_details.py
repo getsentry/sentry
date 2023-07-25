@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     GROUP_OWNER_TYPE,
@@ -29,10 +30,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        from sentry.api.endpoints.group_details import tsdb
-
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
+            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.backend.get_range
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"

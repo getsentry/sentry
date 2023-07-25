@@ -31,7 +31,6 @@ from sentry.dynamic_sampling import (
 )
 from sentry.event_manager import (
     EventManager,
-    EventUser,
     HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
@@ -73,6 +72,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.eventuser import EventUser
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import (
@@ -150,12 +150,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(event_id=event_id, message="first"))
         manager.normalize()
         manager.save(project_id)
-        assert nodestore.get(node_id)["logentry"]["formatted"] == "first"
+        assert nodestore.backend.get(node_id)["logentry"]["formatted"] == "first"
 
         manager = EventManager(make_event(event_id=event_id, message="second"))
         manager.normalize()
         manager.save(project_id)
-        assert nodestore.get(node_id)["logentry"]["formatted"] == "second"
+        assert nodestore.backend.get(node_id)["logentry"]["formatted"] == "second"
 
         assert eventstream_insert.call_count == 2
 
@@ -519,8 +519,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         event = manager.save(self.project.id)
 
+        assert event.group is not None
         group = event.group
-        assert group is not None
 
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
@@ -592,8 +592,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         event = manager.save(self.project.id)
+        assert event.group is not None
         group = event.group
-        assert group is not None
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
@@ -623,6 +623,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group=group, type=ActivityType.SET_REGRESSION.value
         )
         assert regressed_activity.data["version"] == "b"
+        assert regressed_activity.data["follows_semver"] is False
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
@@ -651,8 +652,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         event = manager.save(self.project.id)
+        assert event.group is not None
         group = event.group
-        assert group is not None
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
         # Resolve the group in old_release
@@ -685,6 +686,65 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_resolved_in_release_regression_activity_follows_semver(self, plugin_is_regression):
+        """
+        Issue was marked resolved in 1.0.0, regression occurred in 2.0.0.
+        If the project follows semver then the regression activity should have `follows_semver` set.
+        We should also record which version the issue was resolved in as `resolved_in_version`.
+
+        This allows the UI to say the issue was resolved in 1.0.0, regressed in 2.0.0 and
+        the versions were compared using semver.
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": "foo@1.0.0"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="foo@2.0.0")
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "foo@1.0.0"
+
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+        assert regressed_activity.data["version"] == "foo@2.0.0"
+        assert regressed_activity.data["follows_semver"] is True
+        assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
     def test_has_pending_commit_resolution(self):
         project_id = self.project.id
@@ -898,8 +958,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         event = manager.save(self.project.id)
 
+        assert event.group is not None
         group = event.group
-        assert group is not None
 
         org = group.organization
 
@@ -1257,7 +1317,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         def query(model, key, **kwargs):
-            return tsdb.get_sums(
+            return tsdb.backend.get_sums(
                 model,
                 [key],
                 event.datetime,
@@ -1281,7 +1341,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event())
         event = manager.save(project.id)
 
-        assert tsdb.get_most_frequent(
+        assert tsdb.backend.get_most_frequent(
             TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
@@ -1300,7 +1360,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event.project.organization_id, "totally unique environment"
         ).id
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
@@ -1308,7 +1368,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"referrer": "r", "organization_id": 123},
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,
@@ -1316,7 +1376,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
@@ -1325,7 +1385,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,
@@ -2052,7 +2112,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.group is None
         assert (
-            tsdb.get_sums(
+            tsdb.backend.get_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event.datetime,
@@ -2092,7 +2152,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.group is not None
         assert event2.group is None
         assert (
-            tsdb.get_sums(
+            tsdb.backend.get_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event1.datetime,
@@ -2103,7 +2163,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
 
         assert (
-            tsdb.get_sums(
+            tsdb.backend.get_sums(
                 TSDBModel.group,
                 [event1.group.id],
                 event1.datetime,
@@ -2571,8 +2631,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
-            last_event = None
-
             for _ in range(100):
                 event = self.create_performance_issue(
                     event_data=make_event(**get_event("slow-db-spans")),

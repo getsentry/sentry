@@ -8,7 +8,7 @@ def main() -> int:
     cmd = (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", *sys.argv[1:])
     out = subprocess.run(cmd, stdout=subprocess.PIPE)
     for line in out.stdout.decode().splitlines():
-        if line.endswith('Unused "type: ignore" comment'):
+        if line.endswith("[unused-ignore]"):
             fname, n, *_ = line.split(":")
 
             subprocess.check_call(

@@ -3,7 +3,6 @@ import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
@@ -27,13 +26,13 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
-  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
+  SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
 import type {
-  NetworkSpan,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
@@ -250,15 +249,13 @@ export default class ReplayReader {
     [
       ...this._sortedBreadcrumbFrames.filter(
         frame =>
-          [
-            'replay.init',
-            'ui.click',
-            'replay.mutations',
-            'ui.slowClickDetected',
-            'navigation',
-          ].includes(frame.category) ||
-          (frame.category === 'ui.multiClick' &&
-            (frame as MultiClickFrame).data.clickCount >= 3)
+          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
+            frame.category
+          ) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+        // Hiding all ui.multiClick (multi or rage clicks)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
@@ -312,16 +309,4 @@ export default class ReplayReader {
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')
   );
-
-  getNavCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb =>
-      [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
-    )
-  );
-
-  getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
 }
-
-const isNetworkSpan = (span: ReplaySpan): span is NetworkSpan => {
-  return span.op?.startsWith('navigation.') || span.op?.startsWith('resource.');
-};

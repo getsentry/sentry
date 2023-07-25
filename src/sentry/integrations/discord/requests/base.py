@@ -109,6 +109,7 @@ class DiscordRequest:
         logger.error(key, extra={**self.logging_data})
 
     def is_ping(self) -> bool:
+        # TODO: Make these constants an enum like DISCORD_REQUEST_TYPE.PING
         return self._data.get("type", 0) == 1
 
     def is_command(self) -> bool:

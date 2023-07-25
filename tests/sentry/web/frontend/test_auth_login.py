@@ -13,7 +13,7 @@ from django.utils import timezone
 from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import OrganizationMember, User
+from sentry.models import AuthProvider, OrganizationMember, User
 from sentry.models.organization import Organization
 from sentry.receivers import create_default_projects
 from sentry.testutils import TestCase
@@ -65,6 +65,27 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.context["login_form"].errors["__all__"] == [
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
+
+    def test_login_ratelimited_user(self):
+        self.client.get(self.path)
+        # Make sure user gets ratelimited
+        for i in range(5):
+            self.client.post(
+                self.path,
+                {"username": self.user.username, "password": "wront_password", "op": "login"},
+                follow=True,
+            )
+        resp = self.client.post(
+            self.path,
+            {"username": self.user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == []
+        assert (
+            "You have made too many login attempts. Please try again later."
+            in resp.content.decode()
+        )
 
     def test_login_valid_credentials(self):
         # load it once for test cookie
@@ -345,6 +366,13 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
+    def test_redirects_authenticated_user_to_custom_next_url(self):
+        self.user.update(is_superuser=False)
+        self.login_as(self.user)
+        resp = self.client.get(self.path + "?next=testserver")
+        assert resp.status_code == 302
+        assert resp.get("Location", "").endswith("testserver")
+
     def test_redirect_superuser(self):
         self.login_as(self.user, superuser=False)
 
@@ -462,6 +490,10 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
+    def setUp(self):
+        super().setUp()
+        options.set("auth.allow-registration", False)
+
     def test_renders_correct_template_existent_org(self):
         resp = self.client.get(
             self.path,
@@ -503,6 +535,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             SERVER_NAME="albertos-apples.testserver",
             follow=True,
         )
+
         assert resp.status_code == 200
         assert resp.redirect_chain == [
             ("http://albertos-apples.testserver/auth/login/", 302),
@@ -633,3 +666,63 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://testserver/organizations/new/", 302),
             ]
+
+    def test_login_redirects_to_sso_org_does_not_exist(self):
+        # load it once for test cookie
+        user = self.create_user()
+
+        self.client.get(self.path)
+        user = self.create_user()
+        resp = self.client.post(
+            self.path,
+            {"username": user.username, "password": "admin", "op": "sso", "organization": "foobar"},
+            SERVER_NAME="albertos-apples.testserver",
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("/auth/login/", 302)]  # Redirects to default login
+
+    def test_login_redirects_to_sso_provider_does_not_exist(self):
+        # load it once for test cookie
+        user = self.create_user()
+        self.create_organization(name="albertos-apples")
+
+        self.client.get(self.path)
+        user = self.create_user()
+        resp = self.client.post(
+            self.path,
+            {
+                "username": user.username,
+                "password": "admin",
+                "op": "sso",
+                "organization": "albertos-apples",
+            },
+            SERVER_NAME="albertos-apples.testserver",
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("/auth/login/", 302),
+            ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+        ]  # Redirects to default login
+
+    def test_login_redirects_to_sso_provider(self):
+        # load it once for test cookie
+        user = self.create_user()
+        custom_organization = self.create_organization(name="albertos-apples")
+        AuthProvider.objects.create(organization_id=custom_organization.id, provider="dummy")
+        self.client.get(self.path)
+        user = self.create_user()
+        resp = self.client.post(
+            self.path,
+            {
+                "username": user.username,
+                "password": "admin",
+                "op": "sso",
+                "organization": "albertos-apples",
+            },
+            SERVER_NAME="albertos-apples.testserver",
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("/auth/login/albertos-apples/", 302)]

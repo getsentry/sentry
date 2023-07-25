@@ -18,7 +18,7 @@ from sentry.db.models.fields import JSONField
 
 
 class TypesClass:
-    TYPES = []
+    TYPES: list[tuple[int, str]]
 
     @classmethod
     def as_choices(cls):

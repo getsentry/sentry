@@ -19,7 +19,8 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)
-        self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.project = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-artifactbundle-assemble",

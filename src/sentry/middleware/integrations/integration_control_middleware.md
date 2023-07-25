@@ -40,8 +40,7 @@ class ExampleRequestParser(BaseRequestParser):
 
     def get_response(self):
         # You can use the url router to identify the endpoint/view the request is headed to
-        view_class = self.match.func.view_class
-        if view_class in [ExampleConfigureView, ExampleSetupView]:
+        if self.view_class in [ExampleConfigureView, ExampleSetupView]:
             return self.get_response_from_control_silo()
 
         # This method calls self.get_organizations_from_integration which calls self.get_integration_from_request.

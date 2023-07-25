@@ -22,6 +22,7 @@ from typing import (
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 
+from sentry.db.postgres.transactions import in_test_transaction_enforcement
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
@@ -161,7 +162,7 @@ class SimulatedTransactionWatermarks(threading.local):
         self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
     ) -> int:
         if connection is None:
-            connection = transaction.get_connection(using)
+            connection = transaction.get_connection(using or "default")
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
 
     def connections_above_watermark(self) -> Set[str]:
@@ -182,6 +183,9 @@ class EnforceNoCrossTransactionWrapper:
         self.alias = alias
 
     def __call__(self, execute: Callable[..., Any], *params: Any) -> Any:
+        if not in_test_transaction_enforcement.enabled:
+            return execute(*params)
+
         open_transactions = simulated_transaction_watermarks.connections_above_watermark()
         # If you are hitting this, it means you have two open transactions working in differing databases at the same
         # time.  This is problematic in general for a variety of reasons -- it will never be possible to atomically

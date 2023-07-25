@@ -599,7 +599,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                           <ProjectReleaseDetails
                             release={release}
                             releaseMeta={releaseMeta}
-                            orgSlug={organization.slug}
                             projectSlug={project.slug}
                           />
                           {commitCount > 0 && (
