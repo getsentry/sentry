@@ -219,10 +219,18 @@ function Content({
   }
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
-    return t(
-      'Frames %d until %d were omitted and not available.',
-      firstFrameOmitted,
-      lastFrameOmitted
+    const props = {
+      className: 'frame frames-omitted',
+      key: 'omitted',
+    };
+    return (
+      <li {...props}>
+        {t(
+          'Frames %d until %d were omitted and not available.',
+          firstFrameOmitted,
+          lastFrameOmitted
+        )}
+      </li>
     );
   }
 
