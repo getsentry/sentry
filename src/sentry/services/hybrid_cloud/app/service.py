@@ -73,6 +73,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 

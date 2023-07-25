@@ -16,6 +16,7 @@ from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.util import flags_to_bits
+from sentry.signals import sso_enabled
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
@@ -276,6 +277,7 @@ class RpcRegionUser(RpcModel):
 class RpcOrganizationSignal(IntEnum):
     INTEGRATION_ADDED = 1
     MEMBER_JOINED = 2
+    SSO_ENABLED = 3
 
     @classmethod
     def from_signal(cls, signal: Signal) -> "RpcOrganizationSignal":
@@ -291,6 +293,7 @@ class RpcOrganizationSignal(IntEnum):
         return {
             RpcOrganizationSignal.INTEGRATION_ADDED: integration_added,
             RpcOrganizationSignal.MEMBER_JOINED: member_joined,
+            RpcOrganizationSignal.SSO_ENABLED: sso_enabled,
         }
 
     @property

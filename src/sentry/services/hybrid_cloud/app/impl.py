@@ -7,7 +7,12 @@ from django.db.models import QuerySet
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import alert_rule_actions
-from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models import (
+    SentryApp,
+    SentryAppComponent,
+    SentryAppInstallation,
+    SentryAppInstallationToken,
+)
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 from sentry.services.hybrid_cloud.app import (
     AppService,
@@ -182,6 +187,9 @@ class DatabaseBackedAppService(AppService):
             return None
 
         return serialize_sentry_app_installation(installation, sentry_app)
+
+    def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
+        return SentryAppInstallationToken.objects.get_token(organization_id, provider)
 
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None

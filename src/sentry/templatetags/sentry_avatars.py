@@ -47,7 +47,7 @@ def email_avatar(context, display_name, identifier, size=None, try_gravatar=True
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, User):
+    if isinstance(user, User) or isinstance(user, RpcUser):
         user_id = user.id
         email = user.email
     else:

@@ -84,7 +84,19 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+    def token_has_org_access(
+        self, *, token: AuthenticatedToken, organization_id: int, allow_unlinked: bool
+    ) -> bool:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def disable_provider(self, *, provider_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def change_scim(self, *, user_id: int, provider_id: int, enabled: bool) -> None:
         pass
 
 

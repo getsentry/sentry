@@ -49,6 +49,7 @@ def test_get_org_auth_config():
                     allow_unlinked=True,
                     scim_enabled=False,
                 ),
+                config=ap.config,
             ),
             has_api_key=False,
         ),

@@ -568,8 +568,8 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_sso(self):
         sso_enabled.send(
-            organization=self.organization,
-            user=self.user,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
             provider="google",
             sender=type(self.organization),
         )

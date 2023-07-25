@@ -378,13 +378,13 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @sso_enabled.connect(weak=False)
-def record_sso_enabled(organization, user, provider, **kwargs):
+def record_sso_enabled(organization_id, user_id, provider, **kwargs):
     FeatureAdoption.objects.record(
-        organization_id=organization.id, feature_slug="sso", complete=True
+        organization_id=organization_id, feature_slug="sso", complete=True
     )
 
     analytics.record(
-        "sso.enabled", user_id=user.id, organization_id=organization.id, provider=provider
+        "sso.enabled", user_id=user_id, organization_id=organization_id, provider=provider
     )
 
 
