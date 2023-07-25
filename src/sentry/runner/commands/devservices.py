@@ -61,15 +61,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
                         ).stdout
                     )
-                    args = (
+                    args = [
                         "--cpu",
                         f"{cpus//2}",
                         "--memory",
                         f"{memsize_bytes//(2*1024**3)}",
-                    )
+                    ]
                     if APPLE_ARM64:
-                        args += ("--vm-type=vz", "--vz-rosetta")
-                    subprocess.check_call(("colima", "start") + args)
+                        args = [*args, "--vm-type=vz", "--vz-rosetta"]
+                    subprocess.check_call(("colima", "start", *args))
                 else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
