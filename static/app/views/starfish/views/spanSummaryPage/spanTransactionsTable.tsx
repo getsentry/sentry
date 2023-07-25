@@ -177,7 +177,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
     <Fragment>
       <Link
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span[SpanMetricsFields.SPAN_OP]
+          span[SpanMetricsFields.SPAN_GROUP]
         )}?${qs.stringify({
           ...location.query,
           endpoint,
