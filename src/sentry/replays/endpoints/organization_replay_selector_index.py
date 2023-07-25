@@ -36,16 +36,11 @@ from sentry.utils.snuba import raw_snql_query
 @region_silo_endpoint
 class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     def get_replay_filter_params(self, request, organization):
-
-        query_referrer = request.GET.get("queryReferrer", None)
-
         filter_params = self.get_filter_params(request, organization)
 
-        has_global_views = (
-            features.has("organizations:global-views", organization, actor=request.user)
-            or query_referrer == "issueReplays"
+        has_global_views = features.has(
+            "organizations:global-views", organization, actor=request.user
         )
-
         if not has_global_views and len(filter_params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view events from multiple projects.")
 
