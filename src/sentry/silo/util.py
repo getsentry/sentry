@@ -9,6 +9,7 @@ from django.conf import settings
 
 PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
+PROXY_BASE_URL_HEADER = "X-Sentry-Subnet-Base-URL"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 
@@ -48,6 +49,7 @@ def clean_outbound_headers(headers: Mapping[str, str] | None) -> Mapping[str, st
 
 def encode_subnet_signature(
     secret: str,
+    base_url: str,
     path: str,
     identifier: str,
     request_body: bytes | None,
@@ -55,7 +57,8 @@ def encode_subnet_signature(
     """v0: Silo subnet signature encoding"""
     if request_body is None:
         request_body = DEFAULT_REQUEST_BODY
-    raw_signature = b"v0|%s|%s|%s" % (
+    raw_signature = b"v0|%s|%s|%s|%s" % (
+        base_url.rstrip("/").encode("utf-8"),
         trim_leading_slashes(path).encode("utf-8"),
         identifier.encode("utf-8"),
         request_body,
@@ -65,6 +68,7 @@ def encode_subnet_signature(
 
 
 def verify_subnet_signature(
+    base_url: str,
     path: str,
     identifier: str,
     request_body: bytes | None,
@@ -75,7 +79,13 @@ def verify_subnet_signature(
     if not secret:
         return False
 
-    assembled_signature = encode_subnet_signature(secret, path, identifier, request_body)
+    assembled_signature = encode_subnet_signature(
+        secret=secret,
+        base_url=base_url,
+        path=path,
+        identifier=identifier,
+        request_body=request_body,
+    )
 
     return hmac.compare_digest(
         assembled_signature.encode("utf-8"), provided_signature.encode("utf-8")

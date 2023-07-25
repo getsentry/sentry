@@ -13,6 +13,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
+    PROXY_BASE_URL_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
@@ -51,13 +52,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
         identifier = request.headers.get(PROXY_OI_HEADER)
-        if signature is None or identifier is None:
+        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+        if None in [signature, identifier, base_url]:
             logger.error("invalid_sender_headers", extra=self.log_extra)
             return False
         is_valid = verify_subnet_signature(
-            request_body=request.body,
+            base_url=base_url,
             path=self.proxy_path,
             identifier=identifier,
+            request_body=request.body,
             provided_signature=signature,
         )
         if not is_valid:

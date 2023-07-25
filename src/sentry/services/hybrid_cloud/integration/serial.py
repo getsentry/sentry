@@ -1,7 +1,9 @@
 from typing import Any, Dict
 
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
 from sentry.types.integrations import ExternalProviders
 
 
@@ -32,4 +34,18 @@ def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrgani
         config=config,
         status=oi.status,
         grace_period_end=oi.grace_period_end,
+    )
+
+
+def serialize_integration_external_project(
+    iep: IntegrationExternalProject,
+) -> RpcIntegrationExternalProject:
+    return RpcIntegrationExternalProject(
+        id=iep.id,
+        organization_integration_id=iep.organization_integration_id,
+        date_added=iep.date_added,
+        name=iep.name,
+        external_id=iep.external_id,
+        resolved_status=iep.resolved_status,
+        unresolved_status=iep.unresolved_status,
     )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Mapping
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -16,6 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,
+    PROXY_BASE_URL_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -117,7 +118,14 @@ class IntegrationProxyClient(ApiClient):
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         assert self.base_url and self.proxy_url
+
         base_url = self.base_url.rstrip("/")
+        if not prepared_request.url.startswith(base_url):
+            parsed = urlparse(prepared_request.url)
+            proxy_path = parsed.path
+            base_url = parsed._replace(path="", params="", query="", fragment="").geturl()
+            base_url = base_url.rstrip("/")
+
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
         proxy_url = self.proxy_url.rstrip("/")
         url = f"{proxy_url}/{proxy_path}"
@@ -126,8 +134,10 @@ class IntegrationProxyClient(ApiClient):
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,
+            base_url=base_url,
             path=proxy_path,
             identifier=str(self.org_integration_id),
             request_body=request_body,
