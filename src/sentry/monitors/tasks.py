@@ -108,6 +108,11 @@ def check_missing(current_datetime=None):
 
 @instrumented_task(name="sentry.monitors.tasks.check_timeout", time_limit=15, soft_time_limit=10)
 def check_timeout(current_datetime=None):
+    if current_datetime is None:
+        current_datetime = timezone.now()
+
+    current_datetime = current_datetime.replace(second=0, microsecond=0)
+
     qs = MonitorCheckIn.objects.filter(
         status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
     ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
