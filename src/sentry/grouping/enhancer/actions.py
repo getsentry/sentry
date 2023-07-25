@@ -30,7 +30,9 @@ class Action:
     _is_modifier: bool
     _is_updater: bool
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+    ) -> None:
         pass
 
     def update_frame_components_contributions(
@@ -60,7 +62,7 @@ class Action:
 
 
 class FlagAction(Action):
-    def __init__(self, key, flag, range):
+    def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key
         self._is_updater = key in {"group", "app", "prefix", "sentinel"}
         self._is_modifier = key == "app"
@@ -98,7 +100,10 @@ class FlagAction(Action):
         else:
             return self.flag == component.contributes
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+    ) -> None:
+        # Change a frame or many to be in_app
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
@@ -175,7 +180,9 @@ class VarAction(Action):
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
-    def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
+    def apply_modifications_to_frame(
+        self, frames: dict[str, Any], match_frames: dict[str, Any], idx: int, rule: Any = None
+    ) -> None:
         if self.var == "category":
             frame = frames[idx]
             set_path(frame, "data", "category", value=self.value)

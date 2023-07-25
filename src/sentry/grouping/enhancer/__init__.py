@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import List, Sequence
+from typing import Any, List, Sequence, Tuple
 
 import msgpack
 import sentry_sdk
@@ -118,8 +118,8 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules: List[Rule] = []
-        self._updater_rules = []
+        self._modifier_rules: List[Rule] = []  # Modifier rules only update the frame
+        self._updater_rules = []  # Updater rules affect the grouping
         for rule in self.iter_rules():
             if modifier_rule := rule._as_modifier_rule():
                 self._modifier_rules.append(modifier_rule)
@@ -127,9 +127,13 @@ class Enhancements:
                 self._updater_rules.append(updater_rule)
 
     def apply_modifications_to_frame(
-        self, frames: Sequence, platform: str, exception_data, rule=None
-    ):
-        """This applies the frame modifications to the frames itself.  This
+        self,
+        frames: Sequence[dict[str, Any]],
+        platform: str,
+        exception_data: dict[str, Any],
+        rule=None,
+    ) -> None:
+        """This applies the frame modifications to the frames itself. This
         does not affect grouping.
         """
         cache: dict[str, str] = {}
@@ -330,7 +334,13 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
+    def get_matching_frame_actions(
+        self,
+        frames: dict[str, Any],
+        platform: str,
+        exception_data: dict[str, Any],
+        cache: dict[str, str],
+    ) -> list[Tuple[int, Action]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -345,7 +355,7 @@ class Rule:
         rv = []
 
         # 2 - Check if frame matchers match
-        for idx, frame in enumerate(frames):
+        for idx, _ in enumerate(frames):
             if all(
                 m.matches_frame(frames, idx, platform, exception_data, cache)
                 for m in self._other_matchers
