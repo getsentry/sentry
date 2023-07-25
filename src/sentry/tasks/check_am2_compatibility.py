@@ -379,7 +379,7 @@ class CheckAM2Compatibility:
         for condition in EXCLUDED_CONDITIONS:
             # We want to build an AND condition with multiple negated elements.
             qs &= ~Q(conditions__icontains=condition)
-            qs &= ~Q(fields__contains=condition)
+            qs &= ~Q(fields__icontains=condition)
 
         return qs
 
