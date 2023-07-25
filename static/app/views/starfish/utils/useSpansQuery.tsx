@@ -13,6 +13,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {StarfishType} from 'sentry/views/starfish/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -28,7 +29,7 @@ export function useSpansQuery<T = any[]>({
   enabled,
   referrer = 'use-spans-query',
   cursor,
-  view = 'webservice',
+  view = StarfishType.BACKEND,
 }: {
   cursor?: string;
   enabled?: boolean;
@@ -36,7 +37,7 @@ export function useSpansQuery<T = any[]>({
   initialData?: T;
   limit?: number;
   referrer?: string;
-  view?: 'webservice' | 'mobile' | 'frontend';
+  view?: StarfishType;
 }) {
   const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
   const queryFunction = isTimeseriesQuery
@@ -48,7 +49,7 @@ export function useSpansQuery<T = any[]>({
   if (eventView) {
     const newEventView = eventView.clone();
     // We can also add `if (view == 'mobile') -> 'transaction.op:ui.load'` here in the future
-    if (view === 'webservice') {
+    if (view === StarfishType.BACKEND) {
       newEventView.query = `${eventView.query} transaction.op:http.server`;
     }
     const response = queryFunction<T>({
