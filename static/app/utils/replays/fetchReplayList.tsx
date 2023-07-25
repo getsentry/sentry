@@ -24,6 +24,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  perPage?: number;
   queryReferrer?: 'issueReplays';
 };
 
@@ -33,6 +34,7 @@ async function fetchReplayList({
   location,
   eventView,
   queryReferrer,
+  perPage,
 }: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
@@ -42,6 +44,9 @@ async function fetchReplayList({
     // HACK!!! Because the sort field needs to be in the eventView, but I cannot
     // ask the server for compound fields like `os.name`.
     payload.field = payload.field.map(field => field.split('.')[0]);
+    if (perPage) {
+      payload.per_page = perPage;
+    }
 
     // unique list
     payload.field = Array.from(new Set(payload.field));

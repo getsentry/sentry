@@ -954,8 +954,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors": {
-        "task": "sentry.monitors.tasks.check_monitors",
+    "check-monitors-missing": {
+        "task": "sentry.monitors.tasks.check_missing",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "check-monitors-timeout": {
+        "task": "sentry.monitors.tasks.check_timeout",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1489,6 +1495,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1628,8 +1636,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page
-    "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1673,6 +1679,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
