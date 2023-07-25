@@ -614,8 +614,12 @@ def compute_sliding_window_sample_rate(
     The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
     enabled in the first place for that project.
     """
-    with context.get_timer("extrapolate_monthly_volume"):
+    func_name = "extrapolate_monthly_volume"
+    with context.get_timer(func_name):
         extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+        state = context.get_function_state(func_name)
+        state.num_iterations += 1
+        context.set_function_state(func_name, state)
     if extrapolated_volume is None:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("org_id", org_id)
@@ -629,10 +633,14 @@ def compute_sliding_window_sample_rate(
         org_id, project_id, total_root_count, extrapolated_volume, window_size
     )
 
-    with context.get_timer("get_transaction_sampling_tier_for_volume"):
+    func_name = "get_transaction_sampling_tier_for_volume"
+    with context.get_timer(func_name):
         sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
             org_id, extrapolated_volume
         )
+        state = context.get_function_state(func_name)
+        state.num_iterations += 1
+        context.set_function_state(func_name, state)
     if sampling_tier is None:
         return None
 
