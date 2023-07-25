@@ -47,6 +47,6 @@ const StyledSelectControl = styled(SelectControl)`
 const OrgControlWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${space(1)};
   flex-grow: 1;
 `;

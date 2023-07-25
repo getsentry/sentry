@@ -5,7 +5,7 @@ import {Project} from 'sentry/types';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
 const renderComponent = (projects: Project[]) => {
-  const {routerContext, organization} = initializeOrg();
+  const {organization} = initializeOrg();
 
   MockApiClient.addMockResponse({
     url: `/projects/`,
@@ -28,11 +28,8 @@ const renderComponent = (projects: Project[]) => {
       notificationSettings={notificationSettings}
       onChange={jest.fn()}
       onSubmitSuccess={jest.fn()}
-      organizationId={organization.id}
       organizations={[organization]}
-      handleOrgChange={jest.fn()}
-    />,
-    {context: routerContext}
+    />
   );
 };
 
