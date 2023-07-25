@@ -10,6 +10,26 @@ from .base import (  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
+___all___ = [
+    "add",
+    "entity_features",
+    "get",
+    "has",
+    "batch_has",
+    "all",
+    "add_handler",
+    "add_entity_handler",
+    "has_for_batch",
+    "requires_snuba",
+    "Feature",
+    "FeatureHandlerStrategy",
+    "OrganizationFeature",
+    "ProjectFeature",
+    "ProjectPluginFeature",
+    "SystemFeature",
+    "UserFeature",
+]
+
 # The feature flag system provides a way to turn on or off features of Sentry.
 #
 # Registering a new feature:
