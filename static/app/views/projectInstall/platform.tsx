@@ -367,7 +367,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         </ButtonBar>
       </StyledPageHeader>
       {platform.key === 'other' ? (
-        <OtherPlatformsInfo projectSlug={project.slug} />
+        <OtherPlatformsInfo
+          projectSlug={project.slug}
+          platform={platform.name ?? 'other'}
+        />
       ) : (
         <Fragment>
           {currentPlatform && showLoaderOnboarding ? (
