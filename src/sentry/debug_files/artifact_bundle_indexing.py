@@ -19,7 +19,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndexingState,
     FlatFileIndexState,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.locking.lock import Lock
 from sentry.utils.retries import TimedRetryPolicy
@@ -58,7 +58,9 @@ def mark_bundle_for_flat_file_indexing(
     ):
         for identifier in identifiers:
             flat_file_index, _created = ArtifactBundleFlatFileIndex.objects.get_or_create(
-                project_id=identifier.project_id, release=identifier.release, dist=identifier.dist
+                project_id=identifier.project_id,
+                release_name=identifier.release,
+                dist_name=identifier.dist,
             )
             FlatFileIndexState.objects.update_or_create(
                 flat_file_index=flat_file_index,
@@ -124,11 +126,12 @@ def update_artifact_bundle_index(
         was_updated = FlatFileIndexState.compare_state_and_set(
             flat_file_index.id,
             bundle_meta.id,
-            ArtifactBundleIndexingState.NOT_INDEXED.value,
-            ArtifactBundleIndexingState.WAS_INDEXED.value,
+            ArtifactBundleIndexingState.NOT_INDEXED,
+            ArtifactBundleIndexingState.WAS_INDEXED,
         )
         if not was_updated:
-            logger.error("`ArtifactBundle` {} was already indexed into {}", bundle_meta, identifier)
+            metrics.incr("artifact_bundle_flat_file_indexing.duplicated_indexing")
+            logger.error("`ArtifactBundle` %r was already indexed into %r", bundle_meta, identifier)
 
 
 @dataclass(frozen=True)
@@ -140,30 +143,6 @@ class BundleMeta:
 Bundles = List[BundleMeta]
 FilesByUrl = Dict[str, List[int]]
 FilesByDebugID = Dict[str, List[int]]
-
-
-class FlatFileIndexStore:
-    def __init__(self, identifier: FlatFileIdentifier):
-        self.identifier = identifier
-
-    def load(self) -> Optional[str]:
-        try:
-            return ArtifactBundleFlatFileIndex.objects.get(
-                project_id=self.identifier.project_id,
-                release_name=self.identifier.release,
-                dist_name=self.identifier.dist,
-            ).load_flat_file_index()
-        except ArtifactBundleFlatFileIndex.DoesNotExist:
-            return None
-
-    def save(self, json_index: str):
-        # FIXME: this is not quite right yet :-)
-        ArtifactBundleFlatFileIndex.create_flat_file_index(
-            project_id=self.identifier.project_id,
-            release=self.identifier.release,
-            dist=self.identifier.dist,
-            file_contents=json_index,
-        )
 
 
 T = TypeVar("T")

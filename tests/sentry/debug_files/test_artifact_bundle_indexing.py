@@ -10,11 +10,9 @@ from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundle_indexing import (
     BundleMeta,
-    FlatFileIdentifier,
     FlatFileIndex,
-    FlatFileIndexingState,
-    index_artifact_bundle,
-    set_flat_files_being_indexed_if_null,
+    mark_bundle_for_flat_file_indexing,
+    update_artifact_bundle_index,
 )
 from sentry.models import File
 from sentry.models.artifactbundle import (
@@ -73,9 +71,13 @@ class FlatFileTestCase(TestCase):
         )
 
     def mock_artifact_bundle_flat_file_index(self, release, dist, file_contents):
-        return ArtifactBundleFlatFileIndex.create_flat_file_index(
-            project_id=self.project.id, release=release, dist=dist, file_contents=file_contents
+        index = ArtifactBundleFlatFileIndex.objects.create(
+            project_id=self.project.id,
+            release=release,
+            dist=dist,
         )
+        index.update_flat_file_index(file_contents)
+        return index
 
     @staticmethod
     def mock_flat_file_index():
@@ -118,26 +120,38 @@ class FlatFileIndexingTest(FlatFileTestCase):
         dist = "android"
 
         artifact_bundle = self.mock_simple_artifact_bundle()
-        identifier = FlatFileIdentifier(
-            project_id=self.project.id,
-            release=release,
-            dist=dist,
+
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, [self.project.id], release, dist
+        )
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            timestamp=artifact_bundle.date_last_modified,
         )
 
-        result = index_artifact_bundle(artifact_bundle, identifier)
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            for identifier in identifiers:
+                update_artifact_bundle_index(bundle_meta, archive, identifier)
 
-        assert result == FlatFileIndexingState.SUCCESS
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name=release, dist_name=dist
         )
 
     def test_index_bundle_in_flat_file_with_debug_ids(self):
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
-        identifier = FlatFileIdentifier(project_id=self.project.id)
 
-        result = index_artifact_bundle(artifact_bundle, identifier)
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, [self.project.id], None, None
+        )
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            timestamp=artifact_bundle.date_last_modified,
+        )
 
-        assert result == FlatFileIndexingState.SUCCESS
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            for identifier in identifiers:
+                update_artifact_bundle_index(bundle_meta, archive, identifier)
+
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name="", dist_name=""
         )
@@ -147,15 +161,19 @@ class FlatFileIndexingTest(FlatFileTestCase):
         dist = "android"
 
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
-        identifier = FlatFileIdentifier(
-            project_id=self.project.id,
-            release=release,
-            dist=dist,
+
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, [self.project.id], release, dist
+        )
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            timestamp=artifact_bundle.date_last_modified,
         )
 
-        result = index_artifact_bundle(artifact_bundle, identifier)
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            for identifier in identifiers:
+                update_artifact_bundle_index(bundle_meta, archive, identifier)
 
-        assert result == FlatFileIndexingState.SUCCESS
         assert ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name=release, dist_name=dist
         )
@@ -168,36 +186,52 @@ class FlatFileIndexingTest(FlatFileTestCase):
         to_json.side_effect = Exception
 
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
-        identifier = FlatFileIdentifier(project_id=self.project.id)
 
-        result = index_artifact_bundle(artifact_bundle, identifier)
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, [self.project.id], None, None
+        )
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            timestamp=artifact_bundle.date_last_modified,
+        )
 
-        assert result == FlatFileIndexingState.ERROR
-        assert not ArtifactBundleFlatFileIndex.objects.filter(
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            for identifier in identifiers:
+                try:
+                    update_artifact_bundle_index(bundle_meta, archive, identifier)
+                except Exception:
+                    pass
+
+        index = ArtifactBundleFlatFileIndex.objects.get(
             project_id=self.project.id, release_name="", dist_name=""
-        ).exists()
+        )
+        assert index.load_flat_file_index() is None
 
     def test_index_bundle_in_flat_file_with_conflict(self):
         release = "1.0"
         dist = "android"
         artifact_bundle = self.mock_simple_artifact_bundle(with_debug_ids=True)
 
-        identifier = FlatFileIdentifier(
-            project_id=self.project.id,
-            release=release,
-            dist=dist,
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, [self.project.id], release, dist
+        )
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            timestamp=artifact_bundle.date_last_modified,
         )
 
-        # We mark both flat files as being indexed.
-        set_flat_files_being_indexed_if_null([identifier, identifier.to_indexing_by_debug_id()])
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            for identifier in identifiers:
+                update_artifact_bundle_index(bundle_meta, archive, identifier)
 
-        result = index_artifact_bundle(artifact_bundle, identifier)
+            # We run the indexing twice, it should still succeed
+            for identifier in identifiers:
+                update_artifact_bundle_index(bundle_meta, archive, identifier)
 
-        assert result == FlatFileIndexingState.CONFLICT
-        assert not ArtifactBundleFlatFileIndex.objects.filter(
+        assert ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project.id, release_name=release, dist_name=dist
         ).exists()
-        assert not ArtifactBundleFlatFileIndex.objects.filter(
+        assert ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project.id, release_name="", dist_name=""
         ).exists()
 

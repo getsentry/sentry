@@ -192,8 +192,8 @@ class FlatFileIndexState(Model):
         updated_rows = FlatFileIndexState.objects.filter(
             flat_file_index_id=flat_file_index_id,
             artifact_bundle_id=artifact_bundle_id,
-            indexing_state=indexing_state,
-        ).update(indexing_state=new_indexing_state, date_added=timezone.now())
+            indexing_state=indexing_state.value,
+        ).update(indexing_state=new_indexing_state.value, date_added=timezone.now())
 
         # If we had one row being updated, it means that the cas operation succeeded.
         return updated_rows == 1
