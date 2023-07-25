@@ -35,6 +35,72 @@ def ignore_unpublished_app_errors(func):
 
     return wrapper
 
+def is_considered_error(error: Exception) -> bool:
+    return True
+
+def is_response_timeout(resp: Response) -> bool:
+    if Response is Timeout:
+        return True
+    return False
+
+def is_response_error(resp: Response) -> bool:
+    if resp.status_code:
+        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+            return True
+    return False
+
+def is_response_success(resp: Response) -> bool:
+    if resp.status_code:
+        if resp.status_code < 300:
+            return True
+    return False
+
+def record_error(sentryapp: SentryApp, error: Exception):
+    redis_key = sentryapp._get_redis_key()
+    if not len(redis_key):
+        return
+    if not is_considered_error(error):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_error()
+    if buffer.is_integration_broken():
+        disable_app()
+
+def record_request_error(sentryapp: SentryApp, resp: Response):
+    redis_key = sentryapp._get_redis_key()
+    if not len(redis_key):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_error()
+    if buffer.is_integration_broken():
+        disable_app()
+
+def record_request_success(sentryapp: SentryApp, resp: Response):
+    redis_key = sentryapp._get_redis_key()
+    if not len(redis_key):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_success()
+
+def record_request_timeout(sentryapp: SentryApp, resp: Response):
+    redis_key = sentryapp._get_redis_key()
+    if not len(redis_key):
+        return
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_timeout()
+    if buffer.is_integration_broken():
+        disable_app()
+
+def record_response( response: Response):
+    if is_response_fatal(response):
+        record_request_fatal(response)
+    elif is_response_error(response):
+        record_request_error(response)
+    elif is_response_success(response):
+        record_request_success(response)
+
+def disable_app(sentryapp: SentryApp):
+    #sentryapp.update(status=ObjectStatus.DISABLED)
 
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
