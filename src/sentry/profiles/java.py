@@ -16,6 +16,9 @@ JAVA_BASE_TYPES = {
 # parse_obfuscated_signature will parse an obfuscated signatures into parameter
 # and return types that can be then deobfuscated
 def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
+    if signature[0] != "(":
+        return [], ""
+
     signature = signature[1:]
     parameter_types, return_type = signature.rsplit(")", 1)
     types = []
@@ -53,7 +56,10 @@ def format_signature(parameter_java_types: List[str], return_java_type: str) -> 
     return signature
 
 
-def byte_code_type_to_java_type(byte_code_type: str) -> str:
+def byte_code_type_to_java_type(mapper, byte_code_type: str) -> str:
+    if not byte_code_type:
+        return ""
+
     token = byte_code_type[0]
     if token in JAVA_BASE_TYPES:
         return JAVA_BASE_TYPES[token]
@@ -72,8 +78,10 @@ def deobfuscate_signature(mapper, signature: str) -> str:
         return ""
 
     parameter_types, return_type = parse_obfuscated_signature(signature)
-    parameter_java_types = []
+    if not (parameter_types or return_type):
+        return ""
 
+    parameter_java_types = []
     for parameter_type in parameter_types:
         new_class = byte_code_type_to_java_type(parameter_type)
         mapped = mapper.remap_class(new_class)
