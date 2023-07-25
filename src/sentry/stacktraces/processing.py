@@ -19,8 +19,8 @@ op = "stacktrace_processing"
 
 
 class StacktraceInfo(NamedTuple):
-    stacktrace: Any
-    container: Any
+    stacktrace: dict[str, Any]
+    container: dict[str, Any]
     platforms: set[str]
     is_exception: bool
 
@@ -194,8 +194,13 @@ def find_stacktraces_in_data(
     """
     rv = []
 
-    def _append_stacktrace(stacktrace: Any, container: Any, is_exception: bool = False) -> None:
-        frames = get_path(stacktrace, "frames", filter=True, default=())
+    def _append_stacktrace(
+        stacktrace: dict[str, Any],
+        container: dict[str, Any],
+        is_exception: bool = False,
+    ) -> None:
+        # We do not use a default value to allow for None
+        frames = get_path(stacktrace, "frames", filter=True)
         if not is_exception and (not stacktrace or not frames):
             return
 
@@ -211,24 +216,24 @@ def find_stacktraces_in_data(
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=with_exceptions)
+        _append_stacktrace(exc.get("stacktrace", {}), exc, is_exception=with_exceptions)
 
     # Look for stacktraces under the key `stacktrace`
-    _append_stacktrace(data.get("stacktrace"), None)
+    _append_stacktrace(data.get("stacktrace", {}), {})
 
     # The native family includes stacktraces under threads
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _append_stacktrace(thread.get("stacktrace"), thread)
+        _append_stacktrace(thread.get("stacktrace", {}), thread)
 
     if include_raw:
         for info in rv:
             if info.container is not None:
-                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
+                _append_stacktrace(info.container.get("raw_stacktrace", {}), info.container)
 
     return rv
 
 
-def _get_frames_metadata(frames: Sequence[Any], fallback_platform: str) -> set[str]:
+def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: str) -> set[str]:
     """Create a set of platforms involved"""
     platforms = set()
     for frame in frames:
@@ -260,7 +265,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> None:
             set_in_app(frame, False)
 
 
-def normalize_stacktraces_for_grouping(data: Any, grouping_config: Any = None) -> None:
+def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
