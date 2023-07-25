@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
@@ -86,7 +86,7 @@ function SpanSummaryPage({params, location}: Props) {
       'count()',
       'sps()',
       `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
       'http_error_count()',
     ],
@@ -108,7 +108,7 @@ function SpanSummaryPage({params, location}: Props) {
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`p95(${SpanMetricsFields.SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
+      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
@@ -185,7 +185,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
                     </Block>
                     <Block
-                      title={t('Duration (P95)')}
+                      title={DataTitles.avg}
                       description={tct(
                         '95% of [spanType] in the selected period have a lower duration than this value',
                         {
@@ -197,7 +197,7 @@ function SpanSummaryPage({params, location}: Props) {
                     >
                       <DurationCell
                         milliseconds={
-                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                          spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]
                         }
                       />
                     </Block>
@@ -218,7 +218,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <TimeSpentCell
                         timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
                         totalSpanTime={
-                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                          spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]
                         }
                       />
                     </Block>
@@ -261,17 +261,17 @@ function SpanSummaryPage({params, location}: Props) {
                     </Block>
 
                     <Block>
-                      <ChartPanel title={DataTitles.p95}>
+                      <ChartPanel title={DataTitles.avg}>
                         <Chart
                           height={140}
                           data={[
                             spanMetricsSeriesData?.[
-                              `p95(${SpanMetricsFields.SPAN_SELF_TIME})`
+                              `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
                             ],
                           ]}
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
-                          chartColors={[P95_COLOR]}
+                          chartColors={[AVG_COLOR]}
                           isLineChart
                           definedAxisTicks={4}
                         />

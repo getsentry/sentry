@@ -14,16 +14,13 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, SPAN_DOMAIN} =
   SpanMetricsFields;
 
 export type SpanMetrics = {
+  'avg(span.self_time)': number;
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
-  'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
-  'sps_percent_change()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
@@ -87,7 +84,7 @@ function getEventView(
     SPAN_DOMAIN,
     'sps()',
     `sum(${SPAN_SELF_TIME})`,
-    `p95(${SPAN_SELF_TIME})`,
+    `avg(${SPAN_SELF_TIME})`,
     'http_error_count()',
   ];
 
