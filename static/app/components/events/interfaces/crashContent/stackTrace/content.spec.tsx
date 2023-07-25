@@ -195,6 +195,25 @@ describe('StackTrace', function () {
       expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
     });
 
+    it('toggles the show/hide button when clicked', async function () {
+      const dataFrames = [...data.frames];
+      dataFrames[0] = {...dataFrames[0], inApp: true};
+
+      const newData = {
+        ...data,
+        frames: dataFrames,
+      };
+
+      renderedComponent({
+        organization,
+        data: newData,
+        includeSystemFrames: false,
+      });
+      await userEvent.click(screen.getByText('Show 3 more frames'));
+
+      expect(screen.getByText('Hide 3 more frames')).toBeInTheDocument();
+    });
+
     it('does not display a toggle button when there is only one non-inapp frame', function () {
       const dataFrames = [...data.frames];
       dataFrames[0] = {...dataFrames[0], inApp: true};
@@ -212,8 +231,7 @@ describe('StackTrace', function () {
         includeSystemFrames: false,
       });
 
-      expect(screen.queryByText('more frames')).not.toBeInTheDocument();
-      expect(screen.queryByText('more frame')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
     });
   });
 
