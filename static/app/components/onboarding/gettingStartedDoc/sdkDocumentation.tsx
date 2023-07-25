@@ -85,9 +85,6 @@ export const migratedDocs = [
   'apple',
   'apple-ios',
   'apple-macos',
-  'apple',
-  'apple-ios',
-  'apple-macos',
   'flutter',
   'dart',
 ];
