@@ -20,6 +20,7 @@ import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {PlatformIntegration} from 'sentry/types';
 import {OnboardingSelectedSDK} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,6 +32,17 @@ import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingSta
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
+
+const allPlatforms: PlatformIntegration[] = [
+  ...platforms,
+  {
+    id: 'other',
+    name: t('Other'),
+    link: 'https://docs.sentry.io/platforms/',
+    type: 'language',
+    language: 'other',
+  },
+];
 
 const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
@@ -55,7 +67,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
     : undefined;
 
   const currentPlatformKey = project?.platform ?? 'other';
-  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
     currentPlatform?.id === 'javascript'
@@ -125,12 +137,11 @@ export function ProjectInstallPlatform({location, params}: Props) {
     'getting-started-doc-with-product-selection'
   );
 
-  const platformIntegration = platforms.find(p => p.id === currentPlatformKey);
   const platform: Platform = {
     key: currentPlatformKey as PlatformKey,
-    id: platformIntegration?.id,
-    name: platformIntegration?.name,
-    link: platformIntegration?.link,
+    id: currentPlatform?.id,
+    name: currentPlatform?.name,
+    link: currentPlatform?.link,
   };
 
   const hideLoaderOnboarding = useCallback(() => {
@@ -147,12 +158,17 @@ export function ProjectInstallPlatform({location, params}: Props) {
     });
   }, [organization, currentPlatform, project?.id]);
 
-  if (!project || !currentPlatform) {
+  if (!project) {
     return null;
   }
 
   if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
+  }
+
+  // because we fall back to 'other' this will always be defined
+  if (!currentPlatform) {
+    return null;
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
