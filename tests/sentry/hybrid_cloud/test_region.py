@@ -1,8 +1,6 @@
 import pytest
-from django.db import router
 from django.test import override_settings
 
-from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.region import (
     ByOrganizationId,
@@ -13,7 +11,7 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -29,16 +27,7 @@ _TEST_REGIONS = (
 class RegionResolutionTest(TestCase):
     def setUp(self):
         self.target_region = _TEST_REGIONS[0]
-        self.organization = self._create_org_in_region(self.target_region)
-
-    def _create_org_in_region(self, target_region):
-        with override_settings(SENTRY_REGION=target_region.name):
-            organization = self.create_organization()
-        org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
-        with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            org_mapping.region_name = target_region.name
-            org_mapping.save()
-        return organization
+        self.organization = self.create_organization(region=self.target_region)
 
     def test_by_organization_object(self):
         region_resolution = ByOrganizationObject()
@@ -85,7 +74,7 @@ class RegionResolutionTest(TestCase):
                 region_resolution.resolve({})
 
         with override_regions(_TEST_REGIONS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
-            self._create_org_in_region(_TEST_REGIONS[1])
+            self.create_organization(region=_TEST_REGIONS[1])
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
 

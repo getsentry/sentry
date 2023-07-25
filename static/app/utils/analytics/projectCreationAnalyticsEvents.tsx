@@ -28,6 +28,10 @@ export type ProjectCreationEventParameters = {
     platform: string;
     project_id: string;
   };
+  'project_creation.source_maps_wizard_selected_and_copied': {
+    platform: string;
+    project_id: string;
+  };
 };
 
 export const projectCreationEventMap: Record<
@@ -52,4 +56,6 @@ export const projectCreationEventMap: Record<
   'project_creation.back_button_clicked': 'Project Creation: Back Button Clicked',
   'project_creation.source_maps_wizard_button_copy_clicked':
     'Project Creation: Source Maps Wizard Button Copy Clicked',
+  'project_creation.source_maps_wizard_selected_and_copied':
+    'Project Creation: Source Maps Wizard Selected and Copied',
 };

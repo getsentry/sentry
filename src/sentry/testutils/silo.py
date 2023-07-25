@@ -56,41 +56,6 @@ def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     return silo_limit
 
 
-class _SiloModeTestCase(TestCase):
-    """A test case that is expected to work in a particular silo mode.
-
-    This class is meant to be extended by test cases tagged with a
-    SiloModeTestDecorator. It should not be declared explicitly as a superclass,
-    but is used to dynamically generate a new test case class (see
-    SiloModeTestDecorator._add_siloed_test_classes_to_module).
-
-    The subclass will apply the silo mode context to the entire test run, including
-    setup.
-    """
-
-    # Expect these class-level attributes to be set when a subclass is
-    # dynamically generated
-    silo_mode: SiloMode
-    regions: Sequence[Region]
-    is_acceptance_test: bool
-
-    def run(
-        self, result: unittest.result.TestResult | None = None
-    ) -> unittest.result.TestResult | None:
-        with override_settings(
-            SILO_MODE=self.silo_mode,
-            SINGLE_SERVER_SILO_MODE=self.is_acceptance_test,
-            SENTRY_SUBNET_SECRET="secret",
-            SENTRY_CONTROL_ADDRESS="http://controlserver/",
-        ):
-            with override_regions(self.regions):
-                if self.silo_mode == SiloMode.REGION:
-                    with override_settings(SENTRY_REGION=self.regions[0].name):
-                        return super().run(result)
-                else:
-                    return super().run(result)
-
-
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
@@ -127,13 +92,31 @@ class SiloModeTestDecorator:
         is_acceptance_test = self._is_acceptance_test(test_class)
 
         def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
+            def run(
+                self: Any, result: unittest.result.TestResult | None = None
+            ) -> unittest.result.TestResult | None:
+                with override_settings(
+                    SILO_MODE=self.silo_mode,
+                    SINGLE_SERVER_SILO_MODE=self.is_acceptance_test,
+                    SENTRY_SUBNET_SECRET="secret",
+                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
+                ):
+                    with override_regions(self.regions):
+                        if self.silo_mode == SiloMode.REGION:
+                            with override_settings(SENTRY_REGION=self.regions[0].name):
+                                return super(test_class, self).run()  # type: ignore
+                        else:
+                            with override_settings(SENTRY_MONOLITH_REGION=self.regions[0].name):
+                                return super(test_class, self).run()  # type: ignore
+
             return type(
                 name,
-                (test_class, _SiloModeTestCase),
+                (test_class,),
                 {
                     "silo_mode": silo_mode,
                     "regions": tuple(regions or _DEFAULT_TEST_REGIONS),
                     "is_acceptance_test": is_acceptance_test,
+                    "run": run,
                 },
             )
 

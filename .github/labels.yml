@@ -35,32 +35,6 @@
   color: '3C74DD'
   description: Automatically applied to PRs that change frontend components
 
-# Status for use with stalebot and routing/triage
-- name: 'Status: Backlog'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: In Progress'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: Invalid'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Investigating'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Needs More Information'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Stale'
-  color: '8D5494'
-  description: stalebot will close after another week of inactivity
-- name: 'Status: Unrouted'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Untriaged'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-
 # Issue type
 - name: 'Type: Bug'
   color: '584774'

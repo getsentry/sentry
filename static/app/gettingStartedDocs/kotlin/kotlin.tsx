@@ -7,17 +7,21 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  "Sentry supports Kotlin for both JVM and [Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
-  {
-    gettingStartedWithAndroidLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/android/" />
-    ),
-    gettingStartedWithJavaLink: (
-      <ExternalLink href="https://docs.sentry.io/platforms/java/" />
-    ),
-    strong: <strong />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      "Sentry supports Kotlin for both JVM and [Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      {
+        gettingStartedWithAndroidLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/android/" />
+        ),
+        gettingStartedWithJavaLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/" />
+        ),
+        strong: <strong />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -72,12 +76,8 @@ dependencies {
   },
   {
     type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct("Configure Sentry as soon as possible in your application's lifecycle:", {
-          code: <code />,
-        })}
-      </p>
+    description: t(
+      "Configure Sentry as soon as possible in your application's lifecycle:"
     ),
     configurations: [
       {

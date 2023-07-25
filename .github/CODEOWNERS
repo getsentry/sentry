@@ -347,6 +347,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/organizationAuth/          @getsentry/enterprise
 /tests/sentry/api/endpoints/test_auth*.py             @getsentry/enterprise
 
+/tests/sentry/api/test_data_secrecy.py                @getsentry/enterprise
+
 /src/sentry/scim/                                     @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                       @getsentry/enterprise
 /src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise @AniketDas-Tekky

@@ -334,9 +334,16 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
+export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
+  data: {
+    // Set for semver releases
+    current_release_version: string;
+  };
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+}
+
 export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
-    current_release_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -461,6 +468,7 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
@@ -541,7 +549,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus: GroupSubstatus | null;
 };
 
 // TODO(ts): incomplete
@@ -597,7 +605,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    GroupStatusResolution {}
+    Omit<GroupStatusResolution, 'substatus'> {}
 
 export type Group = GroupResolution | GroupReprocessing;
 

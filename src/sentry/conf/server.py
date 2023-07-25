@@ -326,7 +326,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
-    "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
@@ -359,6 +358,11 @@ TEMPLATES = [
         },
     }
 ]
+
+SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+    "CONTROL": ["sentry.ControlOutbox"],
+    "REGION": ["sentry.RegionOutbox"],
+}
 
 INSTALLED_APPS = (
     "django.contrib.auth",
@@ -659,9 +663,6 @@ CELERY_ALWAYS_EAGER = False
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
 
-# Complain about bad use of pickle in PickledObjectField
-PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
-
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -748,7 +749,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
-    "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
 )
@@ -953,8 +953,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors": {
-        "task": "sentry.monitors.tasks.check_monitors",
+    "check-monitors-missing": {
+        "task": "sentry.monitors.tasks.check_missing",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "check-monitors-timeout": {
+        "task": "sentry.monitors.tasks.check_timeout",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1099,12 +1105,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
         # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_archive_issues": {
-        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "github_comment_reactions": {
@@ -1341,10 +1341,6 @@ SENTRY_FEATURES = {
     "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
-    # Enable Discord integration
-    "organizations:integrations-discord": False,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1361,6 +1357,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enables data secrecy mode
+    "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow in MS Teams
@@ -1458,6 +1456,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to create a Discord integration
+    "organizations:integrations-discord": False,
+    # Enable Discord integration notifications
+    "organizations:integrations-discord-notifications"
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable data forwarding functionality for organizations.
@@ -1472,8 +1476,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enable experimental performance improvements.
-    "organizations:enterprise-perf": False,
     # Enables inviting new members based on GitHub commit activity.
     "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1488,6 +1490,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1565,6 +1569,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable linking from 'new issue' slack notifs to the issue replay list
+    "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
@@ -1625,8 +1631,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page
-    "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1670,8 +1674,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable indexing of artifact bundles for sourcemaps.
-    "organizations:sourcemaps-bundle-indexing": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -3195,9 +3199,9 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "nodestore",
+    "replays",
     "sentry",
     "social_auth",
-    "sentry.replays",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3494,6 +3498,7 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     # RPC authentication and address information
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",

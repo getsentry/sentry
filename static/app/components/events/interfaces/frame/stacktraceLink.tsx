@@ -29,7 +29,7 @@ import {
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -270,7 +270,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       <StacktraceLinkWrapper>
         <OpenInLink
           onClick={onOpenLink}
-          href={`${match!.sourceUrl}#L${frame.lineNo}`}
+          href={getIntegrationSourceUrl(
+            match.config.provider.key,
+            match!.sourceUrl,
+            frame.lineNo
+          )}
           openInNewTab
         >
           <StyledIconWrapper>

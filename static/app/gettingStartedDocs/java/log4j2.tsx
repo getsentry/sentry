@@ -7,15 +7,19 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
-  {
-    log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
-    appenderLink: (
-      <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
-    ),
-    code: <code />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
+      {
+        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
+        appenderLink: (
+          <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
+        ),
+        code: <code />,
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -140,8 +144,12 @@ sentry {
         description: (
           <p>
             {tct(
-              'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
-              {log4j2Code: <code />, sentryAppenderCode: <code />}
+              'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryConsoleAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [sentryAppenderCode:SentryAppender] that logs to the Sentry server at the ERROR level.',
+              {
+                log4j2Code: <code />,
+                sentryConsoleAppenderCode: <code />,
+                sentryAppenderCode: <code />,
+              }
             )}
           </p>
         ),

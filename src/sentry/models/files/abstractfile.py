@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
 from typing import ClassVar, Type
 
+import sentry_sdk
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
@@ -269,6 +270,7 @@ class AbstractFile(Model):
                 except Exception:
                     pass
 
+    @sentry_sdk.tracing.trace
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Save a fileobj into a number of chunks.
@@ -300,6 +302,7 @@ class AbstractFile(Model):
             self.save()
         return results
 
+    @sentry_sdk.tracing.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
         """
         This creates a file, from file blobs and returns a temp file with the

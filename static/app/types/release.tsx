@@ -122,13 +122,13 @@ export type CurrentRelease = {
 };
 
 export type ReleaseProject = {
-  hasHealthData: boolean;
   id: number;
   name: string;
   newGroups: number;
   platform: PlatformKey;
   platforms: PlatformKey[];
   slug: string;
+  hasHealthData?: boolean;
   healthData?: Health;
 };
 
@@ -137,6 +137,7 @@ export type ReleaseMeta = {
   commitFilesChanged: number;
   deployCount: number;
   isArtifactBundle: boolean;
+  newGroups: number;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;
