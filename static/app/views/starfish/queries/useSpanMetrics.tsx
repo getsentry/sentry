@@ -58,7 +58,7 @@ function getEventView(
       name: '',
       query: `${SPAN_GROUP}:${group}${
         queryFilters?.transactionName
-          ? ` transaction:${queryFilters?.transactionName}`
+          ? ` transaction:"${queryFilters?.transactionName}"`
           : ''
       }${
         queryFilters?.['transaction.method']
