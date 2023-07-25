@@ -114,7 +114,10 @@ def boost_low_volume_projects_of_org(
         Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
+    # secondary tasks should not log the context, I need the context only for calling
+    # `adjust_sample_rates_of_projects`, the accumulated info will be ignored.
+    context = TaskContext("not_used", MAX_TASK_SECONDS)
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates, context)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -239,6 +242,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 def adjust_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    context: TaskContext,
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
@@ -253,7 +257,7 @@ def adjust_sample_rates_of_projects(
 
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id)
+        sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_id, context)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
