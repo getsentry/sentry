@@ -43,6 +43,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -94,6 +95,7 @@ type Props = {
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
+  rateUnit?: RateUnits;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
@@ -152,6 +154,7 @@ function Chart({
   disableXAxis,
   definedAxisTicks,
   durationUnit,
+  rateUnit,
   chartColors,
   isBarChart,
   isLineChart,
@@ -254,7 +257,8 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit ?? getDurationUnit(data)
+            durationUnit ?? getDurationUnit(data),
+            rateUnit
           );
         },
       },
