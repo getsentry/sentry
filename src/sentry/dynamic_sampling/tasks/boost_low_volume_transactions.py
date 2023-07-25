@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
-from sentry_sdk import capture_message, set_extra
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -145,12 +145,14 @@ def boost_low_volume_transactions() -> None:
             ):
                 boost_low_volume_transactions_of_project.delay(project_transactions)
     except TimeoutException:
-        set_extra("context-data", context.to_dict())
+        sentry_sdk.set_extra("context-data", context.to_dict())
         log_task_timeout(context)
         raise
     else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
+        sentry_sdk.set_extra("context-data", context.to_dict())
+        sentry_sdk.capture_message(
+            "timing for sentry.dynamic_sampling.tasks.boost_low_volume_transactions"
+        )
         log_task_execution(context)
 
 

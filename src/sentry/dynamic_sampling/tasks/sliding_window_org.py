@@ -1,7 +1,7 @@
 import time
 from datetime import timedelta
 
-from sentry_sdk import capture_message, set_extra
+import sentry_sdk
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import (
@@ -65,12 +65,12 @@ def sliding_window_org() -> None:
             # that the execution of the sliding window org was successful. We will keep this state for 1 hour.
             mark_sliding_window_org_executed()
     except TimeoutException:
-        set_extra("context-data", context.to_dict())
+        sentry_sdk.set_extra("context-data", context.to_dict())
         log_task_timeout(context)
         raise
     else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window_org")
+        sentry_sdk.set_extra("context-data", context.to_dict())
+        sentry_sdk.capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window_org")
         log_task_execution(context)
 
 

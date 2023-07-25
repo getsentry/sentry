@@ -42,6 +42,7 @@ def log_sample_rate_source(
 
 def log_task_timeout(context: TaskContext) -> None:
     logger.error("dynamic_sampling.task_timeout", extra=context.to_dict())
+    metrics.incr("dynamic_sampling.task_timeout", tags={"task_name": context.name})
 
 
 def log_task_execution(context: TaskContext) -> None:

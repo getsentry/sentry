@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Mapping, Sequence, Tuple
 
-from sentry_sdk import capture_message, set_extra
+import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -96,21 +96,17 @@ def sliding_window() -> None:
                             context,
                         )
 
+            # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
+            # execution of the sliding window was successful. We will keep this state for 1 hour.
+            mark_sliding_window_executed()
     except TimeoutException:
-        set_extra("context-data", context.to_dict())
+        sentry_sdk.set_extra("context-data", context.to_dict())
         log_task_timeout(context)
         raise
     else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
+        sentry_sdk.set_extra("context-data", context.to_dict())
+        sentry_sdk.capture_message("timing for sentry.dynamic_sampling.tasks.sliding_window")
         log_task_execution(context)
-    finally:
-        # TODO (RaduW) Hot fix, we need to see if this is indeed what we want to do, or we can mark the sliding window
-        #   as executed only when the task is successful.
-
-        # Due to the synchronous nature of the sliding window, when we arrived here, we can confidently say that the
-        # execution of the sliding window was successful. We will keep this state for 1 hour.
-        mark_sliding_window_executed()
 
 
 def adjust_base_sample_rates_of_projects(

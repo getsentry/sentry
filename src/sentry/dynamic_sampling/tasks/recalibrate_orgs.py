@@ -1,6 +1,6 @@
 import time
 
-from sentry_sdk import capture_message, set_extra
+import sentry_sdk
 from snuba_sdk import Granularity
 
 from sentry.dynamic_sampling.tasks.common import (
@@ -71,15 +71,15 @@ def recalibrate_orgs() -> None:
                 try:
                     recalibrate_org(org_volume, context)
                 except RecalibrationError as e:
-                    set_extra("context-data", context.to_dict())
+                    sentry_sdk.set_extra("context-data", context.to_dict())
                     log_recalibrate_org_error(org_volume.org_id, str(e))
     except TimeoutException:
-        set_extra("context-data", context.to_dict())
+        sentry_sdk.set_extra("context-data", context.to_dict())
         log_task_timeout(context)
         raise
     else:
-        set_extra("context-data", context.to_dict())
-        capture_message("timing for sentry.dynamic_sampling.tasks.recalibrate_orgs")
+        sentry_sdk.set_extra("context-data", context.to_dict())
+        sentry_sdk.capture_message("timing for sentry.dynamic_sampling.tasks.recalibrate_orgs")
         log_task_execution(context)
 
 
