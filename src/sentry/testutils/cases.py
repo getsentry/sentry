@@ -755,11 +755,12 @@ class AuthProviderTestCase(TestCase):
     provider_name = "dummy"
 
     def setUp(self):
-        super().setUp()
-        # TestCase automatically sets up dummy provider
-        if self.provider_name != "dummy" or self.provider != DummyProvider:
-            auth.register(self.provider_name, self.provider)
-            self.addCleanup(auth.unregister, self.provider_name, self.provider)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            super().setUp()
+            # TestCase automatically sets up dummy provider
+            if self.provider_name != "dummy" or self.provider != DummyProvider:
+                auth.register(self.provider_name, self.provider)
+                self.addCleanup(auth.unregister, self.provider_name, self.provider)
 
 
 class RuleTestCase(TestCase):

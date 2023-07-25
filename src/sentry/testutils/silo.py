@@ -56,7 +56,7 @@ def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     return silo_limit
 
 
-class _SiloModeTestCase(TestCase):
+class _SiloModeTestCase:
     """A test case that is expected to work in a particular silo mode.
 
     This class is meant to be extended by test cases tagged with a
@@ -86,10 +86,10 @@ class _SiloModeTestCase(TestCase):
             with override_regions(self.regions):
                 if self.silo_mode == SiloMode.REGION:
                     with override_settings(SENTRY_REGION=self.regions[0].name):
-                        return super().run(result)
+                        return super().run(result)  # type: ignore
                 else:
                     with override_settings(SENTRY_MONOLITH_REGION=self.regions[0].name):
-                        return super().run(result)
+                        return super().run(result)  # type: ignore
 
 
 class SiloModeTestDecorator:

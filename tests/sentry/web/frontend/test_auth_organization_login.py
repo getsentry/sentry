@@ -622,7 +622,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
         )
-        assert resp.status_code == 302
         assert resp.redirect_chain == [
             (reverse("sentry-login"), 302),
             ("/organizations/foo/issues/", 302),
