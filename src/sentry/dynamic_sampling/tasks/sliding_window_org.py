@@ -88,7 +88,11 @@ def adjust_base_sample_rate_of_org(
     with timer:
         with context.get_timer(compute_guarded_sliding_window_sample_rate.__name__):
             sample_rate = compute_guarded_sliding_window_sample_rate(
-                org_id, None, total_root_count, window_size
+                org_id,
+                None,
+                total_root_count,
+                window_size,
+                context,
             )
         # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
         # with the old value.

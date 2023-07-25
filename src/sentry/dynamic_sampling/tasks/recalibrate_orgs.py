@@ -114,7 +114,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
             "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
         )
 
-        target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
+        target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(
+            org_volume.org_id, context
+        )
         log_sample_rate_source(
             org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
         )
