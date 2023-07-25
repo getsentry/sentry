@@ -624,4 +624,91 @@ describe('GroupActivity', function () {
       'Foo Bar marked this issue as resolved in releases greater than 1.0.0 (semver)'
     );
   });
+
+  describe('regression', function () {
+    it('renders basic regression', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {},
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry marked this issue as a regression'
+      );
+    });
+    it('renders regression with version', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@1.0.0',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry marked this issue as a regression in 1.0.0'
+      );
+    });
+    it('renders regression with semver description', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@2.0.0',
+              resolved_in_version: 'frontend@1.0.0',
+              follows_semver: true,
+            },
+            dateCreated,
+          },
+        ],
+        organization: TestStubs.Organization({features: ['issue-release-semver']}),
+      });
+      const activity = screen.getAllByTestId('activity-item').at(-1);
+      expect(activity).toHaveTextContent(
+        'Sentry marked this issue as a regression in 2.0.0'
+      );
+      expect(activity).toHaveTextContent(
+        '2.0.0 is greater than or equal to 1.0.0 compared via semver'
+      );
+    });
+    it('renders regression with non-semver description', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_REGRESSION,
+            project: TestStubs.Project(),
+            data: {
+              version: 'frontend@abc1',
+              resolved_in_version: 'frontend@abc2',
+              follows_semver: false,
+            },
+            dateCreated,
+          },
+        ],
+        organization: TestStubs.Organization({features: ['issue-release-semver']}),
+      });
+      const activity = screen.getAllByTestId('activity-item').at(-1);
+      expect(activity).toHaveTextContent(
+        'Sentry marked this issue as a regression in abc1'
+      );
+      expect(activity).toHaveTextContent(
+        'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
+  });
 });
