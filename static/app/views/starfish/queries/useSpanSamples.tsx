@@ -40,7 +40,7 @@ export const useSpanSamples = (options: Options) => {
 
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
-    `transaction:${transactionName}`,
+    `transaction:"${transactionName}"`,
     `transaction.method:${transactionMethod}`,
   ]);
 
