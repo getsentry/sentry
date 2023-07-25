@@ -408,6 +408,10 @@ class RpcArgumentException(Exception):
     """Indicate that the serial arguments to an RPC service were invalid."""
 
 
+class RpcRemoteException(Exception):
+    """Indicate that a remote RPC service returned an error status code."""
+
+
 class RpcResponseException(Exception):
     """Indicate that the response from a remote RPC service violated expectations."""
 
@@ -544,16 +548,19 @@ class _RemoteSiloCall:
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         if in_test_environment():
             if response.status_code == 500:
-                raise Exception(
+                raise RpcRemoteException(
                     f"Error invoking rpc at {self.path!r}: check error logs for more details"
                 )
-            raise Exception(f"Error invoking rpc at {self.path!r}: {response.json()['detail']}")
+            detail = response.json()["detail"]
+            raise RpcRemoteException(
+                f"Error ({response.status_code} status) invoking rpc at {self.path!r}: {detail}"
+            )
         # Careful not to reveal too much information in production
         if response.status_code == 403:
-            raise Exception("Unauthorized service access")
+            raise RpcRemoteException("Unauthorized service access")
         if response.status_code == 400:
-            raise Exception("Invalid service request")
-        raise Exception("Service unavailable")
+            raise RpcRemoteException("Invalid service request")
+        raise RpcRemoteException(f"Service unavailable ({response.status_code} status)")
 
     def _fire_test_request(self, headers: Mapping[str, str], data: bytes) -> Any:
         from django.test import Client
