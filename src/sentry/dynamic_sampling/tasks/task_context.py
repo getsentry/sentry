@@ -28,6 +28,22 @@ class DynamicSamplingLogState:
             "executionTime": self.execution_time,
         }
 
+    def increment(
+        self,
+        num_rows_total: int = 0,
+        num_db_calls: int = 0,
+        num_iterations: int = 0,
+        num_projects: int = 0,
+        num_orgs: int = 0,
+    ) -> "DynamicSamplingLogState":
+        self.num_rows_total += num_rows_total
+        self.num_db_calls += num_db_calls
+        self.num_iterations += num_iterations
+        self.num_projects += num_projects
+        self.num_orgs += num_orgs
+
+        return self
+
     @staticmethod
     def from_dict(val: Optional[Dict[Any, Any]]) -> "DynamicSamplingLogState":
         if val is not None:
@@ -68,15 +84,32 @@ class TaskContext:
     def set_function_state(self, function_id: str, log_state: DynamicSamplingLogState):
         if self.context_data is None:
             self.context_data = {}
+
         self.context_data[function_id] = log_state
 
     def get_function_state(self, function_id: str) -> DynamicSamplingLogState:
-
         default = DynamicSamplingLogState()
+
         if self.context_data is None:
             return default
         else:
             return self.context_data.get(function_id, default)
+
+    def incr_function_state(
+        self,
+        function_id: str,
+        num_rows_total: int = 0,
+        num_db_calls: int = 0,
+        num_iterations: int = 0,
+        num_projects: int = 0,
+        num_orgs: int = 0,
+    ):
+        self.set_function_state(
+            function_id,
+            self.get_function_state(function_id).increment(
+                num_rows_total, num_db_calls, num_iterations, num_projects, num_orgs
+            ),
+        )
 
     def get_timer(self, name) -> "NamedTimer":
         return self.timers.get_timer(name)

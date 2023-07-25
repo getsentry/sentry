@@ -114,10 +114,7 @@ def boost_low_volume_projects_of_org(
         Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-    # secondary tasks should not log the context, I need the context only for calling
-    # `adjust_sample_rates_of_projects`, the accumulated info will be ignored.
-    context = TaskContext("not_used", MAX_TASK_SECONDS)
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates, context)
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -130,11 +127,10 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
-    function_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
-    timer = context.get_timer(function_name)
+    func_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
+    timer = context.get_timer(func_name)
     with timer:
-        current_context = context.get_function_state(function_name)
-        current_context.num_iterations += 1
+        context.incr_function_state(func_name, num_iterations=1)
 
         if query_interval is None:
             query_interval = timedelta(hours=1)
@@ -222,18 +218,18 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                         row["drop_count"],
                     )
                 )
-                current_context.num_projects += 1
+                context.incr_function_state(function_id=func_name, num_projects=1)
 
-            current_context.num_db_calls += 1
-            current_context.num_rows_total += count
-            current_context.num_orgs += len(aggregated_projects)
-
-            context.set_function_state(function_name, current_context)
+            context.incr_function_state(
+                function_id=func_name,
+                num_db_calls=1,
+                num_rows_total=count,
+                num_orgs=len(aggregated_projects),
+            )
 
             if not more_results:
                 break
         else:
-            context.set_function_state(function_name, current_context)
             raise TimeoutException(context)
 
         return aggregated_projects
@@ -242,7 +238,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 def adjust_sample_rates_of_projects(
     org_id: int,
     projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
-    context: TaskContext,
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.

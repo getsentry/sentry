@@ -24,7 +24,6 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import (
-    log_action_if,
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
@@ -45,10 +44,6 @@ class RecalibrationError(Exception):
         final_message = f"Error during recalibration of org {org_id}: {message}"
         self.message = final_message
         super().__init__(self.message)
-
-
-def orgs_to_check(org_volume: OrganizationDataVolume):
-    return lambda: org_volume.org_id in [1, 1407395]
 
 
 @instrumented_task(
@@ -74,11 +69,6 @@ def recalibrate_orgs() -> None:
         ):
             for org_volume in org_volumes:
                 try:
-                    log_action_if(
-                        "starting_recalibration",
-                        {"org_id": org_volume.org_id},
-                        orgs_to_check(org_volume),
-                    )
                     recalibrate_org(org_volume, context)
                 except RecalibrationError as e:
                     set_extra("context-data", context.to_dict())
@@ -94,12 +84,11 @@ def recalibrate_orgs() -> None:
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) -> None:
-
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
 
-    timer = context.get_timer("recalibrate_org")
-
+    func_name = recalibrate_org.__name__
+    timer = context.get_timer(func_name)
     with timer:
         # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
         # recalibration.
@@ -110,10 +99,6 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
 
         assert org_volume.indexed is not None
 
-        log_action_if(
-            "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
-        )
-
         target_sample_rate = get_sliding_window_org_sample_rate(org_volume.org_id)
         log_sample_rate_source(
             org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
@@ -123,12 +108,6 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
                 org_id=org_volume.org_id,
                 message="couldn't get target sample rate for recalibration",
             )
-
-        log_action_if(
-            "target_sample_rate_determined",
-            {"org_id": org_volume.org_id},
-            orgs_to_check(org_volume),
-        )
 
         # We compute the effective sample rate that we had in the last considered time window.
         effective_sample_rate = org_volume.indexed / org_volume.total
@@ -149,8 +128,8 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
             )
 
         if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-            # In case the new factor would result into too much recalibration, we want to remove it from cache, effectively
-            # removing the generated rule.
+            # In case the new factor would result into too much recalibration, we want to remove it from cache,
+            # effectively removing the generated rule.
             delete_adjusted_factor(org_volume.org_id)
             raise RecalibrationError(
                 org_id=org_volume.org_id,
@@ -161,12 +140,4 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
         # At the end we set the adjusted factor.
         set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
 
-        log_action_if(
-            "set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
-        )
-
-    name = recalibrate_org.__name__
-    state = context.get_function_state(name)
-    state.num_orgs += 1
-    state.num_iterations += 1
-    context.set_function_state(name, state)
+    context.incr_function_state(function_id=func_name, num_orgs=1, num_iterations=1)

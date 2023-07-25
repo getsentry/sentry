@@ -95,9 +95,9 @@ def adjust_base_sample_rate_of_org(
                 window_size,
                 context,
             )
-            state = context.get_function_state(guarded_sliding_window_name)
-            state.num_iterations += 1
-            context.set_function_state(guarded_sliding_window_name, state)
+
+            context.incr_function_state(guarded_sliding_window_name, num_iterations=1)
+
         # If the sample rate is None, we don't want to store a value into Redis, but we prefer to keep the system
         # with the old value.
         if sample_rate is None:
@@ -111,11 +111,7 @@ def adjust_base_sample_rate_of_org(
                 pipeline.set(cache_key, sample_rate)
                 pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
                 pipeline.execute()
-            state = context.get_function_state(redis_update_name)
-            state.num_iterations += 1
-            context.set_function_state(redis_update_name, state)
 
-    state = context.get_function_state(func_name)
-    state.num_orgs += 1
-    state.num_iterations += 1
-    context.set_function_state(func_name, state)
+            context.incr_function_state(function_id=redis_update_name, num_iterations=1)
+
+    context.incr_function_state(function_id=func_name, num_orgs=1, num_iterations=1)
