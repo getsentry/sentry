@@ -173,11 +173,12 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   const label = row.transactionMethod
     ? `${row.transactionMethod} ${row.transaction}`
     : row.transaction;
+
   return (
     <Fragment>
       <Link
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span[SpanMetricsFields.SPAN_OP]
+          span[SpanMetricsFields.SPAN_GROUP]
         )}?${qs.stringify({
           ...location.query,
           endpoint,
