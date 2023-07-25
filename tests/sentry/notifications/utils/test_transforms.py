@@ -26,7 +26,7 @@ class TransformTestCase(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             actor_id = get_actor_id_for_user(self.user)
         self.notification_settings = [
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
@@ -35,7 +35,7 @@ class TransformTestCase(TestCase):
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
-            NotificationSetting(
+            NotificationSetting.objects.create(
                 provider=ExternalProviders.SLACK.value,
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
@@ -45,8 +45,6 @@ class TransformTestCase(TestCase):
                 scope_identifier=self.user.id,
             ),
         ]
-        for ns in self.notification_settings:
-            ns.save()
 
         with assume_test_silo_mode(SiloMode.REGION):
             self.user_actor = RpcActor.from_orm_user(self.user)
