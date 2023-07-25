@@ -1,15 +1,33 @@
+from __future__ import annotations
+
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.discord.message_builder.base import (
+    DiscordMessageBuilder,
+    DiscordMessageFlags,
+)
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
+
+LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
+ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`"
+UNLINK_USER_MESSAGE = "[Click here]({url}) to unlink your Discord account from your Sentry Account."
+NOT_LINKED_MESSAGE = (
+    "Your Discord account is not linked to a Sentry account. Use `/link` to link your accounts."
+)
+HELP_MESSAGE = """
+`/help`: View this message.
+`/link`: Link your Discord account to your Sentry account to perform actions in Sentry through Discord.
+`/unlink`: Unlink your Discord account from your Sentry account.
+"""
 
 
 @region_silo_endpoint
@@ -27,42 +45,38 @@ class DiscordInteractionsEndpoint(Endpoint):
 
     def __init__(self) -> None:
         super().__init__()
-        self.request: DiscordRequest
+        self.discord_request: DiscordRequest
 
     @csrf_exempt
     @transaction_start("DiscordInteractionsEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            self.request = self.discord_request_class(request)
-            self.request.validate()
+            self.discord_request = self.discord_request_class(request)
+            self.discord_request.validate()
         except DiscordRequestError as e:
             return self.respond(status=e.status)
 
-        if self.request.is_ping():
+        if self.discord_request.is_ping():
             # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
             return self.respond({"type": 1}, status=200)
 
-        elif self.request.is_command():
+        elif self.discord_request.is_command():
             return self.handle_command()
 
         # This isn't an interaction type that we need to worry about, so we'll
         # just return 200
         return self.respond(status=200)
 
-    def reply(self, message: str) -> Response:
+    def reply(self, message: DiscordMessageBuilder) -> Response:
         return self.respond(
-            {
-                "type": 4,
-                "data": {
-                    "content": message,
-                },
-            },
+            {"type": 4, "data": message.build()},
+            headers={"Content-Type": "application/json"},
             status=200,
         )
 
     def handle_command(self) -> Response:
-        command_name = self.request.get_command_name()
-        logging_data = self.request.logging_data
+        command_name = self.discord_request.get_command_name()
+        logging_data = self.discord_request.logging_data
 
         if command_name == "link":
             logger.info("discord.interaction.command.link", extra={**logging_data})
@@ -80,30 +94,52 @@ class DiscordInteractionsEndpoint(Endpoint):
         return self.help()
 
     def link_user(self) -> Response:
-        if self.request.has_identity():
-            return self.reply("identity already linked")
+        if self.discord_request.has_identity():
+            message = DiscordMessageBuilder(
+                content=ALREADY_LINKED_MESSAGE.format(
+                    email=self.discord_request.get_identity_str()
+                ),
+                flags=DiscordMessageFlags().set_ephemeral(),
+            )
+            return self.reply(message)
 
-        if not (self.request.integration and self.request.user_id):
+        if not (self.discord_request.integration and self.discord_request.user_id):
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         link_url = build_linking_url(
-            integration=self.request.integration,
-            discord_id=self.request.user_id,
+            integration=self.discord_request.integration,
+            discord_id=self.discord_request.user_id,
         )
-        return self.reply(link_url)
+
+        message = DiscordMessageBuilder(
+            content=LINK_USER_MESSAGE.format(url=link_url),
+            flags=DiscordMessageFlags().set_ephemeral(),
+        )
+        return self.reply(message)
 
     def unlink_user(self) -> Response:
-        if not self.request.has_identity():
-            return self.reply("not linked")
+        if not self.discord_request.has_identity():
+            message = DiscordMessageBuilder(
+                content=ALREADY_LINKED_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
+            )
+            return self.reply(message)
 
-        if not (self.request.integration and self.request.user_id):
+        if not (self.discord_request.integration and self.discord_request.user_id):
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         unlink_url = build_unlinking_url(
-            integration=self.request.integration,
-            discord_id=self.request.user_id,
+            integration=self.discord_request.integration,
+            discord_id=self.discord_request.user_id,
         )
-        return self.reply(unlink_url)
+
+        message = DiscordMessageBuilder(
+            content=UNLINK_USER_MESSAGE.format(url=unlink_url),
+            flags=DiscordMessageFlags().set_ephemeral(),
+        )
+        return self.reply(message)
 
     def help(self) -> Response:
-        return self.reply("help")
+        message = DiscordMessageBuilder(
+            content=HELP_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
+        )
+        return self.reply(message)

@@ -76,21 +76,6 @@ class Region:
 
         return urljoin(generate_region_url(self.name), path)
 
-    def is_historic_monolith_region(self) -> bool:
-        """Check whether this is a historic monolith region.
-
-        In a monolith environment, there exists only the one monolith "region",
-        which is a dummy object.
-
-        In a siloed environment whose data was migrated from a monolith environment,
-        all region-scoped entities that existed before the migration belong to the
-        historic monolith region by default. Unlike in the monolith environment,
-        this region is not a dummy object, but nonetheless is subject to special
-        cases to ensure that legacy data is handled correctly.
-        """
-
-        return self.name == settings.SENTRY_MONOLITH_REGION
-
 
 class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
@@ -108,20 +93,14 @@ class GlobalRegionDirectory:
     """The set of all regions in this Sentry platform instance."""
 
     def __init__(self, regions: Collection[Region]) -> None:
-        if not regions:
+        if not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
             default_monolith_region = Region(
                 name=settings.SENTRY_MONOLITH_REGION,
                 snowflake_id=0,
                 address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
-            regions = [default_monolith_region]
-        elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
-            raise RegionConfigurationError(
-                "The SENTRY_MONOLITH_REGION setting must point to a region name "
-                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
-                f"region names = {[r.name for r in regions]!r})"
-            )
+            regions = [default_monolith_region, *regions]
 
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
@@ -131,7 +110,7 @@ class GlobalRegionDirectory:
             region.validate()
 
 
-def parse_raw_config(region_config: Any) -> Iterable[Region]:
+def _parse_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
         config_values = parse_obj_as(List[Region], json_config_values)
@@ -154,14 +133,11 @@ def parse_raw_config(region_config: Any) -> Iterable[Region]:
 
 def load_from_config(region_config: Any) -> GlobalRegionDirectory:
     try:
-        region_objs = list(parse_raw_config(region_config))
+        region_objs = list(_parse_config(region_config))
         return GlobalRegionDirectory(region_objs)
-    except RegionConfigurationError as e:
-        sentry_sdk.capture_exception(e)
-        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise RegionConfigurationError("Unable to parse region_config.") from e
+        raise RegionConfigurationError("Unable to parse region_config.")
 
 
 _global_regions: GlobalRegionDirectory | None = None
@@ -188,21 +164,18 @@ def clear_global_regions() -> None:
 
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
-    global_regions = load_global_regions()
     try:
-        return global_regions.by_name[name]
-    except KeyError as e:
-        region_names = [
-            r.name for r in global_regions.regions if r.category == RegionCategory.MULTI_TENANT
-        ]
-        raise RegionResolutionError(
-            f"No region with name: {name!r} "
-            f"(expected one of {region_names!r} or a single-tenant name)"
-        ) from e
+        return load_global_regions().by_name[name]
+    except KeyError:
+        raise RegionResolutionError(f"No region with name: {name!r}")
 
 
 def is_region_name(name: str) -> bool:
-    return name in load_global_regions().by_name
+    try:
+        get_region_by_name(name)
+        return True
+    except Exception:
+        return False
 
 
 @control_silo_function

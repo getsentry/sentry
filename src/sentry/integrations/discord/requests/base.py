@@ -137,6 +137,9 @@ class DiscordRequest:
             )
         return self._identity
 
+    def get_identity_str(self) -> str | None:
+        return self.user.email if self.user else None
+
     def validate_integration(self) -> None:
         self._integration = integration_service.get_integration(
             provider="discord", external_id=self.guild_id

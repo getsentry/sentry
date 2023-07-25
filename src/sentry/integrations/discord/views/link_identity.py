@@ -6,7 +6,7 @@ from rest_framework.request import Request
 
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -15,7 +15,7 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 
-def build_linking_url(integration: Integration, discord_id: str) -> str:
+def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
     endpoint = "sentry-integration-discord-link-identity"
     kwargs = {
         "discord_id": discord_id,
@@ -50,7 +50,7 @@ class DiscordLinkIdentityView(BaseView):
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])
+        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore
 
         return render_to_response(
             "sentry/integrations/discord/linked.html",

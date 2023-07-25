@@ -9,10 +9,8 @@ from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
@@ -111,7 +109,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             },
         )
 
-        resp = provider.get_guild_name(guild_id)
+        resp = provider._get_guild_name(guild_id)
         assert resp == "asdf"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
@@ -127,7 +125,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             status=500,
         )
 
-        resp = provider.get_guild_name(guild_id)
+        resp = provider._get_guild_name(guild_id)
         assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
