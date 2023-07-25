@@ -53,9 +53,9 @@ def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
 
     try:
         region = get_region_for_organization(org_slug)
-    except RegionResolutionError:
+    except RegionResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_slug})
-        raise NotFound
+        raise NotFound from e
 
     target_url = region.to_url(request.path)
     header_dict = clean_proxy_headers(request.headers)
