@@ -4,7 +4,7 @@ import responses
 
 from sentry.models import Repository
 from sentry.testutils import TestCase
-from sentry_plugins.bitbucket.plugin import BitbucketRepositoryProvider
+from sentry_plugins.bitbucket.repository_provider import BitbucketRepositoryProvider
 from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE
 from social_auth.models import UserSocialAuth
 

@@ -5,7 +5,7 @@ import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.plugins.bases.issue2 import PluginError
+from sentry.exceptions import PluginError
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
