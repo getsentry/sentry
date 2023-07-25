@@ -1,6 +1,6 @@
-import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fieldRenderers';
+import {RateUnits} from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 
 type Props = {
   unit: RateUnits;
@@ -13,8 +13,6 @@ type Props = {
 
 export default function ThroughputCell({rate, unit, containerProps}: Props) {
   return (
-    <NumberContainer {...containerProps}>
-      {rate ? formatAbbreviatedNumber(rate) : '--'}/{RATE_UNIT_LABELS[unit]}
-    </NumberContainer>
+    <NumberContainer {...containerProps}>{formatThroughput(rate, unit)}</NumberContainer>
   );
 }
