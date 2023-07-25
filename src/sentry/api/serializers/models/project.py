@@ -34,7 +34,6 @@ from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
-from sentry.dynamic_sampling.rules.base import get_safe_sample_rate
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
@@ -621,7 +620,6 @@ class OrganizationProjectResponse(
     hasUserReports: bool
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
-    sampleRate: Optional[float]
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -752,8 +750,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
-            # TODO(ogi): Remove as soon as we have a better way of exposing project & org sample rates
-            sampleRate=get_safe_sample_rate(obj.organization, obj),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
