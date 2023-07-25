@@ -79,6 +79,9 @@ describe('IntegrationExternalMappings', function () {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
+        dataEndpoint="/organizations/org-slug/codeowners-associations/"
+        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        sentryNamesMapper={data => data}
       />,
       {
         context: routerContext,
@@ -98,6 +101,9 @@ describe('IntegrationExternalMappings', function () {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
+        dataEndpoint="/organizations/org-slug/codeowners-associations/"
+        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        sentryNamesMapper={data => data}
       />,
       {
         context: routerContext,
@@ -122,6 +128,9 @@ describe('IntegrationExternalMappings', function () {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
+        dataEndpoint="/organizations/org-slug/codeowners-associations/"
+        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        sentryNamesMapper={data => data}
       />,
       {
         context: routerContext,
@@ -151,6 +160,9 @@ describe('IntegrationExternalMappings', function () {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
+        dataEndpoint="/organizations/org-slug/codeowners-associations/"
+        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        sentryNamesMapper={data => data}
       />,
       {
         context: routerContext,

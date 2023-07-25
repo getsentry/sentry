@@ -11,7 +11,7 @@ from sentry.utils import json
 PROFILING_FEATURES = {"organizations:profiling": True}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectProfilingProfileTest(APITestCase):
     endpoint = "sentry-api-0-project-profiling-profile"
 
@@ -23,7 +23,7 @@ class ProjectProfilingProfileTest(APITestCase):
         assert response.status_code == 404
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectProfilingFunctionsEndpoint(APITestCase):
     endpoint = "sentry-api-0-project-profiling-functions"
 

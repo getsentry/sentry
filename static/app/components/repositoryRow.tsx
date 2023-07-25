@@ -1,10 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  cancelDeleteRepository,
-  deleteRepository,
-} from 'sentry/actionCreators/integrations';
+import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
@@ -69,7 +66,7 @@ function RepositoryRow({
     );
 
   const deleteRepo = () =>
-    deleteRepository(api, orgId, repository.id).then(
+    hideRepository(api, orgId, repository.id).then(
       data => {
         if (onRepositoryChange) {
           onRepositoryChange(data);

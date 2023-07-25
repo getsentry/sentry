@@ -4,7 +4,7 @@ from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSe
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import Direction
 
-from sentry.apidocs.spectacular_ports import resolve_type_hint  # type: ignore
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -43,9 +43,8 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.api.serializers.base.Serializer"
     match_subclasses = True
 
-    def get_name(self) -> Optional[str]:
-        name: str = self.target.__name__
-        return name
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
+        return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         type_hints = get_type_hints(self.target.serialize)
@@ -65,9 +64,8 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.apidocs.utils._RawSchema"
     match_subclasses = True
 
-    def get_name(self) -> Optional[str]:
-        name: str = self.target.__name__
-        return name
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
+        return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)

@@ -106,11 +106,11 @@ SENTRY_DSN="${dsn}"
         code: `
 <?php
 
-namespace App\Controller;
+namespace App\\Controller;
 
-use Psr\Log\LoggerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Annotation\Route;
+use Psr\\Log\\LoggerInterface;
+use Symfony\\Bundle\\FrameworkBundle\\Controller\\AbstractController;
+use Symfony\\Component\\Routing\\Annotation\\Route;
 
 class SentryTestController extends AbstractController {
   /**
@@ -132,7 +132,7 @@ class SentryTestController extends AbstractController {
     $this->logger->error('My custom logged error.');
 
     // the following code will test if an uncaught exception logs to sentry
-    throw new \RuntimeException('Example exception.');
+    throw new \\RuntimeException('Example exception.');
   }
 }
         `,
@@ -188,7 +188,7 @@ class SentryTestController extends AbstractController {
 
   return [
     // ...
-    Sentry\SentryBundle\SentryBundle::class => ['all' => true],
+    Sentry\\SentryBundle\\SentryBundle::class => ['all' => true],
   ];
         `,
       },
@@ -218,8 +218,8 @@ monolog:
   handlers:
     sentry:
       type: sentry
-      level: !php/const Monolog\Logger::ERROR
-      hub_id: Sentry\State\HubInterface
+      level: !php/const Monolog\\Logger::ERROR
+      hub_id: Sentry\\State\\HubInterface
         `,
       },
       {
@@ -242,13 +242,13 @@ monolog:
   handlers:
     sentry:
       type: service
-      id: Sentry\Monolog\Handler
+      id: Sentry\\Monolog\\Handler
 
 services:
-  Sentry\Monolog\Handler:
+  Sentry\\Monolog\\Handler:
     arguments:
-      $hub: '@Sentry\State\HubInterface'
-      $level: !php/const Monolog\Logger::ERROR
+      $hub: '@Sentry\\State\\HubInterface'
+      $level: !php/const Monolog\\Logger::ERROR
         `,
       },
       {
@@ -265,7 +265,7 @@ services:
         language: 'yaml',
         code: `
 services:
-  Monolog\Processor\PsrLogMessageProcessor:
+  Monolog\\Processor\\PsrLogMessageProcessor:
     tags: { name: monolog.processor, handler: sentry }
         `,
       },

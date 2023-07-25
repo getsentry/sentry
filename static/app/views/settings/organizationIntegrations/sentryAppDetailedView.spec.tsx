@@ -15,7 +15,7 @@ describe('SentryAppDetailedView', function () {
   const {router} = initializeOrg({
     projects: [
       {isMember: true, isBookmarked: true},
-      {isMember: true, slug: 'new-project', id: 3},
+      {isMember: true, slug: 'new-project', id: '3'},
     ],
     organization: {
       features: ['events'],
@@ -106,8 +106,8 @@ describe('SentryAppDetailedView', function () {
     it('renders a published sentry app', () => {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'clickup', orgId: org.slug}}
-          location={{query: {}}}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'clickup'}}
         />
       );
       expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
@@ -131,8 +131,8 @@ describe('SentryAppDetailedView', function () {
     it('installs and uninstalls', async function () {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'clickup', orgId: org.slug}}
-          location={{query: {}}}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'clickup'}}
         />
       );
       renderGlobalModal();
@@ -206,8 +206,8 @@ describe('SentryAppDetailedView', function () {
     it('should get redirected to Developer Settings', () => {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'my-headband-washer-289499', orgId: org.slug}}
-          location={{query: {}}}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'my-headband-washer-289499'}}
           router={router}
         />
       );
@@ -287,8 +287,8 @@ describe('SentryAppDetailedView', function () {
     it('shows the Integration name and install status', function () {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
-          location={{query: {}}}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'la-croix-monitor'}}
         />
       );
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
@@ -298,8 +298,8 @@ describe('SentryAppDetailedView', function () {
     it('installs and uninstalls', async function () {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
-          location={{query: {}}}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'la-croix-monitor'}}
         />
       );
       renderGlobalModal();
@@ -370,9 +370,8 @@ describe('SentryAppDetailedView', function () {
     it('shows the Integration name and install status', function () {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'go-to-google', orgId: org.slug}}
-          location={{query: {}}}
-          router={router}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'go-to-google'}}
         />
       );
       expect(screen.getByText('Go to Google')).toBeInTheDocument();
@@ -384,9 +383,8 @@ describe('SentryAppDetailedView', function () {
     it('onClick: redirects url', async function () {
       render(
         <SentryAppDetailedView
-          params={{integrationSlug: 'go-to-google', orgId: org.slug}}
-          location={{query: {}}}
-          router={router}
+          {...TestStubs.routeComponentProps()}
+          params={{integrationSlug: 'go-to-google'}}
         />
       );
       const locationAssignSpy = jest.spyOn(window.location, 'assign');
