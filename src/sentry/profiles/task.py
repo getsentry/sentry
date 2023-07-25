@@ -654,6 +654,10 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     for new_frame in reversed(mapped)
                 ]
 
+                # vroom will only take into account frames in this list
+                # if it exists. since symbolic does not return a signature for
+                # the frame we deobfuscated, we update it to set
+                # the deobfuscated signature.
                 if len(method["inline_frames"]) > 0:
                     method["inline_frames"][0]["signature"] = method.get("signature", "")
             else:
