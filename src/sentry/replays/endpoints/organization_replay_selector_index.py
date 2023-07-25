@@ -34,7 +34,7 @@ from sentry.utils.snuba import raw_snql_query
 
 
 @region_silo_endpoint
-class OrganizationSelectorIndexEndpoint(OrganizationEndpoint):
+class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     def get_replay_filter_params(self, request, organization):
 
         query_referrer = request.GET.get("queryReferrer", None)

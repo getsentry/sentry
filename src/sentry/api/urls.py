@@ -87,7 +87,9 @@ from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
-from sentry.replays.endpoints.organization_selector_index import OrganizationSelectorIndexEndpoint
+from sentry.replays.endpoints.organization_replay_selector_index import (
+    OrganizationReplaySelectorIndexEndpoint,
+)
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -1702,7 +1704,7 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/replay-selectors/$",
-        OrganizationSelectorIndexEndpoint.as_view(),
+        OrganizationReplaySelectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-selectors-index",
     ),
     re_path(
