@@ -91,7 +91,7 @@ from sentry.testutils import TransactionTestCase
 from sentry.utils.json import JSONData
 from tests.sentry.backup import import_export_then_validate, targets
 
-TESTED_MODELS = set()
+UNIT_TESTED_MODELS = set()
 
 
 def mark(*marking: Type):
@@ -100,7 +100,7 @@ def mark(*marking: Type):
     test_coverage.py to ensure that all final derivations of django's "Model" that set
     `__include_in_export__ = True` are exercised by at least one test here."""
     for model in marking:
-        TESTED_MODELS.add(model.__name__)
+        UNIT_TESTED_MODELS.add(model.__name__)
     return marking
 
 

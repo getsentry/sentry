@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from sentry.db.models import BaseModel
 from tests.sentry.backup import get_exportable_final_derivations_of, get_final_derivations_of
-from tests.sentry.backup.test_models import TESTED_MODELS
+from tests.sentry.backup.test_models import UNIT_TESTED_MODELS
+from tests.sentry.backup.test_releases import RELEASE_TESTED_MODELS
 
 ALL_EXPORTABLE_MODELS = {c.__name__ for c in get_exportable_final_derivations_of(BaseModel)}
 
@@ -19,6 +20,11 @@ def test_all_final_derivations_of_django_model_set_included_in_export():
     assert not missing
 
 
-def test_exportable_final_derivations_of_django_model_are_tested():
-    untested = ALL_EXPORTABLE_MODELS - TESTED_MODELS
+def test_exportable_final_derivations_of_django_model_are_unit_tested():
+    untested = ALL_EXPORTABLE_MODELS - UNIT_TESTED_MODELS
+    assert not untested
+
+
+def test_exportable_final_derivations_of_django_model_are_release_tested():
+    untested = ALL_EXPORTABLE_MODELS - RELEASE_TESTED_MODELS
     assert not untested
