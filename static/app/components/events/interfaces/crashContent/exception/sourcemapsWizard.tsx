@@ -84,8 +84,9 @@ export default function SourceMapsWizard() {
           }
         )}
       >
-        <StyledCodeSnipped
-          dark={isDarkmode ? false : true}
+        <StyledCodeSnippet
+          dark
+          isDarkMode={isDarkmode}
           hideCopyButton={false}
           language="bash"
           onCopy={() => {
@@ -95,15 +96,16 @@ export default function SourceMapsWizard() {
           }}
         >
           {wizardCommand}
-        </StyledCodeSnipped>
+        </StyledCodeSnippet>
       </EmptyMessage>
     </Panel>
   );
 }
 
-const StyledCodeSnipped = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
   margin-top: ${space(2)};
   width: 500px;
+  border: ${p => (p.isDarkMode ? `1px solid ${p.theme.border}` : 'none')};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
