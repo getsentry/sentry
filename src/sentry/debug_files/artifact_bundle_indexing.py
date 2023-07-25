@@ -120,6 +120,12 @@ def update_artifact_bundle_index(
         if existing_index := flat_file_index.load_flat_file_index():
             index.from_json(existing_index)
 
+        # Before merging new data into the index, we will clear any existing
+        # data from the index related to this bundle.
+        # This is related to an edge-case in which the same `bundle_id` could be
+        # re-used but with different file contents.
+        index.remove(bundle_meta.id)
+
         # We merge the index based on the identifier type.
         if identifier.is_indexing_by_release():
             index.merge_urls(bundle_meta, bundle_archive)
