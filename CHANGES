@@ -1,3 +1,53 @@
+23.7.1
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#53011)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @snigdhas (#52774)
+
+### Various fixes & improvements
+
+- chore(replay): Remove unicode from slack View Replays link (#53518) by @ryan953
+- feat(starfish): Replaces usage of p95 in the Database Module with avg (#53515) by @edwardgou-sentry
+- Revert "feat(profiling): Deobfuscate Android methods' signature (#53427)" (af3ae3b7) by @getsentry-bot
+- feat(integration-slack): store request error counts and disable on broken (#52994) by @chloeho7
+- ref(grouping): Clean up message normalization (#53479) by @lobsterkatie
+- ref(projects): Redirect after project transfer (#53466) by @ceorourke
+- feat(secrecy): enable data secrecy for organizations (#53322) by @cathteng
+- feat(perf-detector-threshold-configuration) Added option for new Cons… (#53461) by @Abdkhan14
+- fix(ci): Increase codecov `comment.after_n_builds` value (#53488) by @lobsterkatie
+- test(ui): Reset api mocks between EventDetails tests (#53497) by @scttcper
+- ref(hybrid-cloud): Fix a few tests in split silo mode (#53482) by @mikejihbe
+- feat(profiling): Deobfuscate Android methods' signature (#53427) by @phacops
+- feat(perf-detector-threshold-configuration) Added new thresholds and … (#53460) by @Abdkhan14
+- fix(starfish): clicking endpoint in span summary replaces groupId with 'db' in url (#53517) by @DominikB2014
+- feat(starfish): add transaction.op:http.server to webservice queries (#53355) by @DominikB2014
+- fix(starfish): add quotes around transaction name (#53516) by @DominikB2014
+- ref(redis): Configure default 3s socket timeout (#53513) by @beezz
+- feat(dynamic-sampling): Add project slug to response of AM2 check (#53514) by @iambriccardo
+- feat(dnd-worldmap-removal) Added null checks for columns and fields. (#53475) by @Abdkhan14
+- Implement ArtifactBundle flat file indexing (#53505) by @Swatinem
+- chore(ts): Improve Starfish span metrics typing (#53453) by @gggritso
+- ref(feature): Remove no longer used heartbeat feature flag (#53510) by @priscilawebdev
+- ref(feature): Remove heartbeat feature (#53509) by @priscilawebdev
+- feat(dynamic-sampling): Improve check am2 compatibility (#53414) by @iambriccardo
+
+_Plus 399 more_
+
 23.7.0
 ------
 
