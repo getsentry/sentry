@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AlertBadge from 'sentry/components/alertBadge';
@@ -28,84 +28,93 @@ interface MetricDetailsSidebarProps {
   rule: MetricRule;
 }
 
-export default function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
-  function renderTrigger(label: string, threshold: number, actions: Action[]): ReactNode {
-    const status =
-      label === AlertRuleTriggerType.CRITICAL
-        ? t('Critical')
-        : label === AlertRuleTriggerType.WARNING
-        ? t('Warning')
-        : t('Resolved');
+function TriggerDescription({
+  rule,
+  actions,
+  label,
+  threshold,
+}: {
+  actions: Action[];
+  label: string;
+  rule: MetricRule;
+  threshold: number;
+}) {
+  const status =
+    label === AlertRuleTriggerType.CRITICAL
+      ? t('Critical')
+      : label === AlertRuleTriggerType.WARNING
+      ? t('Warning')
+      : t('Resolved');
 
-    const statusIconColor =
-      label === AlertRuleTriggerType.CRITICAL
-        ? 'errorText'
-        : label === AlertRuleTriggerType.WARNING
-        ? 'warningText'
-        : 'successText';
+  const statusIconColor =
+    label === AlertRuleTriggerType.CRITICAL
+      ? 'errorText'
+      : label === AlertRuleTriggerType.WARNING
+      ? 'warningText'
+      : 'successText';
 
-    const defaultAction = t('Change alert status to %s', status);
+  const defaultAction = t('Change alert status to %s', status);
 
-    const aboveThreshold =
-      label === AlertRuleTriggerType.RESOLVE
-        ? rule.thresholdType === AlertRuleThresholdType.BELOW
-        : rule.thresholdType === AlertRuleThresholdType.ABOVE;
+  const aboveThreshold =
+    label === AlertRuleTriggerType.RESOLVE
+      ? rule.thresholdType === AlertRuleThresholdType.BELOW
+      : rule.thresholdType === AlertRuleThresholdType.ABOVE;
 
-    const thresholdTypeText = aboveThreshold
-      ? rule.comparisonDelta
-        ? t('higher')
-        : t('above')
-      : rule.comparisonDelta
-      ? t('lower')
-      : t('below');
-    const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
+  const thresholdTypeText = aboveThreshold
+    ? rule.comparisonDelta
+      ? t('higher')
+      : t('above')
+    : rule.comparisonDelta
+    ? t('lower')
+    : t('below');
+  const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
 
-    const thresholdText = rule.comparisonDelta
-      ? tct(
-          '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to [comparisonDelta]',
-          {
-            metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
-            threshold,
-            comparisonType: thresholdTypeText,
-            timeWindow,
-            comparisonDelta: (
-              COMPARISON_DELTA_OPTIONS.find(
-                ({value}) => value === rule.comparisonDelta
-              ) ?? COMPARISON_DELTA_OPTIONS[0]
-            ).label,
-          }
-        )
-      : tct('[metric] is [condition] in [timeWindow]', {
+  const thresholdText = rule.comparisonDelta
+    ? tct(
+        '[metric] is [threshold]% [comparisonType] in [timeWindow] compared to [comparisonDelta]',
+        {
           metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
-          condition: `${thresholdTypeText} ${threshold}`,
+          threshold,
+          comparisonType: thresholdTypeText,
           timeWindow,
-        });
+          comparisonDelta: (
+            COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta) ??
+            COMPARISON_DELTA_OPTIONS[0]
+          ).label,
+        }
+      )
+    : tct('[metric] is [condition] in [timeWindow]', {
+        metric: AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)],
+        condition: `${thresholdTypeText} ${threshold}`,
+        timeWindow,
+      });
 
-    return (
-      <TriggerContainer>
-        <TriggerTitle>
-          <IconDiamond color={statusIconColor} size="xs" />
-          <TriggerTitleText>{t('%s Conditions', status)}</TriggerTitleText>
-        </TriggerTitle>
-        <TriggerStep>
-          <TriggerTitleText>When</TriggerTitleText>
-          <TriggerActions>
-            <TriggerText>{thresholdText}</TriggerText>
-          </TriggerActions>
-        </TriggerStep>
-        <TriggerStep>
-          <TriggerTitleText>Then</TriggerTitleText>
-          <TriggerActions>
-            {actions.map(action => (
-              <TriggerText key={action.id}>{action.desc}</TriggerText>
-            ))}
-            <TriggerText>{defaultAction}</TriggerText>
-          </TriggerActions>
-        </TriggerStep>
-      </TriggerContainer>
-    );
-  }
+  return (
+    <TriggerContainer>
+      <TriggerTitle>
+        <IconDiamond color={statusIconColor} size="xs" />
+        <TriggerTitleText>{t('%s Conditions', status)}</TriggerTitleText>
+      </TriggerTitle>
+      <TriggerStep>
+        <TriggerTitleText>{t('When')}</TriggerTitleText>
+        <TriggerActions>
+          <TriggerText>{thresholdText}</TriggerText>
+        </TriggerActions>
+      </TriggerStep>
+      <TriggerStep>
+        <TriggerTitleText>{t('Then')}</TriggerTitleText>
+        <TriggerActions>
+          {actions.map(action => (
+            <TriggerText key={action.id}>{action.desc}</TriggerText>
+          ))}
+          <TriggerText>{defaultAction}</TriggerText>
+        </TriggerActions>
+      </TriggerStep>
+    </TriggerContainer>
+  );
+}
 
+export function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) {
   // get current status
   const latestIncident = rule.latestIncident;
   const status = latestIncident ? latestIncident.status : IncidentStatus.CLOSED;
@@ -139,20 +148,30 @@ export default function MetricDetailsSidebar({rule}: MetricDetailsSidebarProps) 
         </HeaderItem>
       </StatusContainer>
       <SidebarGroup>
-        {typeof criticalTrigger?.alertThreshold === 'number' &&
-          renderTrigger(
-            criticalTrigger.label,
-            criticalTrigger.alertThreshold,
-            criticalTrigger.actions
-          )}
-        {typeof warningTrigger?.alertThreshold === 'number' &&
-          renderTrigger(
-            warningTrigger.label,
-            warningTrigger.alertThreshold,
-            warningTrigger.actions
-          )}
-        {typeof rule.resolveThreshold === 'number' &&
-          renderTrigger(AlertRuleTriggerType.RESOLVE, rule.resolveThreshold, [])}
+        {typeof criticalTrigger?.alertThreshold === 'number' && (
+          <TriggerDescription
+            rule={rule}
+            label={criticalTrigger.label}
+            threshold={criticalTrigger.alertThreshold}
+            actions={criticalTrigger.actions}
+          />
+        )}
+        {typeof warningTrigger?.alertThreshold === 'number' && (
+          <TriggerDescription
+            rule={rule}
+            label={warningTrigger.label}
+            actions={warningTrigger.actions}
+            threshold={warningTrigger.alertThreshold}
+          />
+        )}
+        {typeof rule.resolveThreshold === 'number' && (
+          <TriggerDescription
+            rule={rule}
+            label={AlertRuleTriggerType.RESOLVE}
+            threshold={rule.resolveThreshold}
+            actions={[]}
+          />
+        )}
       </SidebarGroup>
       <SidebarGroup>
         <Heading>{t('Alert Rule Details')}</Heading>
