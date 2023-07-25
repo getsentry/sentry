@@ -14,10 +14,12 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.utils import metrics
@@ -198,7 +200,16 @@ class IntegrationRepositoryProvider:
             id=result.get("integration_id"),
             organization_id=organization.id,
         )
-        return Response(serialize(repo, request.user), status=201)
+        return Response(
+            repository_service.serialize_repository(
+                organization_id=organization.id,
+                id=repo.id,
+                as_user=serialize_rpc_user(request.user)
+                if isinstance(request.user, User)
+                else request.user,
+            ),
+            status=201,
+        )
 
     def handle_api_error(self, e):
         context = {"error_type": "unknown"}

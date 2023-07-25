@@ -1,17 +1,31 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from django.db import IntegrityError
 
+from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.services.hybrid_cloud.repository import RepositoryService, RpcRepository
 from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.repository.serial import serialize_repository
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 
 class DatabaseBackedRepositoryService(RepositoryService):
+    def serialize_repository(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        as_user: Optional[RpcUser] = None,
+    ) -> Optional[Any]:
+        repository = Repository.objects.filter(id=id).first()
+        if repository is None:
+            return None
+        return serialize(repository, user=as_user)
+
     def get_repositories(
         self,
         *,

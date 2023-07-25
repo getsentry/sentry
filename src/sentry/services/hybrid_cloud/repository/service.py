@@ -4,12 +4,13 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
 from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -22,6 +23,21 @@ class RepositoryService(RpcService):
         from sentry.services.hybrid_cloud.repository.impl import DatabaseBackedRepositoryService
 
         return DatabaseBackedRepositoryService()
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def serialize_repository(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        as_user: Optional[RpcUser] = None,
+    ) -> Optional[Any]:
+        """
+        Attempts to serialize a given repository.  Note that this can be None if the repository is already deleted
+        in the corresponding region silo.
+        """
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
