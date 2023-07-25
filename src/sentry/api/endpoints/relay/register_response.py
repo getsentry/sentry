@@ -11,7 +11,6 @@ from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.utils import json
 
 from . import RelayIdSerializer
 
@@ -37,11 +36,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
         it will always attempt to invoke this endpoint.
         """
 
-        try:
-            json_data = json.loads(request.body)
-        except ValueError:
-            return Response({"detail": "No valid json body"}, status=status.HTTP_400_BAD_REQUEST)
-
+        json_data = request.json_body
         serializer = RelayRegisterResponseSerializer(data=json_data)
 
         if not serializer.is_valid():

@@ -272,12 +272,9 @@ class Endpoint(APIView):
         # the authentication step moves up a layer and forces the read in the non rest work http end point.  In that case,
         # if we're still handling json, we can just copy the json_body over directly.  Reading from the body would
         # otherwise result in test failures.
-        print(request.path)  # noqa
         if hasattr(request, "_data") and isinstance(request._data, dict):
-            print("has data", request._data)  # noqa
             request.json_body = request.data
         else:
-            print("load json body")  # noqa
             if not len(request.body):
                 return
 
