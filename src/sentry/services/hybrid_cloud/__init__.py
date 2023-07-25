@@ -86,9 +86,6 @@ def _hack_pydantic_type_validation() -> None:
           producing any warnings
     """
 
-    if in_test_environment():
-        return
-
     builtin_validate = pydantic.fields.ModelField.validate
 
     def validate(
@@ -99,6 +96,8 @@ def _hack_pydantic_type_validation() -> None:
         **kwargs: Any,
     ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
         result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
+        if in_test_environment():
+            return result, errors
         if errors:
             report_pydantic_type_validation_error(field, value, errors, cls)
         return result, None

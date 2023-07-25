@@ -89,8 +89,12 @@ class RpcServiceTest(TestCase):
         }
         assert serial_arguments["organization_id"] == organization.id
 
+    @mock.patch("sentry.services.hybrid_cloud.in_test_environment")
     @mock.patch("sentry.services.hybrid_cloud.report_pydantic_type_validation_error")
-    def test_models_tolerate_invalid_types(self, mock_report):
+    def test_models_tolerate_invalid_types(self, mock_report, mock_in_test_environment):
+        # Check reporting of validation errors, rather than suppressing as in most tests
+        mock_in_test_environment.return_value = False
+
         # Create an RpcModel instance whose fields don't obey type annotations and
         # ensure that it does not raise an exception.
         RpcActor(
