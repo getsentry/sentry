@@ -37,7 +37,14 @@ describe('GroupEventCarousel', () => {
     // Because it isn't rendered on smaller screens
     jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-    render(<GroupEventCarousel {...defaultProps} />);
+    render(<GroupEventCarousel {...defaultProps} />, {
+      organization: TestStubs.Organization({
+        features: [
+          'issue-details-most-helpful-event',
+          'issue-details-most-helpful-event-ui',
+        ],
+      }),
+    });
 
     await userEvent.click(screen.getByRole('button', {name: /recommended event/i}));
     await userEvent.click(screen.getByRole('option', {name: /oldest event/i}));
