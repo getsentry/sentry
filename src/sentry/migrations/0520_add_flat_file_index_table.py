@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0518_cleanup_bundles_indexes"),
+        ("sentry", "0519_remove_repo_name_constraint"),
     ]
 
     operations = [
