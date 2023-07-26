@@ -81,7 +81,6 @@ function SampleTable({
     setLoadedSpans(true);
   }, [
     loadedSpans,
-    isFetchingSamples,
     transactions,
     isFetchingTransactions,
     organization,
