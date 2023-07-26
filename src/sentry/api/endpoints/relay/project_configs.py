@@ -12,6 +12,8 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
+from sentry.relay.config.measurements import get_measurements_config
+from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -21,6 +23,14 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 ProjectConfig = MutableMapping[str, Any]
+
+
+def get_global_config():
+    return {
+        "measurements": get_measurements_config(),
+        # Subset of conditional tagging rules that does not depend on the project:
+        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+    }
 
 
 def _sample_apm():
@@ -42,6 +52,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
+        response = {}
+
+        if request.relay_request_data.get("globalConfig"):
+            metrics.incr("relay.project_configs.global.fetched")
+            global_config = get_global_config()
+            response["global"] = global_config
 
         full_config_requested = request.relay_request_data.get("fullConfig")
 
@@ -55,19 +71,21 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            return self._post_or_schedule_by_key(request)
+            response.update(self._post_or_schedule_by_key(request))
         elif version in ["2", "3"]:
-            return self._post_by_key(
+            response["configs"] = self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
             )
         elif version == "1":
-            return self._post_by_project(
+            response["configs"] = self._post_by_project(
                 request=request,
                 full_config_requested=full_config_requested,
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
+
+        return Response(response, status=200)
 
     def _should_use_v3(self, version, request):
         set_tag("relay_endpoint_version", version)
@@ -125,9 +143,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
-        res = {"configs": proj_configs, "pending": pending}
-
-        return Response(res, status=200)
+        return {"configs": proj_configs, "pending": pending}
 
     def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
@@ -143,7 +159,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         schedule_build_project_config(public_key=public_key)
         return None
 
-    def _post_by_key(self, request: Request, full_config_requested):
+    def _post_by_key(
+        self, request: Request, full_config_requested
+    ) -> MutableMapping[str, ProjectConfig]:
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
@@ -220,9 +238,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if full_config_requested:
             projectconfig_cache.backend.set_many(configs)
 
-        return Response({"configs": configs}, status=200)
+        return configs
 
-    def _post_by_project(self, request: Request, full_config_requested):
+    def _post_by_project(
+        self, request: Request, full_config_requested
+    ) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):
@@ -284,4 +304,4 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if full_config_requested:
             projectconfig_cache.backend.set_many(configs)
 
-        return Response({"configs": configs}, status=200)
+        return configs
