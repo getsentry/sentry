@@ -183,7 +183,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    user_ids = (
+    user_ids = list(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
