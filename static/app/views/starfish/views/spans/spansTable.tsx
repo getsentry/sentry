@@ -37,7 +37,7 @@ type Row = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -60,11 +60,13 @@ type Props = {
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
-const {TIME_SPENT_PERCENTAGE, SPS, HTTP_ERROR_COUNT} = StarfishFunctions;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `${SPS}()`,
+  `${SPM}()`,
+  'spm()',
   `${TIME_SPENT_PERCENTAGE}()`,
   `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
@@ -260,7 +262,7 @@ function getColumns(
         ]
       : []),
     {
-      key: 'sps()',
+      key: 'spm()',
       name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },

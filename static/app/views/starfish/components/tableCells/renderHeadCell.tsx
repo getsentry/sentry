@@ -18,12 +18,13 @@ type Options = {
 };
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
-const {TIME_SPENT_PERCENTAGE, SPS, HTTP_ERROR_COUNT} = StarfishFunctions;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 export const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
   `${SPS}()`,
+  `${SPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
