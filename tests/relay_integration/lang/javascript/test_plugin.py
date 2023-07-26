@@ -360,7 +360,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
         ]
 
         exception = event.interfaces["exception"]
@@ -546,7 +550,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"type": "js_no_source", "url": "http//example.com/index.html"}
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
         ]
 
         exception = event.interfaces["exception"]
@@ -1929,9 +1937,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert len(event.data["errors"]) == 1
-
         assert event.data["errors"][0] == {
             "type": "js_invalid_source",
+            "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
 
@@ -2473,6 +2481,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
             "type": "js_invalid_source",
+            "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
 
