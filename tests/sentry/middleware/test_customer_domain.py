@@ -201,12 +201,12 @@ def provision_middleware():
     return middleware
 
 
+@control_silo_test(stable=True)
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
-@control_silo_test(stable=True)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

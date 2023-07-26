@@ -124,7 +124,11 @@ class AuthIdentityHandler:
                 self.warn_about_ambiguous_email(email, e.users, user)
             if user is not None:
                 return user
-        return self.request.user
+        return (
+            User.objects.get(id=self.request.user.id)
+            if self.request.user.is_authenticated
+            else self.request.user
+        )
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:

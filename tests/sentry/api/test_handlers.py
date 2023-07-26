@@ -20,8 +20,8 @@ class RateLimitedEndpoint(Endpoint):
 urlpatterns = [re_path(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test")]
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
 @control_silo_test(stable=True)
+@override_settings(ROOT_URLCONF="tests.sentry.api.test_handlers")
 class TestRateLimited(APITestCase):
     endpoint = "sentry-test"
 

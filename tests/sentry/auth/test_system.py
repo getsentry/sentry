@@ -1,4 +1,3 @@
-from sentry import options
 from sentry.auth.system import SystemToken, get_system_token, is_system_auth
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -16,7 +15,14 @@ class TestSystemAuth(TestCase):
 @django_db_all
 @control_silo_test(stable=True)
 def test_system_token_option():
-    get_system_token()
-    assert (
-        options.get_last_update_channel("sentry:system-token") == options.UpdateChannel.APPLICATION
-    )
+    from sentry import options
+
+    options.delete("sentry:system-token")
+    try:
+        get_system_token()
+        assert (
+            options.get_last_update_channel("sentry:system-token")
+            == options.UpdateChannel.APPLICATION
+        )
+    finally:
+        options.delete("sentry:system-token")

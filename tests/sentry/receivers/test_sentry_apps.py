@@ -17,8 +17,8 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -161,8 +161,8 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -340,8 +340,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             )
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -476,8 +476,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -549,8 +549,8 @@ class TestComments(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestCommentsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
