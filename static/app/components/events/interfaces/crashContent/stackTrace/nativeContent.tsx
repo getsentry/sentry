@@ -151,8 +151,8 @@ export function NativeContent({
     (maxLengthUntilThisPoint, frame) => {
       const correspondingImage = findImageForAddress({
         event,
-        addrMode: frame.instructionAddr!,
-        address: frame.addrMode!,
+        addrMode: frame.addrMode,
+        address: frame.instructionAddr,
       });
 
       try {
@@ -205,8 +205,8 @@ export function NativeContent({
           },
           image: findImageForAddress({
             event,
-            addrMode: frame.instructionAddr!,
-            address: frame.addrMode!,
+            addrMode: frame.addrMode,
+            address: frame.instructionAddr,
           }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: {},

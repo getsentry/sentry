@@ -189,8 +189,8 @@ function Content({
     (maxLengthUntilThisPoint, frame) => {
       const correspondingImage = findImageForAddress({
         event,
-        addrMode: frame.instructionAddr!,
-        address: frame.addrMode!,
+        addrMode: frame.addrMode,
+        address: frame.instructionAddr,
       });
 
       try {
@@ -237,8 +237,8 @@ function Content({
           onAddressToggle: handleToggleAddresses,
           image: findImageForAddress({
             event,
-            addrMode: frame.instructionAddr!,
-            address: frame.addrMode!,
+            addrMode: frame.addrMode,
+            address: frame.instructionAddr,
           }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: {}, // TODO: Fix registers
