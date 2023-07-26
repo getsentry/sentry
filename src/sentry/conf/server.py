@@ -751,6 +751,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
+    "sentry.tasks.statistical_detectors",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -870,6 +871,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("recap_servers", routing_key="recap_servers"),
+    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
 ]
 
@@ -1121,6 +1123,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.dynamic_sampling.tasks.collect_orgs",
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
+    },
+    "detect-regressed-functions": {
+        "task": "sentry.tasks.statistical_detectors.run_detection",
+        "schedule": crontab(),  # TODO: pick a reasonable schedule here
     },
 }
 
