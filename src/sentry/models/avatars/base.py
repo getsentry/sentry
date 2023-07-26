@@ -70,6 +70,10 @@ class AvatarBase(Model):
             self.update(**update)
             return None
 
+    @property
+    def get_file_id(self):
+        return self.file_id
+
     def delete(self, *args, **kwargs):
         file = self.get_file()
         if file:

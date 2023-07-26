@@ -62,7 +62,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         resp = self.create_avatar(is_color=True)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
-        assert avatar.control_file_id
+        assert avatar.get_file_id
         assert avatar.get_avatar_type_display() == "upload"
         color_avatar = self.get_avatar(resp)
         assert color_avatar["avatarType"] == "upload"
@@ -79,7 +79,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
             resp = self.create_avatar(is_color=True)
 
             avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
-            assert avatar.control_file_id
+            assert avatar.get_file_id
             assert avatar.get_avatar_type_display() == "upload"
             color_avatar = self.get_avatar(resp)
             assert color_avatar["avatarType"] == "upload"

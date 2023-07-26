@@ -210,7 +210,7 @@ class UserSerializer(Serializer):
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].get_file_id else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
