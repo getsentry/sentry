@@ -1,9 +1,9 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 from time import time
 
 import responses
-from django.utils import timezone
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
