@@ -16,10 +16,10 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationMapping, OrganizationStatus
+from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
@@ -197,7 +197,7 @@ class AuthLoginView(BaseView):
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
 
-        organization = kwargs.pop("organization", None)
+        organization: RpcOrganization = kwargs.pop("organization", None)
 
         if self.can_register(request=request):
             return self.handle_register_form_submit(
@@ -226,21 +226,21 @@ class AuthLoginView(BaseView):
         Returns the auth provider for the given org, or None if there isn't one.
         """
         try:
-            organization = OrganizationMapping.objects.get(
+            mapping = OrganizationMapping.objects.get(
                 slug=org_slug, status=OrganizationStatus.ACTIVE
             )
         except OrganizationMapping.DoesNotExist:
             return None
 
         try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            auth_provider = AuthProvider.objects.get(organization_id=mapping.organization_id)
         except AuthProvider.DoesNotExist:
             return None
 
         return auth_provider
 
     def handle_register_form_submit(
-        self, request: Request, organization: Organization, **kwargs
+        self, request: Request, organization: RpcOrganization, **kwargs
     ) -> HttpResponse:
         """
         Validates a completed register form, redirecting to the next
@@ -279,7 +279,7 @@ class AuthLoginView(BaseView):
         )
 
     def handle_new_user_creation(
-        self, request: Request, register_form: RegistrationForm, organization: Organization
+        self, request: Request, register_form: RegistrationForm, organization: RpcOrganization
     ) -> User:
         """
         Creates a new user, sends them a confirmation email, logs them in, and accepts invites.
@@ -358,7 +358,7 @@ class AuthLoginView(BaseView):
         return add_params_to_url(url=base_url, params=params)
 
     def handle_login_form_submit(
-        self, request: Request, organization: Organization, **kwargs
+        self, request: Request, organization: RpcOrganization, **kwargs
     ) -> HttpResponse:
         """
         Validates a completed login  form, redirecting to the next
@@ -423,7 +423,7 @@ class AuthLoginView(BaseView):
         self,
         request: Request,
         user: User,
-        organization: Organization,
+        organization: RpcOrganization,
     ) -> HttpResponseRedirect:
         """
         Called when a user submits a valid login form and must be redirected to
@@ -444,7 +444,7 @@ class AuthLoginView(BaseView):
         return self.redirect(url=get_login_redirect(request=request))
 
     def _handle_login(
-        self, request: Request, user: User, organization: Optional[Organization]
+        self, request: Request, user: User, organization: Optional[RpcOrganization]
     ) -> None:
         """
         Logs a user in and determines their active org.
@@ -453,7 +453,7 @@ class AuthLoginView(BaseView):
         self.determine_active_organization(request=request)
 
     def refresh_organization_status(
-        self, request: Request, user: User, organization: Organization
+        self, request: Request, user: User, organization: RpcOrganization
     ) -> None:
         """
         Refresh organization status/context after a successful login to inform other interactions.
@@ -515,7 +515,7 @@ class AuthLoginView(BaseView):
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
 
-    def get_join_request_link(self, organization: Organization) -> Union[str, None]:
+    def get_join_request_link(self, organization: RpcOrganization) -> Union[str, None]:
         """
         Returns a join request link and does something else? TODO: FIGURE OUT WHAT THIS DOES IN REVIEW
         """
@@ -602,7 +602,7 @@ class AuthLoginView(BaseView):
             # may need to configure 2FA in which case, we don't want to make
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
-                organization = Organization.get_default()
+                organization: RpcOrganization = organization_service.get_default_organization()
                 organization_service.add_organization_member(
                     organization_id=organization.id,
                     default_org_role=organization.default_role,

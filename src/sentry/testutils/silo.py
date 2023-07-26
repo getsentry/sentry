@@ -136,6 +136,7 @@ class SiloModeTestDecorator:
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
         # Return the value to be wrapped by the original decorator
+        return test_class
         return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
 
     def __call__(
