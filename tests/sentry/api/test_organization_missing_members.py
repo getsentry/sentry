@@ -22,20 +22,26 @@ class OrganizationMissingMembersTestCase(APITestCase):
         member.user_email = "b@example.com"
         member.save()
 
-        self.commit_author = self.create_commit_author(project=self.project, email="b@example.com")
-        self.commit_author1 = self.create_commit_author(project=self.project, email="c@example.com")
-        self.commit_author1.external_id = "c"
-        self.commit_author1.save()
+        self.member_commit_author = self.create_commit_author(
+            project=self.project, email="b@example.com"
+        )
+        self.nonmember_commit_author1 = self.create_commit_author(
+            project=self.project, email="c@example.com"
+        )
+        self.nonmember_commit_author1.external_id = "c"
+        self.nonmember_commit_author1.save()
 
-        self.commit_author2 = self.create_commit_author(project=self.project, email="d@example.com")
-        self.commit_author2.external_id = "d"
-        self.commit_author2.save()
+        self.nonmember_commit_author2 = self.create_commit_author(
+            project=self.project, email="d@example.com"
+        )
+        self.nonmember_commit_author2.external_id = "d"
+        self.nonmember_commit_author2.save()
 
         self.repo = self.create_repo(project=self.project, provider="integrations:github")
-        self.create_commit(repo=self.repo, author=self.commit_author)
-        self.create_commit(repo=self.repo, author=self.commit_author1)
-        self.create_commit(repo=self.repo, author=self.commit_author1)
-        self.create_commit(repo=self.repo, author=self.commit_author2)
+        self.create_commit(repo=self.repo, author=self.member_commit_author)
+        self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=self.repo, author=self.nonmember_commit_author1)
+        self.create_commit(repo=self.repo, author=self.nonmember_commit_author2)
 
         self.login_as(self.user)
 
@@ -56,7 +62,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
 
     def test_filters_github_only(self):
         repo = self.create_repo(project=self.project, provider="integrations:bitbucket")
-        self.create_commit(repo=repo, author=self.commit_author1)
+        self.create_commit(repo=repo, author=self.nonmember_commit_author1)
 
         response = self.get_success_response(self.organization.slug)
         assert response.data[0]["integration"] == "github"
@@ -68,7 +74,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_filters_old_commits(self):
         self.create_commit(
             repo=self.repo,
-            author=self.commit_author1,
+            author=self.nonmember_commit_author1,
             date_added=timezone.now() - timedelta(days=31),
         )
 

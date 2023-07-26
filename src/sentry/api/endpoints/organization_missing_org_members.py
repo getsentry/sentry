@@ -42,14 +42,14 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             email__in=member_emails
         )
 
+        org_repos = Repository.objects.filter(
+            provider="integrations:github", organization_id=organization.id
+        ).values_list("id", flat=True)
+
         # This is currently for Github only
         return (
             nonmember_authors.filter(
-                commit__repository_id__in=set(
-                    Repository.objects.filter(
-                        provider="integrations:github", organization_id=organization.id
-                    ).values_list("id", flat=True)
-                ),
+                commit__repository_id__in=set(org_repos),
                 commit__date_added__gte=timezone.now() - timedelta(days=30),
             )
             .annotate(commit_count=Count("commit"))
