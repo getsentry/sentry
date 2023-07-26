@@ -234,7 +234,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # User is part of the default org
         with assume_test_silo_mode(SiloMode.REGION):
             default_org = Organization.get_default()
-        with assume_test_silo_mode(SiloMode.REGION):
             org_member = OrganizationMember.objects.get(
                 organization_id=default_org.id, user_id=user.id
             )

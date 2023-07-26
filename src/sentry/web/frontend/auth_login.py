@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from random import randint
 from typing import Any, Optional, Union
 
@@ -197,7 +199,7 @@ class AuthLoginView(BaseView):
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
 
-        organization: RpcOrganization = kwargs.pop("organization", None)
+        organization: RpcOrganization | None = kwargs.pop("organization", None)
 
         if self.can_register(request=request):
             return self.handle_register_form_submit(
