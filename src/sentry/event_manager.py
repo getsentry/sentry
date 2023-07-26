@@ -414,6 +414,11 @@ class EventManager:
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
 
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+
         projects = {project.id: project}
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
@@ -454,11 +459,6 @@ class EventManager:
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
-        with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
         jobs = [job]
 
         is_reprocessed = is_reprocessed_event(job["data"])
