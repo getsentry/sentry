@@ -92,8 +92,6 @@ function Container({
     : specifiedProjects.filter(project => project.isMember);
 
   const doInitialization = () => {
-    console.log('do init');
-    console.dir(router);
     initializeUrlState({
       organization,
       queryParams: location.query,
