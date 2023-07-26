@@ -23,82 +23,12 @@ jest.mock('sentry/utils/usePageFilters', () => {
   };
 });
 
-MockApiClient.addMockResponse({
-  url: `/organizations/org-slug/events/`,
-  body: {
-    data: [
-      {
-        [SpanMetricsFields.SPAN_OP]: 'db',
-        [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]: 0.52,
-      },
-    ],
-  },
-  match: [
-    (_, options) => {
-      const match =
-        options.query?.referrer === 'api.starfish.span-summary-panel-samples-table-avg';
-      return match;
-    },
-  ],
-});
-MockApiClient.addMockResponse({
-  url: `/organizations/org-slug/events/`,
-  body: {
-    data: [
-      {
-        id: 'transaction-id123',
-        'transaction.duration': 147,
-        'project.name': 'sentry',
-        timestamp: '2023-05-21T19:30:06+00:00',
-      },
-    ],
-  },
-  match: [
-    (_, options) => {
-      const match =
-        options.query?.referrer ===
-        'api.starfish.span-summary-panel-samples-table-transactions';
-      return match;
-    },
-  ],
-});
-MockApiClient.addMockResponse({
-  url: '/organizations/org-slug/events-stats/',
-  body: {
-    data: [
-      [1689710400, [{count: 1.5}]],
-      [1689714000, [{count: 1.65}]],
-    ],
-    end: 1690315200,
-    start: 1689710400,
-  },
-  match: [
-    (_, options) => {
-      const {query} = options;
-      return (
-        query?.referrer === 'api.starfish.sidebar-span-metrics' &&
-        query?.yAxis === 'p95(span.self_time)'
-      );
-    },
-  ],
-});
-MockApiClient.addMockResponse({
-  url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
-  method: 'GET',
-  body: {
-    data: [
-      {
-        project: 'sentry',
-        'span.self_time': 1.5,
-        timestamp: '2023-05-21T19:30:06+00:00',
-        span_id: 'span-id123',
-        'transaction.id': 'transaction-id123',
-      },
-    ],
-  },
-});
-
 describe('SampleTable', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    initializeMockRequests();
+  });
+
   describe('When all data is available', () => {
     it('should finsh loading', async () => {
       const container = render(
@@ -140,3 +70,80 @@ describe('SampleTable', function () {
     });
   });
 });
+
+const initializeMockRequests = () => {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/`,
+    body: {
+      data: [
+        {
+          [SpanMetricsFields.SPAN_OP]: 'db',
+          [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]: 0.52,
+        },
+      ],
+    },
+    match: [
+      (_, options) => {
+        const match =
+          options.query?.referrer === 'api.starfish.span-summary-panel-samples-table-avg';
+        return match;
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/`,
+    body: {
+      data: [
+        {
+          id: 'transaction-id123',
+          'transaction.duration': 147,
+          'project.name': 'sentry',
+          timestamp: '2023-05-21T19:30:06+00:00',
+        },
+      ],
+    },
+    match: [
+      (_, options) => {
+        const match =
+          options.query?.referrer ===
+          'api.starfish.span-summary-panel-samples-table-transactions';
+        return match;
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events-stats/',
+    body: {
+      data: [
+        [1689710400, [{count: 1.5}]],
+        [1689714000, [{count: 1.65}]],
+      ],
+      end: 1690315200,
+      start: 1689710400,
+    },
+    match: [
+      (_, options) => {
+        const {query} = options;
+        return (
+          query?.referrer === 'api.starfish.sidebar-span-metrics' &&
+          query?.yAxis === 'p95(span.self_time)'
+        );
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+    method: 'GET',
+    body: {
+      data: [
+        {
+          project: 'sentry',
+          'span.self_time': 1.5,
+          timestamp: '2023-05-21T19:30:06+00:00',
+          span_id: 'span-id123',
+          'transaction.id': 'transaction-id123',
+        },
+      ],
+    },
+  });
+};
