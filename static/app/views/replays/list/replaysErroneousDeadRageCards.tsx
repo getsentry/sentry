@@ -157,6 +157,7 @@ function CardTable({
       sort={undefined}
       visibleColumns={visibleColumns}
       saveLocation
+      styleCard
     />
   );
 }
@@ -165,6 +166,7 @@ const SplitCardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
+  align-items: stretch;
 `;
 
 export default ReplaysErroneousDeadRageCards;

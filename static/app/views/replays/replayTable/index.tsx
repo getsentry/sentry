@@ -35,6 +35,7 @@ type Props = {
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
   saveLocation?: boolean;
+  styleCard?: boolean;
 };
 
 function ReplayTable({
@@ -45,6 +46,7 @@ function ReplayTable({
   visibleColumns,
   emptyMessage,
   saveLocation,
+  styleCard,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
@@ -73,6 +75,7 @@ function ReplayTable({
         isLoading={false}
         visibleColumns={visibleColumns}
         data-test-id="replay-table"
+        replays={undefined}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -97,6 +100,7 @@ function ReplayTable({
       disablePadding
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
+      replays={styleCard && replays && replays.length < 3 ? replays : undefined}
     >
       {replays?.map(replay => {
         return (
@@ -187,6 +191,7 @@ const flexibleColumns = [
 ];
 
 const StyledPanelTable = styled(PanelTable)<{
+  replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
@@ -196,6 +201,7 @@ const StyledPanelTable = styled(PanelTable)<{
         flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
       )
       .join(' ')};
+  grid-template-rows: auto 1fr ${p => (p.replays ?? []).map(_ => '1fr').join(' ')};
 `;
 
 const StyledAlert = styled(Alert)`
