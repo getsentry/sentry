@@ -310,7 +310,7 @@ def update_alert_rule(
         partial=True,
     )
 
-    if serializer.is_valid(raise_exception=True):
+    if serializer.is_valid():
         data = serializer.validated_data
 
         # combine filters and conditions into one conditions criteria for the rule object
