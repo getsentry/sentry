@@ -138,7 +138,10 @@ class DatabaseBackedUserService(UserService):
         attrs: UserUpdateArgs,
     ) -> Any:
         if len(attrs):
-            User.objects.filter(id=user_id).update(**attrs)
+            try:
+                User.objects.get(id=user_id).update(**attrs)
+            except User.DoesNotExist:
+                pass
         return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
 
     def get_user_by_social_auth(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from django.db import models, router, transaction
 
@@ -56,3 +56,48 @@ class OrganizationIntegration(DefaultFieldsModel):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)
+
+    @staticmethod
+    def add_pagerduty_service(
+        org_id: int, service: PagerDutyServiceDict
+    ) -> OrganizationIntegration | None:
+        try:
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+                org_integration = (
+                    OrganizationIntegration.objects.filter(
+                        organization_id=org_id, integration_id=service["integration_id"]
+                    )
+                    .select_for_update()
+                    .get()
+                )
+                existing: list[PagerDutyServiceDict] = OrganizationIntegration.services_in(
+                    org_integration.config
+                )
+                org_integration.config["pagerduty_services"] = [
+                    row for row in existing if row["id"] != service["id"]
+                ] + [service]
+                org_integration.save()
+        except OrganizationIntegration.DoesNotExist:
+            return None
+
+    @staticmethod
+    def services_in(config: Mapping[str, Any]) -> List[PagerDutyServiceDict]:
+        return config.get("pagerduty_services", [])
+
+    @staticmethod
+    def find_service(config: Mapping[str, Any], id: int | str) -> Optional[PagerDutyServiceDict]:
+        try:
+            return next(
+                pds
+                for pds in OrganizationIntegration.services_in(config)
+                if str(pds["id"]) == str(id)
+            )
+        except StopIteration:
+            return None
+
+
+class PagerDutyServiceDict(TypedDict):
+    integration_id: int
+    integration_key: str
+    service_name: str
+    id: int

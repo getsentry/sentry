@@ -400,3 +400,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if integration is None:
             return
         integration.delete()
+
+    def add_pagerduty_service(
+        self,
+        *,
+        service_name: str,
+        integration_key: str,
+        organization_id: int,
+        integration_id: int,
+    ) -> Optional[RpcOrganizationIntegration]:
+        pass

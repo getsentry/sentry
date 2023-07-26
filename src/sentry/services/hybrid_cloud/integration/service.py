@@ -13,7 +13,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.models.integrations import Integration
-from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
+from sentry.models.integrations.organization_integration import PagerDutyServiceDict
+from sentry.models.integrations.pagerduty_service import PagerDutyService
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
@@ -301,6 +302,18 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def delete_integration(self, *, integration_id: int) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def add_pagerduty_service(
+        self,
+        *,
+        service_name: str,
+        integration_key: str,
+        organization_id: int,
+        integration_id: int,
+    ) -> Optional[RpcOrganizationIntegration]:
         pass
 
 

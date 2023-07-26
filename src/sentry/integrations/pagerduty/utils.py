@@ -7,7 +7,7 @@ from django.http import Http404
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
-from sentry.models.integrations.pagerduty_service import PagerDutyServiceDict
+from sentry.models.integrations.organization_integration import PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
