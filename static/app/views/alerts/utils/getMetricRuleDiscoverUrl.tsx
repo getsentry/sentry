@@ -48,7 +48,7 @@ export function getMetricRuleDiscoverQuery({
   extraQueryParams,
 }: Omit<MetricRuleDiscoverUrlOptions, 'orgSlug'>) {
   if (!projects || !projects.length || !rule) {
-    return '';
+    return null;
   }
 
   const aggregateAlias = getAggregateAlias(rule.aggregate);
