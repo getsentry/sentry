@@ -197,7 +197,7 @@ class DiscordInstallPipeline(PipelineView):
         super().__init__()
 
     def dispatch(self, request, pipeline):
-        if len(request.GET) == 0 or "guild_id" not in request.GET or "code" not in request.GET:
+        if "guild_id" not in request.GET or "code" not in request.GET:
             return self.redirect(self.install_url)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
