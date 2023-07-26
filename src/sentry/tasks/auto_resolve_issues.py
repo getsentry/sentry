@@ -104,12 +104,10 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             )
 
             analytics.record(
-                "issue.resolved",
-                default_user_id=project.organization.get_default_owner().id,
+                "issue.auto_resolved",
                 project_id=project.id,
                 organization_id=project.organization_id,
                 group_id=group.id,
-                resolution_type="automatic",
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )
