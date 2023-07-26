@@ -100,8 +100,13 @@ export function setPageFiltersStorage(
 export function getPageFilterStorage(orgSlug: string, isStarfishPage?: boolean) {
   const localStorageKey = makeLocalStorageKey(orgSlug);
   const value = localStorage.getItem(localStorageKey);
+  const starfishProject = localStorage.getItem(STARFISH_PROJECT_KEY);
 
   if (!value) {
+    return null;
+  }
+
+  if (isStarfishPage && !starfishProject) {
     return null;
   }
 
@@ -118,7 +123,6 @@ export function getPageFilterStorage(orgSlug: string, isStarfishPage?: boolean) 
   }
 
   const {projects, environments, start, end, period, utc, pinnedFilters} = decoded;
-  const starfishProject = JSON.parse(localStorage.getItem(STARFISH_PROJECT_KEY) ?? '');
 
   const state = getStateFromQuery(
     {
