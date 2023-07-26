@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
@@ -23,7 +24,6 @@ import {Monitor} from '../types';
 
 interface Props {
   monitor: Monitor;
-  orgId: string;
 }
 
 interface OnboardingGuide {
@@ -82,9 +82,11 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
 
 const guideToSelectOption = ({key, label}) => ({label, value: key});
 
-export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
+export default function MonitorQuickStartGuide({monitor}: Props) {
+  const org = useOrganization();
+
   const {data: projectKeys} = useApiQuery<Array<ProjectKey>>(
-    [`/projects/${orgId}/${monitor.project.slug}/keys/`],
+    [`/projects/${org.slug}/${monitor.project.slug}/keys/`],
     {staleTime: Infinity}
   );
 
@@ -119,7 +121,14 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
       />
-      <Guide slug={monitor.slug} orgSlug={orgId} dsnKey={projectKeys?.[0].dsn.public} />
+      <Guide
+        slug={monitor.slug}
+        orgSlug={org.slug}
+        orgId={org.id}
+        projectId={monitor.project.id}
+        publicKey={projectKeys?.[0].public}
+        dsnKey={projectKeys?.[0].dsn.public}
+      />
     </Container>
   );
 }

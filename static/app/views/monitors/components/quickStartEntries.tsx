@@ -7,13 +7,19 @@ import {t, tct} from 'sentry/locale';
 
 export interface QuickStartProps {
   dsnKey?: string;
+  orgId?: string;
   orgSlug?: string;
+  projectId?: string;
+  publicKey?: string;
   slug?: string;
 }
 
 const VALUE_DEFAULTS = {
   dsnKey: '<my-dsn-key>',
+  orgId: '<my-organziation-id>',
   orgSlug: '<my-organization-slug>',
+  projectId: '<my-project-id>',
+  publicKey: '<my-dsn-public-key>',
   slug: '<my-monitor-slug>',
 };
 
@@ -115,30 +121,21 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
 }
 
 export function CurlCronQuickStart(props: QuickStartProps) {
-  const {slug, orgSlug, dsnKey} = withDefaultProps(props);
+  const {projectId, orgId, slug, publicKey} = withDefaultProps(props);
 
-  const checkInSuccessCode = `# Notify Sentry your job is running:
-curl -X POST \\
-    'https://sentry.io/api/0/organizations/${orgSlug}/monitors/${slug}/checkins/' \\
-    --header 'Authorization: DSN ${dsnKey}' \\
-    --header 'Content-Type: application/json' \\
-    --data-raw '{"status": "in_progress"}'
+  const checkInSuccessCode = `SENTRY_INGEST="https://o${orgId}.ingest.sentry.io"
+SENTRY_CRONS="\${SENTRY_INGEST}/api/${projectId}/cron/${slug}/${publicKey}/"
+
+# 🟡 Notify Sentry your job is running:
+curl "\${SENTRY_CRONS}?status=in_progress"
 
 # Execute your scheduled task here...
 
-# Notify Sentry your job has completed successfully:
-curl -X PUT \\
-    'https://sentry.io/api/0/organizations/${orgSlug}/monitors/${slug}/checkins/latest/' \\
-    --header 'Authorization: DSN ${dsnKey}' \\
-    --header 'Content-Type: application/json' \\
-    --data-raw '{"status": "ok"}'`;
+# 🟢 Notify Sentry your job has completed successfully:
+curl "\${SENTRY_CRONS}?status=ok"`;
 
-  const checkInFailCode = `# Notify Sentry your job has failed:
-curl -X PUT \\
-    'https://sentry.io/api/0/organizations/${orgSlug}/monitors/${slug}/checkins/latest/' \\
-    --header 'Authorization: DSN ${dsnKey}' \\
-    --header 'Content-Type: application/json' \\
-    --data-raw '{"status": "error"}'`;
+  const checkInFailCode = `# 🔴 Notify Sentry your job has failed:
+curl "\${SENTRY_CRONS}?status=error"`;
 
   return (
     <Fragment>
