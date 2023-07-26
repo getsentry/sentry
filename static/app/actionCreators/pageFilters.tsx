@@ -30,6 +30,7 @@ import {
 } from 'sentry/types';
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {STARFISH_PROJECT_KEY} from 'sentry/views/starfish/utils/constants';
 
 type EnvironmentId = Environment['id'];
 
@@ -328,12 +329,12 @@ export function updateProjects(
     return;
   }
 
-  // if (options?.isStarfishPage) {
-  //   localStorage.setItem(STARFISH_PROJECT_KEY, JSON.stringify(projects[0]));
-  // } else {
-  PageFiltersStore.updateProjects(projects, options?.environments ?? null);
-  persistPageFilters('projects', options);
-  // }
+  if (options?.isStarfishPage) {
+    localStorage.setItem(STARFISH_PROJECT_KEY, JSON.stringify(projects[0]));
+  } else {
+    PageFiltersStore.updateProjects(projects, options?.environments ?? null);
+    persistPageFilters('projects', options);
+  }
 
   updateParams({project: projects, environment: options?.environments}, router, options);
   if (options?.environments) {
