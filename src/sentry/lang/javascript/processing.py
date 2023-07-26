@@ -2,6 +2,7 @@ import logging
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import unquote
 
+from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError, Project
@@ -245,6 +246,10 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     if not _handle_response_status(data, response):
         return data
+
+    used_artifact_bundles = response.get("used_artifact_bundles", [])
+    if used_artifact_bundles:
+        maybe_renew_artifact_bundles_from_processing(project.id, used_artifact_bundles)
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
