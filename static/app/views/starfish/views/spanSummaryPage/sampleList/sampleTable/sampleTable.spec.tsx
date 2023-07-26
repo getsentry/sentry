@@ -1,12 +1,7 @@
-import {renderHook} from '@testing-library/react';
-
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
-import {UseQueryResult} from 'sentry/utils/queryClient';
-import * as spanMetrics from 'sentry/views/starfish/queries/useSpanMetrics';
-import * as spanSamples from 'sentry/views/starfish/queries/useSpanSamples';
-import * as spanTransactionMetrics from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';
 
@@ -28,53 +23,84 @@ jest.mock('sentry/utils/usePageFilters', () => {
   };
 });
 
-const spanMetricsSpy = jest.spyOn(spanMetrics, 'useSpanMetrics');
-const spanSamplesSpy = jest.spyOn(spanSamples, 'useSpanSamples');
-const spanTransactionMetricsSpy = jest.spyOn(
-  spanTransactionMetrics,
-  'useSpanTransactionMetrics'
-);
-
 describe('SampleTable', function () {
-  describe('When all data is availble', () => {
+  describe('When all data is available', () => {
     it('should load', async () => {
-      spanMetricsSpy.mockReturnValue({
-        data: [{'span.op': 'db', 'p95(span.self_time)': 0.52}],
-        isFetching: false,
-        isLoading: false,
-      } as any);
-
-      spanSamplesSpy.mockReturnValue({
-        data: [
-          {
-            timestamp: '2023-07-23T21:41:59+00:00',
-            project: 'sentry',
-            'transaction.id': '5732871d33994930823be72c042eccd1',
-            span_id: '80194b65974c6b07',
-            'span.self_time': 2.058,
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events/`,
+        body: {
+          data: [
+            {
+              [SpanMetricsFields.SPAN_OP]: 'db',
+              [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]: 0.52,
+            },
+          ],
+        },
+        match: [
+          (_, options) => {
+            const match =
+              options.query?.referrer ===
+              'api.starfish.span-summary-panel-samples-table-avg';
+            return match;
           },
         ],
-        isFetching: false,
-        isLoading: false,
-        isEnabled: true,
-      } as any);
-
-      spanTransactionMetricsSpy.mockReturnValue({
-        data: [
-          {
-            'transaction.op': 'http.server',
-            transaction: '/api/0/organizations/{organization_slug}/issues/',
-            'transaction.method': 'GET',
-            'http_error_count()': 0,
-            'time_spent_percentage(local)': 0.09279880078817074,
-            'sps()': 38.73400462962963,
-            'sum(span.self_time)': 3464729.707,
-            'p95(span.self_time)': 2.6674499999999997,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events/`,
+        body: {
+          data: [
+            {
+              id: 'transaction-id123',
+              'transaction.duration': 147,
+              'project.name': 'sentry',
+              timestamp: '2023-05-21T19:30:06+00:00',
+            },
+          ],
+        },
+        match: [
+          (_, options) => {
+            const match =
+              options.query?.referrer ===
+              'api.starfish.span-summary-panel-samples-table-transactions';
+            return match;
           },
         ],
-        isLoading: false,
-        isFetching: false,
-      } as any);
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          data: [
+            [1689710400, [{count: 1.5}]],
+            [1689714000, [{count: 1.65}]],
+          ],
+          end: 1690315200,
+          start: 1689710400,
+        },
+        match: [
+          (_, options) => {
+            const {query} = options;
+            return (
+              query?.referrer === 'api.starfish.sidebar-span-metrics' &&
+              query?.yAxis === 'p95(span.self_time)'
+            );
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+        method: 'GET',
+        body: {
+          data: [
+            {
+              project: 'sentry',
+              'span.self_time': 1.5,
+              timestamp: '2023-05-21T19:30:06+00:00',
+              span_id: 'span-id123',
+              'transaction.id': 'transaction-id123',
+            },
+          ],
+        },
+      });
 
       const container = render(
         <SampleTable
@@ -84,8 +110,7 @@ describe('SampleTable', function () {
         />
       );
 
-      const loadingIndicator = await container.findByTestId('loading-indicator');
-      expect(loadingIndicator).toBeInTheDocument();
+      await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
     });
   });
 });
