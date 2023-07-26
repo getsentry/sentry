@@ -414,6 +414,9 @@ def get_constrained_date_range(
     start, end = get_date_range_from_params(params)
     now = get_now()
 
+    if start > now:
+        start = now
+
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
     if params.get("end"):
