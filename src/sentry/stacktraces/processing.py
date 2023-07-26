@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, NamedTuple, Optional, Sequence
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry.db.models.fields.node import NodeData
 from sentry.models import Project, Release

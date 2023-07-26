@@ -5,12 +5,17 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'The Tornado integration adds support for the [link:Tornado Web Framework]. A Tornado version of 5 or greater and Python 3.6 or greater is required.',
-  {
-    link: <ExternalLink href="https://www.tornadoweb.org/en/stable/" />,
-  }
+const introduction = (
+  <p>
+    {tct(
+      'The Tornado integration adds support for the [link:Tornado Web Framework]. A Tornado version of 5 or greater and Python 3.6 or greater is required.',
+      {
+        link: <ExternalLink href="https://www.tornadoweb.org/en/stable/" />,
+      }
+    )}
+  </p>
 );
+
 export const steps = ({
   dsn,
 }: {

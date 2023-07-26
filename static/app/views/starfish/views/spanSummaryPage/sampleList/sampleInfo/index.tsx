@@ -1,5 +1,6 @@
 import {CSSProperties} from 'react';
 
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -25,9 +26,9 @@ function SampleInfo(props: Props) {
     {transactionName, 'transaction.method': transactionMethod},
     [
       SPAN_OP,
-      'sps()',
+      'spm()',
       `sum(${SPAN_SELF_TIME})`,
-      `p95(${SPAN_SELF_TIME})`,
+      `avg(${SPAN_SELF_TIME})`,
       'time_spent_percentage(local)',
     ],
     'api.starfish.span-summary-panel-metrics'
@@ -46,13 +47,14 @@ function SampleInfo(props: Props) {
       <Block title={getThroughputTitle(spanMetrics?.[SPAN_OP])}>
         <ThroughputCell
           containerProps={{style}}
-          throughputPerSecond={spanMetrics?.['sps()']}
+          rate={spanMetrics?.['spm()']}
+          unit={RateUnits.PER_MINUTE}
         />
       </Block>
-      <Block title={DataTitles.p95}>
+      <Block title={DataTitles.avg}>
         <DurationCell
           containerProps={{style}}
-          milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+          milliseconds={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </Block>
     </BlockContainer>
