@@ -38,7 +38,7 @@ export const prismStyles = (theme: Theme) => css`
     font-family: ${theme.text.familyMono};
     direction: ltr;
     text-align: left;
-    white-space: pre-wrap;
+    white-space: pre;
     word-spacing: normal;
     word-break: normal;
     -moz-tab-size: 4;
