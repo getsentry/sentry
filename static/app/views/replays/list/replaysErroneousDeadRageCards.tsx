@@ -149,6 +149,11 @@ function CardTable({
     perPage: 3,
   });
 
+  const gridRows = new Array(Math.min(replays?.length ?? 0, 2))
+    .fill(' ')
+    .map(_ => '1fr')
+    .join(' ');
+
   return (
     <ReplayTable
       fetchError={fetchError}
@@ -157,7 +162,7 @@ function CardTable({
       sort={undefined}
       visibleColumns={visibleColumns}
       saveLocation
-      styleCard
+      gridRows={'auto 1fr ' + gridRows}
     />
   );
 }
