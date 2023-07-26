@@ -106,5 +106,6 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         response = self.client.get(url, format="json")
         response_content = json.loads(response.content)
 
+        assert len(response_content) == 1
         assert response_content[0]["token"] == MASKED_VALUE
         assert response_content[0]["refreshToken"] == MASKED_VALUE
