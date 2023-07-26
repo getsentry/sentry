@@ -149,6 +149,11 @@ function CardTable({
     perPage: 3,
   });
 
+  const gridRows = new Array(replays ? (replays.length > 0 ? 3 : 1) : 1)
+    .fill(' ')
+    .map(_ => '1fr')
+    .join(' ');
+
   return (
     <ReplayTable
       fetchError={fetchError}
@@ -157,6 +162,7 @@ function CardTable({
       sort={undefined}
       visibleColumns={visibleColumns}
       saveLocation
+      gridRows={'auto ' + gridRows}
     />
   );
 }
@@ -165,6 +171,7 @@ const SplitCardContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
+  align-items: stretch;
 `;
 
 export default ReplaysErroneousDeadRageCards;

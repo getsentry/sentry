@@ -34,6 +34,7 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  gridRows?: string;
   saveLocation?: boolean;
 };
 
@@ -45,6 +46,7 @@ function ReplayTable({
   visibleColumns,
   emptyMessage,
   saveLocation,
+  gridRows,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
@@ -73,6 +75,7 @@ function ReplayTable({
         isLoading={false}
         visibleColumns={visibleColumns}
         data-test-id="replay-table"
+        gridRows={undefined}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -97,6 +100,7 @@ function ReplayTable({
       disablePadding
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
+      gridRows={isFetching ? undefined : gridRows}
     >
       {replays?.map(replay => {
         return (
@@ -191,6 +195,7 @@ const flexibleColumns = [
 
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
+  gridRows?: string;
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
@@ -199,6 +204,8 @@ const StyledPanelTable = styled(PanelTable)<{
         flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
       )
       .join(' ')};
+
+  ${props => (props.gridRows ? `grid-template-rows: ${props.gridRows};` : '')}
 `;
 
 const StyledAlert = styled(Alert)`
