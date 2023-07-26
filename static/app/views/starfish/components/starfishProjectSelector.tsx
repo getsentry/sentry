@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -44,16 +45,20 @@ export function StarfishProjectSelector() {
     .map(project => ({
       label: <ProjectOptionLabel project={project} />,
       value: project.id,
-    }));
+    }))
+    .sort((projectA, projectB) => Number(projectA.value) - Number(projectB.value));
 
   const handleProjectChange = option =>
-    updateProjects([parseInt(option.value)], router, {isStarfishPage: true, save: true});
+    updateProjects([parseInt(option.value, 10)], router, {
+      isStarfishPage: true,
+      save: true,
+    });
 
   return (
     <CompactSelect
       menuWidth={250}
       options={projectOptions}
-      value={selectedProjectId}
+      value={String(selectedProjectId)}
       onChange={handleProjectChange}
     />
   );
