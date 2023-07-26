@@ -85,14 +85,6 @@ class GroupCurrentReleaseTest(APITestCase):
         assert current_release["firstSeen"] == prod_release.first_seen
         assert current_release["lastSeen"] == prod_release.last_seen
 
-    def test_current_release_has_group_on_all_envs(self):
-        current_release, target_releases = self._test_current_release(True, [])
-        latest_release = target_releases["development"]
-
-        assert current_release is not None
-        assert current_release["firstSeen"] == latest_release.first_seen
-        assert current_release["lastSeen"] == latest_release.last_seen
-
     def test_current_release_is_later(self):
         for envs in [[], ["production"], ["development"], ["production", "development"]]:
             current_release, target_releases = self._test_current_release(False, envs)

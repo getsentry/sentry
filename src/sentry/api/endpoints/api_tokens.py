@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
@@ -24,7 +25,7 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @never_cache
+    @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
         user_id = request.user.id
         if is_active_superuser(request):
@@ -38,7 +39,7 @@ class ApiTokensEndpoint(Endpoint):
 
         return Response(serialize(token_list, request.user))
 
-    @never_cache
+    @method_decorator(never_cache)
     def post(self, request: Request) -> Response:
         serializer = ApiTokenSerializer(data=request.data)
 
@@ -66,7 +67,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
 
-    @never_cache
+    @method_decorator(never_cache)
     def delete(self, request: Request):
         user_id = request.user.id
         if is_active_superuser(request):

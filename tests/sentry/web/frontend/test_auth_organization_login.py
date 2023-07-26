@@ -636,7 +636,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user_id=new_user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            member = OrganizationMember.objects.get(
+                organization=self.organization, user_id=new_user.id
+            )
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")

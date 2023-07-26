@@ -159,7 +159,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],
             orderby=["timestamp"],
             params=params,
-            query=f"span_id:[{','.join(span_ids)}]",
+            query=f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}",
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         )
         return Response({"data": result["data"]})
