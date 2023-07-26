@@ -26,9 +26,12 @@ export function OrgRoleInfo({
   }, [orgRole, orgRoleList]);
 
   const effectiveOrgRole = useMemo(() => {
+    if (!groupOrgRoles) {
+      return orgRoleFromMember;
+    }
     const memberOrgRoles = groupOrgRoles.map(r => r.role.id).concat([orgRole]);
     return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
-  }, [orgRole, groupOrgRoles, orgRoleList]);
+  }, [orgRole, groupOrgRoles, orgRoleList, orgRoleFromMember]);
 
   useEffect(() => {
     if (!orgRoleFromMember) {
@@ -62,11 +65,7 @@ export function OrgRoleInfo({
     return <Fragment>{t('Error Role')}</Fragment>;
   }
 
-  if (groupOrgRoles.length === 0) {
-    return <Fragment>{orgRoleFromMember.name}</Fragment>;
-  }
-
-  if (!effectiveOrgRole) {
+  if (groupOrgRoles?.length === 0 || !effectiveOrgRole || !groupOrgRoles) {
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
@@ -87,14 +86,15 @@ export function OrgRoleInfo({
 
       <div>
         <div>{t('Teams')}:</div>
-        {groupOrgRoles
-          .sort((a, b) => a.teamSlug.localeCompare(b.teamSlug))
-          .map(r => (
-            <TeamRow key={r.teamSlug}>
-              <TeamLink to={`${urlPrefix}teams/${r.teamSlug}/`}>#{r.teamSlug}</TeamLink>
-              <div>: {r.role.name}</div>
-            </TeamRow>
-          ))}
+        {groupOrgRoles &&
+          groupOrgRoles
+            .sort((a, b) => a.teamSlug.localeCompare(b.teamSlug))
+            .map(r => (
+              <TeamRow key={r.teamSlug}>
+                <TeamLink to={`${urlPrefix}teams/${r.teamSlug}/`}>#{r.teamSlug}</TeamLink>
+                <div>: {r.role.name}</div>
+              </TeamRow>
+            ))}
       </div>
 
       <div>
