@@ -71,7 +71,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            response = response | self._post_or_schedule_by_key(request)
+            response.update(self._post_or_schedule_by_key(request))
         elif version in ["2", "3"]:
             response["configs"] = self._post_by_key(
                 request=request,
