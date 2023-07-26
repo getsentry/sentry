@@ -216,6 +216,8 @@ def get_bundle_index_urls(
     base_url = get_internal_artifact_lookup_source_url(project)
 
     def make_download_url(bundle: ArtifactBundleFlatFileIndex):
+        # TODO: do we want to also auto-expire and refresh the `ArtifactBundleFlatFileIndex`?
+
         timestamp = int(bundle.date_added.timestamp() * 1000)
         # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
         # and it is also used as the the download key for the artifact-lookup API.

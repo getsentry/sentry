@@ -1,6 +1,7 @@
 import os.path
 import zipfile
 from base64 import b64encode
+from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
@@ -8,6 +9,7 @@ from uuid import uuid4
 import pytest
 import responses
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 from sentry.models import (
     ArtifactBundle,
@@ -2477,7 +2479,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
     @requires_symbolicator
     @pytest.mark.symbolicator
     @with_feature("organizations:sourcemaps-bundle-flat-file-indexing")
-    @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 1.0})
+    @override_options(
+        {
+            "symbolicator.sourcemaps-bundle-index-sample-rate": 1.0,
+            "symbolicator.sourcemaps-bundle-index-refresh-sample-rate": 1.0,
+        }
+    )
     def test_bundle_index(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -2502,6 +2509,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
         )
 
         upload_bundle(file_a, self.project, release.version)
+
+        # set the bundle date to something in the past so that it is being refreshed automatically
+        now = timezone.now()
+        ArtifactBundle.objects.filter(
+            organization_id=self.organization.id,
+        ).update(date_added=now - timedelta(days=45))
 
         data = {
             "timestamp": self.min_ago,
@@ -2542,3 +2555,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert frame.data["resolved_with"] == "index"
         assert frame.data["symbolicated"]
+
+        artifact_bundles = ArtifactBundle.objects.filter(
+            organization_id=self.organization.id,
+        )
+
+        assert len(artifact_bundles) == 1
+        assert artifact_bundles[0].date_added >= now
