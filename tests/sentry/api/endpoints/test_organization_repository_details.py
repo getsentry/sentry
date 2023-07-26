@@ -4,19 +4,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Commit,
-    Integration,
-    OrganizationOption,
-    RegionScheduledDeletion,
-    Repository,
-)
+from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationRepositoryDeleteTest(APITestCase):
     def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data["status"] == "pending_deletion"
@@ -51,7 +45,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert ScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
@@ -74,7 +68,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert ScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__gt=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
@@ -99,9 +93,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
-            object_id=repo.id, model_name="Repository"
-        ).exists()
+        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
 
     def test_delete_disabled_with_commits(self):
@@ -123,9 +115,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert RegionScheduledDeletion.objects.filter(
-            object_id=repo.id, model_name="Repository"
-        ).exists()
+        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
         self.assert_rename_pending_delete(response, repo)
 
     def test_put(self):
