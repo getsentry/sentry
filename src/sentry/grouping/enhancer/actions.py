@@ -86,7 +86,7 @@ class FlagAction(Action):
         )
 
     def _slice_to_range(self, seq, idx):
-        if self.range == "":
+        if self.range is None:
             return [seq[idx]]
         elif self.range == "down":
             return seq[:idx]
