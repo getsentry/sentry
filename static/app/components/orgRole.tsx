@@ -65,11 +65,7 @@ export function OrgRoleInfo({
     return <Fragment>{t('Error Role')}</Fragment>;
   }
 
-  if (groupOrgRoles?.length === 0) {
-    return <Fragment>{orgRoleFromMember.name}</Fragment>;
-  }
-
-  if (!effectiveOrgRole || !groupOrgRoles) {
+  if (groupOrgRoles?.length === 0 || !effectiveOrgRole || !groupOrgRoles) {
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
