@@ -71,7 +71,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            return self._post_or_schedule_by_key(request)
+            response += self._post_or_schedule_by_key(request)
         elif version in ["2", "3"]:
             response["configs"] = self._post_by_key(
                 request=request,
@@ -143,9 +143,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
-        res = {"configs": proj_configs, "pending": pending}
-
-        return Response(res, status=200)
+        return {"configs": proj_configs, "pending": pending}
 
     def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
