@@ -1,22 +1,26 @@
+import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {ALLOWED_PROJECT_IDS_FOR_ORG_SLUG} from 'sentry/views/starfish/allowedProjects';
-import {useStarfishProject} from 'sentry/views/starfish/utils/useStarfishProject';
+import {STARFISH_PROJECT_KEY} from 'sentry/views/starfish/utils/constants';
 
 export function StarfishProjectSelector() {
   const {projects, initiallyLoaded: projectsLoaded, fetchError} = useProjects();
   const organization = useOrganization();
-  const location = useLocation();
   const router = useRouter();
-  console.dir(router);
+  const location = useLocation();
 
-  const [selectedProjectId, setSelectedProjectId] = useStarfishProject();
+  const [selectedProjectId, setSelectedProjectId] = useLocalStorageState(
+    STARFISH_PROJECT_KEY,
+    '1'
+  );
 
   if (!projectsLoaded) {
     return (
@@ -42,11 +46,13 @@ export function StarfishProjectSelector() {
       value: project.id,
     }));
 
-  const selectedOption =
-    projectOptions.find(option => option.value === selectedProjectId) ??
-    projectOptions[0];
+  // const selectedOption =
+  //   projectOptions.find(
+  //     option => option.value === new String(selectedProjectId) ?? allowedProjectIDs[0]
+  //   ) ?? projectOptions[0];
 
   const handleProjectChange = option => {
+    updateProjects([option.value], router, {isStarfishPage: true, save: true});
     setSelectedProjectId(option.value);
     router.push({...location, query: {...location.query, project: option.value}});
   };
@@ -55,7 +61,7 @@ export function StarfishProjectSelector() {
     <CompactSelect
       menuWidth={250}
       options={projectOptions}
-      value={selectedOption?.value}
+      value={selectedProjectId}
       onChange={handleProjectChange}
     />
   );
@@ -64,11 +70,3 @@ export function StarfishProjectSelector() {
 function ProjectOptionLabel({project}: {project: Project}) {
   return <ProjectBadge project={project} avatarSize={20} disableLink />;
 }
-
-// TODO:
-/**
- * Use local storage to store starfish project separately
- * - Make a util function to fetch the selected project from local storage
- * - This function will be used everywhere we build an eventView, use it to set the current project
- * - Should also be used to update the project selector's selection
- */

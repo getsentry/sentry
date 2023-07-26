@@ -50,6 +50,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Starfish stores projects separately from the rest of the app
+   */
+  isStarfishPage?: boolean;
 };
 
 /**
@@ -189,7 +193,6 @@ export function initializeUrlState({
   }
 
   const isStarfishPage = router.location.pathname.startsWith('/starfish');
-  console.log(isStarfishPage);
   const storedPageFilters = skipLoadLastUsed
     ? null
     : getPageFilterStorage(orgSlug, isStarfishPage);
@@ -314,9 +317,14 @@ export function updateProjects(
     return;
   }
 
+  // if (options?.isStarfishPage) {
+  //   localStorage.setItem(STARFISH_PROJECT_KEY, JSON.stringify(projects[0]));
+  // } else {
   PageFiltersStore.updateProjects(projects, options?.environments ?? null);
-  updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
+  // }
+
+  updateParams({project: projects, environment: options?.environments}, router, options);
   if (options?.environments) {
     persistPageFilters('environments', options);
   }
