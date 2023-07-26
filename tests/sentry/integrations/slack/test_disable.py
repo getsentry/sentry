@@ -142,7 +142,7 @@ class SlackClientDisable(TestCase):
         assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
-    def test_slow_integration_is_broken(self):
+    def test_a_slow_integration_is_broken(self):
         """
         slow shut off with disable flag off
         put errors in buffer for 10 days, assert integration is broken but not disabled
@@ -187,4 +187,4 @@ class SlackClientDisable(TestCase):
                 buffer.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
-        assert buffer.client.llen(buffer.integrationkey) == 30
+        assert len(buffer._get()) == 30

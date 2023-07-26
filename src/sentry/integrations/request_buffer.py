@@ -41,10 +41,13 @@ class IntegrationRequestBuffer:
         """
 
         # return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
-        return [
-            self.client.lrange(key, 0, BUFFER_SIZE - 1)
-            for key in self.client.keys(buffer_key + "*")
-        ]
+        return sum(
+            [
+                self.client.lrange(key, 0, BUFFER_SIZE - 1)
+                for key in self.client.keys(buffer_key + "*")
+            ],
+            [],
+        )
 
     def _get(self):
         """
@@ -52,7 +55,7 @@ class IntegrationRequestBuffer:
         """
         return [
             self._convert_obj_to_dict(obj)
-            for obj in self._get_all_from_buffer(self.integrationkey)[0]
+            for obj in [obj for obj in self._get_all_from_buffer(self.integrationkey)]
         ]
 
     def is_integration_broken(self):
