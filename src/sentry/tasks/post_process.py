@@ -411,6 +411,17 @@ def fetch_buffered_group_stats(group):
     group.times_seen_pending = result["times_seen"]
 
 
+def fetch_buffered_group_last_seen(event, group):
+    """
+    Fetches buffered updates to `last_seen` for this group.
+    """
+    from sentry import buffer
+    from sentry.models import Group
+
+    result = buffer.get(Group, ["last_seen"], {"pk": group.id})
+    group.last_seen_buffered = max(result["last_seen"], int(datetime.timestamp(event.datetime)))
+
+
 MAX_FETCH_ATTEMPTS = 3
 
 
@@ -676,6 +687,9 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
         # stats.
         with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
             fetch_buffered_group_stats(rebound_group)
+
+        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_last_seen"):
+            fetch_buffered_group_last_seen(event, rebound_group)
 
         rebound_group.project = event.project
         rebound_group.project.set_cached_field_value("organization", event.project.organization)

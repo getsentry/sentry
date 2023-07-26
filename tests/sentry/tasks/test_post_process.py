@@ -1390,6 +1390,52 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
 
+class BufferedLastSeenTest(BasePostProgressGroupMixin):
+    def test_buffered_last_seen(self):
+        now = datetime.now()
+        one_hour_ago = now - timedelta(hours=1)
+        event = self.create_event(
+            data={
+                "message": "testing",
+                "fingerprint": ["group-1"],
+                "timestamp": one_hour_ago,
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        group.last_seen = now - timedelta(hours=1)
+
+        event_2 = self.create_event(
+            data={
+                "message": "testing",
+                "fingerprint": ["group-1"],
+                "timestamp": now,
+            },
+            project_id=self.project.id,
+            timestamp=now,
+        )
+        group.status = GroupStatus.UNRESOLVED
+        group.substatus = GroupSubStatus.NEW
+        group.save(update_fields=["status", "substatus"])
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert group.last_seen == one_hour_ago
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event_2,
+        )
+        assert group.last_seen_buffered == now
+        assert group.last_seen == now
+
+
 class SnoozeTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_escalating.send_robust")

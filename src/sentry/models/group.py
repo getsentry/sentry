@@ -796,6 +796,20 @@ class Group(Model):
         return self.times_seen + self.times_seen_pending
 
     @property
+    def last_seen_buffered(self) -> int:
+        """
+        Returns `last_seen` with any additional pending updates from `buffers`.
+        """
+        if not hasattr(self, "_last_seen_buffered"):
+            return self.last_seen
+
+        return getattr(self, "_last_seen_buffered")
+
+    @last_seen_buffered.setter
+    def last_seen_buffered(self, last_seen: int):
+        self._last_seen_buffered = last_seen
+
+    @property
     def times_seen_pending(self) -> int:
         assert hasattr(self, "_times_seen_pending")
         if not hasattr(self, "_times_seen_pending"):
