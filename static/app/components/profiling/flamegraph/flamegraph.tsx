@@ -317,6 +317,23 @@ function Flamegraph(): ReactElement {
         return null;
       }
 
+      let offset = flamegraph.profile.startedAt;
+
+      const transactionStart =
+        profiledTransaction.type === 'resolved'
+          ? profiledTransaction.data?.startTimestamp ?? null
+          : null;
+
+      const profileStart = flamegraph.profile.timestamp;
+
+      if (defined(transactionStart) && defined(profileStart)) {
+        offset += formatTo(
+          profileStart - transactionStart,
+          'second',
+          flamegraph.profile.unit
+        );
+      }
+
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: flamegraph,
@@ -325,7 +342,7 @@ function Flamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: new Rect(flamegraph.profile.startedAt, 0, 0, 0),
+          configSpaceTransform: new Rect(offset, 0, 0, 0),
         },
       });
 
@@ -401,7 +418,7 @@ function Flamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme]
+    [flamegraph, flamegraphCanvas, flamegraphTheme, profiledTransaction]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
