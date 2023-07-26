@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -6,6 +5,7 @@ from typing import Any, Mapping
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry.integrations.opsgenie.utils import get_team
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 
@@ -26,10 +26,10 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
+    fields: Mapping[str, forms.ChoiceField]  # type: ignore
 
-    # mypy is incorrectly flagging the fields as Field types instead of
-    # ChoiceFields, which is the reason for the top-level type : ignore-errors.
     def __init__(self, *args, **kwargs):
+        self.org_id = kwargs.pop("org_id")
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         teams = kwargs.pop("teams")
 
@@ -47,28 +47,21 @@ class OpsgenieNotifyTeamForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
     def _team_is_valid(
-        self, team_id: str | None, org_integrations: list[RpcOrganizationIntegration]
+        self, team_id: str | None, org_integration: RpcOrganizationIntegration | None
     ) -> bool:
-        for oi in org_integrations:
-            teams = oi.config.get("team_table")
-            if not teams:
-                continue
-            for team in teams:
-                if team["id"] == team_id:
-                    return True
-        return False
+        return True if get_team(team_id, org_integration) is not None else False
 
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
         params = {
             "account": dict(self.fields["account"].choices).get(integration_id),
             "team": dict(self.fields["team"].choices).get(team_id),
         }
-        org_integrations = integration_service.get_organization_integrations(
+        org_integration = integration_service.get_organization_integration(
             integration_id=integration_id,
-            providers=["opsgenie"],
+            organization_id=self.org_id,
         )
 
-        if not self._team_is_valid(team_id=team_id, org_integrations=org_integrations):
+        if not self._team_is_valid(team_id=team_id, org_integration=org_integration):
             raise forms.ValidationError(
                 _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
                 code="invalid",

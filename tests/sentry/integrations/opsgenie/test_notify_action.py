@@ -1,7 +1,11 @@
+from unittest.mock import MagicMock, patch
+
+import pytest
 import responses
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
 from sentry.models import Integration, OrganizationIntegration
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -67,7 +71,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
 
-    @responses.activate
     def test_render_label(self):
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
 
@@ -76,7 +79,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
             == "Send a notification to Opsgenie account test-app and team cool-team"
         )
 
-    @responses.activate
     def test_render_label_without_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
@@ -86,7 +88,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         label = rule.render_label()
         assert label == "Send a notification to Opsgenie account [removed] and team [removed]"
 
-    @responses.activate
     def test_valid_team_options(self):
         new_org = self.create_organization(name="New Org", owner=self.user)
 
@@ -106,11 +107,15 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert "choice" == rule.form_fields["team"]["type"]
         assert team_options == rule.form_fields["team"]["choices"]
 
-    @responses.activate
     def test_valid_team_selected(self):
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         form = rule.get_form_instance()
         assert form.is_valid()
+
+    def test_invalid_int_id(self):
+        rule = self.get_rule(data={"account": "blah", "team": self.team1["id"]})
+        form = rule.get_form_instance()
+        assert not form.is_valid()
 
     @responses.activate
     def test_notifies_with_multiple_og_accounts(self):
@@ -143,7 +148,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["message"] == event.message
         assert data["details"]["Sentry ID"] == str(event.group.id)
 
-    @responses.activate
     def test_invalid_team_selected(self):
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -160,3 +164,66 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    @patch("sentry.integrations.opsgenie.actions.notification.logger")
+    def test_team_deleted(self, mock_logger: MagicMock):
+        team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration("test-app-2")
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            )
+            org_integration.config = {"team_table": [team2]}
+            org_integration.save()
+        self.installation = integration.get_installation(self.organization.id)
+        event = self.get_event()
+        rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration.config = {"team_table": []}
+            org_integration.save()
+        event = self.get_event()
+        rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
+        assert (
+            mock_logger.exception.call_args.args[0]
+            == "The Opsgenie team no longer exists, or the team does not belong to the selected account."
+        )
+
+    @patch("sentry.integrations.opsgenie.actions.notification.logger")
+    def test_integration_deleted(self, mock_logger: MagicMock):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
+
+        event = self.get_event()
+        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
+        assert (
+            mock_logger.exception.call_args.args[0]
+            == "Integration removed, but the rule still refers to it"
+        )
+
+    @patch("sentry.integrations.opsgenie.actions.notification.logger")
+    @responses.activate
+    def test_api_error(self, mock_logger: MagicMock):
+        event = self.get_event()
+        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            status=400,
+        )
+
+        with pytest.raises(ApiError):
+            results[0].callback(event, futures=[])
+        assert mock_logger.info.call_args.args[0] == "rule.fail.opsgenie_notification"

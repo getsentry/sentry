@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
-from sentry.models import Integration
+from sentry.models import Group, Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -58,45 +58,39 @@ class OpsgenieClient(IntegrationProxyClient):
         headers = {"Authorization": "GenieKey " + self.integration_key}
         return self.get(path=path, headers=headers, params=params)
 
-    def send_notification(self, data, rules):
+    def _get_issue_alert_payload(self, data, rules, event: Event | GroupEvent, group: Group | None):
+        payload = {
+            "message": event.message or event.title,
+            "source": "Sentry",
+            "details": {
+                "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                "Release": data.release,
+            },
+            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
+        }
+        if group:
+            payload["alias"] = f"sentry: {group.id}"
+            payload["entity"] = group.culprit if group.culprit else ""
+            payload["details"] = {
+                "Sentry ID": str(group.id),
+                "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
+                "Project ID": group.project.slug,
+                "Project Name": group.project.name,
+                "Logger": group.logger,
+                "Level": group.get_level_display(),
+                "URL": group.get_absolute_url(),
+                "Triggering Rules": ", ".join([rule.label for rule in rules]),
+                "Release": data.release,
+            }
+
+        return payload
+
+    def send_notification(self, data, rules=None):
+        headers = {"Authorization": "GenieKey " + self.integration_key}
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
-            if group is None:
-                payload = {
-                    "message": event.message or event.title,
-                    "source": "Sentry",
-                    "details": {
-                        "Triggering Rules": ", ".join([rule.label for rule in rules]),
-                    },
-                    "tags": [
-                        f'{str(x).replace(",", "")}:{str(y).replace(",", "")}'
-                        for x, y in event.tags
-                    ],
-                }
-            else:
-                payload = {
-                    "message": event.message or event.title,
-                    "alias": f"sentry: {group.id}",
-                    "source": "Sentry",
-                    "details": {
-                        "Sentry ID": str(group.id),
-                        "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
-                        "Project ID": group.project.slug,
-                        "Project Name": group.project.name,
-                        "Logger": group.logger,
-                        "Level": group.get_level_display(),
-                        "URL": group.get_absolute_url(),
-                        "Triggering Rules": ", ".join([rule.label for rule in rules]),
-                        "Release": data.release,
-                    },
-                    "entity": group.culprit if group.culprit else "",
-                    "tags": [
-                        f'{str(x).replace(",", "")}:{str(y).replace(",", "")}'
-                        for x, y in event.tags
-                    ],
-                }
-
+            payload = self._get_issue_alert_payload(data, rules, event, group)
         else:
             # this is for metric alerts, which will be in the next PR
             pass

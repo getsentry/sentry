@@ -4,10 +4,9 @@ import logging
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OpsgenieClient
+from sentry.integrations.opsgenie.utils import get_team
 from sentry.rules.actions import IntegrationEventAction
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
@@ -31,18 +30,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             "team": {"type": "choice", "choices": self.get_teams()},
         }
 
-    def _get_team(self, org_integration: RpcOrganizationIntegration | None):
-        if not org_integration:
-            return None
-        teams = org_integration.config.get("team_table")
-        if not teams:
-            return None
-        team_id = self.get_option("team")
-        for team in teams:
-            if team["id"] == team_id:
-                return team
-        return None
-
     def after(self, event, state):
         integration = self.get_integration()
         if not integration:
@@ -51,13 +38,10 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         org_integration = self.get_organization_integration()
         if not org_integration:
-            org_integration_id = infer_org_integration(
-                integration_id=integration.id, ctx_logger=logger
-            )
-            org_integration = integration_service.get_organization_integration(
-                integration_id=integration.id, organization_id=org_integration_id
-            )
-        team = self._get_team(org_integration)
+            logger.exception("No associated org integration.")
+            return
+
+        team = get_team(self.get_option("team"), org_integration)
         if not team:
             logger.exception(
                 "The Opsgenie team no longer exists, or the team does not belong to the selected account."
@@ -66,13 +50,10 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         def send_notification(event, futures):
             org_integration = self.get_organization_integration()
-            org_integration_id = None
-            if org_integration:
-                org_integration_id = org_integration.id
-            else:
-                org_integration_id = infer_org_integration(
-                    integration_id=integration.id, ctx_logger=logger
-                )
+            if not org_integration:
+                logger.exception("No associated org integration.")
+                return
+            org_integration_id = org_integration.id
             client = OpsgenieClient(
                 integration=integration,
                 org_integration_id=org_integration_id,
@@ -82,7 +63,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                 rules = [f.rule for f in futures]
                 resp = client.send_notification(event, rules)
             except ApiError as e:
-                self.logger.info(
+                logger.info(
                     "rule.fail.opsgenie_notification",
                     extra={
                         "error": str(e),
@@ -94,7 +75,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                 )
                 raise e
 
-            self.logger.info(
+            logger.info(
                 "rule.success.opsgenie_notification",
                 extra={
                     "status_code": resp.status_code,
@@ -109,8 +90,6 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         yield self.future(send_notification, key=key)
 
     def get_teams(self) -> list[tuple[str, str]]:
-        from sentry.services.hybrid_cloud.integration import integration_service
-
         organization_integrations = integration_service.get_organization_integrations(
             providers=[self.provider], organization_id=self.project.organization_id
         )
@@ -123,17 +102,15 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         return teams
 
     def render_label(self) -> str:
-        team = self._get_team(self.get_organization_integration())
-        if team:
-            team_name = team["team"]
-        else:
-            team_name = "[removed]"
+        team = get_team(self.get_option("team"), self.get_organization_integration())
+        team_name = team["team"] if team else "[removed]"
 
         return self.label.format(account=self.get_integration_name(), team=team_name)
 
     def get_form_instance(self):
         return self.form_cls(
             self.data,
+            org_id=self.project.organization_id,
             integrations=self.get_integrations(),
             teams=self.get_teams(),
         )
