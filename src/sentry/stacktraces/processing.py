@@ -194,7 +194,7 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
-        frames = [frame for frame in stacktrace.get("frames", ()) if frame]
+        frames = [frame for frame in stacktrace.get("frames", ()) if frame] if stacktrace else ()
         if not is_exception and (not stacktrace or not frames):
             return
 
