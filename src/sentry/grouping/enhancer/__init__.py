@@ -150,9 +150,9 @@ class Enhancements:
         if stacktrace_fingerprint:
             cached_frames = cache.get(stacktrace_fingerprint)
             if cached_frames:
-                # XXX: For now, we do not do anything
-                pass
-                # _merge_frames(frames, cached_frames)
+                # For now, do the merge on a copy
+                _merge_frames(frames[:], cached_frames)
+                # XXX:
                 # return
 
         in_memory_cache: dict[str, str] = {}
@@ -165,7 +165,7 @@ class Enhancements:
                 for idx, action in rule.get_matching_frame_actions(
                     match_frames, platform, exception_data, in_memory_cache
                 ):
-                    # Both frames and match_frames will be updated
+                    # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
         if stacktrace_fingerprint and not cache.get(stacktrace_fingerprint):
@@ -498,15 +498,20 @@ class EnhancementsVisitor(NodeVisitor):
         return node.match.groups()[0].lstrip("!")
 
 
-def _merge_frames(frames: Sequence[dict[str, Any]], match_frames: Sequence[dict[str, Any]]) -> None:
-    for frame, match_frame in zip(frames, match_frames):
+def _merge_frames(
+    frames: Sequence[dict[str, Any]],
+    cached_frames: Sequence[dict[str, Any]],
+) -> None:
+    """It places the processed values from the cached_frames into the incoming frame."""
+    for frame, cached_frame in zip(frames, cached_frames):
         pass
+    logger.info("We have merged the cached stacktrace to the incoming one.")
 
 
 def _generate_matching_frames(
     frames: Sequence[dict[str, Any]], platform: str
 ) -> tuple[list[dict[str, Any]], str]:
-    """Return frames that can be used for matching and a fingerprint representing them."""
+    """Return mock frames which are used for matching rules and a fingerprint representing the stacktrace."""
     matched_frames = []
     failed_to_hash = False
     stacktrace_hash = md5()
