@@ -239,9 +239,10 @@ function SpanSummaryPage({params, location}: Props) {
                               {spanDescriptionCardTitle}
                             </DescriptionTitle>
                             <SpanDescription
-                              spanMeta={{
+                              span={{
                                 ...span,
-                                'span.description': fullSpanDescription ?? '',
+                                [SpanMetricsFields.SPAN_DESCRIPTION]:
+                                  fullSpanDescription ?? '',
                               }}
                             />
                           </DescriptionContainer>
@@ -405,6 +406,7 @@ const DescriptionPanelBody = styled(PanelBody)`
 const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
+  min-width: 0;
 `;
 
 const DescriptionTitle = styled('h4')`

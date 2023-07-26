@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import router, transaction
 from django.http import Http404
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -32,7 +33,7 @@ class IntegrationSerializer(serializers.Serializer):
 @control_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
     @set_referrer_policy("strict-origin-when-cross-origin")
-    @never_cache
+    @method_decorator(never_cache)
     def get(
         self,
         request: Request,
@@ -52,7 +53,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
     @requires_feature("organizations:integrations-custom-scm")
     @set_referrer_policy("strict-origin-when-cross-origin")
-    @never_cache
+    @method_decorator(never_cache)
     def put(
         self,
         request: Request,
@@ -93,7 +94,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         return self.respond(serializer.errors, status=400)
 
     @set_referrer_policy("strict-origin-when-cross-origin")
-    @never_cache
+    @method_decorator(never_cache)
     def delete(
         self,
         request: Request,
@@ -134,7 +135,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         return self.respond(status=204)
 
     @set_referrer_policy("strict-origin-when-cross-origin")
-    @never_cache
+    @method_decorator(never_cache)
     def post(
         self,
         request: Request,

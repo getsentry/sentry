@@ -23,6 +23,7 @@ const TIMELINE_LABEL_HEIGHT = 20;
 const EMPTY_TIMELINE_HEIGHT = 80;
 
 interface FlamegraphLayoutProps {
+  cpuChart: React.ReactElement | null;
   flamegraph: React.ReactElement;
   flamegraphDrawer: React.ReactElement;
   minimap: React.ReactElement;
@@ -122,6 +123,20 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     [dispatch]
   );
 
+  const onOpenCpuChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'cpu_chart', value: true},
+    });
+  }, [dispatch]);
+
+  const onCloseCpuChart = useCallback(() => {
+    dispatch({
+      type: 'toggle timeline',
+      payload: {timeline: 'cpu_chart', value: false},
+    });
+  }, [dispatch]);
+
   const spansTreeDepth = props.spansTreeDepth ?? 0;
   const spansTimelineHeight =
     Math.min(
@@ -166,6 +181,24 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
               {props.uiFrames}
             </CollapsibleTimeline>
           </UIFramesContainer>
+        ) : null}
+        {props.cpuChart ? (
+          <CPUChartContainer
+            containerHeight={
+              timelines.cpu_chart
+                ? flamegraphTheme.SIZES.CPU_CHART_HEIGHT
+                : TIMELINE_LABEL_HEIGHT
+            }
+          >
+            <CollapsibleTimeline
+              title={t('CPU')}
+              open={timelines.cpu_chart}
+              onOpen={onOpenCpuChart}
+              onClose={onCloseCpuChart}
+            >
+              {props.cpuChart}
+            </CollapsibleTimeline>
+          </CPUChartContainer>
         ) : null}
         {props.spans ? (
           <SpansContainer
@@ -294,6 +327,14 @@ const SpansContainer = styled('div')<{
   position: relative;
   height: ${p => p.containerHeight}px;
   grid-area: spans;
+`;
+
+const CPUChartContainer = styled('div')<{
+  containerHeight: FlamegraphTheme['SIZES']['CPU_CHART_HEIGHT'];
+}>`
+  position: relative;
+  height: ${p => p.containerHeight}px;
+  grid-area: cpu-chart;
 `;
 
 const UIFramesContainer = styled('div')<{
