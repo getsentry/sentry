@@ -109,3 +109,42 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert len(response_content) == 1
         assert response_content[0]["token"] == MASKED_VALUE
         assert response_content[0]["refreshToken"] == MASKED_VALUE
+
+    def test_no_scope_api_token(self):
+        user = self.create_user(email="meep@example.com")
+        self.create_member(organization=self.org, user=user, role="owner")
+        sentry_app = self.create_internal_integration(
+            name="sentry_app_1",
+            organization=self.org,
+            scopes=(
+                "project:read",
+                "project:write",
+                "project:admin",
+                "project:releases",
+                "team:read",
+                "team:write",
+                "team:admin",
+                "event:read",
+                "event:write",
+                "event:admin",
+                "org:read",
+                "org:write",
+                "org:admin",
+                "member:read",
+                "member:write",
+                "member:admin",
+            ),
+        )
+        sentry_app_api_token_2 = ApiToken.objects.create(
+            application_id=sentry_app.application_id,
+            user=user,
+            scope_list=[],
+        )
+
+        url = reverse("sentry-api-0-sentry-internal-app-tokens", args=[sentry_app.slug])
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {sentry_app_api_token_2.token}"
+        )
+        response_content = json.loads(response.content)
+
+        assert response_content == {"detail": "You do not have permission to perform this action."}
