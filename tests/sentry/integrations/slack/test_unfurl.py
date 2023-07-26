@@ -920,32 +920,6 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
-    @patch(
-        "sentry.snuba.discover.query",
-        return_value={
-            "data": [
-                {"geo.country_code": "AU", "count": 2},
-                {"geo.country_code": "CA", "count": 2},
-            ],
-            "meta": {"geo.country_code": "string", "count": "integer"},
-            "profile": {"bytes": 64, "blocks": 1, "rows": 2, "elapsed": 0.009087800979614258},
-            "trace_output": "",
-            "timing": {
-                "timestamp": 1652998746,
-                "duration_ms": 32,
-                "marks_ms": {
-                    "cache_get": 1,
-                    "cache_set": 2,
-                    "execute": 9,
-                    "get_configs": 0,
-                    "prepare_query": 8,
-                    "rate_limit": 2,
-                    "validate_schema": 8,
-                },
-                "tags": {},
-            },
-        },
-    )
     # patched return value determined by reading events stats output
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
