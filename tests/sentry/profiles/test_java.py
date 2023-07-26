@@ -47,4 +47,4 @@ def mapper():
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):
-    assert deobfuscate_signature(mapper, obfuscated) == expected
+    assert deobfuscate_signature(obfuscated, mapper) == expected
