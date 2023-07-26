@@ -116,6 +116,8 @@ class BaseNotification(abc.ABC):
         params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
+            "id": recipient.id,
+            "actor_type": recipient.actor_type,
             "group_id": group.id if group else None,
         }
         if recipient.actor_type == ActorType.USER:
@@ -170,7 +172,7 @@ class BaseNotification(abc.ABC):
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
-            referrer += "-" + str(recipient.actor_type.value).lower()
+            referrer += "-" + str(recipient.actor_type).lower()
         return referrer
 
     def get_sentry_query_params(
@@ -255,11 +257,8 @@ class ProjectNotification(BaseNotification, abc.ABC):
         super().__init__(project.organization)
 
     def get_project_link(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        return str(
-            self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
-            )
+        return self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
         )
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:

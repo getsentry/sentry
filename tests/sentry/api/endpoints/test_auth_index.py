@@ -1,4 +1,3 @@
-from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import urlencode
@@ -38,7 +37,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:admin".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "admin"),
         )
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
@@ -47,7 +46,7 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:foobar".encode()),
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(user.username, "foobar"),
         )
         assert response.status_code == 401
 
@@ -84,18 +83,27 @@ class AuthVerifyEndpointTest(APITestCase):
             },
         )
 
-    def test_valid_password(self):
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    def test_valid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
         assert response.status_code == 200
         assert response.data["id"] == str(user.id)
+        mock_metrics.incr.assert_any_call(
+            "auth.password.success", sample_rate=1.0, skip_internal=False
+        )
 
-    def test_invalid_password(self):
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    def test_invalid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "foobar"})
         assert response.status_code == 403
+        assert (
+            mock.call("auth.password.success", sample_rate=1.0, skip_internal=False)
+            not in mock_metrics.incr.call_args_list
+        )
 
     def test_no_password_no_u2f(self):
         user = self.create_user("foo@example.com")
@@ -103,9 +111,10 @@ class AuthVerifyEndpointTest(APITestCase):
         response = self.client.put(self.path, data={})
         assert response.status_code == 400
 
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_valid_password_u2f(self, validate_response, is_available):
+    def test_valid_password_u2f(self, validate_response, is_available, mock_metrics):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -123,6 +132,33 @@ class AuthVerifyEndpointTest(APITestCase):
         assert validate_response.call_count == 1
         assert {"challenge": "challenge"} in validate_response.call_args[0]
         assert {"response": "response"} in validate_response.call_args[0]
+        mock_metrics.incr.assert_any_call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+
+    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
+    def test_invalid_password_u2f(self, validate_response, is_available, mock_metrics):
+        user = self.create_user("foo@example.com")
+        self.org = self.create_organization(owner=user, name="foo")
+        self.login_as(user)
+        self.get_auth(user)
+        response = self.client.put(
+            self.path,
+            user=user,
+            data={
+                "password": "admin",
+                "challenge": """{"challenge":"challenge"}""",
+                "response": """{"response":"response"}""",
+            },
+        )
+        assert response.status_code == 403
+        assert validate_response.call_count == 1
+        assert {"challenge": "challenge"} in validate_response.call_args[0]
+        assert {"response": "response"} in validate_response.call_args[0]
+        assert (
+            mock.call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+            not in mock_metrics.incr.call_args_list
+        )
 
 
 @control_silo_test(stable=True)

@@ -24,6 +24,7 @@ DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
     "{limit} requests in {window} seconds"
 )
+logger = logging.getLogger("sentry.api.rate-limit")
 
 
 class RatelimitMiddleware:
@@ -48,12 +49,12 @@ class RatelimitMiddleware:
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
                 if settings.SENTRY_SELF_HOSTED:
-                    return
+                    return None
                 request.rate_limit_category = None
                 request.rate_limit_uid = uuid.uuid4().hex
                 view_class = getattr(view_func, "view_class", None)
                 if not view_class:
-                    return
+                    return None
 
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
@@ -65,7 +66,7 @@ class RatelimitMiddleware:
                     view_func, request, rate_limit_group, rate_limit_config
                 )
                 if request.rate_limit_key is None:
-                    return
+                    return None
 
                 category_str = request.rate_limit_key.split(":", 1)[0]
                 request.rate_limit_category = category_str
@@ -76,7 +77,7 @@ class RatelimitMiddleware:
                     rate_limit_config=rate_limit_config,
                 )
                 if rate_limit is None:
-                    return
+                    return None
 
                 request.rate_limit_metadata = above_rate_limit_check(
                     request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
@@ -91,6 +92,15 @@ class RatelimitMiddleware:
                     request.will_be_rate_limited = True
                     enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
+                        logger.info(
+                            "sentry.api.rate-limit.exceeded",
+                            extra={
+                                "key": request.rate_limit_key,
+                                "url": request.build_absolute_uri(),
+                                "limit": request.rate_limit_metadata.limit,
+                                "window": request.rate_limit_metadata.window,
+                            },
+                        )
                         return HttpResponse(
                             json.dumps(
                                 DEFAULT_ERROR_MESSAGE.format(
@@ -104,6 +114,7 @@ class RatelimitMiddleware:
                 logging.exception(
                     "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"
                 )
+        return None
 
     def process_response(self, request: Request, response: Response) -> Response:
         with metrics.timer("middleware.ratelimit.process_response"):

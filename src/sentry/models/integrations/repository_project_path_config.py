@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.db.models import (
@@ -7,6 +7,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.integrations.organization_integrity_backfill_mixin import (
     OrganizationIntegrityBackfillMixin,
 )
@@ -19,7 +20,9 @@ class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFie
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
+    organization_integration_id = HybridCloudForeignKey(
+        "sentry.OrganizationIntegration", on_delete="CASCADE"
+    )
     organization_id = BoundedBigIntegerField(db_index=True)
     # From a region point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
@@ -68,8 +71,8 @@ def process_resource_change(instance, **kwargs):
         cache_keys = [f"process-commit-context-{group_id}" for group_id in group_ids]
         cache.delete_many(cache_keys)
 
-    transaction.on_commit(_spawn_update_schema_task)
-    transaction.on_commit(_clear_commit_context_cache)
+    transaction.on_commit(_spawn_update_schema_task, router.db_for_write(type(instance)))
+    transaction.on_commit(_clear_commit_context_cache, router.db_for_write(type(instance)))
 
 
 post_save.connect(

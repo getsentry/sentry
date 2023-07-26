@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {EventCause} from 'sentry/components/events/eventCause';
+import {EventCause, StyledPanel} from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -15,7 +15,7 @@ import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
@@ -33,7 +33,7 @@ function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+    trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
       contextType: ContextType.ISSUE,
     });
@@ -186,7 +186,7 @@ const SuspectCommitsContainer = styled(ContextContainer)`
     margin: 0;
   }
 
-  ${Panel} {
+  ${StyledPanel} {
     border: none;
     box-shadow: none;
   }

@@ -55,7 +55,8 @@ describe('SettingsIndex', function () {
       id: '44',
       name: 'Org Index',
       slug: 'org-index',
-    } as Organization;
+      features: [],
+    } as unknown as Organization;
 
     const spy = jest.spyOn(OrgActions, 'fetchOrganizationDetails');
     const api = MockApiClient.addMockResponse({

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.conf import settings
 
@@ -14,12 +17,15 @@ def geo_by_addr(ip):
 rust_geoip = None
 
 
-def _init_geoip():
+def _init_geoip() -> None:
     global geo_by_addr
     try:
         import maxminddb
     except ImportError:
         logger.warning("maxminddb module not available.")
+        return
+
+    if geoip_path_mmdb is None:
         return
 
     try:
@@ -28,11 +34,13 @@ def _init_geoip():
         logger.warning("Error opening GeoIP database: %s" % geoip_path_mmdb)
         return
 
-    def _geo_by_addr(ip):
-        geo = geo_db.get(ip)
-        if not geo:
-            return
+    def _geo_by_addr(ip: str) -> dict[str, Any] | None:
+        rv = geo_db.get(ip)
+        if not rv:
+            return None
 
+        assert isinstance(rv, dict)
+        geo: dict[str, Any] = rv
         return {
             "country_code": geo["country"]["iso_code"],
             "region": geo.get("subdivisions", [{}])[-1].get("iso_code"),
@@ -58,5 +66,3 @@ def _init_geoip_rust():
 if geoip_path_mmdb:
     _init_geoip()
     _init_geoip_rust()
-else:
-    logger.warning("settings.GEOIP_PATH_MMDB not configured.")

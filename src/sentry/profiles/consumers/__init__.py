@@ -7,11 +7,9 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from django.conf import settings
 
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
 from sentry.utils import kafka_config
-from sentry.utils.batching_kafka_consumer import create_topics
 
 
 def get_profiles_process_consumer(
@@ -46,8 +44,7 @@ def get_config(
     strict_offset_reset: bool,
     force_cluster: str | None,
 ) -> MutableMapping[str, Any]:
-    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
-    create_topics(cluster_name, [topic])
+    cluster_name: str = force_cluster or kafka_config.get_topic_definition(topic)["cluster"]
     return build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,

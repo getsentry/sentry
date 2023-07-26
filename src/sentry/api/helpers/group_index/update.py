@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from urllib.parse import urlparse
 
 import rest_framework
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.signals import post_save
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,15 +23,16 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
 from sentry.issues.status_change import handle_status_update
+from sentry.issues.update_inbox import update_inbox
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    Actor,
     ActorTuple,
     Group,
     GroupAssignee,
     GroupBookmark,
     GroupHash,
-    GroupInboxReason,
     GroupLink,
     GroupRelease,
     GroupResolution,
@@ -40,20 +45,23 @@ from sentry.models import (
     Release,
     Team,
     User,
-    UserOption,
     follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
+from sentry.models.groupinbox import GroupInboxRemoveAction
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
-from sentry.signals import issue_mark_reviewed, issue_resolved
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.signals import issue_resolved
+from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -78,7 +86,7 @@ def handle_discard(
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
@@ -105,7 +113,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group
+    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -115,9 +123,7 @@ def self_subscribe_and_assign_issue(
         GroupSubscription.objects.subscribe(
             user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
         )
-        self_assign_issue = UserOption.objects.get_value(
-            user=acting_user, key="self_assign_issue", default="0"
-        )
+
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
     return None
@@ -216,6 +222,13 @@ def update_groups(
     project_lookup = {p.id: p for p in projects}
 
     acting_user = user if user.is_authenticated else None
+    self_assign_issue = "0"
+    if acting_user:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+        )
+        if user_options:
+            self_assign_issue = user_options[0].value
 
     if search_fn and not group_ids:
         try:
@@ -362,7 +375,7 @@ def update_groups(
             except IndexError:
                 release = None
         for group in group_list:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Group)):
                 resolution = None
                 created = None
                 if release:
@@ -481,19 +494,27 @@ def update_groups(
                     )
 
                 affected = Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=now
+                    status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
                 )
                 if not resolution:
                     created = affected
 
                 group.status = GroupStatus.RESOLVED
+                group.substatus = None
                 group.resolved_at = now
+                if affected:
+                    post_save.send(
+                        sender=Group,
+                        instance=group,
+                        created=False,
+                        update_fields=["resolved_at", "status", "substatus"],
+                    )
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
                 )
                 result["inbox"] = None
 
-                assigned_to = self_subscribe_and_assign_issue(acting_user, group)
+                assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
                 if assigned_to is not None:
                     result["assignedTo"] = assigned_to
 
@@ -511,7 +532,9 @@ def update_groups(
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
-                        activity.send_notification()
+                        transaction.on_commit(
+                            lambda: activity.send_notification(), router.db_for_write(Group)
+                        )
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
@@ -533,18 +556,31 @@ def update_groups(
         new_substatus = (
             SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
         )
-        has_escalating_issues = features.has(
+        if new_substatus is None and new_status == GroupStatus.UNRESOLVED:
+            new_substatus = GroupSubStatus.ONGOING
+            if len(group_list) == 1 and group_list[0].status == GroupStatus.IGNORED:
+                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
+                    days=TRANSITION_AFTER_DAYS
+                )
+                new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+
+        has_escalating_issues = len(group_list) > 0 and features.has(
             "organizations:escalating-issues", group_list[0].organization
         )
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Group)):
+            # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
+            #                we should centralize the logic for validating and defaulting substatus values
+            #                and refactor pre_save and the above new_substatus assignment to account for this
             status_updated = queryset.exclude(status=new_status).update(
                 status=new_status, substatus=new_substatus
             )
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
                 if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
-                    handle_archived_until_escalating(group_list, acting_user)
+                    result["statusDetails"] = handle_archived_until_escalating(
+                        group_list, acting_user, projects, sender=update_groups
+                    )
                 else:
                     result["statusDetails"] = handle_ignored(
                         group_ids, group_list, status_details, acting_user, user
@@ -558,6 +594,7 @@ def update_groups(
                 projects=projects,
                 project_lookup=project_lookup,
                 new_status=new_status,
+                new_substatus=new_substatus,
                 is_bulk=is_bulk,
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
@@ -583,129 +620,33 @@ def update_groups(
         pass
 
     if "assignedTo" in result:
-        assigned_actor = result["assignedTo"]
-        assigned_by = (
-            data.get("assignedBy")
-            if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
-            else None
+        result["assignedTo"] = handle_assigned_to(
+            result["assignedTo"],
+            data.get("assignedBy"),
+            data.get("integration"),
+            group_list,
+            project_lookup,
+            acting_user,
         )
-        extra = (
-            {"integration": data.get("integration")}
-            if data.get("integration")
-            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
-            else dict()
+
+    handle_has_seen(
+        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
+    )
+
+    if "isBookmarked" in result:
+        handle_is_bookmarked(
+            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
         )
-        if assigned_actor:
-            for group in group_list:
-                resolved_actor: RpcUser | Team = assigned_actor.resolve()
 
-                assignment = GroupAssignee.objects.assign(
-                    group, resolved_actor, acting_user, extra=extra
-                )
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=assignment["updated_assignment"],
-                )
-            result["assignedTo"] = serialize(
-                assigned_actor.resolve(), acting_user, ActorSerializer()
-            )
-
-        else:
-            for group in group_list:
-                GroupAssignee.objects.deassign(group, acting_user)
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=True,
-                )
-    is_member_map = {
-        project.id: (
-            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
-        )
-        for project in projects
-    }
-    if result.get("hasSeen"):
-        for group in group_list:
-            if is_member_map.get(group.project_id):
-                instance, created = create_or_update(
-                    GroupSeen,
-                    group=group,
-                    user_id=acting_user.id,
-                    project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
-                )
-    elif result.get("hasSeen") is False:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
-
-    if result.get("isBookmarked"):
-        for group in group_list:
-            GroupBookmark.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
-            )
-            GroupSubscription.objects.subscribe(
-                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
-            )
-    elif result.get("isBookmarked") is False:
-        GroupBookmark.objects.filter(group__in=group_ids, user_id=acting_user.id).delete()
-
-    # TODO(dcramer): we could make these more efficient by first
-    # querying for rich rows are present (if N > 2), flipping the flag
-    # on those rows, and then creating the missing rows
     if result.get("isSubscribed") in (True, False):
-        is_subscribed = result["isSubscribed"]
-        for group in group_list:
-            # NOTE: Subscribing without an initiating event (assignment,
-            # commenting, etc.) clears out the previous subscription reason
-            # to avoid showing confusing messaging as a result of this
-            # action. It'd be jarring to go directly from "you are not
-            # subscribed" to "you were subscribed due since you were
-            # assigned" just by clicking the "subscribe" button (and you
-            # may no longer be assigned to the issue anyway.)
-            GroupSubscription.objects.create_or_update(
-                user_id=acting_user.id,
-                group=group,
-                project=project_lookup[group.project_id],
-                values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
-            )
-
-        result["subscriptionDetails"] = {
-            "reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")
-        }
+        result["subscriptionDetails"] = handle_is_subscribed(
+            result["isSubscribed"], group_list, project_lookup, acting_user
+        )
 
     if "isPublic" in result:
-        # We always want to delete an existing share, because triggering
-        # an isPublic=True even when it's already public, should trigger
-        # regenerating.
-        for group in group_list:
-            if GroupShare.objects.filter(group=group).delete():
-                result["shareId"] = None
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PRIVATE.value,
-                    user_id=acting_user.id,
-                )
-
-    if result.get("isPublic"):
-        for group in group_list:
-            share, created = GroupShare.objects.get_or_create(
-                project=project_lookup[group.project_id], group=group, user_id=acting_user.id
-            )
-            if created:
-                result["shareId"] = share.uuid
-                Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=ActivityType.SET_PUBLIC.value,
-                    user_id=acting_user.id,
-                )
+        result["shareId"] = handle_is_public(
+            result["isPublic"], group_list, project_lookup, acting_user
+        )
 
     # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
     if result.get("merge") and len(group_list) > 1:
@@ -713,28 +654,215 @@ def update_groups(
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
 
+        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
+        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+        metrics.incr(
+            "grouping.merge_issues",
+            sample_rate=1.0,
+            tags={
+                # We assume that if someone's merging groups, they're from the same platform
+                "platform": group_list[0].platform or "unknown",
+                # TODO: It's probably cleaner to just send this value from the front end
+                "referer": (
+                    "issue stream"
+                    if re.search(issue_stream_regex, referer)
+                    else "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                ),
+            },
+        )
+
         result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
-    # Support moving groups in or out of the inbox
     inbox = result.get("inbox", None)
     if inbox is not None:
-        if inbox:
-            for group in group_list:
-                add_group_to_inbox(group, GroupInboxReason.MANUAL)
-        elif not inbox:
-            for group in group_list:
-                remove_group_from_inbox(
-                    group,
-                    action=GroupInboxRemoveAction.MARK_REVIEWED,
-                    user=acting_user,
-                    referrer=request.META.get("HTTP_REFERER"),
-                )
-                issue_mark_reviewed.send_robust(
-                    project=project_lookup[group.project_id],
-                    user=acting_user,
-                    group=group,
-                    sender=update_groups,
-                )
-        result["inbox"] = inbox
+        result["inbox"] = update_inbox(
+            inbox,
+            group_list,
+            project_lookup,
+            acting_user,
+            http_referrer=request.META.get("HTTP_REFERER"),
+            sender=update_groups,
+        )
 
     return Response(result)
+
+
+def handle_is_subscribed(
+    is_subscribed: bool,
+    group_list: Sequence[Group],
+    project_lookup: dict[int, Any],
+    acting_user: User,
+) -> dict[str, str]:
+    # TODO(dcramer): we could make these more efficient by first
+    # querying for which `GroupSubscription` rows are present (if N > 2),
+    # flipping the flag on those rows, and then creating the missing rows
+    for group in group_list:
+        # NOTE: Subscribing without an initiating event (assignment,
+        # commenting, etc.) clears out the previous subscription reason
+        # to avoid showing confusing messaging as a result of this
+        # action. It'd be jarring to go directly from "you are not
+        # subscribed" to "you were subscribed since you were
+        # assigned" just by clicking the "subscribe" button (and you
+        # may no longer be assigned to the issue anyway).
+        GroupSubscription.objects.create_or_update(
+            user_id=acting_user.id,
+            group=group,
+            project=project_lookup[group.project_id],
+            values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+        )
+
+    return {"reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")}
+
+
+def handle_is_bookmarked(
+    is_bookmarked: bool,
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: Dict[int, Project],
+    acting_user: User | None,
+) -> None:
+    """
+    Creates bookmarks and subscriptions for a user, or deletes the exisitng bookmarks.
+    """
+    if is_bookmarked:
+        for group in group_list:
+            GroupBookmark.objects.get_or_create(
+                project=project_lookup[group.project_id],
+                group=group,
+                user_id=acting_user.id if acting_user else None,
+            )
+            GroupSubscription.objects.subscribe(
+                user=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
+            )
+    elif is_bookmarked is False:
+        GroupBookmark.objects.filter(
+            group__in=group_ids,
+            user_id=acting_user.id if acting_user else None,
+        ).delete()
+
+
+def handle_has_seen(
+    has_seen: Any,
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: dict[int, Project],
+    projects: Sequence[Project],
+    acting_user: User | None,
+) -> None:
+    is_member_map = {
+        project.id: (
+            project.member_set.filter(user_id=acting_user.id).exists() if acting_user else False
+        )
+        for project in projects
+    }
+    user_id = acting_user.id if acting_user else None
+    if has_seen:
+        for group in group_list:
+            if is_member_map.get(group.project_id):
+                instance, created = create_or_update(
+                    GroupSeen,
+                    group=group,
+                    user_id=user_id,
+                    project=project_lookup[group.project_id],
+                    values={"last_seen": timezone.now()},
+                )
+    elif has_seen is False:
+        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+
+
+def handle_is_public(
+    is_public: bool,
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
+    acting_user: User | None,
+) -> str | None:
+    """
+    Handle the isPublic flag on a group update.
+
+    This deletes the existing share ID and creates a new share ID if isPublic is True.
+    We always want to delete an existing share, because triggering an isPublic=True
+    when it's already public should trigger regenerating.
+    """
+    user_id = acting_user.id if acting_user else None
+    share_id = None
+    for group in group_list:
+        if GroupShare.objects.filter(group=group).delete():
+            share_id = None
+            Activity.objects.create(
+                project=project_lookup[group.project_id],
+                group=group,
+                type=ActivityType.SET_PRIVATE.value,
+                user_id=user_id,
+            )
+
+    if is_public:
+        for group in group_list:
+            share, created = GroupShare.objects.get_or_create(
+                project=project_lookup[group.project_id], group=group, user_id=user_id
+            )
+            if created:
+                share_id = share.uuid
+                Activity.objects.create(
+                    project=project_lookup[group.project_id],
+                    group=group,
+                    type=ActivityType.SET_PUBLIC.value,
+                    user_id=user_id,
+                )
+
+    return share_id
+
+
+def handle_assigned_to(
+    assigned_actor: str,
+    assigned_by: str,
+    integration: str,
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
+    acting_user: User | None,
+) -> Actor | None:
+    """
+    Handle the assignedTo field on a group update.
+
+    This sets a new assignee or removes existing assignees, and logs the
+    manual.issue_assignment analytic.
+    """
+    assigned_by = (
+        assigned_by if assigned_by in ["assignee_selector", "suggested_assignee"] else None
+    )
+    extra = (
+        {"integration": integration}
+        if integration in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+        else dict()
+    )
+    if assigned_actor:
+        for group in group_list:
+            resolved_actor: RpcUser | Team = assigned_actor.resolve()
+
+            assignment = GroupAssignee.objects.assign(
+                group, resolved_actor, acting_user, extra=extra
+            )
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=assignment["updated_assignment"],
+            )
+        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
+    else:
+        for group in group_list:
+            GroupAssignee.objects.deassign(group, acting_user)
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=True,
+            )
+        return None

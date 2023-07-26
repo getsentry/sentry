@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   children: React.ReactNode;
@@ -82,7 +82,7 @@ function TeamDetails({children}: Props) {
   if (!team) {
     return (
       <Alert type="warning">
-        <div>{t('You do not have access to this team.')}</div>
+        <div>{t('This team does not exist, or you do not have access to it.')}</div>
       </Alert>
     );
   }
@@ -103,9 +103,11 @@ function TeamDetails({children}: Props) {
       ) : (
         <Alert type="warning">
           <RequestAccessWrapper>
-            {tct('You do not have access to the [teamSlug] team.', {
-              teamSlug: <strong>{`#${team.slug}`}</strong>,
-            })}
+            <div>
+              {tct('You do not have access to the [teamSlug] team.', {
+                teamSlug: <strong>{`#${team.slug}`}</strong>,
+              })}
+            </div>
             <Button
               disabled={requesting || team.isPending}
               size="sm"

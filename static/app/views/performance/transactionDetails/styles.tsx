@@ -40,6 +40,7 @@ export function MetaData({
 
 const HeaderInfo = styled('div')`
   min-height: 78px;
+  white-space: nowrap;
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`

@@ -9,7 +9,7 @@ def make_single_exception_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"exception": {"values": [data]}})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
 
         excs = evt.interfaces["exception"].values
         if excs:

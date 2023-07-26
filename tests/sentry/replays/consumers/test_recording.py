@@ -2,12 +2,13 @@ import time
 import uuid
 import zlib
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import List
 from unittest.mock import ANY, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry import options
 from sentry.models import File
@@ -18,14 +19,36 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
 
-class RecordingTestCaseMixin:
-    @staticmethod
-    def processing_factory():
-        return ProcessReplayRecordingStrategyFactory()
+def test_multiprocessing_strategy():
+    # num_processes is the only argument that matters. Setting it to `>1` enables
+    # multi-processing.
+    factory = ProcessReplayRecordingStrategyFactory(
+        num_processes=2,
+        num_threads=1,
+        input_block_size=1,
+        max_batch_size=1,
+        max_batch_time=1,
+        output_block_size=1,
+    )
 
-    def setUp(self):
-        self.replay_id = uuid.uuid4().hex
-        self.replay_recording_id = uuid.uuid4().hex
+    # Assert the multi-processing step does not fail to initialize.
+    task = factory.create_with_partitions(lambda offsets, force: None, {})
+
+    # Clean up after ourselves by terminating the processing pool spawned by the above call.
+    task.terminate()
+
+
+class RecordingTestCaseMixin:
+    def processing_factory(self):
+        return ProcessReplayRecordingStrategyFactory(
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            num_threads=1,
+            output_block_size=1,
+            force_synchronous=self.force_synchronous,
+        )
 
     def submit(self, messages):
         strategy = self.processing_factory().create_with_partitions(
@@ -47,47 +70,12 @@ class RecordingTestCaseMixin:
         strategy.join(1)
         strategy.terminate()
 
-    def chunked_messages(
-        self,
-        message: bytes = b'[{"hello":"world"}]',
-        segment_id: int = 0,
-        compressed: bool = False,
-    ) -> List[Dict[str, Any]]:
-        message = zlib.compress(message) if compressed else message
-        return [
-            {
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
-                "replay_id": self.replay_id,
-                "project_id": self.project.id,
-                "id": self.replay_recording_id,
-                "chunk_index": 0,
-                "type": "replay_recording_chunk",
-                "org_id": self.organization.id,
-                "received": time.time(),
-                "retention_days": 30,
-                "key_id": 123,
-                "retention_days": 30,
-            },
-            {
-                "type": "replay_recording",
-                "replay_id": self.replay_id,
-                "replay_recording": {
-                    "chunks": 1,
-                    "id": self.replay_recording_id,
-                },
-                "project_id": self.project.id,
-                "org_id": self.organization.id,
-                "received": time.time(),
-                "retention_days": 30,
-            },
-        ]
-
     def nonchunked_messages(
         self,
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
             {
@@ -96,61 +84,11 @@ class RecordingTestCaseMixin:
                 "org_id": self.organization.id,
                 "key_id": 123,
                 "project_id": self.project.id,
-                "received": time.time(),
+                "received": int(time.time()),
                 "retention_days": 30,
                 "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
             }
         ]
-
-    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
-    @patch("sentry.analytics.record")
-    def test_chunked_compressed_segment_ingestion(self, mock_record, mock_onboarding_task):
-        segment_id = 0
-        self.submit(self.chunked_messages(segment_id=segment_id, compressed=True))
-        self.assert_replay_recording_segment(segment_id, compressed=True)
-
-        self.project.refresh_from_db()
-        assert self.project.flags.has_replays
-
-        mock_onboarding_task.assert_called_with(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.SESSION_REPLAY,
-            status=OnboardingTaskStatus.COMPLETE,
-            date_completed=ANY,
-        )
-
-        mock_record.assert_called_with(
-            "first_replay.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
-            user_id=self.organization.default_owner_id,
-        )
-
-    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
-    @patch("sentry.analytics.record")
-    def test_chunked_uncompressed_segment_ingestion(self, mock_record, mock_onboarding_task):
-        segment_id = 0
-        self.submit(self.chunked_messages(segment_id=segment_id, compressed=False))
-        self.assert_replay_recording_segment(segment_id, compressed=False)
-
-        self.project.refresh_from_db()
-        assert self.project.flags.has_replays
-
-        mock_onboarding_task.assert_called_with(
-            organization_id=self.project.organization_id,
-            task=OnboardingTask.SESSION_REPLAY,
-            status=OnboardingTaskStatus.COMPLETE,
-            date_completed=ANY,
-        )
-
-        mock_record.assert_called_with(
-            "first_replay.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            platform=self.project.platform,
-            user_id=self.organization.default_owner_id,
-        )
 
     @patch("sentry.models.OrganizationOnboardingTask.objects.record")
     @patch("sentry.analytics.record")
@@ -213,6 +151,8 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        self.force_synchronous = True
+        options.set("replay.storage.direct-storage-sample-rate", 0)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
         # Assert a recording segment model was created for filestore driver types.
@@ -251,6 +191,7 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        self.force_synchronous = True
         options.set("replay.storage.direct-storage-sample-rate", 100)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
@@ -275,3 +216,15 @@ class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
             retention_days=30,
         )
         return StorageBlob().get(recording_segment)
+
+
+class ThreadedFilestoreRecordingTestCase(FilestoreRecordingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.force_synchronous = False
+
+
+class ThreadedStorageRecordingTestCase(StorageRecordingTestCase):
+    def setUp(self):
+        super().setUp()
+        self.force_synchronous = False

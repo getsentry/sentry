@@ -8,11 +8,15 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
+from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata, storage
 
 
 @region_silo_endpoint
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
+    def __init__(self, **options) -> None:
+        storage.initialize_client()
+        super().__init__(**options)
+
     def get(self, request: Request, project, replay_id: str) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user

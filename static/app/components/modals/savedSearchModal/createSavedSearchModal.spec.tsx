@@ -65,7 +65,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:unresolved assigned:lyn@sentry.io',
             sort: IssueSortOptions.DATE,
             type: 0,
-            visibility: SavedSearchVisibility.Owner,
+            visibility: SavedSearchVisibility.OWNER,
           },
         })
       );
@@ -94,7 +94,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:resolved',
             sort: IssueSortOptions.PRIORITY,
             type: 0,
-            visibility: SavedSearchVisibility.Owner,
+            visibility: SavedSearchVisibility.OWNER,
           },
         })
       );
@@ -126,7 +126,7 @@ describe('CreateSavedSearchModal', function () {
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'new search name',
-              visibility: SavedSearchVisibility.Owner,
+              visibility: SavedSearchVisibility.OWNER,
             }),
           })
         );
@@ -149,7 +149,7 @@ describe('CreateSavedSearchModal', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new search name',
-            visibility: SavedSearchVisibility.Organization,
+            visibility: SavedSearchVisibility.ORGANIZATION,
           }),
         })
       );

@@ -10,6 +10,7 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export enum DisplayModes {
@@ -67,7 +68,7 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
-  unselectedSeries = 'p100()',
+  unselectedSeries = ['p100()', 'avg()'],
   display,
   trendFunction,
   trendColumn,
@@ -184,11 +185,11 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       return {};
     }
 
-    const replaySlug = `${tableRow['project.name']}:${replayId}`;
-
     if (!tableRow.timestamp) {
       return {
-        pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
+        pathname: normalizeUrl(
+          `/organizations/${organization.slug}/replays/${replayId}/`
+        ),
         query: {
           referrer,
         },
@@ -201,7 +202,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       : undefined;
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
+      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
       query: {
         event_t: transactionStartTimestamp,
         referrer,

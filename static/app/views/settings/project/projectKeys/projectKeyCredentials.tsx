@@ -52,7 +52,7 @@ function ProjectKeyCredentials({
             ) : null,
           })}
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('DSN URL')}>
             {getDynamicText({
               value: data.dsn.public,
               fixed: '__DSN__',
@@ -100,13 +100,17 @@ function ProjectKeyCredentials({
       {showSecurityEndpoint && (
         <FieldGroup
           label={t('Security Header Endpoint')}
-          help={t(
-            'Use your security header endpoint for features like CSP and Expect-CT reports.'
-          )}
+          help={tct('Use your security header endpoint for features like [link].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
+                {t('CSP and Expect-CT reports')}
+              </ExternalLink>
+            ),
+          })}
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.security,
               fixed: '__SECURITY_HEADER_ENDPOINT__',
@@ -131,7 +135,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.minidump,
               fixed: '__MINIDUMP_ENDPOINT__',
@@ -147,7 +151,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Unreal Engine 4 Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.unreal || '',
               fixed: '__UNREAL_ENDPOINT__',

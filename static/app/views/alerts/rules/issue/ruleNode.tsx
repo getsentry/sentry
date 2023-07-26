@@ -25,7 +25,10 @@ import {
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  EVENT_FREQUENCY_PERCENT_CONDITION,
+  REAPPEARED_EVENT_CONDITION,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
@@ -100,12 +103,12 @@ function AssigneeFilterFields({
       ruleData={data}
       onChange={onMemberTeamChange}
       options={[
-        {value: AssigneeTargetType.Unassigned, label: t('No One')},
-        {value: AssigneeTargetType.Team, label: t('Team')},
-        {value: AssigneeTargetType.Member, label: t('Member')},
+        {value: AssigneeTargetType.UNASSIGNED, label: t('No One')},
+        {value: AssigneeTargetType.TEAM, label: t('Team')},
+        {value: AssigneeTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={AssigneeTargetType.Member}
-      teamValue={AssigneeTargetType.Team}
+      memberValue={AssigneeTargetType.MEMBER}
+      teamValue={AssigneeTargetType.TEAM}
     />
   );
 }
@@ -131,12 +134,12 @@ function MailActionFields({
       ruleData={data as IssueAlertRuleAction}
       onChange={onMemberTeamChange}
       options={[
-        {value: MailActionTargetType.IssueOwners, label: issueOwnersLabel},
-        {value: MailActionTargetType.Team, label: t('Team')},
-        {value: MailActionTargetType.Member, label: t('Member')},
+        {value: MailActionTargetType.ISSUE_OWNERS, label: issueOwnersLabel},
+        {value: MailActionTargetType.TEAM, label: t('Team')},
+        {value: MailActionTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={MailActionTargetType.Member}
-      teamValue={MailActionTargetType.Team}
+      memberValue={MailActionTargetType.MEMBER}
+      teamValue={MailActionTargetType.TEAM}
     />
   );
 }
@@ -311,11 +314,18 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType !== MailActionTargetType.IssueOwners &&
+      data.targetType !== MailActionTargetType.ISSUE_OWNERS &&
       organization.features.includes('issue-alert-fallback-targeting')
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
+    }
+
+    if (
+      data.id === REAPPEARED_EVENT_CONDITION &&
+      organization.features.includes('escalating-issues')
+    ) {
+      label = t('The issue changes state from archived to escalating');
     }
 
     const parts = label.split(/({\w+})/).map((part, i) => {
@@ -389,6 +399,7 @@ function RuleNode({
           trailingItems={
             <Button
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
               size="xs"
             >
               {t('Learn More')}
@@ -402,7 +413,7 @@ function RuleNode({
 
     if (
       data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType === MailActionTargetType.IssueOwners &&
+      data.targetType === MailActionTargetType.ISSUE_OWNERS &&
       !organization.features.includes('issue-alert-fallback-targeting')
     ) {
       return (
@@ -571,7 +582,7 @@ function RuleNode({
                       {...deps}
                       sentryAppInstallationUuid={sentryAppInstallationUuid}
                       config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt}
+                      appName={node.prompt ?? node.label}
                       onSubmitSuccess={updateParentFromSentryAppRule}
                       resetValues={data}
                     />

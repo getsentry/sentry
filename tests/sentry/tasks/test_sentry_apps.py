@@ -1,5 +1,5 @@
 from collections import namedtuple
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from celery import Task
@@ -24,7 +24,6 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.faux import DictContaining, faux
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -121,44 +120,41 @@ class TestSendAlertEvent(TestCase):
         with self.tasks():
             notify_sentry_app(event, [rule_future])
 
-        data = json.loads(faux(safe_urlopen).kwargs["data"])
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
 
         assert data == {
             "action": "triggered",
             "installation": {"uuid": self.install.uuid},
             "data": {
-                "event": DictContaining(
-                    event_id=event.event_id,
-                    url=absolute_uri(
-                        reverse(
-                            "sentry-api-0-project-event-details",
-                            args=[self.organization.slug, self.project.slug, event.event_id],
-                        )
-                    ),
-                    web_url=absolute_uri(
-                        reverse(
-                            "sentry-organization-event-detail",
-                            args=[self.organization.slug, group.id, event.event_id],
-                        )
-                    ),
-                    issue_url=absolute_uri(f"/api/0/issues/{group.id}/"),
-                    issue_id=str(group.id),
-                ),
+                "event": ANY,  # tested below
                 "triggered_rule": self.rule.label,
             },
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
-
-        assert faux(safe_urlopen).kwarg_equals(
-            "headers",
-            DictContaining(
-                "Content-Type",
-                "Request-ID",
-                "Sentry-Hook-Resource",
-                "Sentry-Hook-Timestamp",
-                "Sentry-Hook-Signature",
-            ),
+        assert data["data"]["event"]["event_id"] == event.event_id
+        assert data["data"]["event"]["url"] == absolute_uri(
+            reverse(
+                "sentry-api-0-project-event-details",
+                args=[self.organization.slug, self.project.slug, event.event_id],
+            )
         )
+        assert data["data"]["event"]["web_url"] == absolute_uri(
+            reverse(
+                "sentry-organization-event-detail",
+                args=[self.organization.slug, group.id, event.event_id],
+            )
+        )
+        assert data["data"]["event"]["issue_url"] == absolute_uri(f"/api/0/issues/{group.id}/")
+        assert data["data"]["event"]["issue_id"] == str(group.id)
+
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
@@ -186,7 +182,8 @@ class TestSendAlertEvent(TestCase):
         with self.tasks():
             notify_sentry_app(event, [rule_future])
 
-        payload = json.loads(faux(safe_urlopen).kwargs["data"])
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
 
         assert payload["action"] == "triggered"
         assert payload["data"]["triggered_rule"] == self.rule.label
@@ -227,16 +224,19 @@ class TestProcessResourceChange(TestCase):
                 group_id=event.group_id,
             )
 
-        data = json.loads(faux(safe_urlopen).kwargs["data"])
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
 
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
         assert data["data"]["issue"]["id"] == str(event.group.id)
-        assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
-        assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Timestamp")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Signature")
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
 
     def test_does_not_process_disallowed_event(self, safe_urlopen):
         process_resource_change_bound("delete", "Group", self.create_group().id)
@@ -259,7 +259,8 @@ class TestProcessResourceChange(TestCase):
 
         process_resource_change_bound("created", "Group", group.id)
 
-        task = faux(process).kwargs["retryer"]
+        ((_, kwargs),) = process.call_args_list
+        task = kwargs["retryer"]
         assert isinstance(task, Task)
 
     @with_feature("organizations:integrations-event-hooks")
@@ -292,17 +293,20 @@ class TestProcessResourceChange(TestCase):
                 group_id=event.group_id,
             )
 
-        data = json.loads(faux(safe_urlopen).kwargs["data"])
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
 
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == install.uuid
         assert data["data"]["error"]["event_id"] == event.event_id
         assert data["data"]["error"]["issue_id"] == str(event.group_id)
-        assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
-        assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Timestamp")
-        assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Signature")
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
@@ -364,7 +368,7 @@ class TestProcessResourceChangeSentryFunctions(TestCase):
             )
         data = {}
         data["issue"] = serialize(Group.objects.get(id=event.group_id))
-        assert faux(send_sentry_function_webhook).called_with(
+        send_sentry_function_webhook.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.created",
             data["issue"]["id"],
@@ -535,10 +539,12 @@ class TestCommentWebhook(TestCase):
             self.install.id, self.issue.id, "comment.created", self.user.id, data=self.data
         )
 
-        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
-        assert faux(safe_urlopen).kwarg_equals("data.action", "created", format="json")
-        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "comment"
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["data"]["issue_id"] == self.issue.id
 
     def test_sends_comment_updated_webhook(self, safe_urlopen):
         self.data.update(data={"text": "goodbye world"})
@@ -546,10 +552,12 @@ class TestCommentWebhook(TestCase):
             self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.data
         )
 
-        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
-        assert faux(safe_urlopen).kwarg_equals("data.action", "updated", format="json")
-        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "comment"
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "updated"
+        assert data["data"]["issue_id"] == self.issue.id
 
     def test_sends_comment_deleted_webhook(self, safe_urlopen):
         self.note.delete()
@@ -557,10 +565,12 @@ class TestCommentWebhook(TestCase):
             self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.data
         )
 
-        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
-        assert faux(safe_urlopen).kwarg_equals("data.action", "deleted", format="json")
-        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "comment")
-        assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "comment"
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "deleted"
+        assert data["data"]["issue_id"] == self.issue.id
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -583,19 +593,21 @@ class TestWorkflowNotification(TestCase):
     def test_sends_resolved_webhook(self, safe_urlopen):
         workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
 
-        assert faux(safe_urlopen).kwarg_equals("url", self.sentry_app.webhook_url)
-        assert faux(safe_urlopen).kwarg_equals("data.action", "resolved", format="json")
-        assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "issue")
-        assert faux(safe_urlopen).kwarg_equals(
-            "data.data.issue.id", str(self.issue.id), format="json"
-        )
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "resolved"
+        assert data["data"]["issue"]["id"] == str(self.issue.id)
 
     def test_sends_resolved_webhook_as_Sentry_without_user(self, safe_urlopen):
         workflow_notification(self.install.id, self.issue.id, "resolved", None)
 
-        assert faux(safe_urlopen).kwarg_equals("data.actor.type", "application", format="json")
-        assert faux(safe_urlopen).kwarg_equals("data.actor.id", "sentry", format="json")
-        assert faux(safe_urlopen).kwarg_equals("data.actor.name", "Sentry", format="json")
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["actor"]["type"] == "application"
+        assert data["actor"]["id"] == "sentry"
+        assert data["actor"]["name"] == "Sentry"
 
     def test_does_not_send_if_no_service_hook_exists(self, safe_urlopen):
         sentry_app = self.create_sentry_app(

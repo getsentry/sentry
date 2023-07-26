@@ -17,7 +17,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -49,12 +49,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {
-  generateReplayLink,
-  transactionSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/utils';
+import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getExpandedResults, pushEventViewToLocation} from '../utils';
+import {
+  getExpandedResults,
+  getTargetForTransactionSummaryLink,
+  pushEventViewToLocation,
+} from '../utils';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
@@ -320,6 +321,21 @@ function TableView(props: TableViewProps) {
           {idLink}
         </QuickContextHoverWrapper>
       );
+    } else if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <TransactionLink
+          data-test-id="tableView-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView,
+            location
+          )}
+        >
+          {cell}
+        </TransactionLink>
+      );
     } else if (columnKey === 'trace') {
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
@@ -368,7 +384,7 @@ function TableView(props: TableViewProps) {
               data-test-id="view-profile"
               to={target}
               onClick={() =>
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
                   source: 'discover.table',
                 })
@@ -461,30 +477,12 @@ function TableView(props: TableViewProps) {
       const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
-      trackAdvancedAnalyticsEvent('discover_v2.results.cellaction', {
+      trackAnalytics('discover_v2.results.cellaction', {
         organization,
         action,
       });
 
       switch (action) {
-        case Actions.TRANSACTION: {
-          const maybeProject = projects.find(
-            project =>
-              project.slug &&
-              [dataRow['project.name'], dataRow.project].includes(project.slug)
-          );
-          const projectID = maybeProject ? [maybeProject.id] : undefined;
-
-          const next = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: String(value),
-            projectID,
-            query: nextView.getPageFiltersQuery(),
-          });
-
-          browserHistory.push(normalizeUrl(next));
-          return;
-        }
         case Actions.RELEASE: {
           const maybeProject = projects.find(project => {
             return project.slug === dataRow.project;
@@ -507,7 +505,7 @@ function TableView(props: TableViewProps) {
         }
         case Actions.DRILLDOWN: {
           // count_unique(column) drilldown
-          trackAdvancedAnalyticsEvent('discover_v2.results.drilldown', {
+          trackAnalytics('discover_v2.results.drilldown', {
             organization,
           });
 
@@ -551,7 +549,7 @@ function TableView(props: TableViewProps) {
     const {organization, eventView, location, isHomepage} = props;
 
     // metrics
-    trackAdvancedAnalyticsEvent('discover_v2.update_columns', {
+    trackAnalytics('discover_v2.update_columns', {
       organization,
     });
 
@@ -642,10 +640,14 @@ const StyledTooltip = styled(Tooltip)`
   max-width: max-content;
 `;
 
-const StyledLink = styled(Link)`
+export const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
+`;
+
+export const TransactionLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledIcon = styled(IconStack)`

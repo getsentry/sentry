@@ -13,7 +13,7 @@ class UserPermissionsTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserPermissionsGetTest(UserPermissionsTest):
     def test_lookup_self(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")

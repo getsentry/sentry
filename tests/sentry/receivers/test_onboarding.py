@@ -5,6 +5,7 @@ import pytest
 import pytz
 from django.utils import timezone
 
+from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import (
     Integration,
     OnboardingTask,
@@ -14,6 +15,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -246,7 +248,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
+        member = self.create_member(
+            organization=self.organization, teams=[self.team], email=user.email
+        )
         member_invited.send(member=member, user=user, sender=type(member))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -258,8 +262,33 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_member_joined(self):
         user = self.create_user(email="test@example.org")
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
-        member_joined.send(member=member, organization=self.organization, sender=type(member))
+
+        with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
+            OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.INVITE_MEMBER,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+
+        om = self.create_member(
+            organization=self.organization, teams=[self.team], email="someemail@example.com"
+        )
+        helper = ApiInviteHelper(
+            self.make_request(user=user),
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
+
+        with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
+            OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.INVITE_MEMBER,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+
+        helper.accept_invite(user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -269,15 +298,25 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         user2 = self.create_user(email="test@example.com")
-        member2 = self.create_member(organization=self.organization, teams=[self.team], user=user2)
-        member_joined.send(member=member2, organization=self.organization, sender=type(member2))
+        om2 = self.create_member(
+            organization=self.organization, teams=[self.team], email="blah@example.com"
+        )
+        helper = ApiInviteHelper(
+            self.make_request(user=user2),
+            organization_service.get_invite_by_id(
+                organization_member_id=om2.id, organization_id=om2.organization_id
+            ),
+            None,
+        )
+
+        helper.accept_invite(user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.INVITE_MEMBER,
             status=OnboardingTaskStatus.COMPLETE,
         )
-        assert task.data["invited_member_id"] == member.id
+        assert task.data["invited_member_id"] == om.id
 
     def test_issue_tracker_onboarding(self):
         plugin_enabled.send(
@@ -324,10 +363,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_integration_added(self):
         integration_added.send(
-            integration=self.create_integration("slack", 1234),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("slack", 1234).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -339,10 +378,10 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         # Adding a second integration
         integration_added.send(
-            integration=self.create_integration("github", 4567),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("github", 4567).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -356,10 +395,10 @@ class OrganizationOnboardingTaskTest(TestCase):
         # Installing an integration a second time doesn't produce
         # duplicated providers in the list
         integration_added.send(
-            integration=self.create_integration("slack", 4747),
-            organization=self.organization,
-            user=self.user,
-            sender=type(self.organization),
+            integration_id=self.create_integration("slack", 4747).id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -444,7 +483,12 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_received.send(
             project=second_project, event=second_event, sender=type(second_project)
         )
-        member_joined.send(member=member, organization=self.organization, sender=type(member))
+        member_joined.send(
+            organization_member_id=member.id,
+            organization_id=self.organization.id,
+            user_id=member.user_id,
+            sender=None,
+        )
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=project,
@@ -458,10 +502,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=type(IssueTrackingPlugin),
         )
         integration_added.send(
-            integration=self.create_integration("slack"),
-            organization=self.organization,
-            user=user,
-            sender=type(project),
+            integration_id=self.create_integration("slack").id,
+            organization_id=self.organization.id,
+            user_id=user.id,
+            sender=None,
         )
         alert_rule_created.send(
             rule=Rule(id=1),

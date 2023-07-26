@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry import options
 from sentry.killswitches import KillswitchInfo
 from sentry.runner.commands.killswitches import killswitches
 from sentry.testutils import CliTestCase
@@ -123,7 +124,11 @@ class KillswitchesTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
 
         assert mock_set.mock_calls == [
-            mock.call("relay.drop-transaction-metrics", [{"project_id": "42"}])
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": "42"}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
         ]
 
         assert mock_schedule.mock_calls == [
@@ -137,14 +142,18 @@ class KillswitchesTest(CliTestCase):
         "sentry.options.set",
     )
     def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
-
+        self.organization
         option = "relay.drop-transaction-metrics"
 
         rv = self.invoke("push", "--yes", option, "-", input=("- project_id: null\n"))
         assert rv.exit_code == 0, rv.output
 
         assert mock_set.mock_calls == [
-            mock.call("relay.drop-transaction-metrics", [{"project_id": None}])
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": None}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
         ]
 
         # All organisations should have been invalidated:

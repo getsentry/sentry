@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import cached_property, reduce
+from typing import Mapping, MutableMapping, MutableSequence
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
@@ -18,6 +21,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 class RewriteRecordTestCase(TestCase):
     @cached_property
     def rule(self):
@@ -59,7 +63,7 @@ class RewriteRecordTestCase(TestCase):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupRecordsTestCase(TestCase):
     @cached_property
     def rule(self):
@@ -75,11 +79,13 @@ class GroupRecordsTestCase(TestCase):
             Record(event.event_id, Notification(event, [self.rule]), event.datetime)
             for event in events
         ]
-        assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
-            self.rule: {group: records}
-        }
+        results: MutableMapping[str, Mapping[str, MutableSequence[Record]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        assert reduce(group_records, records, results) == {self.rule: {group: records}}
 
 
+@region_silo_test(stable=True)
 class SortRecordsTestCase(TestCase):
     def test_success(self):
         Rule.objects.create(
@@ -121,6 +127,7 @@ class SortRecordsTestCase(TestCase):
         }
 
 
+@region_silo_test(stable=True)
 class SplitKeyTestCase(TestCase):
     def test_old_style_key(self):
         assert split_key(f"mail:p:{self.project.id}") == (
@@ -158,6 +165,7 @@ class SplitKeyTestCase(TestCase):
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
 
+@region_silo_test(stable=True)
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
         assert (

@@ -9,7 +9,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
-from sentry.models import ObjectStatus, Organization, OrganizationIntegration
+from sentry.constants import ObjectStatus
+from sentry.models import Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
 
@@ -75,7 +76,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         pagination_result = integration_service.page_organization_integrations_ids(
             organization_id=organization.id,
             statuses=[
-                ObjectStatus.VISIBLE,
+                ObjectStatus.ACTIVE,
                 ObjectStatus.DISABLED,
                 ObjectStatus.PENDING_DELETION,
             ],

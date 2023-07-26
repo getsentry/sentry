@@ -121,6 +121,25 @@ class UUIDField(Field):
         return super().as_condition(field_alias, operator, value)
 
 
+class IPAddress(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+        is_wildcard: bool = False,
+    ) -> Condition:
+        if isinstance(value, list):
+            value = [Function("IPv4StringToNum", parameters=[v]) for v in value]
+        else:
+            value = Function("IPv4StringToNum", parameters=[value])
+
+        return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
+
 class String(Field):
     _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str
@@ -289,7 +308,9 @@ class Tag(Field):
     _negation_map = [False, True, False, True]
     _python_type = str
 
-    def __init__(self, **kwargs):
+    def __init__(self, tag_key_alias="tk", tag_value_alias="tv", **kwargs):
+        self.tag_key_alias = tag_key_alias
+        self.tag_value_alias = tag_value_alias
         kwargs.pop("operators", None)
         return super().__init__(**kwargs)
 
@@ -323,7 +344,9 @@ class Tag(Field):
                     Lambda(
                         ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
                     ),
-                    all_values_for_tag_key(field_alias, Column("tk"), Column("tv")),
+                    all_values_for_tag_key(
+                        field_alias, Column(self.tag_key_alias), Column(self.tag_value_alias)
+                    ),
                 ],
             ),
             operator,
@@ -339,11 +362,43 @@ class Tag(Field):
         return Condition(
             Function(
                 function,
-                parameters=[all_values_for_tag_key(key, Column("tk"), Column("tv")), values],
+                parameters=[
+                    all_values_for_tag_key(
+                        key, Column(self.tag_key_alias), Column(self.tag_value_alias)
+                    ),
+                    values,
+                ],
             ),
             Op.EQ,
             expected,
         )
+
+
+class InvalidField(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
+    ) -> Condition:
+        raise ParseError()
+
+    def _wildcard_condition(self, operator: Op, value: str):
+        raise ParseError()
+
+    def _has_condition(
+        self,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        raise ParseError()
+
+    def _has_any_condition(
+        self,
+        operator: Op,
+        values: Union[List[str], str],
+    ) -> Condition:
+        raise ParseError()
 
 
 class QueryConfig:
@@ -479,6 +534,10 @@ def get_valid_sort_commands(
     field = query_config.get(field_name)
     if not field:
         raise ParseError(f"Invalid field specified: {field_name}.")
+
+    if isinstance(field, InvalidField):
+        raise ParseError("field can't be used to sort query")
+
     else:
         return [OrderBy(Column(field.query_alias or field.attribute_name), strategy)]
 

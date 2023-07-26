@@ -114,7 +114,7 @@ interface TooltipOption
   ) => string;
 }
 
-type Props = {
+export interface BaseChartProps {
   /**
    * Additional Chart Series
    * This is to pass series to BaseChart bypassing the wrappers like LineChart, AreaChart etc.
@@ -278,7 +278,7 @@ type Props = {
    * Pass `true` to have 2 x-axes with default properties.  Can pass an array
    * of multiple objects to customize xAxis properties
    */
-  xAxes?: true | Props['xAxis'][];
+  xAxes?: true | BaseChartProps['xAxis'][];
   /**
    * Must be explicitly `null` to disable xAxis
    *
@@ -290,13 +290,13 @@ type Props = {
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
    */
-  yAxes?: true | Props['yAxis'][];
+  yAxes?: true | BaseChartProps['yAxis'][];
 
   /**
    * Must be explicitly `null` to disable yAxis
    */
   yAxis?: YAXisComponentOption | null;
-};
+}
 
 function BaseChartUnwrapped({
   colors,
@@ -351,7 +351,7 @@ function BaseChartUnwrapped({
   transformSinglePointToLine = false,
   onChartReady = () => {},
   'data-test-id': dataTestId,
-}: Props) {
+}: BaseChartProps) {
   const theme = useTheme();
 
   const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
@@ -708,7 +708,7 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
   }
 `;
 
-const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
+const BaseChart = forwardRef<ReactEchartsRef, BaseChartProps>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
 ));
 

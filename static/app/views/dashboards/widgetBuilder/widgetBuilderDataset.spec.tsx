@@ -60,7 +60,6 @@ function renderTestComponent({
   query?: Record<string, any>;
 } = {}) {
   const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -589,32 +588,6 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('render release dataset disabled when the display type is world map', async function () {
-      renderTestComponent({
-        query: {
-          source: DashboardWidgetSource.DISCOVERV2,
-        },
-      });
-
-      await userEvent.click(await screen.findByText('Table'));
-      await userEvent.click(screen.getByText('World Map'));
-
-      await waitFor(() =>
-        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
-      );
-
-      expect(
-        screen.getByRole('radio', {
-          name: 'Errors and Transactions',
-        })
-      ).toBeEnabled();
-      expect(
-        screen.getByRole('radio', {
-          name: 'Issues (States, Assignment, Time, etc.)',
-        })
-      ).toBeDisabled();
-    });
-
     it('renders with a release search bar', async function () {
       renderTestComponent();
 
@@ -843,7 +816,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
         const countFields = screen.getAllByText('count()');
@@ -1047,7 +1020,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));

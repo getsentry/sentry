@@ -1,8 +1,9 @@
 import logging
 import time
+from typing import MutableMapping, Optional
 
 import pytest
-from confluent_kafka import Producer
+from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient
 
 _log = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ def scope_consumers():
     be created once per test session).
 
     """
-    all_consumers = {
+    all_consumers: MutableMapping[str, Optional[Consumer]] = {
         # Relay is configured to use this topic for all ingest messages. See
         # `templates/config.yml`.
         "ingest-events": None,
@@ -128,13 +129,13 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.ingest_consumer import (
-            IngestConsumerWorker,
-            create_batching_kafka_consumer,
-        )
+        from sentry.ingest.consumer_v2.factory import get_ingest_consumer
+        from sentry.ingest.types import ConsumerType
+        from sentry.utils.batching_kafka_consumer import create_topics
 
         # Relay is configured to use this topic for all ingest messages. See
-        # `templates/config.yml`.
+        # `template/config.yml`.
+        cluster_name = "default"
         topic_event_name = "ingest-events"
 
         if scope_consumers[topic_event_name] is not None:
@@ -144,17 +145,23 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         # first time the consumer is requested, create it using settings
         admin = kafka_admin(settings)
         admin.delete_topic(topic_event_name)
+        create_topics(cluster_name, [topic_event_name])
 
         # simulate the event ingestion task
         group_id = "test-consumer"
 
-        consumer = create_batching_kafka_consumer(
-            topic_names=[topic_event_name],
-            worker=IngestConsumerWorker(),
-            max_batch_size=1,
-            max_batch_time=10,
+        consumer = get_ingest_consumer(
+            consumer_type=ConsumerType.Attachments,
             group_id=group_id,
             auto_offset_reset="earliest",
+            strict_offset_reset=False,
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=1,
+            output_block_size=1,
+            force_topic=topic_event_name,
+            force_cluster=cluster_name,
         )
 
         scope_consumers[topic_event_name] = consumer

@@ -1,11 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from django.urls import reverse
-
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
-from sentry.utils.linksign import generate_signed_link
 
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
@@ -79,7 +76,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -98,7 +95,7 @@ class AuthenticationTest(AuthProviderTestCase):
         )
 
         assert (
-            resp.data["detail"]["extra"]["loginUrl"]
+            resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=https%3A%2F%2Ftestdomain.com%2Forganizations%2Ffoo%2Fteams"
         )
 
@@ -115,27 +112,9 @@ class AuthenticationTest(AuthProviderTestCase):
             HTTP_REFERER="http://example.com",
         )
 
-        assert resp.data["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
+        assert resp.json()["detail"]["extra"]["loginUrl"] == "/auth/login/foo/"
 
     def _test_paths_with_status(self, status):
         for path in self.paths:
             resp = self.client.get(path)
             assert resp.status_code == status, (resp.status_code, resp.content)
-
-    def test_sso_auth_required_signed_link(self):
-        unsigned_link = reverse(
-            "sentry-api-0-project-fix-processing-issues",
-            kwargs={"project_slug": self.project.slug, "organization_slug": self.organization.slug},
-        )
-
-        resp = self.client.get(unsigned_link)
-        assert resp.status_code == 401, (resp.status_code, resp.content)
-
-        signed_link = generate_signed_link(
-            self.user,
-            "sentry-api-0-project-fix-processing-issues",
-            kwargs={"project_slug": self.project.slug, "organization_slug": self.organization.slug},
-        )
-
-        resp = self.client.get(signed_link)
-        assert resp.status_code == 200

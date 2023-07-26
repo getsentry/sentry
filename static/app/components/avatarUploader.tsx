@@ -238,8 +238,8 @@ class AvatarUploader extends Component<Props, State> {
     const editingLeft = resizeDirection === 'nw' || resizeDirection === 'sw';
 
     const newDimensions = {
-      top: 0,
-      left: 0,
+      top: oldDimensions.top,
+      left: oldDimensions.left,
       size: oldDimensions.size + diff,
     };
 

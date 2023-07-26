@@ -1,9 +1,9 @@
 from sentry.models import ServiceHook
-from sentry.sentry_apps import expand_events
-from sentry.sentry_apps.apps import consolidate_events
+from sentry.sentry_apps.apps import consolidate_events, expand_events
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 @all_silo_test(stable=True)
@@ -28,7 +28,7 @@ class TestHookService(TestCase):
     def test_creates_service_hook(self):
         self.call_create_hook()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id,
                 actor_id=self.sentry_app.proxy_user.id,

@@ -5,10 +5,11 @@ from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, R
 from sentry.models import Project
 
 ENVIRONMENT_GLOBS = [
+    "*debug*",
     "*dev*",
-    "*test*",
-    "*qa*",
     "*local*",
+    "*qa*",
+    "*test*",
 ]
 
 

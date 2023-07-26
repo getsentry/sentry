@@ -1,9 +1,12 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from functools import wraps
 from itertools import groupby
 from typing import (
     Any,
+    Callable,
+    Collection,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -18,6 +21,8 @@ from typing import (
 )
 
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils import metrics
 from sentry.utils.services import Service
 
 
@@ -33,7 +38,6 @@ class FetchTypeExt(NamedTuple):
     is_global: bool
 
 
-UseCaseId = str
 OrgId = int
 
 
@@ -61,15 +65,15 @@ class KeyResult:
 
 @dataclass(frozen=True)
 class UseCaseKeyResult:
-    use_case_id: UseCaseId
+    use_case_id: UseCaseID
     org_id: OrgId
     string: str
     id: Optional[int]
 
     @classmethod
     def from_string(cls: Type[UR], key: str, id: int) -> UR:
-        use_case_id, org_id, string = key.split(":", 1)
-        return cls(use_case_id, int(org_id), string, id)
+        use_case_id, org_id, string = key.split(":", 2)
+        return cls(UseCaseID(use_case_id), int(org_id), string, id)
 
 
 class KeyCollection:
@@ -128,13 +132,13 @@ class UseCaseKeyCollection:
     of keys used to fetch ids, whose results are stored in UseCaseKeyResults.
 
     A key is a use_case_id, org_id, string pair, either represented as a
-    tuple e.g ("performance", 1, "a"), or a string "performance:1:a".
+    tuple e.g (UseCaseID.TRANSACTIONS, 1, "a"), or a string "transactions:1:a".
 
     Initial mapping is org_id's to sets of strings:
-        {"performance": { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
+        {UseCaseID.TRANSACTIONS: { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[UseCaseId, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
+    def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()
@@ -151,7 +155,7 @@ class UseCaseKeyCollection:
     def _size(self) -> int:
         return sum(key_collection.size for key_collection in self.mapping.values())
 
-    def as_tuples(self) -> Sequence[Tuple[UseCaseId, OrgId, str]]:
+    def as_tuples(self) -> Sequence[Tuple[UseCaseID, OrgId, str]]:
         return [
             (use_case_id, org_id, s)
             for use_case_id, key_collection in self.mapping.items()
@@ -160,7 +164,7 @@ class UseCaseKeyCollection:
 
     def as_strings(self) -> Sequence[str]:
         return [
-            f"{use_case_id}:{s}"
+            f"{use_case_id.value}:{s}"
             for use_case_id, key_collection in self.mapping.items()
             for s in key_collection.as_strings()
         ]
@@ -274,11 +278,11 @@ class UseCaseKeyResults:
 
     It stores mapping of strings and their indexed ID, keyed by use case ID and org ID
     E.g
-        {"performance": { 1: {"a": 1, "b": 2}, 2: {"f": 7} }}
+        {UseCaseID.TRANSACTIONS: { 1: {"a": 1, "b": 2}, 2: {"f": 7} }}
     """
 
     def __init__(self) -> None:
-        self.results: MutableMapping[UseCaseId, KeyResults] = defaultdict(lambda: KeyResults())
+        self.results: MutableMapping[UseCaseID, KeyResults] = defaultdict(lambda: KeyResults())
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, self.__class__) and self.results == __value.results
@@ -319,7 +323,7 @@ class UseCaseKeyResults:
                 fetch_type_ext,
             )
 
-    def get_mapped_results(self) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Optional[int]]]]:
+    def get_mapped_results(self) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]]:
         """
         Only return results that string/int mappings, keyed by use case ID, then org ID.
         """
@@ -360,14 +364,14 @@ class UseCaseKeyResults:
         This is for when we use indexer_cache.set_many()
         """
         return {
-            f"{use_case_id}:{string}": id
+            f"{use_case_id.value}:{string}": id
             for use_case_id, key_results in self.results.items()
             for string, id in key_results.get_mapped_key_strings_to_ints().items()
         }
 
     def get_fetch_metadata(
         self,
-    ) -> Mapping[UseCaseId, Mapping[OrgId, Mapping[str, Metadata]]]:
+    ) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]]:
         return {
             use_case_id: key_results.get_fetch_metadata()
             for use_case_id, key_results in self.results.items()
@@ -375,7 +379,7 @@ class UseCaseKeyResults:
         }
 
     def merge(self, other: "UseCaseKeyResults") -> "UseCaseKeyResults":
-        def merge_use_case(use_case_id: UseCaseId) -> KeyResults:
+        def merge_use_case(use_case_id: UseCaseID) -> KeyResults:
             if use_case_id in self.results and use_case_id in other.results:
                 return self.results[use_case_id].merge(other.results[use_case_id])
             if use_case_id in self.results:
@@ -391,8 +395,41 @@ class UseCaseKeyResults:
 
         return new_results
 
-    def __getitem__(self, use_case_id: UseCaseId) -> KeyResults:
+    def __getitem__(self, use_case_id: UseCaseID) -> KeyResults:
         return self.results[use_case_id]
+
+
+def to_use_case_id(use_case: Union[UseCaseID, UseCaseKey]) -> UseCaseID:
+    if isinstance(use_case, UseCaseKey):
+        use_case = REVERSE_METRIC_PATH_MAPPING[use_case]
+        metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
+    return use_case
+
+
+def metric_path_key_compatible_resolve(
+    resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
+    @wraps(resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
+    ) -> Optional[int]:
+        use_case_id = to_use_case_id(use_case_id)
+        return resolve_func(self, use_case_id, org_id, string)
+
+    return wrapper
+
+
+def metric_path_key_compatible_rev_resolve(
+    rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
+    @wraps(rev_resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
+    ) -> Optional[str]:
+        use_case_id = to_use_case_id(use_case_id)
+        return rev_resolve_func(self, use_case_id, org_id, id)
+
+    return wrapper
 
 
 class StringIndexer(Service):
@@ -410,72 +447,77 @@ class StringIndexer(Service):
         "bulk_record",
         "resolve_shared_org",
         "reverse_shared_org_resolve",
+        "bulk_reverse_resolve",
     )
 
     def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
         """
-        Takes in a mapping with org_ids to sets of strings.
-
-        Ultimately returns a mapping of those org_ids to a
-        string -> id mapping, for each string in the set.
-
+        Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
+        Ultimately returns a mapping of those use case IDs mapped to Org IDs mapped to
+        string -> ID mapping, for each string in the each set.
         There are three steps to getting the ids for strings:
             0. ids from static strings (StaticStringIndexer)
             1. ids from cache (CachingIndexer)
             2. ids from existing db records (postgres/spanner)
             3. ids that have been rate limited (postgres/spanner)
             4. ids from newly created db records (postgres/spanner)
-
-        Each step will start off with a KeyCollection and KeyResults:
-            keys = KeyCollection(mapping)
-            key_results = KeyResults()
-
+        Each step will start off with a UseCaseKeyCollection and UseCaseKeyResults:
+            keys = UseCaseKeyCollection(mapping)
+            results = UseCaseKeyResults()
         Then the work to get the ids (either from cache, db, etc)
-            .... # work to add results to KeyResults()
-
+            .... # work to add results to UseCaseKeyResults()
         Those results will be added to `mapped_results` which can
         be retrieved
-            key_results.get_mapped_results()
-
+            results.get_mapped_results()
         Remaining unmapped keys get turned into a new
-        KeyCollection for the next step:
-            new_keys = key_results.get_unmapped_keys(mapping)
-
+        UseCaseKeyCollection for the next step:
+            new_keys = results.get_unmapped_keys(mapping)
         When the last step is reached or a step resolves all the remaining
         unmapped keys the key_results objects are merged and returned:
             e.g. return cache_key_results.merge(db_read_key_results)
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
-
         With every call to this method, the lifetime of the entry will be
         prolonged.
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
+        """
+        raise NotImplementedError()
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        """Lookup the stored strings for multiple ids belonging to the same use-case and organisation.
+
+        Returns a mapping between the ids and their corresponding string values.
+        If an id can't be mapped the return value will not contain any entry for this id.
         """
         raise NotImplementedError()
 

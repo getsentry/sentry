@@ -1,4 +1,4 @@
-import {Client, Request} from 'sentry/api';
+import {Request} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
 jest.unmock('sentry/api');
@@ -7,7 +7,7 @@ describe('api', function () {
   let api;
 
   beforeEach(function () {
-    api = new Client();
+    api = new MockApiClient();
   });
 
   describe('Client', function () {

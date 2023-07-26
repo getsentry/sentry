@@ -6,12 +6,15 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
@@ -149,7 +152,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
             onSetIndividualConsent={() =>
               setSuggestedSolutionLocalConfig({individualConsent: true})
             }
-            restriction={error?.responseJSON?.restriction}
+            restriction={error?.responseJSON?.restriction as any}
             onHideSuggestion={onHideSuggestion}
           />
         ) : (
@@ -172,7 +175,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 icon={<IconSad color="red300" size="xs" />}
                 size="xs"
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
+                  trackAnalytics(
                     'ai_suggested_solution.feedback_helpful_nope_button_clicked',
                     {
                       organization,
@@ -191,7 +194,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 icon={<IconMeh color="yellow300" size="xs" />}
                 size="xs"
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
+                  trackAnalytics(
                     'ai_suggested_solution.feedback_helpful_kinda_button_clicked',
                     {
                       organization,
@@ -210,7 +213,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 icon={<IconHappy color="green300" size="xs" />}
                 size="xs"
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
+                  trackAnalytics(
                     'ai_suggested_solution.feedback_helpful_yes_button_clicked',
                     {
                       organization,

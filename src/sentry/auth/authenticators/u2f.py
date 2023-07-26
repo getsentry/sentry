@@ -3,8 +3,9 @@ from time import time
 from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.http.request import HttpRequest
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
@@ -183,7 +184,7 @@ class U2fInterface(AuthenticatorInterface):
             {"name": device_name or "Security Key", "ts": int(time()), "binding": binding}
         )
 
-    def activate(self, request: Request):
+    def activate(self, request: HttpRequest) -> ActivationChallengeResult:
         credentials = self.credentials()
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials

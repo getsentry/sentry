@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {ReleaseWithHealth, User} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {NoContext} from './quickContextWrapper';
@@ -35,7 +35,7 @@ function ReleaseContext(props: BaseContextProps) {
   );
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+    trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
       contextType: ContextType.RELEASE,
     });
@@ -48,7 +48,7 @@ function ReleaseContext(props: BaseContextProps) {
 
     const userInAuthors =
       data &&
-      data.authors.length >= 1 &&
+      authorsCount >= 1 &&
       data.authors.find((author: User) => author.id && user.id && author.id === user.id);
 
     if (userInAuthors) {

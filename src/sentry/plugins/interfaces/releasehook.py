@@ -1,6 +1,6 @@
 __all__ = ["ReleaseHook"]
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,7 +19,7 @@ class ReleaseHook:
             raise HookValidationError("Invalid release version: %s" % version)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Release)):
                 release = Release.objects.create(
                     version=version, organization_id=self.project.organization_id, **values
                 )
@@ -45,7 +45,7 @@ class ReleaseHook:
 
         project = self.project
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Release)):
                 release = Release.objects.create(
                     organization_id=project.organization_id, version=version
                 )
@@ -64,7 +64,7 @@ class ReleaseHook:
 
         values.setdefault("date_released", timezone.now())
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Release)):
                 release = Release.objects.create(
                     version=version, organization_id=self.project.organization_id, **values
                 )

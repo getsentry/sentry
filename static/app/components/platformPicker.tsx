@@ -5,7 +5,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
@@ -13,12 +12,16 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
+export const PLATFORM_CATEGORIES: {
+  id: string;
+  name: string;
+  platforms?: PlatformKey[];
+}[] = [...JSON.parse(JSON.stringify(categoryList)), {id: 'all', name: t('All')}];
 
 const PlatformList = styled('div')`
   display: grid;
@@ -27,10 +30,14 @@ const PlatformList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+export type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+
+export type Platform = PlatformIntegration & {
+  category: Category;
+};
 
 interface PlatformPickerProps {
-  setPlatform: (key: PlatformKey | null) => void;
+  setPlatform: (props: Platform | null) => void;
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -95,7 +102,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   logSearch = debounce(() => {
     if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+      trackAnalytics('growth.platformpicker_search', {
         search: this.state.filter.toLowerCase(),
         num_results: this.platformList.length,
         source: this.props.source,
@@ -117,7 +124,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               <ListLink
                 key={id}
                 onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+                  trackAnalytics('growth.platformpicker_category', {
                     category: id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
@@ -152,12 +159,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                   e.stopPropagation();
                 }}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent('growth.select_platform', {
+                  trackAnalytics('growth.select_platform', {
                     platform_id: platform.id,
                     source: this.props.source,
                     organization: this.props.organization ?? null,
                   });
-                  setPlatform(platform.id as PlatformKey);
+                  setPlatform({...platform, category});
                 }}
               />
             );
@@ -168,17 +175,8 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
             icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
-            {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
-              {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
-                ),
-              }
+            {t(
+              "Make sure you've typed the platform correctly. If that doesn't help, we have several SDKs that are still useful if you use a lesser-known platform. For example, Browser JavaScript, Python, Node, .NET & Java."
             )}
           </EmptyMessage>
         )}

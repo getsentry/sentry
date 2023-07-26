@@ -25,36 +25,20 @@ import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {IconSize} from './theme';
 
-const mapIntegrationParams = analyticsParams => {
-  // Reload expects integration_status even though it's not relevant for non-sentry apps
-  // Passing in a dummy value of published in those cases
-  const fullParams = {...analyticsParams};
-  if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
-    fullParams.integration_status = 'published';
-  }
-  return fullParams;
-};
-
-export const trackIntegrationAnalytics = makeAnalyticsFunction<
-  IntegrationEventParameters,
-  {organization: Organization} // org is required
->(integrationEventMap, {
-  mapValuesFn: mapIntegrationParams,
-});
+/**
+ * TODO: remove alias once all usages are updated
+ * @deprecated Use trackAnalytics instead
+ */
+export const trackIntegrationAnalytics = trackAnalytics;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -227,6 +211,33 @@ export const getIntegrationIcon = (
   }
 };
 
+export const getIntegrationSourceUrl = (
+  integrationType: string,
+  sourceUrl: string,
+  lineNo: number | null
+) => {
+  switch (integrationType) {
+    case 'bitbucket':
+    case 'bitbucket_server':
+      return `${sourceUrl}#lines-${lineNo}`;
+    case 'vsts':
+      const url = new URL(sourceUrl);
+      if (lineNo) {
+        url.searchParams.set('line', lineNo.toString());
+        url.searchParams.set('lineEnd', (lineNo + 1).toString());
+        url.searchParams.set('lineStartColumn', '1');
+        url.searchParams.set('lineEndColumn', '1');
+        url.searchParams.set('lineStyle', 'plain');
+        url.searchParams.set('_a', 'contents');
+      }
+      return url.toString();
+    case 'github':
+    case 'github_enterprise':
+    default:
+      return `${sourceUrl}#L${lineNo}`;
+  }
+};
+
 export function getCodeOwnerIcon(
   provider: CodeOwner['provider'],
   iconSize: IconSize = 'md'
@@ -284,3 +295,11 @@ export const sentryNameToOption = ({id, name}): Result => ({
   value: id,
   label: name,
 });
+
+export function getIntegrationStatus(integration: Integration) {
+  // there are multiple status fields for an integration we consider
+  const statusList = [integration.organizationIntegrationStatus, integration.status];
+  const firstNotActive = statusList.find(s => s !== 'active');
+  // Active if everything is active, otherwise the first inactive status
+  return firstNotActive ?? 'active';
+}

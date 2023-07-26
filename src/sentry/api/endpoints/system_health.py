@@ -5,14 +5,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import status_checks
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.auth.superuser import is_active_superuser
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.status_checks import sort_by_severity
 from sentry.utils.hashlib import md5_text
 
 
-@pending_silo_endpoint
+@all_silo_endpoint
 class SystemHealthEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")

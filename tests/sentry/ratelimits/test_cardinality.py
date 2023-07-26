@@ -5,24 +5,14 @@ import pytest
 from sentry.ratelimits.cardinality import (
     GrantedQuota,
     Quota,
-    RedisBlasterBackend,
     RedisCardinalityLimiter,
-    RedisClusterBackend,
     RequestedQuota,
 )
-from sentry.utils import redis
 
 
-@pytest.fixture(params=["cluster", "rb", "rb_many"])
-def limiter(request, settings):
-    instance = RedisCardinalityLimiter()
-    if request.param == "rb":
-        instance.backend = RedisBlasterBackend(redis.clusters.get("default"))
-        yield instance
-
-    else:
-        instance.backend = RedisClusterBackend(redis.redis_clusters.get("default"))
-        yield instance
+@pytest.fixture
+def limiter():
+    return RedisCardinalityLimiter()
 
 
 class LimiterHelper:
@@ -41,6 +31,8 @@ class LimiterHelper:
         if values:
             (value,) = values
             return value
+        else:
+            return None
 
     def add_values(self, values: Sequence[int]) -> Collection[int]:
         request = RequestedQuota(prefix="hello", unit_hashes=values, quota=self.quota)
@@ -211,8 +203,8 @@ def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
     test an edgecase of set sampling in the cardinality limiter. it is not
     exactly desired behavior but a known sampling artifact
     """
-    limiter.num_physical_shards = 1
-    limiter.num_shards = 10
+    limiter.impl.num_physical_shards = 1
+    limiter.impl.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill

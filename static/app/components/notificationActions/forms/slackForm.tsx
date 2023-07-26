@@ -11,7 +11,7 @@ import Input from 'sentry/components/input';
 //   NotificationActionFormContainer,
 // } from 'sentry/components/notificationActions/notificationActionItem';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   AvailableNotificationAction,
   NotificationAction,
@@ -72,9 +72,10 @@ function SlackForm({
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={workspaceOptions}
-          trigger={triggerProps => (
+          trigger={(triggerProps, isOpen) => (
             <DropdownButton
               {...triggerProps}
+              isOpen={isOpen}
               size="xs"
               aria-label={t('Select Workspace')}
               data-test-id="slack-workspace-dropdown"

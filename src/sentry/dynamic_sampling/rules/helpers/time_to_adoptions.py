@@ -70,6 +70,7 @@ LATEST_RELEASE_TTAS = {
     "javascript-remix": 11751,
     "javascript-replay-onboarding-1-install": 2609,
     "javascript-svelte": 4604,
+    "javascript-sveltekit": 5222,
     "javascript-vue": 10115,
     "java-spring-boot": 11731,
     "kotlin": 4520,

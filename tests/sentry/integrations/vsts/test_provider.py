@@ -2,6 +2,7 @@ from time import time
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 from django.http import HttpRequest
 
@@ -13,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self):
@@ -167,8 +168,10 @@ class TestAccountConfigView(TestCase):
         assert mock_render_to_response.call_args[1]["context"] == {"no_accounts": True}
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsIdentityProviderTest(TestCase):
+    client_secret = "12345678"
+
     def setUp(self):
         self.identity_provider_model = IdentityProvider.objects.create(type="vsts")
         self.identity = Identity.objects.create(
@@ -183,8 +186,13 @@ class VstsIdentityProviderTest(TestCase):
             },
         )
         self.provider = VSTSIdentityProvider()
-        self.client_secret = "12345678"
-        self.provider.get_oauth_client_secret = lambda: self.client_secret
+
+    @pytest.fixture(autouse=True)
+    def patch_get_oauth_client_secret(self):
+        with patch.object(
+            VSTSIdentityProvider, "get_oauth_client_secret", return_value=self.client_secret
+        ):
+            yield
 
     def get_refresh_token_params(self):
         refresh_token = "wertyui"

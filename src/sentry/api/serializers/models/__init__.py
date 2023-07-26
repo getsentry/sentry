@@ -50,6 +50,7 @@ from .organization_member.response import *  # noqa: F401,F403
 from .organization_member.scim import *  # noqa: F401,F403
 from .organization_member.utils import *  # noqa: F401,F403
 from .organization_plugin import *  # noqa: F401,F403
+from .orgauthtoken import *  # noqa: F401,F403
 from .platformexternalissue import *  # noqa: F401,F403
 from .plugin import *  # noqa: F401,F403
 from .processingissue import *  # noqa: F401,F403

@@ -8,9 +8,11 @@ from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvid
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(stable=True)
 class PagerDutyIntegrationTest(IntegrationTestCase):
     provider = PagerDutyIntegrationProvider
     base_url = "https://app.pagerduty.com"
@@ -114,7 +116,11 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         )
-        assert oi.config == {}
+        assert oi.config == dict(
+            pagerduty_services=[
+                PagerDutyService.objects.get(integration_id=integration.id).as_dict()
+            ]
+        )
 
     @responses.activate
     def test_add_services_flow(self):
@@ -123,9 +129,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
         service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization_id=self.organization.id
-            )
+            integration_id=integration.id, organization_id=self.organization.id
         )
 
         url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
@@ -141,6 +145,21 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         assert PagerDutyService.objects.filter(id=service.id).exists()
         assert PagerDutyService.objects.filter(service_name="Additional Service").exists()
+        oi = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert PagerDutyService.services_in(oi.config) == [
+            service.as_dict(),
+            PagerDutyService.objects.get(service_name="Additional Service").as_dict(),
+        ]
+
+        service.service_name = "Updated Name Yo"
+        service.save()
+        oi.refresh_from_db()
+        assert PagerDutyService.services_in(oi.config) == [
+            PagerDutyService.objects.get(service_name="Additional Service").as_dict(),
+            service.as_dict(),
+        ]
 
     @responses.activate
     def test_update_organization_config(self):
@@ -195,9 +214,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
         service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization_id=self.organization.id
-            )
+            organization_id=self.organization.id, integration_id=integration.id
         )
         config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {

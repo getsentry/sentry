@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import CIEmailField, Model, control_silo_only_model, sane_repr
 

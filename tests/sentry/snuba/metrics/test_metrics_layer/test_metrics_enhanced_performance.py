@@ -2,7 +2,7 @@
 Metrics Service Layer Tests for Performance
 """
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest import mock
 
@@ -10,7 +10,6 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
@@ -20,7 +19,7 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
     MetricConditionField,
@@ -28,11 +27,14 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
+)
+from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.naming_layer import (
+    TransactionMetricKey,
+    TransactionMRI,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
-from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
@@ -64,7 +66,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["meta"] == sorted(
             [
@@ -122,7 +124,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
@@ -180,7 +182,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = sorted(data["groups"], key=lambda group: group["by"]["transaction_group"])
         assert len(groups) == 2
@@ -253,7 +255,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 2
@@ -332,7 +334,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 2
@@ -387,7 +389,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         groups = data["groups"]
         assert len(groups) == 1
@@ -444,7 +446,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     [self.project],
                     metrics_query=metrics_query,
                     include_meta=True,
-                    use_case_id=UseCaseKey.PERFORMANCE,
+                    use_case_id=UseCaseID.TRANSACTIONS,
                 )
 
     def test_query_with_order_by_valid_str_field(self):
@@ -496,7 +498,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -553,7 +555,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_query_with_order_by_str_field_not_in_group_by(self):
@@ -589,7 +591,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_query_with_sum_if_column(self):
@@ -621,7 +623,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -668,7 +670,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -730,7 +732,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -797,7 +799,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -866,7 +868,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -933,7 +935,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_alias_on_single_entity_derived_metrics(self):
@@ -969,7 +971,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert len(data["groups"]) == 1
         group = data["groups"][0]
@@ -1037,7 +1039,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         groups = data["groups"]
@@ -1121,7 +1123,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert data["groups"] == [
@@ -1167,7 +1169,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
@@ -1215,7 +1217,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
@@ -1280,17 +1282,17 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data == {
-            "start": FakeDatetime(
+            "start": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
             ),
-            "end": FakeDatetime(
+            "end": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
             ),
             "intervals": [
-                FakeDatetime(
+                datetime(
                     day_ago.year,
                     day_ago.month,
                     day_ago.day,
@@ -1353,7 +1355,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
         # the expected rates would be each of those event counts divided by 86400 / 60
@@ -1412,7 +1414,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_measurement_rating(self):
@@ -1503,7 +1505,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         group_totals = data["groups"][0]["totals"]
@@ -1605,7 +1607,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["groups"] == [
             {
@@ -1669,7 +1671,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert data["groups"] == [
@@ -1720,7 +1722,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert sorted(data["groups"], key=lambda group: group["by"]["transaction_name"]) == [
@@ -1820,7 +1822,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     [self.project],
                     metrics_query=metrics_query,
                     include_meta=True,
-                    use_case_id=UseCaseKey.PERFORMANCE,
+                    use_case_id=UseCaseID.TRANSACTIONS,
                 )
 
                 assert data["groups"] == [
@@ -1869,7 +1871,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 [self.project],
                 metrics_query=metrics_query,
                 include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def test_team_key_transaction_as_condition(self):
@@ -1971,7 +1973,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=False,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert data["groups"] == [
             {
@@ -2006,6 +2008,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
         EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
 
+        assert metrics_query.limit is not None
         assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
@@ -2037,6 +2040,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             MetricsQuery(**metrics_query_dict)
 
         mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        assert mq.limit is not None
         assert mq.limit.limit == 50
 
 
@@ -2063,7 +2067,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
             start=self.day_ago,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert result == [
             {
@@ -2086,7 +2090,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     something_custom_metric,
                 ),
@@ -2116,7 +2120,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
             start=self.day_ago,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert result == [
@@ -2140,7 +2144,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     something_custom_metric,
                 ),

@@ -14,7 +14,7 @@ import Tag from 'sentry/components/tag';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {
   EventsMetaType,
   isFieldSortable,
@@ -84,7 +84,7 @@ class Table extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization} = this.props;
 
-      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
+      trackAnalytics('performance_views.overview.cellaction', {
         organization,
         action,
       });
@@ -299,7 +299,7 @@ class Table extends Component<Props, State> {
   handleSummaryClick = () => {
     const {organization, projects, location} = this.props;
 
-    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
+    trackAnalytics('performance_views.overview.navigate.summary', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });

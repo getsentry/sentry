@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.exceptions import CacheNotPopulated
 from sentry.models import GroupMeta
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -12,11 +13,11 @@ class GroupMetaManagerTest(TestCase):
         assert GroupMeta.objects.filter(group=self.group, key="foo", value="bar").exists()
 
     def test_get_value(self):
-        with pytest.raises(GroupMeta.CacheNotPopulated):
+        with pytest.raises(CacheNotPopulated):
             GroupMeta.objects.get_value(self.group, "foo")
 
         GroupMeta.objects.create(group=self.group, key="foo", value="bar")
-        with pytest.raises(GroupMeta.CacheNotPopulated):
+        with pytest.raises(CacheNotPopulated):
             GroupMeta.objects.get_value(self.group, "foo")
 
         GroupMeta.objects.populate_cache([self.group])
@@ -30,11 +31,11 @@ class GroupMetaManagerTest(TestCase):
         assert not GroupMeta.objects.filter(group=self.group, key="foo").exists()
 
     def test_get_value_bulk(self):
-        with pytest.raises(GroupMeta.CacheNotPopulated):
+        with pytest.raises(CacheNotPopulated):
             GroupMeta.objects.get_value_bulk([self.group], "foo")
 
         GroupMeta.objects.create(group=self.group, key="foo", value="bar")
-        with pytest.raises(GroupMeta.CacheNotPopulated):
+        with pytest.raises(CacheNotPopulated):
             GroupMeta.objects.get_value_bulk([self.group], "foo")
 
         GroupMeta.objects.populate_cache([self.group])

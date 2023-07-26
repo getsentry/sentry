@@ -8,7 +8,7 @@ import {
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
@@ -155,10 +155,9 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       toggleSpanGroup={() => {
         toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence);
         isEmbeddedSpanTree &&
-          trackAdvancedAnalyticsEvent(
-            'issue_details.performance.autogrouped_siblings_toggle',
-            {organization}
-          );
+          trackAnalytics('issue_details.performance.autogrouped_siblings_toggle', {
+            organization,
+          });
       }}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}

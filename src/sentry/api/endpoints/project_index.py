@@ -9,8 +9,9 @@ from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
+from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Project, ProjectPlatform, ProjectStatus
+from sentry.models import Project, ProjectPlatform
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.search.utils import tokenize_query
 
@@ -33,9 +34,9 @@ class ProjectIndexEndpoint(Endpoint):
 
         status = request.GET.get("status", "active")
         if status == "active":
-            queryset = queryset.filter(status=ProjectStatus.VISIBLE)
+            queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
-            queryset = queryset.exclude(status=ProjectStatus.VISIBLE)
+            queryset = queryset.exclude(status=ObjectStatus.ACTIVE)
         elif status:
             queryset = queryset.none()
 
@@ -52,7 +53,11 @@ class ProjectIndexEndpoint(Endpoint):
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:
-                queryset = queryset.filter(teams__organizationmember__user=request.user)
+                queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+
+            org_id_filter = request.GET.get("organizationId", None)
+            if org_id_filter:
+                queryset = queryset.filter(organization_id=org_id_filter)
 
         query = request.GET.get("query")
         if query:

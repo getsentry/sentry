@@ -28,7 +28,7 @@ type Props = {
   layout?: LayoutKey;
 };
 
-function ReplayLayout({layout = LayoutKey.topbar}: Props) {
+function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = (
@@ -45,7 +45,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </VideoSection>
   );
 
-  if (layout === LayoutKey.video_only) {
+  if (layout === LayoutKey.VIDEO_ONLY) {
     return (
       <BodyContent>
         {timeline}
@@ -70,7 +70,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </ErrorBoundary>
   );
 
-  if (layout === LayoutKey.no_video) {
+  if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyContent>
         {timeline}
@@ -93,7 +93,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     );
   }
 
-  if (layout === LayoutKey.sidebar_left) {
+  if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
       <BodyContent>
         {timeline}

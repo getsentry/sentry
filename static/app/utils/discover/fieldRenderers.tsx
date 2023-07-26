@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
@@ -31,11 +31,16 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  RATE_UNIT_LABELS,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
@@ -46,6 +51,9 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -102,7 +110,9 @@ type FieldFormatters = {
   duration: FieldFormatter;
   integer: FieldFormatter;
   number: FieldFormatter;
+  percent_change: FieldFormatter;
   percentage: FieldFormatter;
+  rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
 };
@@ -220,6 +230,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       );
     },
   },
+  rate: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+
+      return (
+        <NumberContainer>
+          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
+        </NumberContainer>
+      );
+    },
+  },
   integer: {
     isSortable: true,
     renderFunc: (field, data) => (
@@ -288,6 +310,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
+    },
+  },
+  percent_change: {
+    isSortable: true,
+    renderFunc: (fieldName, data) => {
+      return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
 };
@@ -624,14 +652,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   team_key_transaction: {
     sortField: null,
     renderFunc: (data, {organization}) => (
-      <Container>
-        <TeamKeyTransactionField
-          isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
+      <TeamKeyTransactionField
+        isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
+        organization={organization}
+        projectSlug={data.project}
+        transactionName={data.transaction}
+      />
     ),
   },
   'trend_percentage()': {
@@ -673,6 +699,9 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  sps_percent_change: SpecialFunctionFieldRenderer;
+  time_spent_percentage: SpecialFunctionFieldRenderer;
+  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -738,6 +767,22 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  // N.B. Do not colorize any throughput percent change renderers, since a
+  // change in throughput is not inherently good or bad
+  tps_percent_change: fieldName => data => {
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
+  },
+  sps_percent_change: fieldName => data => {
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
+  },
+  time_spent_percentage: fieldName => data => {
+    return (
+      <TimeSpentCell
+        percentage={data[fieldName]}
+        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+      />
     );
   },
 };
@@ -856,16 +901,13 @@ export const spanOperationRelativeBreakdownRenderer = (
                   }
                   event.stopPropagation();
                   const filter = stringToFilter(operationName);
-                  if (filter === SpanOperationBreakdownFilter.None) {
+                  if (filter === SpanOperationBreakdownFilter.NONE) {
                     return;
                   }
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.relative_breakdown.selection',
-                    {
-                      action: filter,
-                      organization,
-                    }
-                  );
+                  trackAnalytics('performance_views.relative_breakdown.selection', {
+                    action: filter,
+                    organization,
+                  });
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {

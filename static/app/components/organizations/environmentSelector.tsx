@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
@@ -95,7 +95,7 @@ function EnvironmentSelector({
       ? selectedEnvs.filter(env => env !== environment)
       : [...selectedEnvs, environment];
 
-    trackAdvancedAnalyticsEvent('environmentselector.toggle', {
+    trackAnalytics('environmentselector.toggle', {
       organization,
       action: willRemove ? 'removed' : 'added',
       path: getRouteStringFromRoutes(router.routes),
@@ -116,7 +116,7 @@ function EnvironmentSelector({
       return;
     }
 
-    trackAdvancedAnalyticsEvent('environmentselector.update', {
+    trackAnalytics('environmentselector.update', {
       organization,
       count: selectedEnvs.length,
       path: getRouteStringFromRoutes(router.routes),
@@ -126,7 +126,7 @@ function EnvironmentSelector({
   };
 
   const handleQuickSelect = (item: Item) => {
-    trackAdvancedAnalyticsEvent('environmentselector.direct_selection', {
+    trackAnalytics('environmentselector.direct_selection', {
       organization,
       path: getRouteStringFromRoutes(router.routes),
     });

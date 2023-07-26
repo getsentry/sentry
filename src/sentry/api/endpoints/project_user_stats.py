@@ -9,6 +9,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment
+from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
@@ -23,12 +24,16 @@ class ProjectUserStatsEndpoint(EnvironmentMixin, ProjectEndpoint):
         then = now - timedelta(days=30)
 
         results = tsdb.get_distinct_counts_series(
-            tsdb.models.users_affected_by_project,
+            TSDBModel.users_affected_by_project,
             (project.id,),
             then,
             now,
             rollup=3600 * 24,
             environment_id=environment_id,
+            tenant_ids={
+                "organization_id": project.organization_id,
+                "referrer": "api.project_user_stats",
+            },
         )[project.id]
 
         return Response(results)

@@ -7,11 +7,10 @@ from unittest import mock
 import pytest
 import pytz
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.codecs.json import JsonCodec
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from sentry_kafka_schemas import get_schema
+from sentry_kafka_schemas import get_codec
 
 from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
@@ -35,7 +34,7 @@ class BaseQuerySubscriptionTest:
 
     @cached_property
     def jsoncodec(self):
-        return JsonCodec(schema=get_schema(self.topic)["schema"])
+        return get_codec(self.topic)
 
     @cached_property
     def valid_wrapper(self):

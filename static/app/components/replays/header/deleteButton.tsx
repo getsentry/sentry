@@ -8,25 +8,26 @@ import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
-function DeleteButton() {
+interface DeleteButtonProps {
+  projectSlug: string;
+  replayId: string;
+}
+
+function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
   const api = useApi();
   const navigate = useNavigate();
-  const params = useParams();
-  const orgSlug = useOrganization().slug;
-
-  const [projectSlug, replayId] = params.replaySlug.split(':');
+  const organization = useOrganization();
 
   const handleDelete = async () => {
     try {
       await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/`,
+        `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/`,
         {
           method: 'DELETE',
         }
       );
-      navigate(`/organizations/${orgSlug}/replays/`, {replace: true});
+      navigate(`/organizations/${organization.slug}/replays/`, {replace: true});
     } catch (err) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);

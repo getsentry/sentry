@@ -5,10 +5,10 @@ import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -16,7 +16,7 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -39,14 +39,14 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class DiscoverLanding extends AsyncComponent<Props, State> {
+class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -75,7 +75,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
     const views = getPrebuiltQueries(organization);
@@ -166,7 +166,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('discover_v2.change_sort', {organization, sort: value});
+    trackAnalytics('discover_v2.change_sort', {organization, sort: value});
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -283,7 +283,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   size="sm"
                   priority="primary"
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {
+                    trackAnalytics('discover_v2.build_new_query', {
                       organization,
                     });
                   }}

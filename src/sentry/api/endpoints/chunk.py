@@ -9,8 +9,8 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
-from sentry.api.base import pending_silo_endpoint
+from sentry import options
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
 from sentry.ratelimits.config import RateLimitConfig
@@ -31,10 +31,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
-    # TODO: at a later point when we return artifact bundles here
-    #   users will by default upload artifact bundles as this is what
-    #   sentry-cli looks for.
-    # "artifact_bundles",  # Artifact bundles containing source maps.
+    "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
 )
 
 
@@ -46,7 +43,7 @@ class GzipChunk(BytesIO):
         super().__init__(data)
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
@@ -84,10 +81,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             url = absolute_uri(relative_url, endpoint)
 
         accept = CHUNK_UPLOAD_ACCEPT
-        if features.has(
-            "organizations:artifact-bundles", organization=organization, actor=request.user
-        ):
-            accept += ("artifact_bundles",)
+
+        # We introduced the new missing chunks functionality for artifact bundles and in order to synchronize upload
+        # capabilities we need to tell CLI to use the new upload style. This is done since if we have mismatched
+        # versions we might incur into problems like the impossibility for users to upload artifacts.
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
+            accept += ("artifact_bundles_v2",)
 
         return Response(
             {

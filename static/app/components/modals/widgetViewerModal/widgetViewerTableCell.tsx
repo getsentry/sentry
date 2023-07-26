@@ -8,9 +8,9 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getIssueFieldRenderer,
   getSortField,
@@ -33,8 +33,10 @@ import {
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now
@@ -45,9 +47,11 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  eventView?: EventView;
   isFirstPage?: boolean;
   isMetricsData?: boolean;
   onHeaderClick?: () => void;
+  projects?: Project[];
   tableData?: TableDataWithTitle;
 };
 
@@ -83,7 +87,7 @@ export const renderIssueGridHeaderCell = ({
         })}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
@@ -157,7 +161,7 @@ export const renderDiscoverGridHeaderCell = ({
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
@@ -175,6 +179,8 @@ export const renderGridBodyCell = ({
   widget,
   tableData,
   isFirstPage,
+  projects,
+  eventView,
 }: Props) =>
   function (
     column: GridColumnOrder,
@@ -222,6 +228,23 @@ export const renderGridBodyCell = ({
         }
         break;
     }
+
+    if (columnKey === 'transaction' && dataRow.transaction) {
+      cell = (
+        <TransactionLink
+          data-test-id="widget-viewer-transaction-link"
+          to={getTargetForTransactionSummaryLink(
+            dataRow,
+            organization,
+            projects,
+            eventView
+          )}
+        >
+          {cell}
+        </TransactionLink>
+      );
+    }
+
     const topResultsCount = tableData
       ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
       : DEFAULT_NUM_TOP_EVENTS;
@@ -326,7 +349,7 @@ export const renderReleaseGridHeaderCell = ({
         generateSortLink={generateSortLink}
         onClick={() => {
           onHeaderClick?.();
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+          trackAnalytics('dashboards_views.widget_viewer.sort', {
             organization,
             widget_type: WidgetType.RELEASE,
             display_type: widget.displayType,

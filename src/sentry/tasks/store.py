@@ -1,11 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 from typing import Any, Callable, Dict, List, Optional
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing, reprocessing2
@@ -64,6 +63,7 @@ def submit_process(
     event_id: Optional[str],
     start_time: Optional[int],
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
     task = process_event_from_reprocessing if from_reprocessing else process_event
@@ -72,6 +72,7 @@ def submit_process(
         start_time=start_time,
         event_id=event_id,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
     )
 
@@ -110,7 +111,11 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
+    from sentry.tasks.symbolication import (
+        get_symbolication_function,
+        should_demote_symbolication,
+        submit_symbolicate,
+    )
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -137,19 +142,7 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js = False
-    if data["platform"] in ("javascript", "node"):
-        from sentry.lang.javascript.processing import (
-            get_js_symbolication_function as get_symbolication_function,
-        )
-
-        is_js = True
-    else:
-        from sentry.lang.native.processing import (
-            get_native_symbolication_function as get_symbolication_function,
-        )
-
-    symbolication_function = get_symbolication_function(data)
+    is_js, symbolication_function = get_symbolication_function(data)
     if symbolication_function:
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -162,7 +155,7 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+            reprocessing2.backup_unprocessed_event(data=original_data)
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
@@ -201,7 +194,7 @@ def _do_preprocess_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event",
     queue="events.preprocess_event",
     time_limit=65,
@@ -227,7 +220,7 @@ def preprocess_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event_from_reprocessing",
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
@@ -251,7 +244,7 @@ def preprocess_event_from_reprocessing(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
     time_limit=(60 * 5) + 5,
@@ -450,7 +443,7 @@ def do_process_event(
     return _continue_to_save_event()
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event",
     queue="events.process_event",
     time_limit=65,
@@ -461,6 +454,8 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -479,10 +474,12 @@ def process_event(
         event_id=event_id,
         process_task=process_event,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
     queue="events.reprocessing.process_event",
     time_limit=65,
@@ -493,6 +490,8 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    from_symbolicate: bool = False,
+    has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -501,6 +500,8 @@ def process_event_from_reprocessing(
         event_id=event_id,
         process_task=process_event_from_reprocessing,
         data_has_changed=data_has_changed,
+        from_symbolicate=from_symbolicate,
+        has_attachments=has_attachments,
     )
 
 
@@ -708,7 +709,6 @@ def _do_save_event(
                     assume_normalized=True,
                     start_time=start_time,
                     cache_key=cache_key,
-                    auto_upgrade_grouping=event_type != "transaction",
                 )
                 # Put the updated event back into the cache so that post_process
                 # has the most recent data.
@@ -797,7 +797,7 @@ def time_synthetic_monitoring_event(
     return True
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event",
     queue="events.save_event",
     time_limit=65,
@@ -814,7 +814,7 @@ def save_event(
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
     queue="events.save_event_transaction",
     time_limit=65,
@@ -831,7 +831,7 @@ def save_event_transaction(
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event_attachments",
     queue="events.save_event_attachments",
     time_limit=65,

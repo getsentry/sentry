@@ -1,16 +1,16 @@
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import SortableHeader from 'sentry/views/replays/replayTable/sortableHeader';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 
 type Props = {
-  column: keyof typeof ReplayColumns;
+  column: ReplayColumn;
   sort?: Sort;
 };
 
 function HeaderCell({column, sort}: Props) {
   switch (column) {
-    case ReplayColumns.activity:
+    case ReplayColumn.ACTIVITY:
       return (
         <SortableHeader
           sort={sort}
@@ -22,22 +22,52 @@ function HeaderCell({column, sort}: Props) {
         />
       );
 
-    case ReplayColumns.browser:
+    case ReplayColumn.BROWSER:
       return <SortableHeader sort={sort} fieldName="browser.name" label={t('Browser')} />;
 
-    case ReplayColumns.countErrors:
+    case ReplayColumn.COUNT_DEAD_CLICKS:
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_dead_clicks"
+          label={t('Dead clicks')}
+          tooltip={t(
+            'A dead click is a user click that does not result in any page activity after 7 seconds.'
+          )}
+        />
+      );
+
+    case ReplayColumn.COUNT_ERRORS:
       return <SortableHeader sort={sort} fieldName="count_errors" label={t('Errors')} />;
 
-    case ReplayColumns.duration:
+    case ReplayColumn.COUNT_RAGE_CLICKS:
+      return (
+        <SortableHeader
+          sort={sort}
+          fieldName="count_rage_clicks"
+          label={t('Rage clicks')}
+          tooltip={t(
+            'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds.'
+          )}
+        />
+      );
+
+    case ReplayColumn.DURATION:
       return <SortableHeader sort={sort} fieldName="duration" label={t('Duration')} />;
 
-    case ReplayColumns.os:
+    case ReplayColumn.OS:
       return <SortableHeader sort={sort} fieldName="os.name" label={t('OS')} />;
 
-    case ReplayColumns.replay:
+    case ReplayColumn.REPLAY:
       return <SortableHeader sort={sort} fieldName="started_at" label={t('Replay')} />;
 
-    case ReplayColumns.slowestTransaction:
+    case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+      return <SortableHeader label={t('Most erroneous replays')} />;
+
+    case ReplayColumn.MOST_RAGE_CLICKS:
+      return <SortableHeader label={t('Most rage clicks')} />;
+
+    case ReplayColumn.SLOWEST_TRANSACTION:
       return (
         <SortableHeader
           label={t('Slowest Transaction')}

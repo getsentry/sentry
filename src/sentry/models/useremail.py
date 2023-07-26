@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING, Iterable, Mapping
 
 from django.conf import settings
 from django.db import models
-from django.db.models import QuerySet
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import (
     BaseManager,
@@ -17,43 +16,30 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.query import in_iexact
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models import User
 
 
 class UserEmailManager(BaseManager):
-    def get_for_organization(self, organization: Organization) -> QuerySet:
-        return self.filter(user__sentry_orgmember_set__organization=organization)
+    def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
+        from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
-    def get_emails_by_user(self, organization: Organization) -> Mapping[User, Iterable[str]]:
         emails_by_user = defaultdict(set)
-        user_emails = self.get_for_organization(organization).select_related("user")
+        user_emails = self.filter(
+            user_id__in=OrganizationMemberMapping.objects.filter(
+                organization_id=organization.id
+            ).values_list("user_id", flat=True)
+        ).select_related("user")
         for entry in user_emails:
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user
 
     def get_primary_email(self, user: User) -> UserEmail:
-        user_email, _ = self.get_or_create(user=user, email=user.email)
+        user_email, _ = self.get_or_create(user_id=user.id, email=user.email)
         return user_email
-
-    def get_users_by_emails(
-        self, emails: Iterable[str], organization: Organization
-    ) -> Mapping[str, User]:
-        if not emails:
-            return {}
-
-        return {
-            ue.email: ue.user
-            for ue in self.get_for_organization(organization)
-            .filter(
-                in_iexact("email", emails),
-                is_verified=True,
-            )
-            .select_related("user")
-        }
 
 
 @control_silo_only_model

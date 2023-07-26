@@ -1,6 +1,6 @@
+from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,
@@ -41,7 +41,7 @@ class SAML2ConfigureView(ConfigureView):
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -60,7 +60,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

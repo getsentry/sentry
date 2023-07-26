@@ -2,7 +2,7 @@ import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import {ApiResult, Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
@@ -13,11 +13,14 @@ import {
   OrganizationSummary,
 } from 'sentry/types';
 import {LocationQuery} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {
   ApiQueryKey,
+  getApiQueryData,
+  setApiQueryData,
   useApiQuery,
   UseApiQueryOptions,
   useMutation,
@@ -32,6 +35,7 @@ type Options = {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;
+  dataset?: DiscoverDatasets;
   end?: DateString;
   environment?: Readonly<string[]>;
   excludeOther?: boolean;
@@ -50,6 +54,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  useOnDemandMetrics?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -100,6 +105,8 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     queryExtras,
     excludeOther,
     includeAllArgs,
+    dataset,
+    useOnDemandMetrics,
   }: {includeAllArgs?: IncludeAllArgsType} & Options
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -127,6 +134,8 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      dataset,
+      useOnDemandMetrics,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -154,6 +163,8 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
 export type EventQuery = {
   field: string[];
   query: string;
+  cursor?: string;
+  dataset?: DiscoverDatasets;
   environment?: string[];
   equation?: string[];
   noPagination?: boolean;
@@ -185,13 +196,14 @@ export function fetchTagFacets(
   api: Client,
   orgSlug: string,
   query: EventQuery
-): Promise<Tag[]> {
-  const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));
+): Promise<ApiResult<Tag[]>> {
+  const urlParams = pick(query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
 
   const queryOption = {...urlParams, query: query.query};
 
   return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
     query: queryOption,
+    includeAllArgs: true,
   });
 }
 
@@ -288,11 +300,13 @@ export const useDeleteEventAttachmentOptimistic = (
     onMutate: async variables => {
       await queryClient.cancelQueries(makeFetchEventAttachmentsQueryKey(variables));
 
-      const previous = queryClient.getQueryData<FetchEventAttachmentResponse>(
+      const previous = getApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables)
       );
 
-      queryClient.setQueryData<FetchEventAttachmentResponse>(
+      setApiQueryData<FetchEventAttachmentResponse>(
+        queryClient,
         makeFetchEventAttachmentsQueryKey(variables),
         oldData => {
           if (!Array.isArray(oldData)) {
@@ -311,7 +325,8 @@ export const useDeleteEventAttachmentOptimistic = (
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
       if (context) {
-        queryClient.setQueryData(
+        setApiQueryData(
+          queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
           context.previous
         );

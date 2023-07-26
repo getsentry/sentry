@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -232,7 +232,11 @@ class TransactionsTable extends PureComponent<Props> {
 
     return (
       <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-        <VisuallyCompleteWithData id="TransactionsTable" hasData={hasResults}>
+        <VisuallyCompleteWithData
+          id="TransactionsTable"
+          hasData={hasResults}
+          isLoading={isLoading}
+        >
           <PanelTable
             data-test-id="transactions-table"
             isEmpty={!hasResults}
@@ -258,7 +262,7 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
     } else {
       source = 'discover.transactions_table';
     }
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source,
     });

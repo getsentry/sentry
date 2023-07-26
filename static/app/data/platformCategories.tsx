@@ -55,6 +55,7 @@ export const frontend = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'unity',
 ] as const;
 
@@ -116,6 +117,7 @@ export const backend = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'ruby',
   'ruby-rails',
   'ruby-rack',
@@ -219,12 +221,16 @@ export const profiling: PlatformKey[] = [
   // mobile
   'android',
   'apple-ios',
+  // go
+  'go',
   // nodejs
   'node',
   'node-express',
   'node-koa',
   'node-connect',
   'javascript-nextjs',
+  'javascript-remix',
+  'javascript-sveltekit',
   // python
   'python',
   'python-django',
@@ -244,6 +250,10 @@ export const profiling: PlatformKey[] = [
   'php',
   'php-laravel',
   'php-symfony2',
+  // ruby
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 export const releaseHealth: PlatformKey[] = [
@@ -259,6 +269,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   // mobile
   'android',
   'apple-ios',
@@ -285,6 +296,7 @@ export const releaseHealth: PlatformKey[] = [
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-pymongo',
   'rust',
   // serverless
   // desktop
@@ -305,6 +317,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];
@@ -325,6 +338,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-react',
   'javascript-remix',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript-vue',
   'javascript',
 ];

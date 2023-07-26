@@ -5,7 +5,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import RepositoryRow from 'sentry/components/repositoryRow';
 
 describe('RepositoryRow', function () {
@@ -28,13 +27,12 @@ describe('RepositoryRow', function () {
     },
     status: 'pending_deletion',
   });
-  const api = new Client();
+  const api = new MockApiClient();
 
   describe('rendering with access', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays provider information', function () {
       render(
@@ -44,7 +42,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       expect(screen.getByText(repository.name)).toBeInTheDocument();
       expect(screen.getByText('github.com/example/repo-name')).toBeInTheDocument();
@@ -64,7 +62,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled
@@ -80,7 +78,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:write'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays disabled trash', function () {
       render(
@@ -90,7 +87,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled
@@ -105,7 +102,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Cancel should be disabled
@@ -117,14 +114,13 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('sends api request on delete', async function () {
+    it('sends api request to hide upon clicking delete', async function () {
       const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
-        method: 'DELETE',
+        method: 'PUT',
         statusCode: 204,
-        body: {},
+        body: {status: 'hidden'},
       });
 
       render(
@@ -134,7 +130,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       renderGlobalModal();
       await userEvent.click(screen.getByRole('button', {name: 'delete'}));
@@ -150,7 +146,6 @@ describe('RepositoryRow', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request to cancel', async function () {
       const cancel = MockApiClient.addMockResponse({
@@ -167,7 +162,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
@@ -180,7 +175,6 @@ describe('RepositoryRow', function () {
       access: ['org:integrations'],
       features: ['integrations-custom-scm'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays edit button', function () {
       render(
@@ -190,7 +184,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should display enabled
@@ -210,7 +204,7 @@ describe('RepositoryRow', function () {
           orgId={organization.slug}
           organization={organization}
         />,
-        {context: routerContext}
+        {organization}
       );
 
       // Trash button should be disabled

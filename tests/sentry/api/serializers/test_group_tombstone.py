@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.models import GroupHash, GroupTombstone
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 

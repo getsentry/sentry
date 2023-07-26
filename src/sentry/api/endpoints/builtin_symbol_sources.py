@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers import serialize
 
 
@@ -15,7 +15,7 @@ def normalize_symbol_source(key, source):
     }
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class BuiltinSymbolSourcesEndpoint(Endpoint):
     permission_classes = ()
 

@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -12,7 +14,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -24,7 +26,7 @@ import {
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
-import DetailsBody from './body';
+import MetricDetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
@@ -58,8 +60,15 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const prevQuery = pick(prevProps.location.query, ['start', 'end', 'period', 'alert']);
+    const nextQuery = pick(this.props.location.query, [
+      'start',
+      'end',
+      'period',
+      'alert',
+    ]);
     if (
-      prevProps.location.search !== this.props.location.search ||
+      !isEqual(prevQuery, nextQuery) ||
       prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
@@ -71,7 +80,7 @@ class MetricAlertDetails extends Component<Props, State> {
   trackView() {
     const {params, organization, location} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_rule_details.viewed', {
+    trackAnalytics('alert_rule_details.viewed', {
       organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: (location.query.alert as string) ?? '',
@@ -138,6 +147,21 @@ class MetricAlertDetails extends Component<Props, State> {
       display: timeOption.label as string,
     };
   }
+
+  onSnooze = ({
+    snooze,
+    snoozeCreatedBy,
+    snoozeForEveryone,
+  }: {
+    snooze: boolean;
+    snoozeCreatedBy?: string;
+    snoozeForEveryone?: boolean;
+  }) => {
+    if (this.state.rule) {
+      const rule = {...this.state.rule, snooze, snoozeCreatedBy, snoozeForEveryone};
+      this.setState({rule});
+    }
+  };
 
   fetchData = async () => {
     const {
@@ -230,8 +254,9 @@ class MetricAlertDetails extends Component<Props, State> {
           organization={organization}
           rule={rule}
           project={project}
+          onSnooze={this.onSnooze}
         />
-        <DetailsBody
+        <MetricDetailsBody
           {...this.props}
           rule={rule}
           project={project}

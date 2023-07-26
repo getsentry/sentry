@@ -15,7 +15,6 @@ from sentry.models import (
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import faux
 from sentry.testutils.silo import control_silo_test
 
 
@@ -239,10 +238,14 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        call = faux(create_audit_entry)
-        assert call.kwarg_equals("organization_id", self.org.id)
-        assert call.kwarg_equals("target_object", self.org.id)
-        assert call.kwarg_equals("event", audit_log.get_event_id("INTERNAL_INTEGRATION_ADD"))
+        (
+            _,
+            _,
+            (_, kwargs),
+        ) = create_audit_entry.call_args_list
+        assert kwargs["organization_id"] == self.org.id
+        assert kwargs["target_object"] == self.org.id
+        assert kwargs["event"] == audit_log.get_event_id("INTERNAL_INTEGRATION_ADD")
 
     @patch("sentry.analytics.record")
     @patch("sentry.utils.audit.create_audit_entry")
@@ -258,9 +261,9 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        assert faux(record).args_equals("internal_integration.created")
-        assert faux(record).kwargs == {
-            "user_id": self.user.id,
-            "organization_id": self.org.id,
-            "sentry_app": sentry_app.slug,
-        }
+        record.assert_called_with(
+            "internal_integration.created",
+            user_id=self.user.id,
+            organization_id=self.org.id,
+            sentry_app=sentry_app.slug,
+        )

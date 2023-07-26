@@ -9,12 +9,15 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -25,9 +28,9 @@ type Props = RouteComponentProps<{}, {}>;
 
 type State = {
   identities: UserIdentityConfig[] | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class AccountIdentities extends AsyncView<Props, State> {
+class AccountIdentities extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -35,7 +38,7 @@ class AccountIdentities extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['identities', ENDPOINT]];
   }
 

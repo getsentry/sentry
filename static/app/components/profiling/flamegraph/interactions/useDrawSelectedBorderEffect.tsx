@@ -57,12 +57,12 @@ export function useDrawSelectedBorderEffect({
     };
 
     scheduler.on(eventKey, onHighlight);
-    scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
+    scheduler.registerBeforeFrameCallback(drawSelectedFrameBorder);
     scheduler.draw();
 
     return () => {
       scheduler.off(eventKey, onHighlight);
-      scheduler.unregisterAfterFrameCallback(drawSelectedFrameBorder);
+      scheduler.unregisterBeforeFrameCallback(drawSelectedFrameBorder);
     };
   }, [view, canvas, scheduler, renderer, eventKey, theme, selectedRef]);
 }

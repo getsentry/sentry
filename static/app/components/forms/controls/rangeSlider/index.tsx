@@ -1,6 +1,7 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
 
 import Input from 'sentry/components/input';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -30,11 +31,13 @@ type SliderProps = {
 
   disabled?: boolean;
 
+  disabledReason?: React.ReactNode;
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
    */
   formatLabel?: (value: number | '') => React.ReactNode;
+
   forwardRef?: React.Ref<HTMLDivElement>;
 
   /**
@@ -46,11 +49,11 @@ type SliderProps = {
    * max allowed value, not needed if using `allowedValues`
    */
   max?: number;
-
   /**
    * min allowed value, not needed if using `allowedValues`
    */
   min?: number;
+
   /**
    * This is called when *any* MouseUp or KeyUp event happens.
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
@@ -64,7 +67,6 @@ type SliderProps = {
     value: SliderProps['value'],
     event: React.ChangeEvent<HTMLInputElement>
   ) => void;
-
   /**
    * Placeholder for custom input
    */
@@ -93,6 +95,7 @@ function RangeSlider({
   onBlur,
   onChange,
   forwardRef,
+  disabledReason,
   showLabel = true,
   ...props
 }: SliderProps) {
@@ -179,32 +182,34 @@ function RangeSlider({
   return (
     <div className={className} ref={forwardRef}>
       {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
-      <SliderAndInputWrapper showCustomInput={showCustomInput}>
-        <Slider
-          type="range"
-          name={name}
-          id={id}
-          min={min}
-          max={max}
-          step={step}
-          disabled={disabled}
-          onChange={handleInput}
-          onInput={handleInput}
-          onMouseUp={handleBlur}
-          onKeyUp={handleBlur}
-          value={sliderValue}
-          hasLabel={!showCustomInput}
-          aria-valuetext={labelText}
-        />
-        {showCustomInput && (
-          <Input
-            placeholder={placeholder}
+      <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
+        <SliderAndInputWrapper showCustomInput={showCustomInput}>
+          <Slider
+            type="range"
+            name={name}
+            id={id}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            onChange={handleInput}
+            onInput={handleInput}
+            onMouseUp={handleBlur}
+            onKeyUp={handleBlur}
             value={sliderValue}
-            onChange={handleCustomInputChange}
-            onBlur={handleInput}
+            hasLabel={!showCustomInput}
+            aria-valuetext={labelText}
           />
-        )}
-      </SliderAndInputWrapper>
+          {showCustomInput && (
+            <Input
+              placeholder={placeholder}
+              value={sliderValue}
+              onChange={handleCustomInputChange}
+              onBlur={handleInput}
+            />
+          )}
+        </SliderAndInputWrapper>
+      </Tooltip>
     </div>
   );
 }

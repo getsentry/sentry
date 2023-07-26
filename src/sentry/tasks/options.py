@@ -3,8 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Option
-from sentry.options import default_manager
+from sentry.options import default_manager, default_store
 from sentry.options.manager import UnknownOption
 from sentry.tasks.base import instrumented_task
 
@@ -23,7 +22,7 @@ def sync_options(cutoff=ONE_HOUR):
     """
     cutoff_dt = timezone.now() - timedelta(seconds=cutoff)
     # TODO(dcramer): this doesnt handle deleted options (which shouldn't be allowed)
-    for option in Option.objects.filter(last_updated__gte=cutoff_dt).iterator():
+    for option in default_store.model.objects.filter(last_updated__gte=cutoff_dt).iterator():
         try:
             opt = default_manager.lookup_key(option.key)
             default_manager.store.set_cache(opt, option.value)

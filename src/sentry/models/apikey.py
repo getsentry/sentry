@@ -1,10 +1,11 @@
+from typing import TypedDict
 from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import typed_dict_bitfield
 from sentry.db.models import (
     ArrayField,
     BaseManager,
@@ -29,24 +30,27 @@ class ApiKey(Model):
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
-    scopes = BitField(
-        flags=(
-            ("project:read", "project:read"),
-            ("project:write", "project:write"),
-            ("project:admin", "project:admin"),
-            ("project:releases", "project:releases"),
-            ("team:read", "team:read"),
-            ("team:write", "team:write"),
-            ("team:admin", "team:admin"),
-            ("event:read", "event:read"),
-            ("event:write", "event:write"),
-            ("event:admin", "event:admin"),
-            ("org:read", "org:read"),
-            ("org:write", "org:write"),
-            ("org:admin", "org:admin"),
-            ("member:read", "member:read"),
-            ("member:write", "member:write"),
-            ("member:admin", "member:admin"),
+    scopes = typed_dict_bitfield(
+        TypedDict(  # type: ignore[operator]
+            "scopes",
+            {
+                "project:read": bool,
+                "project:write": bool,
+                "project:admin": bool,
+                "project:releases": bool,
+                "team:read": bool,
+                "team:write": bool,
+                "team:admin": bool,
+                "event:read": bool,
+                "event:write": bool,
+                "event:admin": bool,
+                "org:read": bool,
+                "org:write": bool,
+                "org:admin": bool,
+                "member:read": bool,
+                "member:write": bool,
+                "member:admin": bool,
+            },
         )
     )
     scope_list = ArrayField(of=models.TextField)
@@ -102,3 +106,12 @@ class ApiKey(Model):
 
     def has_scope(self, scope):
         return scope in self.get_scopes()
+
+
+def is_api_key_auth(auth: object) -> bool:
+    """:returns True when an API Key is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "api_key"
+    return isinstance(auth, ApiKey)

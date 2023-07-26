@@ -6,6 +6,7 @@ import sentry_sdk
 from sentry import analytics
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
 
@@ -24,8 +25,9 @@ def find_commit_context_for_event(
     frame: Event frame
     """
     result = []
+    installation = None
     for code_mapping in code_mappings:
-        if not code_mapping.organization_integration:
+        if not code_mapping.organization_integration_id:
             logger.info(
                 "process_commit_context.no_integration",
                 extra={
@@ -70,10 +72,14 @@ def find_commit_context_for_event(
                 "src_path": src_path,
             },
         )
-        integration = code_mapping.organization_integration.integration
-        install = integration.get_installation(
-            code_mapping.organization_integration.organization_id
+        integration = integration_service.get_integration(
+            organization_integration_id=code_mapping.organization_integration_id
         )
+        install = integration_service.get_installation(
+            integration=integration, organization_id=code_mapping.organization_id
+        )
+        if installation is None and install is not None:
+            installation = install
         try:
             commit_context = install.get_commit_context(
                 code_mapping.repository, src_path, code_mapping.default_branch, frame
@@ -83,7 +89,7 @@ def find_commit_context_for_event(
             sentry_sdk.capture_exception(e)
             analytics.record(
                 "integrations.failed_to_fetch_commit_context",
-                organization_id=code_mapping.organization_integration.organization_id,
+                organization_id=code_mapping.organization_id,
                 project_id=code_mapping.project.id,
                 group_id=extra["group"],
                 code_mapping_id=code_mapping.id,
@@ -104,4 +110,4 @@ def find_commit_context_for_event(
         if commit_context:
             result.append((commit_context, code_mapping))
 
-    return result
+    return result, installation

@@ -2,8 +2,10 @@ from unittest.mock import call, patch
 
 from sentry.models import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -19,7 +21,7 @@ class TestPreparerIssueLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.first()
@@ -57,9 +59,10 @@ class TestPreparerIssueLink(TestCase):
 
         self.preparer.run()
 
+        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/sentry/foo",
                 dependent_data=None,
@@ -69,7 +72,7 @@ class TestPreparerIssueLink(TestCase):
 
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/sentry/beep",
                 dependent_data=None,
@@ -79,7 +82,7 @@ class TestPreparerIssueLink(TestCase):
 
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/sentry/bar",
                 dependent_data=None,
@@ -88,7 +91,7 @@ class TestPreparerIssueLink(TestCase):
         )
 
         assert (
-            not call(install=self.install, project_slug=self.project.slug, uri="/sentry/baz")
+            not call(install=install, project_slug=self.project.slug, uri="/sentry/baz")
             in run.mock_calls
         )
 
@@ -105,7 +108,10 @@ class TestPreparerStacktraceLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.first()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -173,7 +179,10 @@ class TestPreparerAlertRuleAction(TestCase):
         )
 
         self.component = self.sentry_app.components.first()
-        self.project = Organization.objects.get(id=self.install.organization_id).project_set.first()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.project = Organization.objects.get(
+                id=self.install.organization_id
+            ).project_set.first()
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
@@ -190,9 +199,11 @@ class TestPreparerAlertRuleAction(TestCase):
 
         self.preparer.run()
 
+        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
+
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/teams",
                 dependent_data=None,
@@ -202,7 +213,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/assignees",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),
@@ -212,7 +223,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
         assert (
             call(
-                install=self.install,
+                install=install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/labels",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),

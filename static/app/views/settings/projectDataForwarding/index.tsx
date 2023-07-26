@@ -1,14 +1,17 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PluginList from 'sentry/components/pluginList';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -26,12 +29,12 @@ type StatProps = {
   };
 };
 
-type StatState = AsyncComponent['state'] & {
+type StatState = DeprecatedAsyncComponent['state'] & {
   stats: TimeseriesValue[];
 };
 
-class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class DataForwardingStats extends DeprecatedAsyncComponent<StatProps, StatState> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
@@ -87,12 +90,12 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   plugins: Plugin[];
 };
 
-class ProjectDataForwarding extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class ProjectDataForwarding extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -120,7 +123,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const plugins = this.forwardingPlugins;
-    const hasAccess = organization.access.includes('project:write');
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
     const params = {...this.props.params, orgId: organization.slug};
 
     const pluginsPanel =
@@ -162,7 +165,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
                   }
                 )}
               </TextBlock>
-              <PermissionAlert />
+              <PermissionAlert project={project} />
 
               <Alert showIcon>
                 {tct(

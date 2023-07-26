@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
@@ -18,6 +18,7 @@ import withProjects from 'sentry/utils/withProjects';
 
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
+import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
@@ -40,11 +41,11 @@ type Props = {
   tableCursor?: string;
   tableQuery?: string;
   tableSort?: string;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   projectStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 export enum SortBy {
   PROJECT = 'project',
@@ -56,7 +57,7 @@ export enum SortBy {
   RATE_LIMITED = 'rate_limited',
 }
 
-class UsageStatsProjects extends AsyncComponent<Props, State> {
+class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
   static MAX_ROWS_USAGE_TABLE = 25;
 
   componentDidUpdate(prevProps: Props) {
@@ -83,7 +84,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['projectStats', this.endpointPath, {query: this.endpointQuery}]];
   }
 
@@ -160,10 +161,9 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }
   }
 
-  get tableCursor() {
+  get tableOffset() {
     const {tableCursor} = this.props;
-    const offset = Number(tableCursor?.split(':')[1]);
-    return isNaN(offset) ? 0 : offset;
+    return getOffsetFromCursor(tableCursor);
   }
 
   /**
@@ -172,17 +172,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
    * page doesn't scroll too deeply for organizations with a lot of projects
    */
   get pageLink() {
+    const offset = this.tableOffset;
     const numRows = this.filteredProjects.length;
-    const offset = this.tableCursor;
-    const prevOffset = offset - UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
-    const nextOffset = offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
 
-    return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
-      0,
-      prevOffset
-    )}:1", <link>; rel="next"; results="${
-      nextOffset < numRows
-    }"; cursor="0:${nextOffset}:0"`;
+    return getPaginationPageLink({
+      numRows,
+      pageSize: UsageStatsProjects.MAX_ROWS_USAGE_TABLE,
+      offset,
+    });
   }
 
   get projectSelectionFilter(): (p: Project) => boolean {
@@ -255,21 +252,23 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         direction: getArrowDirection(SortBy.DROPPED),
         onClick: () => this.handleChangeSort(SortBy.DROPPED),
       },
-    ].map(h => {
-      const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
+    ]
+      .map(h => {
+        const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
 
-      return (
-        <Cell key={h.key}>
-          <SortLink
-            canSort
-            title={h.title}
-            align={h.align as Alignments}
-            direction={h.direction}
-            generateSortLink={h.onClick}
-          />
-        </Cell>
-      );
-    });
+        return (
+          <Cell key={h.key}>
+            <SortLink
+              canSort
+              title={h.title}
+              align={h.align as Alignments}
+              direction={h.direction}
+              generateSortLink={h.onClick}
+            />
+          </Cell>
+        );
+      })
+      .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
   }
 
   getProjectLink(project: Project) {
@@ -397,7 +396,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           : a.project.slug.localeCompare(b.project.slug);
       });
 
-      const offset = this.tableCursor;
+      const offset = this.tableOffset;
 
       return {
         tableStats: tableStats.slice(
@@ -423,7 +422,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
     const {headers, tableStats} = this.tableData;
-
     return (
       <Fragment>
         {isSingleProject && (

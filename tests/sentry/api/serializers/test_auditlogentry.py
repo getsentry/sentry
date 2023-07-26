@@ -4,8 +4,10 @@ from sentry import audit_log
 from sentry.api.serializers import AuditLogEntrySerializer, serialize
 from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class AuditLogEntrySerializerTest(TestCase):
     def test_simple(self):
         datetime = timezone.now()

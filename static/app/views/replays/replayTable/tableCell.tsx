@@ -5,22 +5,23 @@ import Avatar from 'sentry/components/avatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/header/errorCount';
 import {formatTime} from 'sentry/components/replays/utils';
-import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {IconCalendar, IconDelete, IconLocation} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconCalendar, IconDelete, IconFire} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -51,17 +52,31 @@ export function ReplayCell({
   organization,
   referrer,
   replay,
-}: Props & {eventView: EventView; organization: Organization; referrer: string}) {
+  showUrl,
+}: Props & {
+  eventView: EventView;
+  organization: Organization;
+  referrer: string;
+  showUrl: boolean;
+}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
     },
   };
+
+  const trackNavigationEvent = () =>
+    trackAnalytics('replay.list-navigate-to-details', {
+      project_id: project?.id,
+      platform: project?.platform,
+      organization,
+      referrer,
+    });
 
   if (replay.is_archived) {
     return (
@@ -80,30 +95,15 @@ export function ReplayCell({
     );
   }
 
-  const subText = replay.urls ? (
+  const subText = (
     <Cols>
-      <StringWalker urls={replay.urls} />
+      {showUrl ? <StringWalker urls={replay.urls} /> : undefined}
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5}>
-          <IconCalendar color="gray300" size="xs" />
-          <TimeSince date={replay.started_at} />
-        </Row>
-      </Row>
-    </Cols>
-  ) : (
-    <Cols>
-      <Row gap={1}>
-        <Row gap={0.5} minWidth={80}>
-          {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-        </Row>
-        <Row gap={0.5} minWidth={80}>
-          <IconLocation color="green400" size="sm" />
-          {tn('%s Page', '%s Pages', replay.count_urls)}
+          <Link to={replayDetails} onClick={trackNavigationEvent}>
+            {getShortEventId(replay.id)}
+          </Link>
         </Row>
         <Row gap={0.5}>
           <IconCalendar color="gray300" size="xs" />
@@ -119,10 +119,10 @@ export function ReplayCell({
         avatarSize={24}
         displayName={
           replay.is_archived ? (
-            replay.user?.display_name || t('Unknown User')
+            replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails}>
-              {replay.user?.display_name || t('Unknown User')}
+            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+              {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
         }
@@ -197,6 +197,7 @@ export function OSCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -215,6 +216,7 @@ export function BrowserCell({replay}: Props) {
       <ContextIcon
         name={name ?? ''}
         version={version && hasRoomForColumns ? version : undefined}
+        showVersion={false}
       />
     </Item>
   );
@@ -231,13 +233,50 @@ export function DurationCell({replay}: Props) {
   );
 }
 
+export function RageClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-rage-clicks">
+      {replay.count_rage_clicks ? (
+        <Count>{replay.count_rage_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
+export function DeadClickCountCell({replay}: Props) {
+  if (replay.is_archived) {
+    return <Item isArchived />;
+  }
+  return (
+    <Item data-test-id="replay-table-count-dead-clicks">
+      {replay.count_dead_clicks ? (
+        <Count>{replay.count_dead_clicks}</Count>
+      ) : (
+        <Count>0</Count>
+      )}
+    </Item>
+  );
+}
+
 export function ErrorCountCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
   return (
     <Item data-test-id="replay-table-count-errors">
-      <ErrorCount countErrors={replay.count_errors} />
+      {replay.count_errors ? (
+        <ErrorCount>
+          <IconFire />
+          {replay.count_errors}
+        </ErrorCount>
+      ) : (
+        <Count>0</Count>
+      )}
     </Item>
   );
 }
@@ -265,6 +304,17 @@ const Item = styled('div')<{isArchived?: boolean}>`
   gap: ${space(1)};
   padding: ${space(1.5)};
   ${p => (p.isArchived ? 'opacity: 0.5;' : '')};
+`;
+
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const ErrorCount = styled(Count)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  color: ${p => p.theme.red400};
 `;
 
 const Time = styled('span')`

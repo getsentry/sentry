@@ -59,14 +59,21 @@ describe('Group > AssignedTo', () => {
       url: '/organizations/org-slug/users/',
       body: [{user: USER_1}, {user: USER_2}],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      body: {owners: [], rules: []},
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     TeamStore.reset();
-    MemberListStore.state = [];
-    MemberListStore.loaded = false;
+    MemberListStore.reset();
   });
 
   const openMenu = async () => {
@@ -76,18 +83,19 @@ describe('Group > AssignedTo', () => {
     });
   };
 
-  it('renders unassigned', () => {
+  it('renders unassigned', async () => {
     render(<AssignedTo project={project} group={GROUP_1} />, {organization});
-    expect(screen.getByText('No one')).toBeInTheDocument();
+    expect(await screen.findByText('No one')).toBeInTheDocument();
   });
 
-  it('does not render chevron when disableDropdown prop is passed', () => {
+  it('does not render chevron when disableDropdown prop is passed', async () => {
     render(
       <AssignedTo disableDropdown project={project} group={GROUP_1} event={event} />,
       {
         organization,
       }
     );
+    expect(await screen.findByText('No one')).toBeInTheDocument();
     expect(screen.queryByTestId('assigned-to-chevron-icon')).not.toBeInTheDocument();
   });
 
@@ -212,7 +220,7 @@ describe('Group > AssignedTo', () => {
     render(
       <AssignedTo project={project} group={GROUP_1} event={event} onAssign={onAssign} />,
       {
-        organization: {...organization, features: ['streamline-targeting-context']},
+        organization,
       }
     );
     await openMenu();

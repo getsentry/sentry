@@ -1,4 +1,4 @@
-import type {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
@@ -6,6 +6,7 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
+  PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
@@ -289,7 +290,8 @@ export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
   | typeof PENDING
-  | typeof DISABLED_STATUS;
+  | typeof DISABLED_STATUS
+  | typeof PENDING_DELETION;
 
 type IntegrationDialog = {
   actionText: string;
@@ -310,9 +312,7 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<
-    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
-  >;
+  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
   configure_integration?: {
     title: string;
   };

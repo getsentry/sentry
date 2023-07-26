@@ -57,6 +57,14 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed")
         return
     integration = integrations[0]
+    logger.info(
+        "rule.slack.search_channel_id",
+        extra={
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+            "rule_id": rule_id,
+        },
+    )
 
     # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,

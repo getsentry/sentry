@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import pick from 'lodash/pick';
 
-import {FieldFromConfig} from 'sentry/components/forms';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
@@ -14,10 +14,8 @@ import type {
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types';
-import {
-  sentryNameToOption,
-  trackIntegrationAnalytics,
-} from 'sentry/utils/integrationUtil';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -87,7 +85,6 @@ function RepositoryProjectPathConfigForm({
       onChange: handleRepoChange,
     },
     {
-      id: 'defaultBranch',
       name: 'defaultBranch',
       type: 'string',
       required: true,
@@ -123,7 +120,7 @@ function RepositoryProjectPathConfigForm({
   ];
 
   function handlePreSubmit() {
-    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
+    trackAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: integration.provider.key,

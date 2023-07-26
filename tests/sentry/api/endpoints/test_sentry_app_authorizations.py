@@ -3,11 +3,14 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.mediators import GrantTypes
+from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models import ApiApplication, ApiToken
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"
@@ -96,7 +99,8 @@ class TestSentryAppAuthorizations(APITestCase):
 
         url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
 
-        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+        with assume_test_silo_mode(SiloMode.REGION):
+            response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
         assert response.data["id"] == str(self.organization.id)

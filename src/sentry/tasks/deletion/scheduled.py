@@ -1,17 +1,17 @@
 import logging
-import sys
 from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Tuple, Type
 
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")
 
@@ -57,7 +57,7 @@ def run_scheduled_deletions():
             in_progress=False, date_scheduled__lte=timezone.now()
         )
         for item in queryset:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(deletion_orm)):
                 affected = deletion_orm.objects.filter(
                     id=item.id,
                     in_progress=False,
@@ -65,7 +65,7 @@ def run_scheduled_deletions():
                 if not affected:
                     continue
 
-                run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
+            run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
 
 
 @instrumented_task(
@@ -153,5 +153,5 @@ def run_deletion(deletion_id, first_pass=True, silo_mode="CONTROL"):
             },
         )
         sentry_sdk.capture_exception(err)
-        if "pytest" in sys.modules:
+        if in_test_environment():
             raise err

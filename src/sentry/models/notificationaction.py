@@ -3,7 +3,17 @@ from __future__ import annotations
 import logging
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, MutableMapping, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+)
 
 from django.db import models
 
@@ -92,8 +102,12 @@ class AbstractNotificationAction(Model):
     (e.g. metric alerts, spike protection, etc.)
     """
 
-    integration = FlexibleForeignKey("sentry.Integration", null=True)
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
+    sentry_app_id = HybridCloudForeignKey(
+        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
+    )
 
     # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
     type = models.SmallIntegerField(choices=ActionService.as_choices())
@@ -173,7 +187,7 @@ class ActionRegistration(metaclass=ABCMeta):
 
     @classmethod
     def serialize_available(
-        cls, organization: Organization, integrations: List[RpcIntegration] = None
+        cls, organization: Organization, integrations: Optional[List[RpcIntegration]] = None
     ) -> List[JSONData]:
         """
         Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
@@ -198,15 +212,6 @@ class NotificationAction(AbstractNotificationAction):
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
-    # TODO(Leander): After adding HybridCloudForeignKeys to AlertRuleTriggerAction, we can remove these lines
-    integration = None
-    integration_id = HybridCloudForeignKey(
-        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
-    )
-    sentry_app = None
-    sentry_app_id = HybridCloudForeignKey(
-        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
-    )
 
     # The type of trigger which controls when the actions will go off (e.g. spike-protection)
     trigger_type = models.SmallIntegerField(choices=TriggerGenerator())

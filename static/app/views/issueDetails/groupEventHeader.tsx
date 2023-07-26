@@ -7,13 +7,11 @@ import {Group, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
-import {OpenAIFixSuggestionPanel} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionPanel';
 
 type GroupEventHeaderProps = {
   event: Event;
   group: Group;
   project: Project;
-  hasReplay?: boolean;
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
@@ -22,7 +20,6 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   return (
     <DataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      <OpenAIFixSuggestionPanel projectSlug={project.slug} eventID={event.eventID} />
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}

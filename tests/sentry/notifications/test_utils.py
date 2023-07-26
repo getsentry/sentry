@@ -48,19 +48,19 @@ class NotificationHelpersTest(TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
     def test_get_deploy_values_by_provider_empty_settings(self):

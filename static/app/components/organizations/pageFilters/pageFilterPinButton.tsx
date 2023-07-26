@@ -5,7 +5,7 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, PinnedPageFilter} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
@@ -20,7 +20,7 @@ function PageFilterPinButton({organization, filter, size, className}: Props) {
   const pinned = pinnedFilters.has(filter);
 
   const onPin = () => {
-    trackAdvancedAnalyticsEvent('page_filters.pin_click', {
+    trackAnalytics('page_filters.pin_click', {
       organization,
       filter,
       pin: !pinned,

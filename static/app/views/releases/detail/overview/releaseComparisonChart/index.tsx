@@ -12,7 +12,8 @@ import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
-import {Panel, PanelTable} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
@@ -28,7 +29,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -814,7 +815,7 @@ function ReleaseComparisonChart({
   }
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
-    trackAdvancedAnalyticsEvent('releases.change_chart_type', {
+    trackAnalytics('releases.change_chart_type', {
       organization,
       chartType,
     });

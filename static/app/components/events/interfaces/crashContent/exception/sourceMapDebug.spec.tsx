@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Event, ExceptionValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SourceMapDebug} from './sourceMapDebug';
 import {
@@ -11,7 +11,7 @@ import {
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
   const organization = TestStubs.Organization({});
@@ -172,12 +172,42 @@ describe('SourceMapDebug', () => {
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
     );
+  });
+
+  it('should show source maps wizard alert for DEBUG_ID_NO_SOURCEMAPS', async () => {
+    const error: SourceMapDebugError = {
+      type: SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS,
+      message: '',
+    };
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {errors: [error]},
+    });
+
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText("Sentry isn't Sentry without source maps")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. Learn more'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('npx @sentry/wizard@latest -i sourcemaps'))
+    ).toBeInTheDocument();
   });
 });

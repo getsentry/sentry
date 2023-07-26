@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import List
 
-from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -13,12 +12,12 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
 from sentry.monitors.models import MonitorCheckIn
-from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.serializers import MonitorCheckInSerializer, MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
 
@@ -31,9 +30,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve check-ins for a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            MONITOR_PARAMS.CHECKIN_ID,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            MonitorParams.CHECKIN_ID,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -41,7 +40,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization, project, monitor) -> Response:
@@ -57,34 +56,32 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             raise ParseError(detail="Invalid date range")
 
         queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+            monitor_id=monitor.id,
+            date_added__gte=start,
+            date_added__lte=end,
         )
 
         environments = get_environments(request, organization)
 
-        # XXX(epurkhiser): This is a hack right now, since we were not dual
-        # writing missed check-ins, we have many past checkins that are not
-        # assocaiated to an environment.
-        #
-        # When the environment is 'production' (the default) or empty, we will
-        # explicitly include monitor environments that are missing
-        skip_environments_when_production = (
-            len(environments) == 1 and environments[0].name == "production"
-        )
-
         if environments:
-            if skip_environments_when_production:
-                queryset = queryset.filter(
-                    Q(monitor_environment__environment__in=environments)
-                    | Q(monitor_environment=None)
-                )
-            else:
-                queryset = queryset.filter(monitor_environment__environment__in=environments)
+            queryset = queryset.filter(monitor_environment__environment__in=environments)
+
+        expand: List[str] = request.GET.getlist("expand", [])
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-date_added",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                MonitorCheckInSerializer(
+                    start=start,
+                    end=end,
+                    expand=expand,
+                    organization_id=organization.id,
+                    project_id=project.id,
+                ),
+            ),
             paginator_cls=OffsetPaginator,
         )

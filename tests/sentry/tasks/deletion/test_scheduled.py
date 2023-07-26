@@ -15,7 +15,7 @@ from sentry.models import (
     Team,
     get_regional_scheduled_deletion,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import pending_delete
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import reattempt_deletions, run_scheduled_deletions

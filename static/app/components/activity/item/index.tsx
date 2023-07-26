@@ -6,14 +6,11 @@ import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import {AvatarUser} from 'sentry/types';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
-import ActivityAvatar from './avatar';
-import ActivityBubble, {ActivityBubbleProps} from './bubble';
+import {ActivityAvatar} from './avatar';
+import {ActivityBubble, ActivityBubbleProps} from './bubble';
 
 export type ActivityAuthorType = 'user' | 'system';
-
-type ChildFunction = () => React.ReactNode;
 
 interface ActivityItemProps {
   /**
@@ -26,43 +23,38 @@ interface ActivityItemProps {
     type: ActivityAuthorType;
     user?: AvatarUser;
   };
-  // Size of the avatar.
   avatarSize?: number;
   bubbleProps?: ActivityBubbleProps;
-
-  children?: React.ReactChild | ChildFunction;
+  children?: React.ReactNode;
 
   className?: string;
-
   /**
    * If supplied, will show the time that the activity started
    */
   date?: string | Date;
-
   /**
    * Can be a react node or a render function. render function will not include default wrapper
    */
-  footer?: React.ReactNode | ChildFunction;
-
+  header?: React.ReactNode;
   /**
-   * Can be a react node or a render function. render function will not include default wrapper
+   * Do not show the date in the header
    */
-  header?: React.ReactNode | ChildFunction;
-
-  // Hides date in header
   hideDate?: boolean;
-
   /**
    * This is used to uniquely identify the activity item for use as an anchor
    */
   id?: string;
-
   /**
    * If supplied, will show the interval that the activity occurred in
    */
   interval?: number;
-
-  // Instead of showing a relative time/date, show the time
+  /**
+   * Removes padding on the activtiy body
+   */
+  noPadding?: boolean;
+  /**
+   * Show exact time instead of relative date/time.
+   */
   showTime?: boolean;
 }
 
@@ -74,7 +66,7 @@ function ActivityItem({
   children,
   date,
   interval,
-  footer,
+  noPadding,
   id,
   header,
   hideDate = false,
@@ -98,8 +90,7 @@ function ActivityItem({
       )}
 
       <StyledActivityBubble {...bubbleProps}>
-        {header && isRenderFunc<ChildFunction>(header) && header()}
-        {header && !isRenderFunc<ChildFunction>(header) && (
+        {header && (
           <ActivityHeader>
             <ActivityHeaderContent>{header}</ActivityHeaderContent>
             {date && showDate && !showTime && <StyledTimeSince date={date} />}
@@ -115,15 +106,7 @@ function ActivityItem({
           </ActivityHeader>
         )}
 
-        {children && isRenderFunc<ChildFunction>(children) && children()}
-        {children && !isRenderFunc<ChildFunction>(children) && (
-          <ActivityBody>{children}</ActivityBody>
-        )}
-
-        {footer && isRenderFunc<ChildFunction>(footer) && footer()}
-        {footer && !isRenderFunc<ChildFunction>(footer) && (
-          <ActivityFooter>{footer}</ActivityFooter>
-        )}
+        {children && (noPadding ? children : <ActivityBody>{children}</ActivityBody>)}
       </StyledActivityBubble>
     </ActivityItemWrapper>
   );
@@ -134,12 +117,10 @@ const ActivityItemWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const HeaderAndFooter = styled('div')`
-  padding: 6px ${space(2)};
-`;
-
-const ActivityHeader = styled(HeaderAndFooter)`
+const ActivityHeader = styled('div')`
   display: flex;
+  align-items: center;
+  padding: 6px ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -150,12 +131,6 @@ const ActivityHeader = styled(HeaderAndFooter)`
 
 const ActivityHeaderContent = styled('div')`
   flex: 1;
-`;
-
-const ActivityFooter = styled(HeaderAndFooter)`
-  display: flex;
-  border-top: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ActivityBody = styled('div')`
@@ -184,4 +159,4 @@ const StyledActivityBubble = styled(ActivityBubble)`
   overflow-wrap: break-word;
 `;
 
-export default ActivityItem;
+export {ActivityItem};

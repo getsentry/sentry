@@ -17,10 +17,10 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    RuleSnooze,
     ScheduledDeletion,
     ServiceHook,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -103,6 +103,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
+            monitor_environment=monitor_env,
             project_id=project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -113,8 +114,8 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             alert_rule=metric_alert_rule,
             title="Something bad happened",
         )
-        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
+        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
 
@@ -155,6 +156,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 
@@ -169,5 +171,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(conditions)
+        events = eventstore.backend.get_events(
+            conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+        )
         assert len(events) == 0

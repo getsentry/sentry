@@ -11,6 +11,7 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from typing import Optional
 
 import pytest
 import requests
@@ -136,6 +137,22 @@ DEFAULT_EVENT_DATA = {
     "tags": [],
     "platform": "python",
 }
+
+
+def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
+    """Pytest decorator for resetting all databases"""
+
+    if func is not None:
+        return pytest.mark.django_db(
+            transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
+        )(func)
+
+    def decorator(function):
+        return pytest.mark.django_db(
+            transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
+        )(function)
+
+    return decorator
 
 
 @pytest.mark.django_db
@@ -287,7 +304,7 @@ def dyn_sampling_data():
     return inner
 
 
-_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
+_snapshot_writeback: Optional[str] = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
 if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":
@@ -449,15 +466,3 @@ def set_sentry_option():
 def django_cache():
     yield cache
     cache.clear()
-
-
-# NOTE:
-# If you are using a local instance of Symbolicator, you may need to either change `system.url-prefix`
-# to `system.internal-url-prefix` or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`.
-@pytest.fixture(ids=["without_symbolicator", "with_symbolicator"], params=[0, 1])
-def process_with_symbolicator(request, set_sentry_option, live_server):
-    with set_sentry_option("system.url-prefix", live_server.url), set_sentry_option(
-        "symbolicator.sourcemaps-processing-sample-rate", request.param
-    ):
-        # Run test case
-        yield request.param

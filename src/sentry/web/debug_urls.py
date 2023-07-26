@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
@@ -73,78 +73,80 @@ from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmai
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
-    url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
-    url(
+    re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
+    re_path(
         r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
         DebugPerformanceIssueEmailView.as_view(),
     ),
-    url(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
-    url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
-    url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
-    url(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
-    url(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
-    url(r"^debug/mail/assigned/self/$", DebugSelfAssignedEmailView.as_view()),
-    url(r"^debug/mail/assigned/team/$", DebugSelfAssignedTeamEmailView.as_view()),
-    url(
+    re_path(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
+    re_path(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
+    re_path(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
+    re_path(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
+    re_path(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
+    re_path(r"^debug/mail/assigned/self/$", DebugSelfAssignedEmailView.as_view()),
+    re_path(r"^debug/mail/assigned/team/$", DebugSelfAssignedTeamEmailView.as_view()),
+    re_path(
         r"^debug/mail/codeowners_auto_sync_failure/$", DebugCodeOwnersAutoSyncFailureView.as_view()
     ),
-    url(r"^debug/mail/digest/$", sentry.web.frontend.debug.mail.digest),
-    url(r"^debug/mail/regression/$", DebugRegressionEmailView.as_view()),
-    url(r"^debug/mail/regression/release/$", DebugRegressionReleaseEmailView.as_view()),
-    url(r"^debug/mail/resolved/$", DebugResolvedEmailView.as_view()),
-    url(r"^debug/mail/resolved-in-release/$", DebugResolvedInReleaseEmailView.as_view()),
-    url(
+    re_path(r"^debug/mail/digest/$", sentry.web.frontend.debug.mail.digest),
+    re_path(r"^debug/mail/regression/$", DebugRegressionEmailView.as_view()),
+    re_path(r"^debug/mail/regression/release/$", DebugRegressionReleaseEmailView.as_view()),
+    re_path(r"^debug/mail/resolved/$", DebugResolvedEmailView.as_view()),
+    re_path(r"^debug/mail/resolved-in-release/$", DebugResolvedInReleaseEmailView.as_view()),
+    re_path(
         r"^debug/mail/onboarding-continuation-email/$",
         DebugOrganizationOnboardingContinuationEmail.as_view(),
     ),
-    url(
+    re_path(
         r"^debug/mail/resolved-in-release/upcoming/$",
         DebugResolvedInReleaseUpcomingEmailView.as_view(),
     ),
-    url(r"^debug/mail/request-access/$", sentry.web.frontend.debug.mail.request_access),
-    url(
+    re_path(r"^debug/mail/request-access/$", sentry.web.frontend.debug.mail.request_access),
+    re_path(
         r"^debug/mail/request-access-for-another-member/$",
         sentry.web.frontend.debug.mail.request_access_for_another_member,
     ),
-    url(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
-    url(r"^debug/mail/invite-request/$", DebugOrganizationInviteRequestEmailView.as_view()),
-    url(
+    re_path(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
+    re_path(r"^debug/mail/invite-request/$", DebugOrganizationInviteRequestEmailView.as_view()),
+    re_path(
         r"^debug/mail/integration-request/$", DebugOrganizationIntegrationRequestEmailView.as_view()
     ),
-    url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
-    url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
-    url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
-    url(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
-    url(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
-    url(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
-    url(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
-    url(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
-    url(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
-    url(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),
-    url(r"^debug/mail/mfa-removed/$", DebugMfaRemovedEmailView.as_view()),
-    url(r"^debug/mail/mfa-added/$", DebugMfaAddedEmailView.as_view()),
-    url(
+    re_path(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
+    re_path(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
+    re_path(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
+    re_path(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
+    re_path(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
+    re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
+    re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
+    re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
+    re_path(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
+    re_path(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),
+    re_path(r"^debug/mail/mfa-removed/$", DebugMfaRemovedEmailView.as_view()),
+    re_path(r"^debug/mail/mfa-added/$", DebugMfaAddedEmailView.as_view()),
+    re_path(
         r"^debug/mail/recovery-codes-regenerated/$",
         DebugRecoveryCodesRegeneratedEmailView.as_view(),
     ),
-    url(r"^debug/mail/password-changed/$", DebugPasswordChangedEmailView.as_view()),
-    url(r"^debug/mail/new-processing-issues/$", DebugNewProcessingIssuesEmailView.as_view()),
-    url(
+    re_path(r"^debug/mail/password-changed/$", DebugPasswordChangedEmailView.as_view()),
+    re_path(r"^debug/mail/new-processing-issues/$", DebugNewProcessingIssuesEmailView.as_view()),
+    re_path(
         r"^debug/mail/new-processing-issues-no-reprocessing/$",
         DebugNewProcessingIssuesNoReprocessingEmailView.as_view(),
     ),
-    url(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
-    url(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
-    url(r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()),
-    url(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
-    url(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
-    url(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
-    url(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
-    url(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
-    url(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
-    url(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
-    url(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
-    url(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
-    url(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
-    url(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
+    re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
+    re_path(
+        r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
+    ),
+    re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
+    re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
+    re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
+    re_path(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
+    re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
+    re_path(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
+    re_path(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
+    re_path(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
+    re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
+    re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
+    re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
 ]

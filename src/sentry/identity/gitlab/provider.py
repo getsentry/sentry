@@ -4,6 +4,8 @@ from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -72,8 +74,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             "data": self.get_oauth_data(data),
         }
 
-    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
-        identity = kwargs.get("identity")
+    def get_refresh_token_params(self, refresh_token: str, identity: RpcIdentity):
         client_id = identity.data.get("client_id")
         client_secret = identity.data.get("client_secret")
 
@@ -85,7 +86,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             "client_secret": client_secret,
         }
 
-    def refresh_identity(self, identity, *args, **kwargs):
+    def refresh_identity(self, identity: RpcIdentity, *args, **kwargs):
         refresh_token = identity.data.get("refresh_token")
         refresh_token_url = kwargs.get("refresh_token_url")
 
@@ -95,10 +96,11 @@ class GitlabIdentityProvider(OAuth2Provider):
         if not refresh_token_url:
             raise IdentityNotValid("Missing refresh token url")
 
-        kwargs["identity"] = identity
-        data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
+        data = self.get_refresh_token_params(refresh_token=refresh_token, identity=identity)
 
-        req = safe_urlopen(url=refresh_token_url, headers={}, data=data)
+        req = safe_urlopen(
+            url=refresh_token_url, headers={}, data=data, verify_ssl=kwargs["verify_ssl"]
+        )
 
         try:
             body = safe_urlread(req)
@@ -121,5 +123,5 @@ class GitlabIdentityProvider(OAuth2Provider):
         self.handle_refresh_error(req, payload)
 
         identity.data.update(get_oauth_data(payload))
-        identity.update(data=identity.data)
+        identity_service.update_data(identity_id=identity.id, data=identity.data)
         return identity

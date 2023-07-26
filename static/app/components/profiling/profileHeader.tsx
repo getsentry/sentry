@@ -10,7 +10,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,7 +49,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     : null;
 
   const handleGoToTransaction = useCallback(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+    trackAnalytics('profiling_views.go_to_transaction', {
       organization,
       source: 'transaction_details',
     });

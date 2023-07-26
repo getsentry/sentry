@@ -1,21 +1,23 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -37,8 +39,11 @@ type State = {
   teamFilterSearch?: string;
 };
 
-class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class AlertRulesList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
 
@@ -210,26 +215,33 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isEmpty={ruleList.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
               >
-                <Projects orgId={organization.slug} slugs={projectsFromResults}>
-                  {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${
-                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                        }-${rule.id}`}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={organization.slug}
-                        onOwnerChange={this.handleOwnerChange}
-                        onDelete={this.handleDeleteRule}
-                        userTeams={new Set(teams.map(team => team.id))}
-                        hasEditAccess={hasEditAccess}
-                      />
-                    ))
-                  }
-                </Projects>
+                <VisuallyCompleteWithData
+                  id="AlertRules-Body"
+                  hasData={loadedTeams && !isEmpty(ruleList)}
+                >
+                  <Projects orgId={organization.slug} slugs={projectsFromResults}>
+                    {({initiallyLoaded, projects}) =>
+                      ruleList.map(rule => (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${
+                            isIssueAlert(rule)
+                              ? AlertRuleType.METRIC
+                              : AlertRuleType.ISSUE
+                          }-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={organization.slug}
+                          onOwnerChange={this.handleOwnerChange}
+                          onDelete={this.handleDeleteRule}
+                          userTeams={new Set(teams.map(team => team.id))}
+                          hasEditAccess={hasEditAccess}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </VisuallyCompleteWithData>
               </StyledPanelTable>
             )}
           </Teams>
@@ -282,7 +294,7 @@ class AlertRulesListContainer extends Component<Props> {
   trackView() {
     const {organization, location} = this.props;
 
-    trackAdvancedAnalyticsEvent('alert_rules.viewed', {
+    trackAnalytics('alert_rules.viewed', {
       organization,
       sort: Array.isArray(location.query.sort)
         ? location.query.sort.join(',')

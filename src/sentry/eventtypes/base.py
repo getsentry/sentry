@@ -80,7 +80,7 @@ class BaseEvent:
         return None
 
     def to_string(self, metadata):
-        warn(DeprecationWarning("This method was replaced by get_title", stacklevel=2))
+        warn(DeprecationWarning("This method was replaced by get_title"), stacklevel=2)
         return self.get_title(metadata)
 
 

@@ -7,10 +7,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import Dataset
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
@@ -61,6 +61,7 @@ class TimeseriesQueryTest(TimeseriesBase):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
+                referrer="test_discover_query",
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
@@ -70,6 +71,7 @@ class TimeseriesQueryTest(TimeseriesBase):
             discover.timeseries_query(
                 selected_columns=["count()"],
                 query="transaction:api.issue.delete",
+                referrer="test_discover_query",
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
@@ -79,6 +81,7 @@ class TimeseriesQueryTest(TimeseriesBase):
             discover.timeseries_query(
                 selected_columns=["transaction", "title"],
                 query="transaction:api.issue.delete",
+                referrer="test_discover_query",
                 params={
                     "start": self.day_ago,
                     "end": self.day_ago + timedelta(hours=2),
@@ -91,6 +94,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -104,6 +108,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -117,6 +122,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -130,6 +136,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count_unique(user)"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -151,6 +158,7 @@ class TimeseriesQueryTest(TimeseriesBase):
             discover.timeseries_query(
                 selected_columns=["count()", "count_unique(user)"],
                 query="",
+                referrer="test_discover_query",
                 params={
                     "start": self.day_ago,
                     "end": self.day_ago + timedelta(hours=2),
@@ -172,6 +180,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -210,6 +219,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2, minutes=1),
@@ -234,6 +244,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 "project_id": [self.project.id],
             },
             rollup=3600,
+            referrer="test_discover_query",
             comparison_delta=timedelta(days=1),
         )
         assert len(result.data["data"]) == 3
@@ -268,6 +279,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 
         result = discover.timeseries_query(
             selected_columns=["count_miserable(user)"],
+            referrer="test_discover_query",
             query="",
             params={
                 "start": self.day_ago,
@@ -308,6 +320,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 
         result = discover.timeseries_query(
             selected_columns=["equation|count_miserable(user) - 100"],
+            referrer="test_discover_query",
             query="",
             params={
                 "start": self.day_ago,
@@ -326,6 +339,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["equation|count() / 100"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -345,6 +359,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 "project_id": [self.project.id],
             },
             rollup=3600,
+            referrer="test_discover_query",
         )
         assert len(result.data["data"]) == 3
         keys = set()
@@ -357,6 +372,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
+            referrer="test_discover_query",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=3),
@@ -391,6 +407,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 "project_id": [self.project.id, project2.id, project3.id],
             },
             rollup=3600,
+            referrer="test_discover_query",
         )
 
         data = result.data["data"]
@@ -429,6 +446,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 "project_id": [self.project.id, project2.id],
             },
             rollup=3600,
+            referrer="test_discover_query",
         )
 
         data = result.data["data"]

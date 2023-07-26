@@ -7,7 +7,8 @@ from sentry import roles
 from sentry.models import OrganizationMember
 from sentry.roles.manager import OrganizationRole
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models import Organization

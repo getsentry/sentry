@@ -1,7 +1,7 @@
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
+from sentry.api.helpers.source_map_helper import _find_url_prefix
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -46,7 +46,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ]
 
         for filename, artifact_name, expected in cases:
-            assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
+            assert _find_url_prefix(filename, artifact_name) == expected
 
     def test_missing_event(self):
         resp = self.get_error_response(
@@ -86,6 +86,21 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is out of bounds"
 
+    def test_no_exception(self):
+        event_data = self.base_data.copy()
+        del event_data["exception"]
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        assert resp.data["detail"] == "Event does not contain an exception"
+
     def test_exception_out_of_bounds(self):
         event = self.store_event(
             data=self.base_data,
@@ -101,9 +116,32 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'exception_idx' is out of bounds"
 
-    def test_event_has_context_line(self):
+    def test_event_frame_has_source_maps(self):
         event = self.store_event(
-            data=self.base_data,
+            data={
+                "event_id": "a" * 32,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                        "context_line": "function foo() {",
+                                        "data": {
+                                            "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                        },
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
             project_id=self.project.id,
         )
 
@@ -152,49 +190,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
-
-    def test_release_has_no_user_agent(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "release": "my-release",
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
-                                        "filename": "/static/js/main.fa8fe19f.js",
-                                        "lineno": 1,
-                                        "colno": 39,
-                                    }
-                                ]
-                            },
-                        },
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-        Release.objects.get(organization=self.organization, version=event.release)
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            frame_idx=0,
-            exception_idx=0,
-        )
-
-        error = resp.data["errors"][0]
-        assert error["type"] == "no_user_agent_on_release"
-        assert error["message"] == "The release is missing a user agent"
-        assert error["data"] == {
-            "version": "my-release",
-            "filename": "/static/js/main.fa8fe19f.js",
-        }
 
     def test_release_has_no_artifacts(self):
         event = self.store_event(
@@ -326,8 +321,22 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         ReleaseFile.objects.create(
             organization_id=self.project.organization_id,
             release_id=release.id,
+            file=File.objects.create(name="incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/incorrect_application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
             file=File.objects.create(name="application.js", type="release.file"),
             name="~/dist/static/js/application.js",
+        )
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="also_incorrect_application.js", type="release.file"),
+            name="~/dist/static/js/also_incorrect_application.js",
         )
 
         resp = self.get_success_response(
@@ -347,7 +356,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/static/js/application.js",
             "unifiedPath": "~/static/js/application.js",
             "urlPrefix": "~/dist",
-            "artifactNames": ["~/dist/static/js/application.js"],
+            "artifactNames": [
+                "~/dist/static/js/also_incorrect_application.js",
+                "~/dist/static/js/application.js",
+                "~/dist/static/js/incorrect_application.js",
+            ],
         }
 
     def test_no_url_match(self):
@@ -467,7 +480,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
-                "dist": "my-dist",
+                "dist": None,
                 "exception": {
                     "values": [
                         {
@@ -491,10 +504,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
         file = File.objects.create(name="application.js", type="release.file")
         fileobj = ContentFile(b"a\na")
         file.putfile(fileobj)
@@ -504,7 +513,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             release_id=release.id,
             file=file,
             name="~/application.js",
-            dist_id=dist.id,
+            dist_id=None,
         )
 
         resp = self.get_success_response(
@@ -655,3 +664,126 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         assert resp.data["errors"] == []
+
+    def test_js_out_of_date(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.8.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
+
+    def test_remix_up_to_date(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.remix",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "no_sourcemaps_on_release"
+        assert error["message"] == "The release is missing source maps"
+
+    def test_valid_debugid_sdk_no_sourcemaps(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "debug_id_no_sourcemaps"
+        assert error["message"] == "Can use debug id but no sourcemaps"

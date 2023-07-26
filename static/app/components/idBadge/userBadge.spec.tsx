@@ -42,6 +42,7 @@ describe('UserBadge', function () {
       name: null,
       email: null,
       username: null,
+      ip_address: null,
       ipAddress: '127.0.0.1',
     });
     render(<UserBadge user={ipUser} />);
@@ -55,6 +56,7 @@ describe('UserBadge', function () {
       name: null,
       email: null,
       username: null,
+      ip_address: null,
       ipAddress: null,
     });
     render(<UserBadge user={idUser} />);

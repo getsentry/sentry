@@ -1,20 +1,22 @@
+from __future__ import annotations
+
 import functools
 import logging
 import posixpath
-import random
-import time
 from copy import deepcopy
 from threading import Lock
+from typing import Generic, TypeVar
 
 import rb
 from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
-from redis.client import Script, StrictRedis
+from redis.client import Script
 from redis.connection import ConnectionPool, Encoder
-from redis.exceptions import BusyLoadingError, ConnectionError, ReadOnlyError
-from redis.exceptions import TimeoutError as RedisTimeoutError
+from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
+from sentry_redis_tools import clients
+from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -24,6 +26,13 @@ from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger(__name__)
+
+
+_REDIS_DEFAULT_CLIENT_ARGS = {
+    # 3 seconds default socket and socket connection timeout avoids blocking on socket till the
+    # operating sysstem level timeout kicks in
+    "socket_timeout": 3.0
+}
 
 _pool_cache = {}
 _pool_lock = Lock()
@@ -60,6 +69,10 @@ class _RBCluster:
         hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
         config["hosts"] = hosts
 
+        pool_options = config.pop("client_args", {})
+        pool_options = {**_REDIS_DEFAULT_CLIENT_ARGS, **pool_options}
+        config["pool_options"] = pool_options
+
         return _make_rb_cluster(**config)
 
     def __str__(self):
@@ -88,110 +101,6 @@ class RetryingRedisCluster(RedisCluster):
             return super(self.__class__, self).execute_command(*args, **kwargs)
 
 
-class FailoverRedis(StrictRedis):
-    """
-    Single host redis client implementation with retry logic intended to
-    survive failover events. Retry logic uses capped exponential backoff with
-    jitter.
-
-    https://redis.io/commands/failover
-
-    Failover sequence:
-
-    1. The primary will internally start a CLIENT PAUSE WRITE, which will pause
-    incoming writes and prevent the accumulation of new data in the replication
-    stream. From this point all writes to the primary instance fails with
-    ReadOnlyError.
-
-    2. The primary will monitor its replicas, waiting for a replica to indicate
-    that it has fully consumed the replication stream. If the primary has
-    multiple replicas, it will only wait for the first replica to catch up.
-
-    3. The primary will then demote itself to a replica. This is done to
-    prevent any dual master scenarios.
-
-    4. The previous primary will send a special PSYNC request to the target
-    replica, PSYNC FAILOVER, instructing the target replica to become a
-    primary.
-
-    5. Once the previous primary receives acknowledgement the PSYNC FAILOVER
-    was accepted it will unpause its clients.
-
-    In addition, the Memorystore for Redis, which is the main target of this implementation states:
-
-    When the primary node fails over to the replica, existing connections to
-    the primary endpoint of the instance are dropped. The instance is
-    unavailable for a few seconds while the new primary reconnects. On
-    reconnect, your application is automatically redirected to the new primary
-    node using the same connection string or IP address. You do not need to
-    update your application after a failover.
-
-    https://cloud.google.com/memorystore/docs/redis/high-availability#how_a_failover_affects_your_application
-
-    """
-
-    def __init__(
-        self,
-        *args,
-        _retries: int = 10,
-        _backoff_min: float = 0.2,
-        _backoff_max: int = 5,
-        _backoff_multiplier: float = 2,
-        **kwargs,
-    ):
-        if _retries < 0:
-            raise ValueError(f"Number of retries must non negative integer: _retries={_retries}")
-        self._retries = _retries
-
-        if _backoff_min < 0.0:
-            raise ValueError(
-                f"Minimal backoff must be non negative number: _backoff_min={_backoff_min}"
-            )
-        self._backoff_min = _backoff_min
-
-        if _backoff_max < _backoff_min:
-            raise ValueError(
-                f"Maximal backoff must be at least equal to the minimal ({_backoff_min}): _backoff_max={_backoff_max}"
-            )
-        self._backoff_max = _backoff_max
-
-        if _backoff_multiplier <= 0:
-            raise ValueError(
-                f"Backoff multiplier must be positive number: _backoff_multiplier={_backoff_multiplier}"
-            )
-        self._backoff_multiplier = _backoff_multiplier
-        super().__init__(*args, **kwargs)
-
-    def execute_command(self, *args, **kwargs):
-        retries = 0
-        while True:
-            try:
-                return super().execute_command(*args, **kwargs)
-            except (
-                # Caught during the inital phase of failver when writes are
-                # paused on primary
-                ReadOnlyError,
-                # When the connection to primary is dropped and the one to the
-                # replica is not ready yet.
-                # ConnectionError with the errno ETIMEDOUT = 110
-                ConnectionError,
-                # When the client is initiated with socket_timeout or
-                # socket_connect_timeout, during the reconnect it throws
-                # redis.exceptions.TimeoutError instead of ConnectionError
-                RedisTimeoutError,
-            ):
-                if retries >= self._retries:
-                    raise
-                time.sleep(
-                    min(
-                        self._backoff_max,
-                        (self._backoff_min * (self._backoff_multiplier**retries))
-                        * (1 + random.random()),
-                    )
-                )
-                retries += 1
-
-
 class _RedisCluster:
     def supports(self, config):
         # _RedisCluster supports two configurations:
@@ -209,6 +118,9 @@ class _RedisCluster:
         # support for scaling reads using the readonly mode
         # https://redis.io/docs/reference/cluster-spec/#scaling-reads-using-replica-nodes
         readonly_mode = config.get("readonly_mode", False)
+
+        client_args = config.get("client_args") or {}
+        client_args = {**_REDIS_DEFAULT_CLIENT_ARGS, **client_args}
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
@@ -228,6 +140,7 @@ class _RedisCluster:
                     max_connections=16,
                     max_connections_per_node=True,
                     readonly_mode=readonly_mode,
+                    **client_args,
                 )
             else:
                 host = hosts[0].copy()
@@ -235,8 +148,8 @@ class _RedisCluster:
                 return (
                     import_string(config["client_class"])
                     if "client_class" in config
-                    else StrictRedis
-                )(**host)
+                    else FailoverRedis
+                )(**host, **client_args)
 
         return SimpleLazyObject(cluster_factory)
 
@@ -244,13 +157,16 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-class ClusterManager:
+T = TypeVar("T")
+
+
+class ClusterManager(Generic[T]):
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
         self.__cluster_type = cluster_type()
 
-    def get(self, key):
+    def get(self, key) -> T:
         cluster = self.__clusters.get(key)
 
         # Do not access attributes of the `cluster` object to prevent
@@ -275,7 +191,9 @@ class ClusterManager:
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
-redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
+redis_clusters: ClusterManager[clients.RedisCluster | clients.StrictRedis] = ClusterManager(
+    options.default_manager, _RedisCluster
+)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):

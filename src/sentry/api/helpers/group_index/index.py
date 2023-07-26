@@ -33,6 +33,24 @@ advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = 
 ]
 
 
+def parse_and_convert_issue_search_query(
+    query: str,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    user: User,
+) -> Sequence[SearchFilter]:
+    try:
+        search_filters = convert_query_values(
+            parse_search_query(query), projects, user, environments
+        )
+    except InvalidSearchQuery as e:
+        raise ValidationError(f"Error parsing search query: {e}")
+
+    validate_search_filter_permissions(organization, search_filters, user)
+    return search_filters
+
+
 def build_query_params_from_request(
     request: Request,
     organization: "Organization",
@@ -64,15 +82,9 @@ def build_query_params_from_request(
             "search.environments", len(environments) if len(environments) <= 5 else ">5"
         )
     if query:
-        try:
-            search_filters = convert_query_values(
-                parse_search_query(query), projects, request.user, environments
-            )
-        except InvalidSearchQuery as e:
-            raise ValidationError(f"Error parsing search query: {e}")
-
-        validate_search_filter_permissions(organization, search_filters, request.user)
-        query_kwargs["search_filters"] = search_filters
+        query_kwargs["search_filters"] = parse_and_convert_issue_search_query(
+            query, organization, projects, environments, request.user
+        )
 
     return query_kwargs
 
@@ -239,9 +251,7 @@ def get_release_info(request: Request, group: "Group", version: str) -> Mapping[
     except Release.DoesNotExist:
         release = {"version": version}
 
-    # Explicitly typing to satisfy mypy.
-    release_ifo: Mapping[str, Any] = serialize(release, request.user)
-    return release_ifo
+    return serialize(release, request.user)
 
 
 def get_first_last_release_info(

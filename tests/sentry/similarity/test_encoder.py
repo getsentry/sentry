@@ -18,11 +18,6 @@ def test_builtin_types():
         [{"a": 1}, set("b"), ["c"], "text"],
     ]
 
-    try:
-        values.append(long(1))
-    except NameError:
-        pass
-
     for value in values:
         encoded = encoder.dumps(value)
         assert isinstance(encoded, bytes)

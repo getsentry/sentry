@@ -3,12 +3,12 @@ import {Fragment} from 'react';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -24,10 +24,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const project = projects.find(p => p.id === replayRecord?.project_id);
 
   const labelTitle = replayRecord ? (
-    <Fragment>
-      {getShortEventId(replayRecord?.id)}
-      <ReplaysFeatureBadge />
-    </Fragment>
+    <Fragment>{getShortEventId(replayRecord?.id)}</Fragment>
   ) : (
     <HeaderPlaceholder width="100%" height="16px" />
   );
@@ -37,7 +34,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
       crumbs={[
         {
           to: {
-            pathname: `/organizations/${orgSlug}/replays/`,
+            pathname: normalizeUrl(`/organizations/${orgSlug}/replays/`),
             query: eventView.generateQueryStringObject(),
           },
           label: t('Session Replay'),

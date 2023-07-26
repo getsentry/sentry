@@ -7,7 +7,7 @@ import responses
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.models import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.utils import json
 
 
@@ -108,7 +108,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert description["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
 
     @responses.activate
-    def test_applies_correctly_performance_issue(self):
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    def test_applies_correctly_performance_issue(self, occurrence):
         event = self.create_performance_issue()
 
         rule = self.get_rule(

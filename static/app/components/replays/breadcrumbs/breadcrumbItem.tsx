@@ -1,24 +1,38 @@
-import {CSSProperties, isValidElement, memo, MouseEvent, useCallback} from 'react';
+import {
+  CSSProperties,
+  isValidElement,
+  memo,
+  MouseEvent,
+  useCallback,
+  useMemo,
+} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isErrorFrame} from 'sentry/utils/replays/types';
+import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
+type MouseCallback = (
+  crumb: Crumb | ReplayFrame,
+  e: React.MouseEvent<HTMLElement>
+) => void;
 
 interface BaseProps {
-  crumb: Crumb;
-  isCurrent: boolean;
-  isHovered: boolean;
+  crumb: Crumb | ReplayFrame;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  className?: string;
   expandPaths?: string[];
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
@@ -44,12 +58,27 @@ interface WithDimensionChangeProps extends BaseProps {
 
 type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
+function getCrumbOrFrameData(crumb: Crumb | ReplayFrame) {
+  if ('offsetMs' in crumb) {
+    return {
+      ...getFrameDetails(crumb),
+      projectSlug: isErrorFrame(crumb) ? crumb.data.projectSlug : null,
+      timestampMs: crumb.timestampMs,
+    };
+  }
+  const details = getDetails(crumb);
+  return {
+    ...details,
+    timestampMs: crumb.timestamp || '',
+    projectSlug: crumb.type === BreadcrumbType.ERROR ? details.projectSlug : undefined,
+  };
+}
+
 function BreadcrumbItem({
+  className,
   crumb,
   expandPaths,
   index,
-  isCurrent,
-  isHovered,
   onClick,
   onDimensionChange,
   onMouseEnter,
@@ -57,7 +86,8 @@ function BreadcrumbItem({
   startTimestampMs,
   style,
 }: Props) {
-  const {title, description} = getDetails(crumb);
+  const {color, description, projectSlug, title, type, timestampMs} =
+    getCrumbOrFrameData(crumb);
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -79,19 +109,21 @@ function BreadcrumbItem({
     [index, onDimensionChange]
   );
 
+  // Note: use `crumb.type` here as `getDetails()` will return a type based on
+  // crumb category for presentation purposes. e.g. if we wanted to use an
+  // error icon for a non-Sentry error
+
   return (
     <CrumbItem
-      aria-current={isCurrent}
       as={onClick ? 'button' : 'span'}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={style}
+      className={className}
     >
-      <IconWrapper color={crumb.color} hasOccurred>
-        <BreadcrumbIcon type={crumb.type} />
+      <IconWrapper color={color} hasOccurred>
+        <BreadcrumbIcon type={type} />
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
@@ -99,7 +131,7 @@ function BreadcrumbItem({
           {onClick ? (
             <TimestampButton
               startTimestampMs={startTimestampMs}
-              timestampMs={crumb.timestamp || ''}
+              timestampMs={timestampMs}
             />
           ) : null}
         </TitleContainer>
@@ -121,10 +153,33 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
+        {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
       </CrumbDetails>
     </CrumbItem>
   );
 }
+
+function CrumbProject({projectSlug}: {projectSlug: string}) {
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.slug === projectSlug),
+    [projects, projectSlug]
+  );
+  if (!project) {
+    return <CrumbProjectBadgeWrapper>{projectSlug}</CrumbProjectBadgeWrapper>;
+  }
+  return (
+    <CrumbProjectBadgeWrapper>
+      <ProjectBadge project={project} avatarSize={16} disableLink />
+    </CrumbProjectBadgeWrapper>
+  );
+}
+
+const CrumbProjectBadgeWrapper = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  margin-top: ${space(0.25)};
+`;
 
 const InspectorWrapper = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
@@ -140,11 +195,13 @@ const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 600;
   color: ${p => p.theme.gray400};
   line-height: ${p => p.theme.text.lineHeightBody};
@@ -158,12 +215,7 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
-type CrumbItemProps = {
-  isCurrent: boolean;
-  isHovered: boolean;
-};
-
-const CrumbItem = styled(PanelItem)<CrumbItemProps>`
+const CrumbItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
@@ -176,8 +228,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   text-align: left;
   border: none;
   position: relative;
-  ${p => p.isCurrent && `background-color: ${p.theme.purple100};`}
-  ${p => p.isHovered && `background-color: ${p.theme.surface200};`}
+
   border-radius: ${p => p.theme.borderRadius};
 
   &:hover {

@@ -11,18 +11,19 @@ import {Client} from 'sentry/api';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type CreateSampleEventButtonProps = {
+type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
+  onClick?: () => void;
   onCreateSampleGroup?: () => void;
   project?: Project;
-} & ButtonProps;
+};
 
 type State = {
   creating: boolean;
@@ -66,7 +67,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       return;
     }
 
-    trackAdvancedAnalyticsEvent('sample_event.button_viewed', {
+    trackAnalytics('sample_event.button_viewed', {
       organization,
       project_id: project.id,
       source,
@@ -88,7 +89,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     const eventKey = `sample_event.${eventCreated ? 'created' : 'failed'}` as const;
 
-    trackAdvancedAnalyticsEvent(eventKey, {
+    trackAnalytics(eventKey, {
       organization,
       project_id: project.id,
       platform: project.platform || '',
@@ -111,7 +112,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     if (onCreateSampleGroup) {
       onCreateSampleGroup();
     } else {
-      trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+      trackAnalytics('growth.onboarding_view_sample_event', {
         platform: project.platform,
         organization,
       });
@@ -170,6 +171,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       });
       return;
     }
+
+    this.props.onClick?.();
 
     browserHistory.push(
       normalizeUrl(

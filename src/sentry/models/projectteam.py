@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Sequence
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
@@ -15,14 +15,11 @@ from sentry.db.models import (
 if TYPE_CHECKING:
     from sentry.models import Team
 
-# TODO(dcramer): pull in enum library
-ProjectStatus = ObjectStatus
-
 
 class ProjectTeamManager(BaseManager):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
         project_teams = (
-            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
+            self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
             .order_by("project__name", "project__slug")
             .select_related("project")
         )
@@ -71,7 +68,7 @@ def process_resource_change(instance, **kwargs):
         except (Project.DoesNotExist, Organization.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(ProjectTeam))
 
 
 post_save.connect(

@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 
 import {getAxisOptions, TooltipOption} from '../data';
@@ -67,7 +67,7 @@ class ChartFooter extends Component<Props, State> {
 
   handleSelectorChange(key: string, value: string) {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.change_chart', {
+    trackAnalytics('performance_views.overview.change_chart', {
       organization,
       metric: value,
     });

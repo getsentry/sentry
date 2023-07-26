@@ -4,7 +4,7 @@ from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AuthTest(AcceptanceTestCase):
     def enter_auth(self, username, password):
         self.browser.get("/auth/login/")

@@ -5,7 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,6 +24,12 @@ function getSelectedProjectList(
     return acc;
   }, {});
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+}
+
+export function useHasOrganizationSentAnyReplayEvents() {
+  const {projects, fetching} = useProjects();
+  const hasOrgSentReplays = useMemo(() => projects.some(p => p.hasReplays), [projects]);
+  return {hasOrgSentReplays, fetching};
 }
 
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
@@ -48,8 +54,8 @@ export function useReplayOnboardingSidebarPanel() {
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
-      trackAdvancedAnalyticsEvent('replay.list-view-setup-sidebar', {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
+      trackAnalytics('replay.list-view-setup-sidebar', {
         organization,
       });
     }
@@ -58,7 +64,7 @@ export function useReplayOnboardingSidebarPanel() {
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
     window.location.hash = 'replay-sidequest';
-    SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+    SidebarPanelStore.activatePanel(SidebarPanelKey.REPLAYS_ONBOARDING);
   }, []);
 
   return {activateSidebar};

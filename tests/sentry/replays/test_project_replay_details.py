@@ -26,7 +26,7 @@ def setup():
 
 
 @region_silo_test
-class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
+class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
     def setUp(self):

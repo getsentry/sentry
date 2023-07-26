@@ -9,7 +9,7 @@ import {
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/security-and-privacy/';
-export default [
+const formGroups: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -92,7 +92,7 @@ export default [
         // we therefore display it in a placeholder
         placeholder: ({value}) => formatStoreCrashReports(value),
         choices: () =>
-          getStoreCrashReportsValues(SettingScope.Organization).map(value => [
+          getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(value => [
             value,
             formatStoreCrashReports(value),
           ]),
@@ -204,4 +204,6 @@ export default [
       },
     ],
   },
-] as JsonFormObject[];
+];
+
+export default formGroups;

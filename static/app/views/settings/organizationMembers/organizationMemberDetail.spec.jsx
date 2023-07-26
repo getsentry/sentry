@@ -263,7 +263,7 @@ describe('OrganizationMemberDetail', function () {
       await userEvent.click(screen.getByText('#new-team'));
 
       // Assign as admin to new team
-      const teamRoleSelect = screen.getAllByText('Contributor')[1];
+      const teamRoleSelect = screen.getAllByText('Contributor')[0];
       await selectEvent.select(teamRoleSelect, ['Team Admin']);
 
       // Save Member
@@ -294,27 +294,6 @@ describe('OrganizationMemberDetail', function () {
           "Membership to this team is managed through your organization's identity provider."
         )
       ).toBeInTheDocument();
-    });
-
-    it('cannot change roles if member is idp-provisioned', function () {
-      const roleRestrictedMember = TestStubs.Member({
-        roles: TestStubs.OrgRoleList(),
-        dateCreated: new Date(),
-        teams: [team.slug],
-        flags: {
-          'idp:role-restricted': true,
-        },
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/members/${member.id}/`,
-        body: roleRestrictedMember,
-      });
-      render(<OrganizationMemberDetail params={{memberId: roleRestrictedMember.id}} />, {
-        context: routerContext,
-      });
-
-      const radios = screen.getAllByRole('radio');
-      expect(radios.at(0)).toHaveAttribute('readonly');
     });
   });
 
@@ -459,7 +438,7 @@ describe('OrganizationMemberDetail', function () {
     const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false}),
+      user: TestStubs.User({has2fa: false, authenticators: undefined}),
     });
 
     const no2fa = TestStubs.Member({

@@ -50,11 +50,11 @@ export function useDrawHoveredBorderEffect({
       }
     };
 
-    scheduler.registerAfterFrameCallback(drawHoveredFrameBorder);
+    scheduler.registerBeforeFrameCallback(drawHoveredFrameBorder);
     scheduler.draw();
 
     return () => {
-      scheduler.unregisterAfterFrameCallback(drawHoveredFrameBorder);
+      scheduler.unregisterBeforeFrameCallback(drawHoveredFrameBorder);
     };
   }, [view, canvas, scheduler, hoveredNode, renderer, theme]);
 }

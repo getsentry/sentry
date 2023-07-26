@@ -10,7 +10,12 @@ import findBestThread from 'sentry/components/events/interfaces/threads/threadSe
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  CocoaProcessingErrors,
+  GenericSchemaErrors,
+  JavascriptProcessingErrors,
+  NativeProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -18,14 +23,30 @@ import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {semverCompare} from 'sentry/utils/versions';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 import {DataSection} from './styles';
 
-const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
+const ERRORS_TO_HIDE = [
+  JavascriptProcessingErrors.JS_MISSING_SOURCE,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP_LOCATION,
+  JavascriptProcessingErrors.JS_TOO_MANY_REMOTE_SOURCES,
+  JavascriptProcessingErrors.JS_INVALID_SOURCE_ENCODING,
+  GenericSchemaErrors.UNKNOWN_ERROR,
+  GenericSchemaErrors.MISSING_ATTRIBUTE,
+  NativeProcessingErrors.NATIVE_NO_CRASHED_THREAD,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
+  NativeProcessingErrors.NATIVE_MISSING_SYSTEM_DSYM,
+  NativeProcessingErrors.NATIVE_MISSING_SYMBOL,
+  NativeProcessingErrors.NATIVE_SIMULATOR_FRAME,
+  NativeProcessingErrors.NATIVE_UNKNOWN_IMAGE,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -43,6 +64,29 @@ function isDataMinified(str: string | null) {
   }
 
   return !![...str.matchAll(MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH)].length;
+}
+
+function shouldErrorBeShown(error: EventErrorData, event: Event) {
+  if (
+    ERRORS_TO_HIDE.includes(
+      error.type as
+        | JavascriptProcessingErrors
+        | GenericSchemaErrors
+        | NativeProcessingErrors
+    )
+  ) {
+    return false;
+  }
+  if (
+    error.type === CocoaProcessingErrors.COCOA_INVALID_DATA &&
+    event.sdk?.name === 'sentry.cocoa' &&
+    error.data?.name === 'contexts.trace.sampled' &&
+    semverCompare(event.sdk?.version || '', '8.7.4') === -1
+  ) {
+    // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
+    return false;
+  }
+  return true;
 }
 
 const hasThreadOrExceptionMinifiedFrameData = (
@@ -156,13 +200,10 @@ const useFetchProguardMappingFiles = ({
                 <ExternalLink
                   href="https://docs.sentry.io/platforms/android/proguard/#gradle"
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'issue_error_banner.proguard_misconfigured.clicked',
-                      {
-                        organization,
-                        group: event?.groupID,
-                      }
-                    );
+                    trackAnalytics('issue_error_banner.proguard_misconfigured.clicked', {
+                      organization,
+                      group: event?.groupID,
+                    });
                   }}
                 >
                   Sentry Gradle Plugin
@@ -198,7 +239,7 @@ const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Proje
     const platform = project.platform;
 
     // uniquify the array types
-    trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
+    trackAnalytics('issue_error_banner.viewed', {
       organization,
       group: event?.groupID,
       error_type: uniq(errorTypes),
@@ -220,23 +261,17 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
   useEffect(() => {
     if (proguardErrors?.length) {
       if (proguardErrors[0]?.type === 'proguard_potentially_misconfigured_plugin') {
-        trackAdvancedAnalyticsEvent(
-          'issue_error_banner.proguard_misconfigured.displayed',
-          {
-            organization,
-            group: event?.groupID,
-            platform: project.platform,
-          }
-        );
+        trackAnalytics('issue_error_banner.proguard_misconfigured.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
       } else if (proguardErrors[0]?.type === 'proguard_missing_mapping') {
-        trackAdvancedAnalyticsEvent(
-          'issue_error_banner.proguard_missing_mapping.displayed',
-          {
-            organization,
-            group: event?.groupID,
-            platform: project.platform,
-          }
-        );
+        trackAnalytics('issue_error_banner.proguard_missing_mapping.displayed', {
+          organization,
+          group: event?.groupID,
+          platform: project.platform,
+        });
       }
     }
     // Just for analytics, only track this once per visit
@@ -249,8 +284,8 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors].filter(
-    error => !ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)
+  const errors = [...otherErrors, ...proguardErrors].filter(e =>
+    shouldErrorBeShown(e, event)
   );
 
   if (proguardErrorsLoading) {

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Input from 'sentry/components/input';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -16,19 +16,23 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 
 function ShareModal({currentTimeSec, Header, Body}) {
   const routes = useRoutes();
-  const [isCustom, setIsCustom] = useState(false);
   const [customSeconds, setSeconds] = useState(currentTimeSec);
+  const [shareMode, setShareMode] = useState<'current' | 'user'>('current');
 
   const url = new URL(window.location.href);
   const {searchParams} = url;
   searchParams.set('referrer', getRouteStringFromRoutes(routes));
-  searchParams.set('t', isCustom ? String(customSeconds) : currentTimeSec);
+  searchParams.set(
+    't',
+    shareMode === 'user' ? String(customSeconds) : String(currentTimeSec)
+  );
 
   // Use `value` instead of `defaultValue` so the number resets to
   // `currentTimeSec` if the user toggles isCustom
-  const value = isCustom
-    ? formatSecondsToClock(customSeconds, {padAll: false})
-    : formatSecondsToClock(currentTimeSec, {padAll: false});
+  const value =
+    shareMode === 'user'
+      ? formatSecondsToClock(customSeconds, {padAll: false})
+      : formatSecondsToClock(currentTimeSec, {padAll: false});
 
   return (
     <div>
@@ -40,22 +44,30 @@ function ShareModal({currentTimeSec, Header, Body}) {
           {url.toString()}
         </StyledTextCopyInput>
 
-        <InputRow>
-          <StyledCheckbox
-            id="replay_share_custom_time"
-            name="replay_share_custom_time"
-            checked={isCustom}
-            onChange={() => setIsCustom(prev => !prev)}
+        <ShareAtRadioGroup>
+          <RadioGroup
+            value={shareMode}
+            choices={[
+              ['current', 'Share at current timestamp'],
+              [
+                'user',
+                <InputRow key="user">
+                  <div>{t('Share at')}</div>
+                  <Input
+                    name="time"
+                    onFocus={() => setShareMode('user')}
+                    value={value}
+                    onChange={e => {
+                      setSeconds(parseClockToSeconds(e.target.value));
+                    }}
+                  />
+                </InputRow>,
+              ],
+            ]}
+            label="share at"
+            onChange={id => setShareMode(id)}
           />
-          <StyledLabel htmlFor="replay_share_custom_time">{t('Start at')}</StyledLabel>
-          <StyledInput
-            name="time"
-            placeholder=""
-            disabled={!isCustom}
-            value={value}
-            onChange={e => setSeconds(parseClockToSeconds(e.target.value))}
-          />
-        </InputRow>
+        </ShareAtRadioGroup>
       </Body>
     </div>
   );
@@ -89,24 +101,23 @@ const StyledTextCopyInput = styled(TextCopyInput)`
 `;
 
 const InputRow = styled('div')`
-  margin-top: ${space(2)};
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
   align-items: center;
+  & > div {
+    min-width: fit-content;
+  }
+  & > input {
+    width: 100px;
+  }
 `;
 
-const StyledCheckbox = styled(Checkbox)`
-  margin: 0 !important;
-`;
-
-const StyledLabel = styled('label')`
-  margin: 0;
-`;
-
-const StyledInput = styled(Input)`
-  width: auto;
-  max-width: 90px;
+const ShareAtRadioGroup = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  max-width: fit-content;
 `;
 
 export default ShareButton;

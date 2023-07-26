@@ -2,13 +2,13 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -22,19 +22,18 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_use_case_id(use_case: str) -> UseCaseKey:
+def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Get use_case from str and validate it against UseCaseKey enum type
-    if use_case parameter has wrong value just raise an ParseError.
+    Get useCase from query params and validate it against UseCaseID enum type
+    Raise a ParseError if the use_case parameter is invalid.
     """
-    try:
-        if use_case == "releaseHealth":
-            use_case = "release-health"
 
-        return UseCaseKey(use_case)
+    try:
+        use_case_param = request.GET.get("useCase", "sessions")
+        return string_to_use_case_id(use_case_param)
     except ValueError:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {', '.join(use_case.value for use_case in UseCaseKey)}"
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
 
 
@@ -43,18 +42,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations and the metric unit"""
 
     def get(self, request: Request, organization) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
         projects = self.get_projects(request, organization)
-        metrics = get_metrics(
-            projects, use_case_id=get_use_case_id(request.GET.get("useCase", "release-health"))
-        )
-        # TODO: replace this with a serializer so that if the structure of MetricMeta changes the response of this
-        # endpoint does not
-        for metric in metrics:
-            del metric["metric_id"]
-            del metric["mri_string"]
+
+        metrics = get_metrics(projects, use_case_id=get_use_case_id(request))
+
         return Response(metrics, status=200)
 
 
@@ -63,15 +54,13 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
 
         projects = self.get_projects(request, organization)
         try:
             metric = get_single_metric_info(
                 projects,
                 metric_name,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except InvalidParams as e:
             raise ResourceDoesNotExist(e)
@@ -95,16 +84,13 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
 
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
-        metric_names = request.GET.getlist("metric") or None
+        metrics = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(
                 projects,
-                metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                metrics,
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -118,9 +104,6 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, tag_name) -> Response:
 
-        if not features.has("organizations:metrics", organization, actor=request.user):
-            return Response(status=404)
-
         metric_names = request.GET.getlist("metric") or None
 
         projects = self.get_projects(request, organization)
@@ -129,7 +112,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 projects,
                 tag_name,
                 metric_names,
-                use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
@@ -158,12 +141,15 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int):
             try:
                 query = QueryDefinition(
-                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                    projects,
+                    request.GET,
+                    allow_mri=True,
+                    paginator_kwargs={"limit": limit, "offset": offset},
                 )
                 data = get_series(
                     projects,
-                    query.to_metrics_query(),
-                    use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                    metrics_query=query.to_metrics_query(),
+                    use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
                 data["query"] = query.query

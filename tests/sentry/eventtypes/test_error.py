@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import TestCase
 
-from sentry.eventtypes import ErrorEvent
+from sentry.eventtypes.error import ErrorEvent
 from sentry.testutils.silo import region_silo_test
 
 
@@ -17,7 +20,9 @@ class ErrorEventTest(TestCase):
 
     def test_get_metadata_none(self):
         inst = ErrorEvent()
-        data = {"exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}}
+        data: dict[str, dict[str, Any]] = {
+            "exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}
+        }
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
@@ -55,6 +60,39 @@ class ErrorEventTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
+            "display_title_with_tree_label": False,
+        }
+
+    def test_get_metadata_multiple_exceptions_default(self):
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar"},
+                    {"type": "Exception", "value": "Foo"},
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Foo",
+            "display_title_with_tree_label": False,
+        }
+
+    def test_get_metadata_multiple_exceptions_main_indicated(self):
+        inst = ErrorEvent()
+        data = {
+            "main_exception_id": 1,
+            "exception": {
+                "values": [
+                    {"type": "Exception", "value": "Bar", "mechanism": {"exception_id": 1}},
+                    {"type": "Exception", "value": "Foo", "mechanism": {"exception_id": 0}},
+                ]
+            },
+        }
+        assert inst.get_metadata(data) == {
+            "type": "Exception",
+            "value": "Bar",
             "display_title_with_tree_label": False,
         }
 

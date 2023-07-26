@@ -7,10 +7,10 @@ import {t} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
-type Props = ModalRenderProps & {
+interface Props extends ModalRenderProps {
   organization: Organization;
   onClose?: (team: Team) => void;
-};
+}
 
 function CreateTeamModal({Body, Header, ...props}: Props) {
   const {onClose, closeModal, organization} = props;

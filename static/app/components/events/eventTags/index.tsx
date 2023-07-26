@@ -7,7 +7,7 @@ import Pills from 'sentry/components/pills';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 
 import {AnnotatedText} from '../meta/annotatedText';
@@ -43,7 +43,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
         // iOS device missing classification, this probably indicates a new iOS device which we
         // haven't yet classified.
         if (!deviceClass && deviceModel) {
-          trackAdvancedAnalyticsEvent('device.classification.unclassified.ios.device', {
+          trackAnalytics('device.classification.unclassified.ios.device', {
             organization,
             model: deviceModel,
           });
@@ -63,7 +63,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
           deviceProcessorFrequency > 3499 ||
           (deviceProcessorCount > 9 && deviceProcessorFrequency > 3299)
         ) {
-          trackAdvancedAnalyticsEvent('device.classification.high.end.android.device', {
+          trackAnalytics('device.classification.high.end.android.device', {
             organization,
             class: deviceClass,
             family: deviceFamily,

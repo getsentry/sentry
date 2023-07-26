@@ -8,7 +8,7 @@ import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
+import {formatTime} from 'sentry/components/replays/utils';
 import {
   IconContract,
   IconExpand,
@@ -23,23 +23,14 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const SECOND = 1000;
 
 const COMPACT_WIDTH_BREAKPOINT = 500;
-
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.INIT,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
 
 interface Props {
   speedOptions?: number[];
@@ -88,18 +79,16 @@ function ReplayPlayPauseBar() {
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestampMs = replay?.getReplay().started_at?.getTime();
-          if (!startTimestampMs) {
+          if (!replay) {
             return;
           }
-          const transformedCrumbs = replay?.getRawCrumbs() || [];
-          const next = getNextReplayEvent({
-            items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            targetTimestampMs: startTimestampMs + currentTime,
+          const next = getNextReplayFrame({
+            frames: replay.getChapterFrames(),
+            targetOffsetMs: currentTime,
           });
 
-          if (startTimestampMs !== undefined && next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampMs));
+          if (next) {
+            setCurrentTime(next.offsetMs);
           }
         }}
         aria-label={t('Fast-forward to next breadcrumb')}
@@ -166,7 +155,7 @@ function ReplayControls({
 
   const handleFullscreenToggle = () => {
     if (toggleFullscreen) {
-      trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+      trackAnalytics('replay.toggle-fullscreen', {
         organization,
         user_email: config.user.email,
         fullscreen: !isFullscreen,

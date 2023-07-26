@@ -1,5 +1,4 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Profile} from './profile/profile';
@@ -97,9 +96,7 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
-      collapseStrategy,
     }: {
-      collapseStrategy?: (root: FlamegraphFrame) => FlamegraphFrame;
       configSpace?: Rect;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
@@ -137,39 +134,6 @@ export class Flamegraph {
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
-    if (collapseStrategy) {
-      const {root, frames, depth} = buildCollapsedFlamegraph(
-        collapse(this.root, collapseStrategy)
-      );
-      this.root = root;
-      this.depth = depth;
-      this.frames = frames;
-    }
-
-    if (this.profile.duration > 0) {
-      this.configSpace = new Rect(
-        0,
-        0,
-        configSpace ? configSpace.width : this.profile.duration,
-        this.depth
-      );
-    } else {
-      // If the profile duration is 0, set the flamegraph duration
-      // to 1 second so we can render a placeholder grid
-      this.configSpace = new Rect(
-        0,
-        0,
-        this.profile.unit === 'nanoseconds'
-          ? 1e9
-          : this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1,
-        this.depth
-      );
-    }
-
     const weight = this.root.children.reduce(
       (acc, frame) => acc + frame.node.totalWeight,
       0
@@ -178,6 +142,27 @@ export class Flamegraph {
     this.root.node.totalWeight += weight;
     this.root.end = this.root.start + weight;
     this.root.frame.totalWeight += weight;
+
+    let width = 0;
+
+    if (this.profile.type === 'flamegraph' && weight > 0) {
+      width = weight;
+    } else if (this.profile.duration > 0) {
+      width = configSpace ? configSpace.width : this.profile.duration;
+    } else {
+      // If the profile duration is 0, set the flamegraph duration
+      // to 1 second so we can render a placeholder grid
+      width =
+        this.profile.unit === 'nanoseconds'
+          ? 1e9
+          : this.profile.unit === 'microseconds'
+          ? 1e6
+          : this.profile.unit === 'milliseconds'
+          ? 1e3
+          : 1;
+    }
+
+    this.configSpace = new Rect(0, 0, width, this.depth);
   }
 
   buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
@@ -186,7 +171,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stack.length - 1] ?? this.root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -256,7 +241,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack) ?? this.root;
+      const parent = stack[stack.length - 1] ?? this.root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
@@ -303,7 +288,6 @@ export class Flamegraph {
       }
 
       let childTime = 0;
-
       node.children.forEach(child => {
         visit(child, start + childTime);
         childTime += child.totalWeight;
@@ -365,48 +349,6 @@ export class Flamegraph {
 
     return matches;
   }
-}
-
-function collapse(
-  frame: FlamegraphFrame,
-  strategy: (frame: FlamegraphFrame) => FlamegraphFrame
-) {
-  frame.children = frame.children.map(f => collapse(f, strategy));
-
-  if (frame.frame.isRoot) {
-    return frame;
-  }
-
-  return strategy(frame);
-}
-
-function buildCollapsedFlamegraph(root: FlamegraphFrame) {
-  const frames: FlamegraphFrame[] = [];
-  const stack = [root];
-  let maxDepth = 0;
-  while (stack.length) {
-    const node = stack.pop();
-    if (!node) {
-      break;
-    }
-    maxDepth = Math.max(maxDepth, node.depth);
-
-    if (!node.frame.isRoot) {
-      frames.push(node);
-    }
-
-    for (const child of node.children) {
-      child.depth = node.frame.isRoot ? 0 : node.depth + 1;
-
-      stack.push(child);
-    }
-  }
-
-  return {
-    frames,
-    root,
-    depth: maxDepth,
-  };
 }
 
 function tryTrimPackage(pkg?: string): string | undefined {

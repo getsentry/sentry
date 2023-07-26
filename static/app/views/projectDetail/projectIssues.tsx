@@ -12,7 +12,8 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -20,7 +21,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
@@ -126,11 +127,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   }, [fetchIssuesCount]);
 
   function handleOpenInIssuesClick() {
-    trackAdvancedAnalyticsEvent('project_detail.open_issues', {organization});
+    trackAnalytics('project_detail.open_issues', {organization});
   }
 
   function handleOpenInDiscoverClick() {
-    trackAdvancedAnalyticsEvent('project_detail.open_discover', {organization});
+    trackAnalytics('project_detail.open_discover', {organization});
   }
 
   function handleFetchSuccess(groupListState, cursorHandler) {

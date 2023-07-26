@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.loader.browsersdkversion import get_browser_sdk_version_choices
+from sentry.loader.browsersdkversion import get_all_browser_sdk_version_choices
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
 
 
@@ -27,14 +27,14 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
         return super().to_internal_value(new_data)
 
 
-class ProjectKeySerializer(serializers.Serializer):
+class ProjectKeyRequestSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
     public = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     secret = serializers.RegexField(r"^[a-f0-9]{32}$", required=False, allow_null=True)
     rateLimit = RateLimitSerializer(required=False, allow_null=True)
     isActive = serializers.BooleanField(required=False)
     browserSdkVersion = serializers.ChoiceField(
-        choices=get_browser_sdk_version_choices(), required=False
+        choices=get_all_browser_sdk_version_choices(), required=False
     )
     dynamicSdkLoaderOptions = DynamicSdkLoaderOptionSerializer(
         required=False, allow_null=True, partial=True

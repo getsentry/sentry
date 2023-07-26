@@ -6,7 +6,7 @@ import functools
 import inspect
 import logging
 import threading
-from abc import ABC, abstractmethod
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -14,7 +14,6 @@ from typing import (
     Generator,
     Generic,
     Iterable,
-    List,
     Mapping,
     Optional,
     Tuple,
@@ -26,8 +25,13 @@ from typing import (
 
 import pydantic
 import sentry_sdk
+from django.db import router, transaction
+from django.db.models import Model
+from typing_extensions import Self
 
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +39,12 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
+OptionValue = Union[str, int, bool, None]
+
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
 DEFAULT_DATE = datetime.datetime(2000, 1, 1)
-
-
-class InterfaceWithLifecycle(ABC):
-    @abstractmethod
-    def close(self) -> None:
-        pass
 
 
 def report_pydantic_type_validation_error(
@@ -54,7 +54,6 @@ def report_pydantic_type_validation_error(
     model_class: Optional[Type[Any]],
 ) -> None:
     with sentry_sdk.push_scope() as scope:
-        scope.set_level("warning")
         scope.set_context(
             "pydantic_validation",
             {
@@ -64,7 +63,7 @@ def report_pydantic_type_validation_error(
                 "model_class": str(model_class),
             },
         )
-        sentry_sdk.capture_exception(TypeError("Pydantic type validation error"))
+        logger.warning("Pydantic type validation error", exc_info=True)
 
 
 def _hack_pydantic_type_validation() -> None:
@@ -110,8 +109,23 @@ def _hack_pydantic_type_validation() -> None:
 _hack_pydantic_type_validation()
 
 
+class ValueEqualityEnum(Enum):
+    def __eq__(self, other):
+        value = other
+        if isinstance(other, Enum):
+            value = other.value
+        return self.value == value
+
+    def __hash__(self):
+        return hash(self.value)
+
+
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
+
+    class Config:
+        orm_mode = True
+        use_enum_values = True
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
@@ -123,7 +137,7 @@ class RpcModel(pydantic.BaseModel):
         obj: Any,
         name_transform: Callable[[str], str] | None = None,
         value_transform: Callable[[Any], Any] | None = None,
-    ) -> RpcModel:
+    ) -> Self:
         """Serialize an object with field names matching this model class.
 
         This class method may be called only on an instantiable subclass. The
@@ -166,7 +180,7 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
+ServiceInterface = TypeVar("ServiceInterface")
 
 
 class DelegatedBySiloMode(Generic[ServiceInterface]):
@@ -200,7 +214,6 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             yield
         finally:
             with self._lock:
-                self.close(silo_mode)
                 self._singleton[silo_mode] = prev
 
     def __getattr__(self, item: str) -> Any:
@@ -210,27 +223,51 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
             if impl := self._singleton.get(cur_mode, None):
                 return getattr(impl, item)
             if con := self._constructors.get(cur_mode, None):
-                self.close(cur_mode)
                 self._singleton[cur_mode] = inst = con()
                 return getattr(inst, item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 
-    def close(self, mode: SiloMode | None = None) -> None:
-        to_close: List[ServiceInterface] = []
-        with self._lock:
-            if mode is None:
-                to_close.extend(s for s in self._singleton.values() if s is not None)
-                self._singleton = dict()
-            else:
-                existing = self._singleton.get(mode)
-                if existing:
-                    to_close.append(existing)
-                self._singleton = self._singleton.copy()
-                self._singleton[mode] = None
 
-        for service in to_close:
-            service.close()
+class DelegatedByOpenTransaction(Generic[ServiceInterface]):
+    """
+    It is possible to run monolith mode in a split database scenario -- in this case, the silo mode does not help
+    select the correct implementation to ensure non mingled transactions.  This helper picks a backing implementation
+    by checking if an open transaction exists for the routing of the given model for a backend implementation.
+
+    If no transactions are open, it uses a given default implementation instead.
+    """
+
+    _constructors: Mapping[Type[Model], Callable[[], ServiceInterface]]
+    _default: Callable[[], ServiceInterface]
+
+    def __init__(
+        self,
+        mapping: Mapping[Type[Model], Callable[[], ServiceInterface]],
+        default: Callable[[], ServiceInterface],
+    ):
+        self._constructors = mapping
+        self._default = default
+
+    def __getattr__(self, item: str) -> Any:
+        for model, constructor in self._constructors.items():
+            if in_test_environment():
+                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
+                open_transaction = (
+                    simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+                        using=router.db_for_write(model)
+                    )
+                    > 0
+                )
+            else:
+                open_transaction = transaction.get_connection(
+                    router.db_for_write(model)
+                ).in_atomic_block
+
+            if open_transaction:
+                return getattr(constructor(), item)
+        return getattr(self._default(), item)
 
 
 hc_test_stub: Any = threading.local()
@@ -252,11 +289,11 @@ def CreateStubFromBase(
     def __init__(self: Any, backing_service: ServiceInterface) -> None:
         self.backing_service = backing_service
 
-    def close(self: Any) -> None:
-        self.backing_service.close()
-
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
+            in_test_assert_no_transaction(
+                f"remote service method {base.__name__}.{method_name} called inside transaction!  Move service calls to outside of transactions."
+            )
             from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
             with SiloMode.exit_single_process_silo_context():
@@ -268,10 +305,14 @@ def CreateStubFromBase(
                 auth_context: AuthenticationContext = AuthenticationContext()
                 if "auth_context" in call_args:
                     auth_context = call_args["auth_context"] or auth_context
-                with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-                    target_mode
-                ):
-                    return method(*args, **kwds)
+
+                try:
+                    with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+                        target_mode
+                    ):
+                        return method(*args, **kwds)
+                except Exception as e:
+                    raise RuntimeError(f"Service call failed: {base.__name__}.{method_name}") from e
 
         return method
 
@@ -281,7 +322,6 @@ def CreateStubFromBase(
             if getattr(getattr(Super, name), "__isabstractmethod__", False):
                 methods[name] = make_method(name)
 
-    methods["close"] = close
     methods["__init__"] = __init__
 
     return cast(
@@ -303,8 +343,41 @@ def silo_mode_delegation(
     """
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
     the mapping values.
+
+    In split database mode, it will also inject DelegatedByOpenTransaction in for the monolith mode implementation.
     """
-    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
+
+    return cast(ServiceInterface, DelegatedBySiloMode(get_delegated_constructors(mapping)))
+
+
+def get_delegated_constructors(
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
+    """
+    Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction
+    that intelligently selects the correct service implementation based on the call site.
+    """
+
+    def delegator() -> ServiceInterface:
+        from sentry.models import Organization, User
+
+        return cast(
+            ServiceInterface,
+            DelegatedByOpenTransaction(
+                {
+                    User: mapping[SiloMode.CONTROL],
+                    Organization: mapping[SiloMode.REGION],
+                },
+                mapping[SiloMode.MONOLITH],
+            ),
+        )
+
+    # We need to retain a closure around the original mapping passed in, so we'll use a new variable here
+    final_mapping: Mapping[SiloMode, Callable[[], ServiceInterface]] = {
+        SiloMode.MONOLITH: delegator,
+        **({k: v for k, v in mapping.items() if k != SiloMode.MONOLITH}),
+    }
+    return final_mapping
 
 
 def coerce_id_from(m: object | int | None) -> int | None:
@@ -313,7 +386,7 @@ def coerce_id_from(m: object | int | None) -> int | None:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
@@ -321,5 +394,5 @@ def extract_id_from(m: object | int) -> int:
     if isinstance(m, int):
         return m
     if hasattr(m, "id"):
-        return m.id  # type: ignore
+        return m.id
     raise ValueError(f"Cannot extract {m!r} from id!")

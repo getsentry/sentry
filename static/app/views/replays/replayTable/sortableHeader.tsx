@@ -4,7 +4,7 @@ import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -63,7 +63,7 @@ function SortableHeader(props: Props) {
               ? fieldName
               : '-' + fieldName
             : '-' + fieldName;
-          trackAdvancedAnalyticsEvent('replay.list-sorted', {
+          trackAnalytics('replay.list-sorted', {
             organization,
             column,
           });

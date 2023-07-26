@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
@@ -22,6 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {Associations} from 'sentry/views/settings/projectSourceMaps/associations';
 import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum DebugIdBundleArtifactType {
@@ -127,21 +128,17 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useApiQuery<
-    [Artifact[], any, any]
-  >(
+  const {
+    data: artifactsData,
+    getResponseHeader: artifactsHeaders,
+    isLoading: artifactsLoading,
+  } = useApiQuery<Artifact[]>(
     [
       artifactsEndpoint,
       {
         query: {query, cursor},
       },
     ],
-    () => {
-      return api.requestPromise(artifactsEndpoint, {
-        query: cursor ? {query, cursor} : {query},
-        includeAllArgs: true,
-      });
-    },
     {
       staleTime: 0,
       keepPreviousData: true,
@@ -149,26 +146,23 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     }
   );
 
-  const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
-    useApiQuery<[DebugIdBundleArtifact, any, any]>(
-      [
-        debugIdBundlesArtifactsEndpoint,
-        {
-          query: {query, cursor},
-        },
-      ],
-      () => {
-        return api.requestPromise(debugIdBundlesArtifactsEndpoint, {
-          query: cursor ? {query, cursor} : {query},
-          includeAllArgs: true,
-        });
-      },
+  const {
+    data: debugIdBundlesArtifactsData,
+    getResponseHeader: debugIdBundlesArtifactsHeaders,
+    isLoading: debugIdBundlesArtifactsLoading,
+  } = useApiQuery<DebugIdBundleArtifact>(
+    [
+      debugIdBundlesArtifactsEndpoint,
       {
-        staleTime: 0,
-        keepPreviousData: true,
-        enabled: tabDebugIdBundlesActive,
-      }
-    );
+        query: {query, cursor},
+      },
+    ],
+    {
+      staleTime: 0,
+      keepPreviousData: true,
+      enabled: tabDebugIdBundlesActive,
+    }
+  );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -187,13 +181,17 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
-            {tabDebugIdBundlesActive && (
-              <DebugIdBundlesTags
-                dist={debugIdBundlesArtifactsData?.[0]?.dist}
-                release={debugIdBundlesArtifactsData?.[0]?.release}
-                loading={debugIdBundlesArtifactsLoading}
-              />
-            )}
+            {tabDebugIdBundlesActive &&
+              // TODO(Pri): Move the loading to the component once fully transitioned to associations.
+              !debugIdBundlesArtifactsLoading &&
+              (debugIdBundlesArtifactsData?.associations ? (
+                <Associations associations={debugIdBundlesArtifactsData?.associations} />
+              ) : (
+                <DebugIdBundlesTags
+                  dist={debugIdBundlesArtifactsData?.dist}
+                  release={debugIdBundlesArtifactsData?.release}
+                />
+              ))}
           </VersionAndDetails>
         }
       />
@@ -219,8 +217,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
         isEmpty={
           (tabDebugIdBundlesActive
-            ? debugIdBundlesArtifactsData?.[0].files ?? []
-            : artifactsData?.[0] ?? []
+            ? debugIdBundlesArtifactsData?.files ?? []
+            : artifactsData ?? []
           ).length === 0
         }
         isLoading={
@@ -228,7 +226,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
       >
         {tabDebugIdBundlesActive
-          ? (debugIdBundlesArtifactsData?.[0].files ?? []).map(data => {
+          ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
@@ -252,7 +250,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                 />
               );
             })
-          : artifactsData?.[0].map(data => {
+          : artifactsData?.map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/releases/${encodeURIComponent(params.bundleId)}/files/${
@@ -288,8 +286,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
-            ? debugIdBundlesArtifactsData?.[2]?.getResponseHeader('Link') ?? ''
-            : artifactsData?.[2]?.getResponseHeader('Link') ?? ''
+            ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
+            : artifactsHeaders?.('Link') ?? ''
         }
       />
     </Fragment>

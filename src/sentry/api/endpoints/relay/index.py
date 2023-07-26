@@ -2,14 +2,14 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.models import Relay
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RelayIndexEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

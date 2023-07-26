@@ -16,7 +16,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Release, ReleaseMeta} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -124,7 +124,7 @@ function ReleaseActions({
   }
 
   function handleNavigationClick(direction: string) {
-    trackAdvancedAnalyticsEvent(`release_detail.pagination`, {
+    trackAnalytics(`release_detail.pagination`, {
       organization,
       direction,
     });

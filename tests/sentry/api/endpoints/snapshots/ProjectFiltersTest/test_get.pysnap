@@ -1,5 +1,5 @@
 ---
-created: '2020-07-09T11:33:30.140674Z'
+created: '2023-07-04T12:49:12.065585Z'
 creator: sentry
 source: tests/sentry/api/endpoints/test_project_filters.py
 ---
@@ -14,6 +14,12 @@ source: tests/sentry/api/endpoints/test_project_filters.py
   hello: localhost - Filter out events coming from localhost
   id: localhost
   name: Filter out events coming from localhost
+- active: true
+  description: Filter transactions that match most common naming patterns for health
+    checks.
+  hello: filtered-transaction - Filter out health check transactions
+  id: filtered-transaction
+  name: Filter out health check transactions
 - active: false
   description: Older browsers often give less accurate information, and while they
     may report valid issues, the context to understand them is incorrect or missing.

@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import PlayerDOMAlert from './playerDOMAlert';
@@ -42,10 +41,10 @@ function useVideoSizeLogger({
       1
     );
     const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
-      typeof trackAdvancedAnalyticsEvent<'replay.render-player'>
+      typeof trackAnalytics<'replay.render-player'>
     >[1]['scale_bucket'];
 
-    trackAdvancedAnalyticsEvent('replay.render-player', {
+    trackAnalytics('replay.render-player', {
       organization,
       aspect_ratio,
       scale_bucket,

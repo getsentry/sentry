@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.constants import ObjectStatus
+
 __all__ = [
     "from_user",
     "from_member",
@@ -13,7 +15,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, Optional, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -28,7 +30,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectStatus,
     SentryApp,
     Team,
     TeamStatus,
@@ -42,8 +43,9 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.organization.serial import summarize_member
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
 
@@ -62,8 +64,8 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
-        user__is_active=True,
-        user=user_id,
+        user_is_active=True,
+        user_id=user_id,
         organization_id=organization.id,
     )
     teams_with_org_role = organization.get_teams_with_org_roles([role])
@@ -85,6 +87,11 @@ class Access(abc.ABC):
     @property
     @abc.abstractmethod
     def requires_sso(self) -> bool:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def has_open_membership(self) -> bool:
         pass
 
     @property
@@ -133,6 +140,10 @@ class Access(abc.ABC):
     def accessible_project_ids(self) -> FrozenSet[int]:
         pass
 
+    @property
+    def is_org_auth_token(self) -> bool:
+        return False
+
     def has_permission(self, permission: str) -> bool:
         """
         Return bool representing if the user has the given permission.
@@ -150,12 +161,12 @@ class Access(abc.ABC):
     # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
-            return cast(OrganizationRole, organization_roles.get(self.role))
+            return organization_roles.get(self.role)
         return None
 
     def get_organization_roles(self) -> Iterable[OrganizationRole]:
         if self.roles is not None:
-            return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
+            return [organization_roles.get(r) for r in self.roles]
         return []
 
     @abc.abstractmethod
@@ -226,6 +237,7 @@ class DbAccess(Access):
 
     sso_is_valid: bool = False
     requires_sso: bool = False
+    has_open_membership: bool = False
 
     # if has_global_access is True, then any project
     # matching organization_id is valid. This is used for
@@ -234,6 +246,7 @@ class DbAccess(Access):
     has_global_access: bool = False
 
     scopes: FrozenSet[str] = frozenset()
+    scopes_upper_bound: FrozenSet[str] | None = None
     permissions: FrozenSet[str] = frozenset()
 
     _member: OrganizationMember | None = None
@@ -254,7 +267,7 @@ class DbAccess(Access):
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self._member, is_active=True, team__status=TeamStatus.VISIBLE
+                organizationmember=self._member, is_active=True, team__status=TeamStatus.ACTIVE
             ).select_related("team")
         }
 
@@ -298,7 +311,7 @@ class DbAccess(Access):
 
         with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams)
+                Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
                 .values_list("id", flat=True)
             )
@@ -339,7 +352,14 @@ class DbAccess(Access):
             return True
 
         membership = self._team_memberships.get(team)
-        if membership and scope in membership.get_scopes():
+        if not membership:
+            return False
+
+        team_scopes = membership.get_scopes()
+        if self.scopes_upper_bound:
+            team_scopes = team_scopes & self.scopes_upper_bound
+
+        if membership and scope in team_scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": membership.role, "scope": scope},
@@ -376,6 +396,9 @@ class DbAccess(Access):
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
+                if self.scopes_upper_bound:
+                    team_scopes = team_scopes & self.scopes_upper_bound
+
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
@@ -409,7 +432,7 @@ maybe_singular_api_access_org_context = maybe_singular_rpc_access_org_context
 @dataclass
 class RpcBackedAccess(Access):
     rpc_user_organization_context: RpcUserOrganizationContext
-    requested_scopes: Iterable[str] | None
+    scopes_upper_bound: FrozenSet[str] | None
     auth_state: RpcAuthState
 
     # TODO: remove once getsentry has updated to use the new names.
@@ -430,8 +453,12 @@ class RpcBackedAccess(Access):
         return self.auth_state.sso_state.is_required
 
     @property
+    def has_open_membership(self) -> bool:
+        return self.rpc_user_organization_context.organization.flags.allow_joinleave
+
+    @property
     def has_global_access(self) -> bool:
-        if self.rpc_user_organization_context.organization.flags.allow_joinleave:
+        if self.has_open_membership:
             return True
 
         if (
@@ -445,13 +472,13 @@ class RpcBackedAccess(Access):
     @cached_property
     def scopes(self) -> FrozenSet[str]:
         if self.rpc_user_organization_context.member is None:
-            return frozenset(self.requested_scopes or [])
+            return frozenset(self.scopes_upper_bound or [])
 
-        if self.requested_scopes is None:
+        if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
 
         return frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(
-            self.requested_scopes
+            self.scopes_upper_bound
         )
 
     # TODO(cathy): remove this
@@ -502,7 +529,7 @@ class RpcBackedAccess(Access):
         return self.project_ids_with_team_membership
 
     def has_team_access(self, team: Team) -> bool:
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -530,7 +557,14 @@ class RpcBackedAccess(Access):
             return False
 
         team_membership = self.get_team_membership(team.id)
-        if team_membership and scope in team_membership.scopes:
+        if not team_membership:
+            return False
+
+        team_scopes = frozenset(team_membership.scopes)
+        if self.scopes_upper_bound:
+            team_scopes = team_scopes & self.scopes_upper_bound
+
+        if scope in team_scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": f"{team_membership.role}", "scope": scope},
@@ -545,7 +579,7 @@ class RpcBackedAccess(Access):
         return None
 
     def has_project_access(self, project: Project) -> bool:
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if (
             self.has_global_access
@@ -586,6 +620,9 @@ class RpcBackedAccess(Access):
                     continue
 
                 team_scopes = member_team.role.scopes
+                if self.scopes_upper_bound:
+                    team_scopes = team_scopes & self.scopes_upper_bound
+
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
@@ -596,14 +633,24 @@ class RpcBackedAccess(Access):
         return False
 
 
+def _wrap_scopes(scopes_upper_bound: Iterable[str] | None) -> FrozenSet[str] | None:
+    if scopes_upper_bound is not None:
+        return frozenset(scopes_upper_bound)
+    return None
+
+
 class OrganizationMemberAccess(DbAccess):
     def __init__(
-        self, member: OrganizationMember, scopes: Iterable[str], permissions: Iterable[str]
+        self,
+        member: OrganizationMember,
+        scopes: Iterable[str],
+        permissions: Iterable[str],
+        scopes_upper_bound: Iterable[str] | None,
     ) -> None:
         auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
-            org_member=DatabaseBackedOrganizationService.summarize_member(member),
+            org_member=summarize_member(member),
             user_id=member.user_id,
         )
         sso_state = auth_state.sso_state
@@ -618,11 +665,12 @@ class OrganizationMemberAccess(DbAccess):
             has_global_access=has_global_access,
             scopes=frozenset(scopes),
             permissions=frozenset(permissions),
+            scopes_upper_bound=_wrap_scopes(scopes_upper_bound),
         )
 
     def has_team_access(self, team: Team) -> bool:
         assert self._member is not None
-        if team.status != TeamStatus.VISIBLE:
+        if team.status != TeamStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
@@ -630,7 +678,7 @@ class OrganizationMemberAccess(DbAccess):
 
     def has_project_access(self, project: Project) -> bool:
         assert self._member is not None
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
@@ -646,25 +694,24 @@ class OrganizationGlobalAccess(DbAccess):
         self._organization_id = (
             organization.id if isinstance(organization, Organization) else organization
         )
-
         super().__init__(has_global_access=True, scopes=frozenset(scopes), **kwargs)
 
     def has_team_access(self, team: Team) -> bool:
         return bool(
-            team.organization_id == self._organization_id and team.status == TeamStatus.VISIBLE
+            team.organization_id == self._organization_id and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self._organization_id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
     def accessible_team_ids(self) -> FrozenSet[int]:
         return frozenset(
             Team.objects.filter(
-                organization_id=self._organization_id, status=TeamStatus.VISIBLE
+                organization_id=self._organization_id, status=TeamStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -672,7 +719,7 @@ class OrganizationGlobalAccess(DbAccess):
     def accessible_project_ids(self) -> FrozenSet[int]:
         return frozenset(
             Project.objects.filter(
-                organization_id=self._organization_id, status=ProjectStatus.VISIBLE
+                organization_id=self._organization_id, status=ObjectStatus.ACTIVE
             ).values_list("id", flat=True)
         )
 
@@ -690,12 +737,12 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         super().__init__(
             rpc_user_organization_context=rpc_user_organization_context,
             auth_state=auth_state,
-            requested_scopes=scopes,
+            scopes_upper_bound=_wrap_scopes(scopes),
         )
 
     @cached_property
     def scopes(self) -> FrozenSet[str]:
-        return frozenset(self.requested_scopes or [])
+        return frozenset(self.scopes_upper_bound or [])
 
     @property
     def has_global_access(self) -> bool:
@@ -704,13 +751,13 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     def has_team_access(self, team: Team) -> bool:
         return bool(
             team.organization_id == self.rpc_user_organization_context.organization.id
-            and team.status == TeamStatus.VISIBLE
+            and team.status == TeamStatus.ACTIVE
         )
 
     def has_project_access(self, project: Project) -> bool:
         return bool(
             project.organization_id == self.rpc_user_organization_context.organization.id
-            and project.status == ProjectStatus.VISIBLE
+            and project.status == ObjectStatus.ACTIVE
         )
 
     @cached_property
@@ -718,7 +765,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             t.id
             for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.VISIBLE
+            if t.status == TeamStatus.ACTIVE
         )
 
     @cached_property
@@ -726,7 +773,7 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
         return frozenset(
             p.id
             for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ProjectStatus.VISIBLE
+            if p.status == ObjectStatus.ACTIVE
         )
 
 
@@ -750,6 +797,10 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
 
 class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
+
+    @property
+    def is_org_auth_token(self) -> bool:
+        return True
 
     @property
     def team_ids_with_membership(self) -> FrozenSet[int]:
@@ -787,6 +838,10 @@ class OrganizationlessAccess(Access):
     @property
     def requires_sso(self) -> bool:
         return self.auth_state.sso_state.is_required
+
+    @property
+    def has_open_membership(self) -> bool:
+        return False
 
     @property
     def has_global_access(self) -> bool:
@@ -850,6 +905,7 @@ class SystemAccess(OrganizationlessAccess):
             ),
         )
 
+    @property
     def has_global_access(self) -> bool:
         return True
 
@@ -894,6 +950,7 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
@@ -974,7 +1031,7 @@ from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
 
 
 def from_request(
-    request: Any, organization: Organization = None, scopes: Iterable[str] | None = None
+    request: Any, organization: Optional[Organization] = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 
@@ -996,11 +1053,7 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
-            org_member=(
-                DatabaseBackedOrganizationService.summarize_member(member)
-                if member is not None
-                else None
-            ),
+            org_member=(summarize_member(member) if member is not None else None),
         ).sso_state
 
         return OrganizationGlobalAccess(
@@ -1098,7 +1151,7 @@ def from_member(
 
     permissions = get_permissions_for_user(member.user_id) if is_superuser else frozenset()
 
-    return OrganizationMemberAccess(member, scope_intersection, permissions)
+    return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
 
 
 def from_rpc_member(
@@ -1112,7 +1165,7 @@ def from_rpc_member(
 
     return RpcBackedAccess(
         rpc_user_organization_context=rpc_user_organization_context,
-        requested_scopes=scopes,
+        scopes_upper_bound=_wrap_scopes(scopes),
         auth_state=auth_state
         or auth_service.get_user_auth_state(
             user_id=rpc_user_organization_context.user_id,

@@ -3,6 +3,7 @@ import round from 'lodash/round';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
+import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -18,6 +19,15 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
   }
   return displayName;
 }
+
+export const isSemverRelease = (rawVersion: string): boolean => {
+  try {
+    const parsedVersion = new Release(rawVersion);
+    return !!parsedVersion.versionParsed;
+  } catch {
+    return false;
+  }
+};
 
 export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
@@ -297,4 +307,8 @@ export function formatAbbreviatedNumber(number: number | string) {
   }
 
   return number.toLocaleString();
+}
+
+export function formatRate(value: number, unit: RateUnits = RateUnits.PER_SECOND) {
+  return `${formatAbbreviatedNumber(value)}${RATE_UNIT_LABELS[unit]}`;
 }

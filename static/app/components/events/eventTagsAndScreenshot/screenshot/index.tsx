@@ -7,12 +7,15 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import ImageVisualization from './imageVisualization';
 
@@ -46,11 +49,11 @@ function Screenshot({
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 
-  function handleDelete(screenshotAttachment) {
-    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_dropdown_deleted', {
+  function handleDelete(screenshotAttachmentId: string) {
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
       organization,
     });
-    onDelete(screenshotAttachment.id);
+    onDelete(screenshotAttachmentId);
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {
@@ -130,7 +133,7 @@ function Screenshot({
                     label: t('Download'),
                     onAction: () => {
                       window.location.assign(`${downloadUrl}?download=1`);
-                      trackAdvancedAnalyticsEvent(
+                      trackAnalytics(
                         'issue_details.issue_tab.screenshot_dropdown_download',
                         {organization}
                       );

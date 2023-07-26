@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type RenderingSystemProps = {
@@ -19,14 +19,11 @@ function RenderingSystem({platform, system}: RenderingSystemProps) {
       <Tooltip title={t('Rendering System: %s', system ?? t('Unknown'))}>
         <PlatformIcon
           onMouseEnter={() => {
-            trackAdvancedAnalyticsEvent(
-              'issue_details.view_hierarchy.hover_rendering_system',
-              {
-                organization,
-                platform,
-                user_org_role: organization.orgRole,
-              }
-            );
+            trackAnalytics('issue_details.view_hierarchy.hover_rendering_system', {
+              organization,
+              platform,
+              user_org_role: organization.orgRole,
+            });
           }}
           data-test-id="rendering-system-icon"
           platform={platform ?? 'generic'}

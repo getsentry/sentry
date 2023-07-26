@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any, Optional
 from unittest.mock import patch
 
 import responses
@@ -16,11 +19,11 @@ from sentry.incidents.models import (
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
+from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.types import Dict
 
 
 @region_silo_test(stable=True)
@@ -106,7 +109,9 @@ class AlertRuleDetailsBase(APITestCase):
     def test_no_feature(self):
         self.login_as(self.owner_user)
         resp = self.get_response(self.organization.slug, self.project.slug, self.alert_rule.id)
-        assert resp.status_code == 404
+        # Without incidents feature flag, allow delete
+        status = 204 if self.method == "delete" else 404
+        assert resp.status_code == status
 
 
 @region_silo_test(stable=True)
@@ -198,7 +203,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-    def _mock_slack_response(self, url: str, body: Dict, status: int = 200) -> None:
+    def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
             url=url,
@@ -209,8 +214,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
     def _project_alert_rule_api_call(
         self,
-        channelName: str = None,
-        channelID: str = None,
+        channelName: Optional[str] = None,
+        channelID: Optional[str] = None,
     ) -> Request:
         """
         Call the project alert rule API but do some Slack integration set up before doing so
@@ -514,9 +519,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
     def test_no_owner(self):
         alert_rule = self.alert_rule
-        alert_rule.owner = self.user.actor
+        alert_rule.owner = get_actor_for_user(self.user)
         alert_rule.save()
-        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner == get_actor_for_user(self.user)
 
         test_params = self.valid_params.copy()
         test_params["resolve_threshold"] = self.alert_rule.resolve_threshold

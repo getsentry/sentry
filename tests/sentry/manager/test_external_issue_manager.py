@@ -1,5 +1,5 @@
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -11,15 +11,15 @@ class ExternalIssueManagerTest(TestCase):
         self.integration1 = self.create_integration(
             organization=self.organization, external_id="example:1", provider="example"
         )
-        self.api_integration1 = integration_service._serialize_integration(self.integration1)
+        self.api_integration1 = serialize_integration(self.integration1)
         self.integration2 = self.create_integration(
             organization=self.organization, external_id="example:2", provider="example"
         )
-        self.api_integration2 = integration_service._serialize_integration(self.integration2)
+        self.api_integration2 = serialize_integration(self.integration2)
         self.integration3 = self.create_integration(
             organization=self.create_organization(), external_id="example:3", provider="example"
         )
-        self.api_integration3 = integration_service._serialize_integration(self.integration3)
+        self.api_integration3 = serialize_integration(self.integration3)
 
         self.event1 = self.store_event(
             data={"event_id": "a" * 32, "message": "ooop"},

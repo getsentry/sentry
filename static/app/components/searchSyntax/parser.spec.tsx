@@ -44,12 +44,12 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       // @ts-expect-error
       delete token.config;
 
-      if (token.type === Token.Filter && token.invalid === null) {
+      if (token.type === Token.FILTER && token.invalid === null) {
         // @ts-expect-error
         delete token.invalid;
       }
 
-      if (token.type === Token.ValueIso8601Date) {
+      if (token.type === Token.VALUE_ISO_8601_DATE) {
         // Date values are represented as ISO strings in the test case json
         return {...token, value: token.value.toISOString()};
       }
@@ -64,7 +64,6 @@ describe('searchSyntax/parser', function () {
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
       const result = parseSearch(testCase.query, testCase.additionalConfig);
-
       // Handle errors
       if (testCase.raisesError) {
         expect(result).toBeNull();

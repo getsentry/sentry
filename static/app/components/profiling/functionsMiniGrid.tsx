@@ -8,11 +8,22 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {SuspectFunction} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
+import {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 
+const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'sum()',
+  'examples()',
+] as const;
+
+type FunctionsField = (typeof functionsFields)[number];
+
 interface FunctionsMiniGridProps {
-  functions: SuspectFunction[] | null;
+  functions: EventsResults<FunctionsField>['data'];
   onLinkClick: (e: SyntheticEvent) => void;
   organization: Organization;
   project: Project;
@@ -44,25 +55,33 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
 
       {functions &&
         functions.map((f, idx) => {
-          const exampleProfileIdRaw = f.worst;
+          if (!defined(f)) {
+            return null;
+          }
+
+          const exampleProfileIdRaw = f['examples()']![0];
           const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
           return (
             <Fragment key={idx}>
-              <FunctionsMiniGridCell title={f.name}>
+              <FunctionsMiniGridCell title={f.function as string}>
                 <FunctionNameTextTruncate>
                   <Link
-                    to={linkToFlamechartRoute(exampleProfileId, f.name, f.package)}
+                    to={linkToFlamechartRoute(
+                      exampleProfileId,
+                      f.function as string,
+                      f.package as string
+                    )}
                     onClick={onLinkClick}
                   >
-                    {f.name}
+                    {f.function}
                   </Link>
                 </FunctionNameTextTruncate>
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
-                <PerformanceDuration nanoseconds={f.sum} abbreviation />
+                <PerformanceDuration nanoseconds={f['sum()'] as number} abbreviation />
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
-                <NumberContainer>{f.count}</NumberContainer>
+                <NumberContainer>{f['count()']}</NumberContainer>
               </FunctionsMiniGridCell>
             </Fragment>
           );

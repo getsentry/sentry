@@ -8,7 +8,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 interface Props {
   handleChangeFilter: (activeFilters: string[]) => void;

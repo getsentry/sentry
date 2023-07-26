@@ -17,7 +17,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
-from .commitfilechange import *  # NOQA
+from .commitfilechange import CommitFileChange  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
 from .dashboard_widget import *  # NOQA
@@ -35,14 +35,13 @@ from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
 from .featureadoption import *  # NOQA
-from .file import *  # NOQA
+from .files import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
 from .groupbookmark import *  # NOQA
 from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
-from .groupforecast import *  # NOQA
 from .grouphash import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
@@ -72,6 +71,7 @@ from .organizationmember import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
+from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
 from .processingissue import *  # NOQA
@@ -82,7 +82,7 @@ from .projectkey import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
-from .projectteam import *  # NOQA
+from .projectteam import ProjectTeam  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
@@ -102,7 +102,6 @@ from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
-from .scheduledjob import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA

@@ -1,8 +1,8 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, List, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -171,3 +171,50 @@ def resolve_project_threshold_config(
         )
 
     return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+
+def resolve_metrics_percentile(
+    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    alias: Optional[str],
+    fixed_percentile: Optional[float] = None,
+    extra_conditions: Optional[List[Function]] = None,
+) -> SelectType:
+    if fixed_percentile is None:
+        fixed_percentile = args["percentile"]
+    if fixed_percentile not in constants.METRIC_PERCENTILES:
+        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+
+    conditions = [Function("equals", [Column("metric_id"), args["metric_id"]])]
+    if extra_conditions is not None:
+        conditions.extend(extra_conditions)
+
+    if len(conditions) == 2:
+        condition = Function("and", conditions)
+    elif len(conditions) != 1:
+        # Need to chain multiple and functions here to allow more than 2 conditions (ie. and(and(a, b), c))
+        raise InvalidSearchQuery("Only 1 additional condition is currently available")
+    else:
+        condition = conditions[0]
+
+    return (
+        Function(
+            "maxIf",
+            [
+                Column("value"),
+                condition,
+            ],
+            alias,
+        )
+        if fixed_percentile == 1
+        else Function(
+            "arrayElement",
+            [
+                Function(
+                    f"quantilesIf({fixed_percentile})",
+                    [Column("value"), condition],
+                ),
+                1,
+            ],
+            alias,
+        )
+    )

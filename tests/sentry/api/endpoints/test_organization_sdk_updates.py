@@ -192,6 +192,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         # until it is turned into an error, we'll get a warning about parsing an invalid version
         (warning,) = warninfo
+        assert isinstance(warning.message, DeprecationWarning)
         (warn_msg,) = warning.message.args
         assert (
             warn_msg

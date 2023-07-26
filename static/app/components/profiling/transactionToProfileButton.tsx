@@ -2,7 +2,7 @@ import {Location} from 'history';
 
 import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -29,7 +29,7 @@ function TransactionToProfileButton({
   }
 
   function handleGoToProfile() {
-    trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source: 'transaction_details',
     });

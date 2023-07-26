@@ -31,7 +31,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupHistory,
     models.RuleFireHistory,
-    models.GroupForecast,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
@@ -74,7 +73,7 @@ class EventDataDeletionTask(BaseDeletionTask):
             group_ids.append(group.id)
         project_ids = list(project_groups.keys())
 
-        events = eventstore.get_unfetched_events(
+        events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=project_ids, group_ids=group_ids
             ),
@@ -88,8 +87,8 @@ class EventDataDeletionTask(BaseDeletionTask):
         if not events:
             # Remove all group events now that their node data has been removed.
             for project_id, group_ids in project_groups.items():
-                eventstream_state = eventstream.start_delete_groups(project_id, group_ids)
-                eventstream.end_delete_groups(eventstream_state)
+                eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+                eventstream.backend.end_delete_groups(eventstream_state)
             return False
 
         self.last_event = events[-1]
@@ -155,4 +154,4 @@ class GroupDeletionTask(ModelDeletionTask):
 
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
-        ).update(status=GroupStatus.DELETION_IN_PROGRESS)
+        ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)

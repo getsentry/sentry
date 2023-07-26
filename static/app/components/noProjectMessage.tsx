@@ -5,11 +5,13 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   organization: Organization;
@@ -23,9 +25,10 @@ function NoProjectMessage({
   superuserNeedsToBeProjectMember,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {teams, initiallyLoaded: teamsLoaded} = useTeams();
 
   const orgSlug = organization.slug;
-  const canCreateProject = organization.access.includes('project:write');
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -36,7 +39,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || !projectsLoaded) {
+  if (hasProjectAccess || !projectsLoaded || !teamsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 

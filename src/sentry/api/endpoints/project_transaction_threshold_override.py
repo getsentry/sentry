@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -106,7 +106,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
         data = serializer.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(ProjectTransactionThresholdOverride)):
             (
                 transaction_threshold,
                 created,

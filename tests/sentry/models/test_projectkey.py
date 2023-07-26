@@ -5,36 +5,45 @@ import pytest
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @region_silo_test(stable=True)
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+
     def test_get_dsn_custom_prefix(self):
-        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.assertEqual(key.get_dsn(), "http://public:secret@example.com/1")
+            self.assertEqual(key.get_dsn(), f"http://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_ssl(self):
-        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options({"system.url-prefix": "https://example.com"}):
-            self.assertEqual(key.get_dsn(), "https://public:secret@example.com/1")
+            self.assertEqual(key.get_dsn(), f"https://public:secret@example.com/{self.project.id}")
 
     def test_get_dsn_with_port(self):
-        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options({"system.url-prefix": "http://example.com:81"}):
-            self.assertEqual(key.get_dsn(), "http://public:secret@example.com:81/1")
+            self.assertEqual(
+                key.get_dsn(), f"http://public:secret@example.com:81/{self.project.id}"
+            )
 
     def test_get_dsn_with_public_endpoint_setting(self):
-        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_PUBLIC_ENDPOINT="http://public_endpoint.com"):
-            self.assertEqual(key.get_dsn(public=True), "http://public@public_endpoint.com/1")
+            self.assertEqual(
+                key.get_dsn(public=True), f"http://public@public_endpoint.com/{self.project.id}"
+            )
 
     def test_get_dsn_with_endpoint_setting(self):
-        key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
+        key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
-            self.assertEqual(key.get_dsn(), "http://public:secret@endpoint.com/1")
+            self.assertEqual(key.get_dsn(), f"http://public:secret@endpoint.com/{self.project.id}")
 
     def test_key_is_created_for_project(self):
         self.create_user("admin@example.com")
@@ -46,10 +55,12 @@ class ProjectKeyTest(TestCase):
         assert len(self.model.generate_api_key()) == 32
 
     def test_from_dsn(self):
-        key = self.model.objects.create(project_id=1, public_key="abc", secret_key="xyz")
+        key = self.model.objects.create(
+            project_id=self.project.id, public_key="abc", secret_key="xyz"
+        )
 
-        assert self.model.from_dsn("http://abc@testserver/1") == key
-        assert self.model.from_dsn("http://abc@o1.ingest.testserver/1") == key
+        assert self.model.from_dsn(f"http://abc@testserver/{self.project.id}") == key
+        assert self.model.from_dsn(f"http://abc@o1.ingest.testserver/{self.project.id}") == key
 
         with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("http://xxx@testserver/1")
@@ -71,28 +82,40 @@ class ProjectKeyTest(TestCase):
         assert self.model(project=self.project, status=ProjectKeyStatus.ACTIVE).is_active is True
 
     def test_get_dsn(self):
-        key = self.model(project_id=1, public_key="abc", secret_key="xyz")
-        assert key.dsn_private == "http://abc:xyz@testserver/1"
-        assert key.dsn_public == "http://abc@testserver/1"
-        assert key.csp_endpoint == "http://testserver/api/1/csp-report/?sentry_key=abc"
-        assert key.minidump_endpoint == "http://testserver/api/1/minidump/?sentry_key=abc"
-        assert key.unreal_endpoint == "http://testserver/api/1/unreal/abc/"
+        key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+        assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
+        assert key.dsn_public == f"http://abc@testserver/{self.project.id}"
+        assert (
+            key.csp_endpoint
+            == f"http://testserver/api/{self.project.id}/csp-report/?sentry_key=abc"
+        )
+        assert (
+            key.minidump_endpoint
+            == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
+        )
+        assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
         assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
         with self.feature("organizations:org-subdomains"):
-            key = self.model(project_id=1, public_key="abc", secret_key="xyz")
+            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"
 
-            assert key.dsn_private == f"http://abc:xyz@{host}/1"
-            assert key.dsn_public == f"http://abc@{host}/1"
-            assert key.csp_endpoint == f"http://{host}/api/1/csp-report/?sentry_key=abc"
-            assert key.minidump_endpoint == f"http://{host}/api/1/minidump/?sentry_key=abc"
-            assert key.unreal_endpoint == f"http://{host}/api/1/unreal/abc/"
+            assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+            assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
+            assert (
+                key.csp_endpoint
+                == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
+            )
+            assert (
+                key.minidump_endpoint
+                == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
+            )
+            assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
-@pytest.mark.django_db(transaction=True)
+@django_db_all
 def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
     assert inv_proj_config.call_count == 0
 
@@ -104,7 +127,7 @@ def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
-@pytest.mark.django_db(transaction=True)
+@django_db_all
 def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
     assert inv_proj_config.call_count == 0
 

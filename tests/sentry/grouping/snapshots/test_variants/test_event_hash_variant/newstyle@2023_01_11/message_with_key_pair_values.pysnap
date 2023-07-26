@@ -1,0 +1,11 @@
+---
+created: '2023-07-24T22:43:19.678209Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "c5719fccd9d95c4eddb130cf98d78cda"
+  component:
+    default*
+      message* (stripped event-specific values)
+        "Error key1=<quoted_str> key2=<int> key3=False key4=<date> key5=<quoted_str> other_date=datetime.datetime(<int>, <int>, <int>, <int>, <int>, tzinfo=d..."

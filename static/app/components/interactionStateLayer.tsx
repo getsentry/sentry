@@ -11,18 +11,6 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   isPressed?: boolean;
 }
 
-function getControlledOpacityValue(p: StateLayerProps) {
-  if (p.isPressed) {
-    return p.higherOpacity ? 0.12 : 0.09;
-  }
-
-  if (p.isHovered) {
-    return p.higherOpacity ? 0.085 : 0.06;
-  }
-
-  return null;
-}
-
 const InteractionStateLayer = styled(
   (props: StateLayerProps) => <span role="presentation" {...props} />,
   {shouldForwardProp: p => typeof p === 'string' && isPropValid(p)}
@@ -45,31 +33,35 @@ const InteractionStateLayer = styled(
   opacity: 0;
 
   ${p =>
-    !defined(p.isHovered)
-      ? css`
+    defined(p.isHovered)
+      ? p.isHovered &&
+        css`
+          opacity: ${p.higherOpacity ? 0.085 : 0.06};
+        `
+      : // If isHovered is undefined, then fallback to a default hover selector
+        css`
           *:hover:not(.focus-visible) > & {
             opacity: ${p.higherOpacity ? 0.085 : 0.06};
           }
-        `
-      : ''}
+        `}
 
   ${p =>
-    !defined(p.isPressed)
-      ? css`
+    defined(p.isPressed)
+      ? p.isPressed &&
+        css`
+          &&& {
+            opacity: ${p.higherOpacity ? 0.12 : 0.09};
+          }
+        `
+      : // If isPressed is undefined, then fallback to default press selectors
+        css`
           *:active > &&,
           *[aria-expanded='true'] > &&,
           *[aria-selected='true'] > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
-        `
-      : ''}
+        `}
 
-  ${p =>
-    getControlledOpacityValue(p)
-      ? css`
-          opacity: ${getControlledOpacityValue(p)};
-        `
-      : ''}
 
   *:disabled &&,
   *[aria-disabled="true"] && {

@@ -7,7 +7,8 @@ from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -53,6 +54,8 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 def send_issue_ignored_webhook(project, user, group_list, **kwargs):
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
+        if features.has("organizations:escalating-issues", project.organization):
+            send_workflow_webhooks(project.organization, issue, user, "issue.archived")
 
 
 @comment_created.connect(weak=False)

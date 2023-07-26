@@ -71,6 +71,7 @@ class AutoEnableCodecovTest(TestCase):
 
     @responses.activate
     def test_disables_codecov(self):
+        AuditLogEntry.objects.all().delete()
         self.organization.flags.codecov_access = True
         self.organization.save()
 
@@ -78,3 +79,6 @@ class AutoEnableCodecovTest(TestCase):
 
         org = Organization.objects.get(id=self.organization.id)
         assert not org.flags.codecov_access.is_set
+        audit_log = AuditLogEntry.objects.filter(organization_id=org.id)
+        assert len(audit_log) == 1
+        assert audit_log.first().data == {"codecov_access": "to False"}

@@ -4,13 +4,13 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function () {
-  const {router, org, project} = initializeOrg();
-  const url = `/projects/${org.slug}/${project.slug}/expect-ct/`;
+  const {organization, project, routerProps} = initializeOrg();
+  const url = `/projects/${organization.slug}/${project.slug}/expect-ct/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: [],
     });
@@ -19,13 +19,9 @@ describe('ProjectExpectCtReports', function () {
   it('renders', function () {
     const {container} = render(
       <ProjectExpectCtReports
-        route={{}}
-        routeParams={{}}
-        router={router}
-        routes={router.routes}
-        params={{projectId: project.slug}}
+        {...routerProps}
         location={TestStubs.location({pathname: url})}
-        organization={org}
+        organization={organization}
       />
     );
 

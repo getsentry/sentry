@@ -47,4 +47,4 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     else:
         # all groups have been deleted
         if eventstream_state:
-            eventstream.end_delete_groups(eventstream_state)
+            eventstream.backend.end_delete_groups(eventstream_state)

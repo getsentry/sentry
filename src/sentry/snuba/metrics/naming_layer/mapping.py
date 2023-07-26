@@ -1,14 +1,14 @@
 __all__ = (
     "create_name_mapping_layers",
     "get_mri",
+    "get_all_mris",
     "get_public_name_from_mri",
     "parse_expression",
     "get_operation_with_public_name",
 )
 
-
 from enum import Enum
-from typing import Dict, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -63,6 +63,12 @@ def get_mri(external_name: Union[Enum, str]) -> str:
             f"Failed to parse '{external_name}'. Must be something like 'sum(my_metric)', "
             f"or a supported aggregate derived metric like `session.crash_free_rate`"
         )
+
+
+def get_all_mris() -> List[str]:
+    if not len(NAME_TO_MRI):
+        create_name_mapping_layers()
+    return [entry.value for entry in NAME_TO_MRI.values()]
 
 
 def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:

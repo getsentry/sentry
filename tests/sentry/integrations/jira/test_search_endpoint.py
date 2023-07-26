@@ -4,11 +4,13 @@ from urllib.parse import parse_qs, urlparse
 import responses
 from django.urls import reverse
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class JiraSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):

@@ -1,6 +1,4 @@
-# TODO: We should make the API a class, and UDP/HTTP just inherit from it
-#       This will make it so we can more easily control logging with various
-#       metadata (rather than generic log messages which aren't useful).
+from __future__ import annotations
 
 import logging
 import re
@@ -12,6 +10,11 @@ from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
 from sentry.utils.canonical import CANONICAL_TYPES
 
+# TODO: We should make the API a class, and UDP/HTTP just inherit from it
+#       This will make it so we can more easily control logging with various
+#       metadata (rather than generic log messages which aren't useful).
+
+
 _dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")
 
@@ -19,15 +22,12 @@ logger = logging.getLogger("sentry.api")
 class APIError(Exception):
     http_status = 400
     msg = "Invalid request"
-    name = None
 
-    def __init__(self, msg=None, name=None):
+    def __init__(self, msg: str | None = None) -> None:
         if msg:
             self.msg = msg
-        if self.name:
-            self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg or ""
 
 

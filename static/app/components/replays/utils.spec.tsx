@@ -1,35 +1,17 @@
 import {
   countColumns,
   divide,
-  flattenSpans,
+  flattenFrames,
   formatTime,
-  getCrumbsByColumn,
+  getFramesByColumn,
   relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
-import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import type {ReplaySpan} from 'sentry/views/replays/types';
+// import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
-
-function createSpan(span: Partial<ReplaySpan>): ReplaySpan {
-  return {
-    data: {},
-    ...span,
-  } as ReplaySpan;
-}
-
-function createCrumb({timestamp}: Pick<Crumb, 'timestamp'>): Crumb {
-  return {
-    timestamp,
-    color: 'white',
-    description: 'crumb description',
-    id: 1,
-    type: BreadcrumbType.DEFAULT,
-    data: {},
-    level: BreadcrumbLevelType.DEBUG,
-  };
-}
 
 describe('formatTime', () => {
   it.each([
@@ -100,30 +82,42 @@ describe('countColumns', () => {
   });
 });
 
-describe('getCrumbsByColumn', () => {
-  const startTimestampMs = 1649945987326; // milliseconds
+describe('getFramesByColumn', () => {
   const durationMs = 25710; // milliseconds
-  const CRUMB_1 = createCrumb({timestamp: '2022-04-14T14:19:47.326000Z'});
-  const CRUMB_2 = createCrumb({timestamp: '2022-04-14T14:19:49.249000Z'});
-  const CRUMB_3 = createCrumb({timestamp: '2022-04-14T14:19:51.512000Z'});
-  const CRUMB_4 = createCrumb({timestamp: '2022-04-14T14:19:57.326000Z'});
-  const CRUMB_5 = createCrumb({timestamp: '2022-04-14T14:20:13.036000Z'});
+
+  const [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5] = hydrateErrors(
+    TestStubs.ReplayRecord({
+      started_at: new Date('2022-04-14T14:19:47.326000Z'),
+    }),
+    [
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:47.326000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:49.249000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:51.512000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:57.326000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:20:13.036000Z'),
+      }),
+    ]
+  );
 
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(startTimestampMs, durationMs, [], columnCount);
+    const columns = getFramesByColumn(durationMs, [], columnCount);
     const expectedEntries = [];
     expect(columns).toEqual(new Map(expectedEntries));
   });
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(
-      startTimestampMs,
-      durationMs,
-      [CRUMB_1, CRUMB_5],
-      columnCount
-    );
+    const columns = getFramesByColumn(durationMs, [CRUMB_1, CRUMB_5], columnCount);
     expect(columns).toEqual(
       new Map([
         [1, [CRUMB_1]],
@@ -135,8 +129,7 @@ describe('getCrumbsByColumn', () => {
   it('should group crumbs by bucket', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
-    const columns = getCrumbsByColumn(
-      startTimestampMs,
+    const columns = getFramesByColumn(
       durationMs,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
@@ -151,106 +144,113 @@ describe('getCrumbsByColumn', () => {
   });
 });
 
-describe('flattenSpans', () => {
+describe('flattenFrames', () => {
   it('should return an empty array if there ar eno spans', () => {
-    expect(flattenSpans([])).toStrictEqual([]);
+    expect(flattenFrames([])).toStrictEqual([]);
   });
 
   it('should return the FlattenedSpanRange for a single span', () => {
-    const span = createSpan({
-      op: 'span',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    expect(flattenSpans([span])).toStrictEqual([
+    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+    ]);
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should return two non-overlapping spans', () => {
-    const span1 = createSpan({
-      op: 'span1',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 60,
-      endTimestamp: 90,
-    });
+    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(60000),
+        endTimestamp: new Date(90000),
+      }),
+    ]);
 
-    expect(flattenSpans([span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
       {
         duration: 30000,
         endTimestamp: 90000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 60000,
       },
     ]);
   });
 
   it('should merge two overlapping spans', () => {
-    const span1 = createSpan({
-      op: 'span1',
-      data: {},
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 20,
-      endTimestamp: 40,
-    });
+    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(20000),
+        endTimestamp: new Date(40000),
+      }),
+    ]);
 
-    expect(flattenSpans([span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should merge overlapping spans that are not first in the list', () => {
-    const span0 = createSpan({
-      op: 'span0',
-      startTimestamp: 0,
-      endTimestamp: 1,
-    });
-    const span1 = createSpan({
-      op: 'span1',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 20,
-      endTimestamp: 40,
-    });
+    const frames = hydrateSpans(TestStubs.ReplayRecord(), [
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(0),
+        endTimestamp: new Date(1000),
+      }),
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      TestStubs.Replay.RequestFrame({
+        op: 'resource.fetch',
+        startTimestamp: new Date(20000),
+        endTimestamp: new Date(40000),
+      }),
+    ]);
 
-    expect(flattenSpans([span0, span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 1000,
         endTimestamp: 1000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 0,
       },
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);

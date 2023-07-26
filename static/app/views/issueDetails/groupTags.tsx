@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -12,7 +12,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,18 +21,18 @@ import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   baseUrl: string;
   environments: string[];
   group: Group;
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   tagList: null | TagWithTopValues[];
 };
 
-class GroupTags extends AsyncComponent<Props, State> {
+class GroupTags extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -39,7 +40,7 @@ class GroupTags extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {group, environments} = this.props;
     return [
       [

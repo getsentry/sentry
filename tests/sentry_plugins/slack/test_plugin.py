@@ -34,6 +34,7 @@ class SlackPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -71,6 +72,7 @@ class SlackPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -106,6 +108,7 @@ class SlackPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

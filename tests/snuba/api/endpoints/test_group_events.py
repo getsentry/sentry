@@ -60,6 +60,69 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+        # Should default to full=false which does not include context property
+        assert "context" not in response.data[0]
+        assert "context" not in response.data[1]
+
+    def test_full_false(self):
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event_1.group.id}/events/?full=false"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+            [str(event_1.event_id), str(event_2.event_id)]
+        )
+        # Simplified response does not have context property
+        assert "context" not in response.data[0]
+        assert "context" not in response.data[1]
+
+    def test_full_true(self):
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event_1.group.id}/events/?full=true"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+
+        # Full response has context property
+        assert "context" in response.data[0]
+        assert "context" in response.data[1]
 
     def test_tags(self):
         self.login_as(user=self.user)
@@ -443,6 +506,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
+        assert group_info is not None
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,

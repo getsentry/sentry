@@ -5,10 +5,12 @@ from typing import Dict, Optional, Sequence
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder, QueryBuilder
-from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
+from sentry.search.events.fields import get_json_meta_type
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
-from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
 
 
 def query(
@@ -107,6 +109,7 @@ def timeseries_query(
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

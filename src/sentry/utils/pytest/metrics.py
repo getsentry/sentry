@@ -3,6 +3,8 @@ import functools
 
 import pytest
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+
 STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
     "",
     "staging",
@@ -20,7 +22,6 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 @pytest.fixture(autouse=True)
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
-    from sentry.sentry_metrics.configuration import UseCaseKey
     from sentry.sentry_metrics.indexer.mock import MockIndexer
     from sentry.snuba import tasks
     from sentry.utils import snuba
@@ -34,12 +35,15 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         monkeypatch.setattr(
             "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve
         )
+        monkeypatch.setattr(
+            "sentry.sentry_metrics.indexer.bulk_reverse_resolve", mock_indexer.bulk_reverse_resolve
+        )
 
         old_resolve = indexer.resolve
 
         def new_resolve(use_case_id, org_id, string):
             if (
-                use_case_id == UseCaseKey.PERFORMANCE
+                use_case_id == UseCaseID.TRANSACTIONS
                 and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
             ):
                 pytest.fail(

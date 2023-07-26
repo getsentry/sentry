@@ -90,6 +90,8 @@ def load_defaults():
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
     from sentry.incidents.models import AlertRule
+    from sentry.models.commitfilechange import CommitFileChange
+    from sentry.monitors import models as monitor_models
 
     from . import defaults
 
@@ -101,7 +103,7 @@ def load_defaults():
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.Commit, defaults.CommitDeletionTask)
     default_manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
-    default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
+    default_manager.register(CommitFileChange, BulkModelDeletionTask)
     default_manager.register(models.Deploy, BulkModelDeletionTask)
     default_manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     default_manager.register(models.Distribution, BulkModelDeletionTask)
@@ -125,6 +127,10 @@ def load_defaults():
     default_manager.register(models.GroupShare, BulkModelDeletionTask)
     default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
     default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    default_manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
+    default_manager.register(
+        monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
+    )
     default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
     default_manager.register(
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
@@ -159,6 +165,7 @@ def load_defaults():
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
     default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(models.Rule, defaults.RuleDeletionTask)
 
 
 load_defaults()

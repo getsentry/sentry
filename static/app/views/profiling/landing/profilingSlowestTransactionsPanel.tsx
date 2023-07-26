@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Flex} from 'sentry/components/profiling/flex';
 import {
@@ -19,16 +19,14 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {
-  EventsResults,
-  EventsResultsDataRow,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {EventsResults, EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -50,7 +48,7 @@ export function ProfilingSlowestTransactionsPanel() {
   const [openPanel, setOpenPanel] = useState<null | string>(null);
 
   const profilingTransactions = useMemo(
-    () => profilingTransactionsQuery.data?.[0].data ?? [],
+    () => profilingTransactionsQuery.data?.data ?? [],
     [profilingTransactionsQuery.data]
   );
 
@@ -102,11 +100,11 @@ export function ProfilingSlowestTransactionsPanel() {
         {profilingTransactions?.map(transaction => {
           return (
             <SlowestTransactionPanelItem
-              key={transaction.transaction}
+              key={transaction.transaction as string}
               transaction={transaction}
               open={transaction.transaction === openPanel}
               onOpen={() => setOpenPanel(transaction.transaction as string)}
-              units={profilingTransactionsQuery.data?.[0].meta.units}
+              units={profilingTransactionsQuery.data?.meta.units}
             />
           );
         })}
@@ -127,6 +125,8 @@ function SlowestTransactionPanelItem({
   onOpen,
   units,
 }: SlowestTransactionPanelItemProps) {
+  const {query} = useLocation();
+
   const organization = useOrganization();
   const projects = useProjects();
   const transactionProject = useMemo(
@@ -145,7 +145,7 @@ function SlowestTransactionPanelItem({
   );
 
   return (
-    <PanelItem key={transaction.transaction}>
+    <PanelItem key={transaction.transaction as string}>
       <Flex justify="space-between" gap={space(1)}>
         <PlatformIcon platform={transactionProject?.platform ?? 'default'} />
         <Flex.Item
@@ -162,12 +162,13 @@ function SlowestTransactionPanelItem({
           >
             <Link
               to={generateProfileSummaryRouteWithQuery({
+                query,
                 orgSlug: organization.slug,
                 projectSlug: transactionProject?.slug!,
                 transaction: transaction.transaction as string,
               })}
               onClick={() => {
-                trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+                trackAnalytics('profiling_views.go_to_transaction', {
                   source: 'slowest_transaction_panel',
                   organization,
                 });
@@ -236,7 +237,7 @@ function PanelItemFunctionsMiniGrid(props: PanelItemFunctionsMiniGridProps) {
         organization={organization}
         project={project}
         onLinkClick={() =>
-          trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+          trackAnalytics('profiling_views.go_to_flamegraph', {
             organization,
             source: 'slowest_transaction_panel',
           })

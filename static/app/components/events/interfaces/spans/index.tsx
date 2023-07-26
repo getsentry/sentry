@@ -5,14 +5,14 @@ import {Observer} from 'mobx-react';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {
   TraceError,
@@ -91,7 +91,7 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
   const handleSpanFilter = (searchQuery: string) => {
     waterfallModel.querySpanSearch(searchQuery);
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.search_query', {
+    trackAnalytics('performance_views.event_details.search_query', {
       organization,
     });
   };

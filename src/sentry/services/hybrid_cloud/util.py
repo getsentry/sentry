@@ -1,7 +1,7 @@
-import sys
 from typing import Any, Callable, Iterable
 
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils.env import in_test_environment
 
 
 def flags_to_bits(*flag_values: bool) -> int:
@@ -19,13 +19,13 @@ class FunctionSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        if "pytest" in sys.modules:
+        if in_test_environment():
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
                 f"Called {original_method.__name__} in "
                 f"{current_mode} mode. This function is available only in: {mode_str}"
             )
-            raise ValueError(message)
+            raise self.AvailabilityError(message)
         return original_method
 
     def __call__(self, decorated_obj: Any) -> Any:

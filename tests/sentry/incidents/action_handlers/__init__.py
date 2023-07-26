@@ -6,10 +6,14 @@ from sentry.incidents.models import Incident, IncidentStatus, IncidentStatusMeth
 
 class FireTest(abc.ABC):
     @abc.abstractmethod
-    def run_test(self, incident: Incident, method: str):
+    def run_test(self, incident: Incident, method: str, **kwargs):
         pass
 
     def run_fire_test(self, method="fire", chart_url=None):
+        kwargs = {}
+        if chart_url:
+            kwargs = {"chart_url": chart_url}
+
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
@@ -18,4 +22,4 @@ class FireTest(abc.ABC):
             update_incident_status(
                 incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
             )
-        self.run_test(incident, method)
+        self.run_test(incident, method, **kwargs)

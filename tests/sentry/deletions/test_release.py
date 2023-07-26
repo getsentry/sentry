@@ -7,12 +7,13 @@ from sentry.models import (
     ReleaseFile,
     ScheduledDeletion,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class DeleteReleaseTest(TransactionTestCase):
@@ -50,7 +51,7 @@ class DeleteReleaseTest(TransactionTestCase):
         assert release1.owner_id
         assert release2.owner_id
 
-        with exempt_from_silo_limits(), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             self.user.delete()
 
         with TaskRunner():

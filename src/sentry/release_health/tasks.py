@@ -31,7 +31,7 @@ logger = logging.getLogger("sentry.tasks.releasemonitor")
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def monitor_release_adoption(**kwargs) -> None:
     metrics.incr("sentry.tasks.monitor_release_adoption.start", sample_rate=1.0)
     with metrics.timer(
@@ -46,7 +46,7 @@ def monitor_release_adoption(**kwargs) -> None:
     queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+)
 def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 
@@ -75,6 +75,10 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
             for environment, environment_totals in project_totals.items():
                 total_releases = len(environment_totals["releases"])
                 for release_version in environment_totals["releases"]:
+                    # Ignore versions that were saved with an empty string
+                    if not Release.is_valid_version(release_version):
+                        continue
+
                     threshold = 0.1 / total_releases
                     if (
                         environment

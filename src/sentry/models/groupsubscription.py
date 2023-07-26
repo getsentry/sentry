@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -20,14 +20,14 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
     from sentry.notifications.utils.participants import ParticipantMap
 
 
-class GroupSubscriptionManager(BaseManager):  # type: ignore
+class GroupSubscriptionManager(BaseManager):
     def subscribe(
         self,
         group: "Group",
@@ -39,7 +39,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         unsubscribed.
         """
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupSubscription)):
                 self.create(
                     user_id=user.id,
                     group=group,
@@ -104,7 +104,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             ]
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
             except IntegrityError as e:
@@ -119,9 +119,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         """
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_users = [
-            RpcActor.from_rpc_user(u) for u in user_service.get_from_group(group=group)
-        ]
+        all_possible_users = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
@@ -168,7 +166,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
 
 
 @region_silo_only_model
-class GroupSubscription(Model):  # type: ignore
+class GroupSubscription(Model):
     """
     Identifies a subscription relationship between a user and an issue.
     """

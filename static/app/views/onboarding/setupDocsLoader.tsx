@@ -6,19 +6,26 @@ import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/keySettings';
+
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
 
 export function SetupDocsLoader({
   organization,
@@ -26,18 +33,24 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
+  showDocsWithProductSelection,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
+  showDocsWithProductSelection?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
   const [projectKey, setProjectKey] = useState<ProjectKey | null>(null);
   const [hasLoadingError, setHasLoadingError] = useState(false);
   const [projectKeyUpdateError, setProjectKeyUpdateError] = useState(false);
+
+  const productsQuery =
+    (location.query.product as ProductSolution | ProductSolution[] | undefined) ?? [];
+  const products = decodeList(productsQuery) as ProductSolution[];
 
   const fetchData = useCallback(async () => {
     const keysApiUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
@@ -62,30 +75,26 @@ export function SetupDocsLoader({
   // Note that on initial visit, this will also update the project key with the default products (=all products)
   // This DOES NOT take into account any initial products that may already be set on the project key - they will always be overwritten!
   const handleUpdateSelectedProducts = useCallback(async () => {
-    const productsQuery =
-      (location.query.product as PRODUCT | PRODUCT[] | undefined) ?? [];
-    const products = decodeList(productsQuery);
-
     const keyId = projectKey?.id;
 
     if (!keyId) {
       return;
     }
 
-    const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
-      [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
-      [DynamicSDKLoaderOption.HAS_REPLAY]: false,
-      [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+    const newDynamicSdkLoaderOptions: ProjectKey['dynamicSdkLoaderOptions'] = {
+      hasPerformance: false,
+      hasReplay: false,
+      hasDebug: false,
     };
 
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
-        case PRODUCT.PERFORMANCE_MONITORING:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_PERFORMANCE] = true;
+        case ProductSolution.PERFORMANCE_MONITORING:
+          newDynamicSdkLoaderOptions.hasPerformance = true;
           break;
-        case PRODUCT.SESSION_REPLAY:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_REPLAY] = true;
+        case ProductSolution.SESSION_REPLAY:
+          newDynamicSdkLoaderOptions.hasReplay = true;
           break;
       }
     });
@@ -103,17 +112,17 @@ export function SetupDocsLoader({
       setProjectKeyUpdateError(false);
     } catch (error) {
       const message = t('Unable to updated dynamic SDK loader configuration');
-      handleXhrErrorResponse(message)(error);
+      handleXhrErrorResponse(message, error);
       setProjectKeyUpdateError(true);
     }
-  }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
+  }, [api, organization.slug, project.slug, projectKey?.id, products]);
 
   const track = useCallback(() => {
     if (!project?.id) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('onboarding.setup_loader_docs_rendered', {
+    trackAnalytics('onboarding.setup_loader_docs_rendered', {
       organization,
       platform: currentPlatform,
       project_id: project?.id,
@@ -134,11 +143,22 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-        lazyLoader
-        skipLazyLoader={close}
-      />
+      {showDocsWithProductSelection ? (
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      ) : (
+        <ProductSelection
+          defaultSelectedProducts={[
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
+          ]}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      )}
 
       {projectKeyUpdateError && (
         <LoadingError
@@ -154,6 +174,7 @@ export function SetupDocsLoader({
             platform={platform}
             organization={organization}
             project={project}
+            products={products}
           />
         )
       ) : (
@@ -171,9 +192,11 @@ function ProjectKeyInfo({
   platform,
   organization,
   project,
+  products,
 }: {
   organization: Organization;
   platform: PlatformKey | null;
+  products: ProductSolution[];
   project: Project;
   projectKey: ProjectKey;
 }) {
@@ -208,7 +231,7 @@ Sentry.onLoad(function() {
     setShowOptionalConfig(show);
 
     if (show) {
-      trackAdvancedAnalyticsEvent('onboarding.js_loader_optional_configuration_shown', {
+      trackAnalytics('onboarding.js_loader_optional_configuration_shown', {
         organization,
         platform: currentPlatform,
         project_id: project.id,
@@ -281,6 +304,28 @@ Sentry.onLoad(function() {
             {': '}
             {t('Learn how to configure your SDK using our Loader Script')}
           </li>
+          {!products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
+            <li>
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/">
+                {t('Performance Monitoring')}
+              </ExternalLink>
+              {': '}
+              {t(
+                'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
+              )}
+            </li>
+          )}
+          {!products.includes(ProductSolution.SESSION_REPLAY) && (
+            <li>
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/">
+                {t('Session Replay')}
+              </ExternalLink>
+              {': '}
+              {t(
+                'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
+              )}
+            </li>
+          )}
         </ul>
       </DocumentationWrapper>
     </DocsWrapper>

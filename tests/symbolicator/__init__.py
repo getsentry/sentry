@@ -22,21 +22,12 @@ def strip_frame(frame):
     return frame
 
 
-NORMALIZED_REGISTERS = {}
-
-
-def normalize_register(name):
-    return NORMALIZED_REGISTERS.get(name, name)
-
-
 def strip_stacktrace(stacktrace):
     if stacktrace:
         stacktrace = dict(stacktrace)
         stacktrace["frames"] = [strip_frame(x) for x in stacktrace.get("frames") or ()]
         try:
-            stacktrace["registers"] = {
-                normalize_register(k): v for k, v in stacktrace["registers"].items()
-            }
+            stacktrace["registers"] = {k: v for k, v in stacktrace["registers"].items()}
         except KeyError:
             pass
 

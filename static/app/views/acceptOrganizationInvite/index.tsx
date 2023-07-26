@@ -12,7 +12,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
@@ -28,13 +28,13 @@ type InviteDetails = {
 
 type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   acceptError: boolean | undefined;
   accepting: boolean | undefined;
   inviteDetails: InviteDetails;
 };
 
-class AcceptOrganizationInvite extends AsyncView<Props, State> {
+class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
   disableErrorReport = false;
 
   get orgSlug(): string | null {
@@ -49,7 +49,7 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     return null;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     if (this.orgSlug) {
       return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];

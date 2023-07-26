@@ -1,14 +1,15 @@
-from django.core.validators import ValidationError, validate_slug
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import Project
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization) -> Response:
         """
@@ -38,7 +39,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
 
         rv = {}
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             projects = {}
 
             # Clear out all slugs first so that we can move them

@@ -11,7 +11,8 @@ from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import sentry_relay
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from typing_extensions import TypeAlias
 
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
@@ -98,7 +99,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ap",
         "api",
         "app",
-        "as1",
         "at",
         "au1",
         "auth",
@@ -114,12 +114,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "contact",
         "corp",
         "customers",
+        "de",
         "debug",
-        "demo",
+        "devinfra",
         "docs",
         "enterprise",
-        "eu1",
-        "eu2",
+        "eu",
         "events",
         "expenses",
         "ext",
@@ -130,17 +130,21 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "for",
         "from",
         "get-cli",
+        "github-deployment-gate",
         "guide",
         "help",
         "ingest",
+        "ingest-beta",
         "integration-platform",
         "integrations",
         "invoice",
         "invoices",
+        "ja",
         "jobs",
         "legal",
         "login",
         "logout",
+        "lp",
         "mail",
         "manage",
         "my",
@@ -181,8 +185,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "thanks",
         "themonitor",
         "trust",
-        "us1",
-        "us2",
+        "us",
         "vs",
         "welcome",
     )
@@ -628,13 +631,15 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
+AI_SUGGESTED_SOLUTION = True
+GITHUB_PR_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-DataCategory = sentry_relay.DataCategory
+DataCategory: TypeAlias = sentry_relay.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
@@ -681,3 +686,18 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+
+# DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: livez, readyz
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+    "*/ping",
+]

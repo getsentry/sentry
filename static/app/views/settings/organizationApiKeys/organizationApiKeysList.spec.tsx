@@ -20,7 +20,6 @@ describe('OrganizationApiKeysList', function () {
     ];
 
     const {organization, router, route} = initializeOrg({
-      ...initializeOrg(),
       router: {routes},
     });
 
@@ -29,7 +28,7 @@ describe('OrganizationApiKeysList', function () {
         organization={organization}
         params={{}}
         routes={routes}
-        keys={[TestStubs.ApiKey()]}
+        keys={[TestStubs.DeprecatedApiKey()]}
         router={router}
         routeParams={{}}
         route={route}

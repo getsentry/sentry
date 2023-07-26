@@ -5,7 +5,7 @@ from typing import Any
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
@@ -18,7 +18,7 @@ from sentry.shared_integrations.exceptions import ApiRateLimitedError, Duplicate
 logger = logging.getLogger("sentry.rules")
 
 
-class SlackNotifyServiceForm(forms.Form):  # type: ignore
+class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.CharField(required=False, widget=forms.TextInput())

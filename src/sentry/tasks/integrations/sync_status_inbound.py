@@ -2,8 +2,10 @@ from typing import Any, Mapping
 
 from sentry import analytics
 from sentry.models import Group, GroupStatus, Integration, Organization
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 @instrumented_task(
@@ -19,7 +21,10 @@ def sync_status_inbound(
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
-    integration = Integration.objects.get(id=integration_id)
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        raise Integration.DoesNotExist
+
     organizations = Organization.objects.filter(id=organization_id)
     affected_groups = Group.objects.get_groups_by_external_issue(
         integration, organizations, issue_key
@@ -27,7 +32,9 @@ def sync_status_inbound(
     if not affected_groups:
         return
 
-    installation = integration.get_installation(organization_id=organization_id)
+    installation = integration_service.get_installation(
+        integration=integration, organization_id=organization_id
+    )
 
     try:
         # This makes an API call.
@@ -37,7 +44,10 @@ def sync_status_inbound(
 
     if action == ResolveSyncAction.RESOLVE:
         Group.objects.update_group_status(
-            affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
+            groups=affected_groups,
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
         )
 
         for group in affected_groups:
@@ -53,5 +63,8 @@ def sync_status_inbound(
             )
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
-            affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
+            groups=affected_groups,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            activity_type=ActivityType.SET_UNRESOLVED,
         )

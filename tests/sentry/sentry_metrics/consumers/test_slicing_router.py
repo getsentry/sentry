@@ -42,16 +42,14 @@ def metrics_message(org_id: int) -> Message[RoutingPayload]:
 
 @pytest.fixture
 def setup_slicing(monkeypatch) -> None:
+    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1})
     monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         (KAFKA_SNUBA_GENERIC_METRICS, 0),
         {"topic": "sliced_topic_0", "cluster": "sliceable_0"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         (KAFKA_SNUBA_GENERIC_METRICS, 1),
         {"topic": "sliced_topic_1", "cluster": "sliceable_1"},
     )
@@ -117,12 +115,12 @@ def test_with_misconfiguration(metrics_message, monkeypatch):
     messages should be routed to the logical topic.
     """
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         (KAFKA_SNUBA_GENERIC_METRICS, 0),
         {"topic": "sliced_topic_0"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         (KAFKA_SNUBA_GENERIC_METRICS, 1),
         {"topic": "sliced_topic_1"},
     )
@@ -141,24 +139,22 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
         _validate_slicing_consumer_config("sliceable")
 
     # Let the check for slicing config pass
-    monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
-    )
+    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1})
 
     # Create the sliced kafka topics but omit defining the broker config in
     # KAFKA_CLUSTERS
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         ("sliceable", 0),
         {"topic": "sliced_topic_0", "cluster": "sliceable_0"},
     )
     monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,  # type: ignore
+        SLICED_KAFKA_TOPICS,
         ("sliceable", 1),
         {"topic": "sliced_topic_1", "cluster": "sliceable_1"},
     )
     monkeypatch.setitem(
-        KAFKA_CLUSTERS,  # type: ignore
+        KAFKA_CLUSTERS,
         "sliceable_0",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
@@ -167,7 +163,7 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
 
     # Now add the broker config for the second slice
     monkeypatch.setitem(
-        KAFKA_CLUSTERS,  # type: ignore
+        KAFKA_CLUSTERS,
         "sliceable_1",
         {"bootstrap.servers": "127.0.0.1:9092"},
     )
@@ -180,20 +176,16 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
 
 def test_validate_slicing_config(monkeypatch) -> None:
     # Valid setup(s)
-    monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
-    )
+    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1})
     _validate_slicing_config()
 
     monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 64): 0, (64, 66): 1, (66, 100): 0, (100, 256): 1}  # type: ignore
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 64): 0, (64, 66): 1, (66, 100): 0, (100, 256): 1}
     )
     _validate_slicing_config()
 
     # Assign a given logical partition to two slices
-    monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 129): 0, (128, 256): 1}  # type: ignore
-    )
+    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "sliceable", {(0, 129): 0, (128, 256): 1})
     with pytest.raises(
         SlicingConfigurationException,
         match=r"'sliceable' has two assignments to logical partition 128",
@@ -201,9 +193,7 @@ def test_validate_slicing_config(monkeypatch) -> None:
         _validate_slicing_config()
 
     # Fail to assign a logical partition to a slice
-    monkeypatch.setitem(
-        SENTRY_SLICING_CONFIG, "sliceable", {(0, 127): 0, (128, 256): 1}  # type: ignore
-    )
+    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "sliceable", {(0, 127): 0, (128, 256): 1})
     with pytest.raises(
         SlicingConfigurationException,
         match=r"'sliceable' is missing logical partition assignments: \{127\}",

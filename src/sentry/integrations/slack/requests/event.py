@@ -32,7 +32,7 @@ class SlackEventRequest(SlackDMRequest):
             # Challenge requests only include the Token and data to verify the
             # request, so only validate those.
             self._info("slack.event.url_verification")
-            self._authorize()
+            self.authorize()
             super(SlackDMRequest, self)._validate_data()
         else:
             # Non-Challenge requests need to validate everything plus the data
@@ -70,8 +70,8 @@ class SlackEventRequest(SlackDMRequest):
             self._error("slack.event.invalid-event-type")
             raise SlackRequestError(status=400)
 
-    def _validate_integration(self) -> None:
-        super()._validate_integration()
+    def validate_integration(self) -> None:
+        super().validate_integration()
 
         if (self.text in COMMANDS) or (
             self.type == "link_shared" and has_discover_links(self.links)

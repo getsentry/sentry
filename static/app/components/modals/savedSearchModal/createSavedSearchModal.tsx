@@ -3,12 +3,12 @@ import {useState} from 'react';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Form} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCreateSavedSearch} from 'sentry/views/issueList/mutations/useCreateSavedSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -18,28 +18,15 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
-
-function validateSortOption({
-  organization,
-  sort,
-}: {
-  organization: Organization;
-  sort?: string;
-}) {
-  if (getSortOptions(organization).find(option => option === sort)) {
+function validateSortOption({sort}: {sort?: string}) {
+  const sortOptions = [
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    IssueSortOptions.PRIORITY,
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -61,8 +48,8 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({organization, sort}),
-    visibility: SavedSearchVisibility.Owner,
+    sort: validateSortOption({sort}),
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (
@@ -76,7 +63,7 @@ export function CreateSavedSearchModal({
 
     addLoadingMessage(t('Saving Changes'));
 
-    trackAdvancedAnalyticsEvent('search.saved_search_create', {
+    trackAnalytics('search.saved_search_create', {
       name: data.name,
       organization,
       query: data.query,

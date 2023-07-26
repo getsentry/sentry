@@ -1,9 +1,8 @@
 from collections import namedtuple
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
-from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import BooleanCondition, Condition
@@ -12,7 +11,8 @@ from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
 from typing_extensions import TypedDict
 
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models import Environment, Organization, Project, Team
+from sentry.services.hybrid_cloud.user import RpcUser
 
 WhereType = Union[Condition, BooleanCondition]
 # Replaced by SnubaParams
@@ -52,7 +52,7 @@ class SnubaParams:
     # The None value in this sequence is because the filter params could include that
     environments: Sequence[Union[Environment, None]]
     projects: Sequence[Project]
-    user: Optional[User]
+    user: Optional[RpcUser]
     teams: Sequence[Team]
     organization: Optional[Organization]
 

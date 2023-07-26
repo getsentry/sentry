@@ -36,7 +36,7 @@ import {
   isMeasurement,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import {
@@ -242,9 +242,6 @@ export function getWidgetDiscoverUrl(
 
   // Visualization specific transforms
   switch (widget.displayType) {
-    case DisplayType.WORLD_MAP:
-      discoverLocation.query.display = DisplayModes.WORLDMAP;
-      break;
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
@@ -355,7 +352,7 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        dataset: 'metricsEnhanced',
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
       }
     : {};
 }
@@ -412,7 +409,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
       );
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
-          parsedCondition.type === Token.Filter &&
+          parsedCondition.type === Token.FILTER &&
           parsedCondition.key?.text === 'transaction'
       );
       return transactionSelected || transactionUsedInFilter;

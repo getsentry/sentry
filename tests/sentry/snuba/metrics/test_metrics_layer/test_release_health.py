@@ -6,10 +6,10 @@ import time
 import pytest
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from snuba_sdk import Limit, Offset
+from snuba_sdk import Column, Condition, Limit, Offset, Op
 
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import MetricField
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics import MetricField, MetricGroupByField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
@@ -48,7 +48,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         assert data["meta"] == sorted(
             [
@@ -76,7 +76,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )["meta"] == sorted(
             [
                 {"name": "session.errored", "type": "Float64"},
@@ -123,7 +123,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["errored_sessions_alias"] == 7
@@ -170,7 +170,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
@@ -203,7 +203,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
@@ -254,7 +254,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["anr_alias"] == 0.5
@@ -269,3 +269,48 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             key=lambda elem: elem["name"],
         )
+
+    def test_having(self):
+        for name, count in (
+            ("r1", 1),
+            ("r3", 3),
+        ):
+            for _ in range(count):
+                self.store_session(
+                    self.build_session(
+                        project_id=self.project.id,
+                        started=time.time() - 60,
+                        status="ok",
+                        release=name,
+                    )
+                )
+
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri=str(SessionMRI.ALL.value),
+                    alias="count",
+                ),
+            ],
+            groupby=[MetricGroupByField(field="release")],
+            having=[Condition(Column("count"), Op.GT, 2)],
+            include_totals=True,
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            use_case_id=UseCaseID.SESSIONS,
+        )
+
+        groups = data["groups"]
+        # we should only get r3 ( having condition )
+        assert len(groups) == 1
+
+        group = groups[0]
+        # the group should be r3 with 3 sessions
+        assert group["by"]["release"] == "r3"
+        assert group["totals"]["count"] == 3.0

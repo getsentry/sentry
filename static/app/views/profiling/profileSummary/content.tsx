@@ -13,12 +13,9 @@ import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useOrganization from 'sentry/utils/useOrganization';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
@@ -30,7 +27,6 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
-  const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -69,21 +65,21 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
-  const isAggregateFlamegraphEnabled = organization.features.includes(
-    'profiling-aggregate-flamegraph'
-  );
-
   return (
     <Fragment>
       <Layout.Main fullWidth>
         <ProfileCharts
+          referrer="api.profiling.profile-summary-chart"
           query={props.query}
           hideCount
-          compact={isAggregateFlamegraphEnabled}
+          compact
         />
-        {isAggregateFlamegraphEnabled && (
-          <AggregateFlamegraphPanel transaction={props.transaction} />
-        )}
+        <AggregateFlamegraphPanel transaction={props.transaction} />
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
@@ -94,7 +90,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           <StyledPagination
             pageLinks={
               profiles.status === 'success'
-                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                ? profiles.getResponseHeader?.('Link') ?? null
                 : null
             }
             size="xs"
@@ -102,15 +98,10 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         </TableHeader>
         <ProfileEventsTable
           columns={fields}
-          data={profiles.status === 'success' ? profiles.data[0] : null}
+          data={profiles.status === 'success' ? profiles.data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           sort={sort}
-        />
-        <SuspectFunctionsTable
-          project={props.project}
-          transaction={props.transaction}
-          analyticsPageSource="profiling_transaction"
         />
       </Layout.Main>
     </Fragment>

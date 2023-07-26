@@ -4,6 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -12,7 +13,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +55,6 @@ function getErrorMessage(
     }
     return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
   }
-
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
 
   switch (error.type) {
@@ -83,20 +83,6 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
           ),
-        },
-      ];
-    case SourceMapProcessingIssueType.MISSING_USER_AGENT:
-      return [
-        {
-          title: t('Sentry not part of release pipeline'),
-          desc: tct(
-            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your [init]. The value for this event is [version].",
-            {
-              init: sentryInit,
-              version: <code>{error.data.version}</code>,
-            }
-          ),
-          docsLink: defaultDocsLink,
         },
       ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
@@ -168,6 +154,9 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
+    // Need to return something but this does not need to follow the pattern since it uses a different alert
+    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
+      return [{title: 'Debug Id but no Sourcemaps'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -274,18 +263,26 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   };
 
   const handleDocsClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.docs_link_clicked', {
+    trackAnalytics('source_map_debug.docs_link_clicked', {
       ...analyticsParams,
       type,
     });
   };
 
   const handleExpandClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.expand_clicked', {
+    trackAnalytics('source_map_debug.expand_clicked', {
       ...analyticsParams,
       type,
     });
   };
+
+  if (
+    errorMessages.filter(
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
+    ).length > 0
+  ) {
+    return <SourceMapsWizard />;
+  }
 
   return (
     <Alert
@@ -301,12 +298,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
                 key={idx}
                 title={message.title}
                 docsLink={
-                  <DocsExternalLink
-                    href={message.docsLink}
-                    onClick={() => handleDocsClick(message.type)}
-                  >
-                    {t('Read Guide')}
-                  </DocsExternalLink>
+                  message.docsLink ? (
+                    <DocsExternalLink
+                      href={message.docsLink}
+                      onClick={() => handleDocsClick(message.type)}
+                    >
+                      {t('Read Guide')}
+                    </DocsExternalLink>
+                  ) : null
                 }
                 onExpandClick={() => handleExpandClick(message.type)}
               >

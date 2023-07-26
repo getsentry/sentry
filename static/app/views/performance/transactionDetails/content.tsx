@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -20,6 +21,7 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -56,9 +58,9 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State> {
+class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -75,7 +77,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const {eventSlug} = params;
 
@@ -184,7 +186,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       }}
                       eventSlug={eventSlug}
                     />
-                    <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
+                    <Layout.Title data-test-id="event-header">
+                      <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                        <EventTitle>{event.title}</EventTitle>
+                      </Tooltip>
+                    </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <ButtonBar gap={1}>
@@ -293,15 +299,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      {(organization.features.includes('dashboards-mep') ||
-                        organization.features.includes('mep-rollout-flag')) && (
-                        <EventCustomPerformanceMetrics
-                          event={event}
-                          location={location}
-                          organization={organization}
-                          source={EventDetailPageSource.PERFORMANCE}
-                        />
-                      )}
+                      <EventCustomPerformanceMetrics
+                        event={event}
+                        location={location}
+                        organization={organization}
+                        source={EventDetailPageSource.PERFORMANCE}
+                      />
                       <TagsTable
                         event={event}
                         query={query}
@@ -343,7 +346,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <SentryDocumentTitle
-        title={t('Performance - Event Details')}
+        title={t('Performance — Event Details')}
         orgSlug={organization.slug}
       >
         {super.renderComponent() as React.ReactChild}
@@ -351,5 +354,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const EventTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
 
 export default withRouteAnalytics(EventDetailsContent);

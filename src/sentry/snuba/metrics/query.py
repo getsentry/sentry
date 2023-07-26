@@ -1,4 +1,6 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -7,11 +9,11 @@ from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
 from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
-from snuba_sdk.conditions import BooleanCondition, Condition
+from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
@@ -35,7 +37,9 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
+    params: Optional[
+        Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
+    ] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -148,6 +152,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
+    having: Optional[ConditionGroup] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
@@ -165,20 +170,18 @@ class MetricsQuery(MetricsQueryValidationRunner):
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
-    def use_case_key(self) -> UseCaseKey:
+    def use_case_id(self) -> UseCaseID:
         return self._use_case_id(self.select[0].metric_mri)
 
     @staticmethod
-    def _use_case_id(metric_mri: str) -> UseCaseKey:
+    def _use_case_id(metric_mri: str) -> UseCaseID:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
         assert parsed_mri is not None
-
-        if parsed_mri.namespace == "transactions":
-            return UseCaseKey.PERFORMANCE
-        elif parsed_mri.namespace == "sessions":
-            return UseCaseKey.RELEASE_HEALTH
-        raise ValueError("Can't find correct use_case_id based on metric MRI")
+        try:
+            return UseCaseID(parsed_mri.namespace)
+        except ValueError:
+            raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
@@ -340,7 +343,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_granularity(self) -> None:
         # Logic specific to how we handle time series in discover in terms of granularity and interval
         if (
-            self.use_case_key == UseCaseKey.PERFORMANCE
+            self.use_case_id == UseCaseID.TRANSACTIONS
             and self.include_series
             and self.interval is not None
         ):
@@ -377,8 +380,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def validate_interval(self) -> None:
         if self.interval is not None:
-            if self.use_case_key == UseCaseKey.RELEASE_HEALTH or (
-                self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
+            if self.use_case_id is UseCaseID.SESSIONS or (
+                self.use_case_id is UseCaseID.TRANSACTIONS and not self.include_series
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
@@ -399,7 +402,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_key == UseCaseKey.PERFORMANCE
+            self.use_case_id is UseCaseID.TRANSACTIONS
             and self.include_series
             and self.interval is None
         ):

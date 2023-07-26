@@ -50,7 +50,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export type Fidelity = 'high' | 'medium' | 'low';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -61,6 +61,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
       return '4h';
     }
     if (fidelity === 'medium') {
+      return '1d';
+    }
+    if (fidelity === 'metrics') {
       return '1d';
     }
     return '2d';
@@ -74,6 +77,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '4h';
     }
+    if (fidelity === 'metrics') {
+      return '1d';
+    }
     return '1d';
   }
 
@@ -82,6 +88,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
       return '30m';
     }
     if (fidelity === 'medium') {
+      return '1h';
+    }
+    if (fidelity === 'metrics') {
       return '1h';
     }
     return '12h';
@@ -95,6 +104,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '1h';
     }
+    if (fidelity === 'metrics') {
+      return '1h';
+    }
     return '6h';
   }
 
@@ -106,6 +118,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     if (fidelity === 'medium') {
       return '15m';
     }
+    if (fidelity === 'metrics') {
+      return '1h';
+    }
     return '1h';
   }
 
@@ -115,6 +130,9 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
   }
   if (fidelity === 'medium') {
     return '5m';
+  }
+  if (fidelity === 'metrics') {
+    return '1m';
   }
   return '10m';
 }

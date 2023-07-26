@@ -10,7 +10,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   MEPState,
@@ -143,7 +143,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   }
 
   function handleSearch(searchQuery: string, currentMEPState?: MEPState) {
-    trackAdvancedAnalyticsEvent('performance_views.overview.search', {organization});
+    trackAnalytics('performance_views.overview.search', {organization});
 
     browserHistory.push({
       pathname: location.pathname,

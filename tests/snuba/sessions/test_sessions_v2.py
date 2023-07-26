@@ -6,17 +6,15 @@ import pytz
 from django.http import QueryDict
 from freezegun import freeze_time
 
-from sentry.release_health.base import SessionsQueryConfig
-
-# from sentry.testutils import TestCase
+from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.snuba.sessions_v2 import (
-    AllowedResolution,
     InvalidParams,
     QueryDefinition,
     get_constrained_date_range,
     get_timestamps,
     massage_sessions_result,
 )
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def _make_query(qs, allow_minute_resolution=True, params=None):
@@ -234,7 +232,7 @@ def _get_query_maker_params(project):
     }
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_proj_slug_in_query(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -246,7 +244,7 @@ def test_filter_proj_slug_in_query(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_proj_slug_in_top_filter(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -258,7 +256,7 @@ def test_filter_proj_slug_in_top_filter(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_proj_slug_in_top_filter_and_query(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -270,7 +268,7 @@ def test_filter_proj_slug_in_top_filter_and_query(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_proj_neither_in_top_filter_nor_query(default_project):
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
@@ -281,7 +279,7 @@ def test_proj_neither_in_top_filter_nor_query(default_project):
     assert "project_id" not in query_def.params
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_env_in_query(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -292,7 +290,7 @@ def test_filter_env_in_query(default_project):
     assert query_def.query == f"environment:{env}"
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_env_in_top_filter(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -304,7 +302,7 @@ def test_filter_env_in_top_filter(default_project):
     assert query_def.query == ""
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_filter_env_in_top_filter_and_query(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -316,7 +314,7 @@ def test_filter_env_in_top_filter_and_query(default_project):
     assert query_def.query == f"environment:{env}"
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_env_neither_in_top_filter_nor_query(default_project):
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
@@ -330,9 +328,6 @@ def test_env_neither_in_top_filter_nor_query(default_project):
 def test_massage_empty():
     query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)")
 
-    result_totals = []
-    result_timeseries = []
-
     expected_result = {
         "start": "2020-12-18T00:00:00Z",
         "end": "2020-12-18T11:15:00Z",
@@ -341,7 +336,7 @@ def test_massage_empty():
         "groups": [],
     }
 
-    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+    actual_result = result_sorted(massage_sessions_result(query, [], []))
 
     assert actual_result == expected_result
 
@@ -353,7 +348,6 @@ def test_massage_unbalanced_results():
     result_totals = [
         {"release": "test-example-release", "sessions": 1},
     ]
-    result_timeseries = []
 
     expected_result = {
         "start": "2020-12-18T00:00:00Z",
@@ -369,7 +363,7 @@ def test_massage_unbalanced_results():
         ],
     }
 
-    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, []))
 
     assert actual_result == expected_result
 

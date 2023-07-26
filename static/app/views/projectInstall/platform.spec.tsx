@@ -1,16 +1,58 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {Project} from 'sentry/types';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
+function mockProjectApiResponses(projects: Project[]) {
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/organizations/org-slug/projects/',
+    body: projects,
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/docs/other/',
+    body: {},
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/rules/',
+    body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: '/projects/org-slug/project-slug/',
+    body: projects,
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/keys/',
+    method: 'GET',
+    body: [TestStubs.ProjectKeys()[0]],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/projects/org-slug/project-slug/keys/${TestStubs.ProjectKeys()[0].public}/`,
+    method: 'PUT',
+    body: {},
+  });
+}
+
 describe('ProjectInstallPlatform', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   it('should render NotFound if no matching integration/platform', async function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
-      platform: 'lua',
     };
     const {organization, router, route, project, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {
           query: {},
@@ -19,11 +61,7 @@ describe('ProjectInstallPlatform', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/projects/',
-      body: [project],
-    });
+    mockProjectApiResponses([{...project, platform: 'lua'}]);
 
     render(
       <ProjectInstallPlatform
@@ -43,14 +81,12 @@ describe('ProjectInstallPlatform', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should redirect to if no matching platform', async function () {
+  it('should display info for a non-supported platform', async function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
-      platform: 'other',
     };
 
-    const {organization, router, route, project, routerContext} = initializeOrg({
-      ...initializeOrg(),
+    const {organization, router, route, project} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -59,11 +95,10 @@ describe('ProjectInstallPlatform', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/projects/',
-      body: [project],
-    });
+    // this is needed because we don't handle a loading state in the UI
+    ProjectsStore.loadInitialData([{...project, platform: 'other'}]);
+
+    mockProjectApiResponses([{...project, platform: 'other'}]);
 
     render(
       <ProjectInstallPlatform
@@ -76,12 +111,53 @@ describe('ProjectInstallPlatform', function () {
       />,
       {
         organization,
+      }
+    );
+
+    expect(
+      await screen.findByText(/We cannot provide instructions for 'Other' projects/)
+    ).toBeInTheDocument();
+  });
+
+  it('should render getting started docs for correct platform', async function () {
+    const project = TestStubs.Project({platform: 'javascript'});
+
+    const routeParams = {
+      projectId: project.slug,
+      platform: 'python',
+    };
+
+    const {router, route, routerContext} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: routeParams,
+      },
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    mockProjectApiResponses([project]);
+
+    render(
+      <ProjectInstallPlatform
+        router={router}
+        route={route}
+        location={router.location}
+        routeParams={routeParams}
+        routes={router.routes}
+        params={routeParams}
+      />,
+      {
         context: routerContext,
       }
     );
 
-    await waitFor(() => {
-      expect(router.push).toHaveBeenCalledTimes(1);
-    });
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Configure JavaScript SDK',
+      })
+    ).toBeInTheDocument();
   });
 });

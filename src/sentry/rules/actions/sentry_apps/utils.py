@@ -21,7 +21,7 @@ def trigger_sentry_app_action_creators_for_issues(
             fields=action["settings"], install_uuid=action.get("sentryAppInstallationUuid")
         )
         # Bubble up errors from Sentry App to the UI
-        if not result["success"]:
-            raise serializers.ValidationError({"actions": [result["message"]]})
+        if not result.success:
+            raise serializers.ValidationError({"actions": [result.message]})
         created = "alert-rule-action"
     return created

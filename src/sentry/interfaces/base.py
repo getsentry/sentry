@@ -3,7 +3,7 @@ from html import escape
 from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.decorators import classproperty

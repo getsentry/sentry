@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry import release_health
 from sentry.models import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
@@ -352,9 +353,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             )
             assert response.status_code == 200, response.content
 
-            from sentry.api.endpoints.organization_sessions import release_health
-
-            if release_health.is_metrics_based():
+            if release_health.backend.is_metrics_based():
                 # With the metrics backend, we should get exactly what we asked for,
                 # 6 intervals with 10 second length. However, because of rounding,
                 # we get it rounded to the next minute (see
@@ -398,9 +397,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = req()
         assert response.status_code == 200
 
-        from sentry.api.endpoints.organization_sessions import release_health
-
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
@@ -416,7 +413,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = req(field=["anr_rate()", "sum(session)"])
         assert response.status_code == 200
 
-        if release_health.is_metrics_based():
+        if release_health.backend.is_metrics_based():
             # Both these fields are supported by the metrics backend
             assert response.data["groups"] == [
                 {
@@ -1307,19 +1304,19 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 @region_silo_test
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
-    def adjust_start(self, start: datetime, interval: int) -> datetime:
+    def adjust_start(self, start: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         start, _end, _num_intervals = to_intervals(
             start, start + datetime.timedelta(minutes=1), interval
         )
         return start
 
-    def adjust_end(self, end: datetime, interval: int) -> datetime:
+    def adjust_end(self, end: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         _start, end, _num_intervals = to_intervals(
             end - datetime.timedelta(minutes=1), end, interval
@@ -1878,7 +1875,7 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
 
-@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+@patch("sentry.release_health.backend", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)

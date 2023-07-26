@@ -1,8 +1,9 @@
-from enum import Enum
 from typing import Optional, Sequence, Set
 
+from sentry.services.hybrid_cloud import ValueEqualityEnum
 
-class ExternalProviders(Enum):
+
+class ExternalProviders(ValueEqualityEnum):
     UNUSED_GH = 0
     UNUSED_GL = 1
 

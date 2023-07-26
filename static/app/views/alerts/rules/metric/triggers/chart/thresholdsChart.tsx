@@ -10,7 +10,7 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';

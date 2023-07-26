@@ -1,6 +1,5 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTrace from 'sentry/views/issueDetails/quickTrace';
 
 describe('IssueQuickTrace', () => {
@@ -25,17 +24,5 @@ describe('IssueQuickTrace', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders a placeholder if event has a trace context but finds nothing', () => {
-    MockApiClient.addMockResponse({});
-
-    render(
-      <QuickTraceContext.Provider value={undefined}>
-        <QuickTrace {...defaultProps} />
-      </QuickTraceContext.Provider>
-    );
-
-    expect(screen.getByTestId('missing-trace-placeholder')).toBeInTheDocument();
   });
 });

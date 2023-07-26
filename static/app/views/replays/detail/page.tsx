@@ -7,26 +7,36 @@ import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
+import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ShareButton from 'sentry/components/replays/shareButton';
-import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
+import FrameWalker from 'sentry/components/replays/walker/frameWalker';
+import StringWalker from 'sentry/components/replays/walker/stringWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgSlug: string;
-  crumbs?: Crumb[];
-  replayRecord?: ReplayRecord;
+  projectSlug: string | null;
+  replayErrors: ReplayError[];
+  replayRecord: undefined | ReplayRecord;
+  frames?: ReplayFrame[];
 };
 
-function Page({children, crumbs, orgSlug, replayRecord}: Props) {
+function Page({
+  children,
+  frames,
+  orgSlug,
+  replayRecord,
+  projectSlug,
+  replayErrors,
+}: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} - Session Replay - ${orgSlug}`
-    : `Session Replay - ${orgSlug}`;
+    ? `${replayRecord.id} — Session Replay — ${orgSlug}`
+    : `Session Replay — ${orgSlug}`;
 
   const header = (
     <Header>
@@ -35,10 +45,12 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
-        <DeleteButton />
+        {replayRecord?.id && projectSlug && (
+          <DeleteButton replayId={replayRecord.id} projectSlug={projectSlug} />
+        )}
       </ButtonActionsWrapper>
 
-      {replayRecord && crumbs ? (
+      {replayRecord ? (
         <UserBadge
           avatarSize={32}
           displayName={
@@ -56,7 +68,11 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
             <Cols>
-              <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+              {frames?.length ? (
+                <FrameWalker replayRecord={replayRecord} frames={frames} />
+              ) : (
+                <StringWalker urls={replayRecord.urls} />
+              )}
             </Cols>
           }
         />
@@ -64,7 +80,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <HeaderPlaceholder width="100%" height="58px" />
       )}
 
-      <ReplayMetaData replayRecord={replayRecord} />
+      <ReplayMetaData replayRecord={replayRecord} replayErrors={replayErrors} />
     </Header>
   );
 

@@ -25,6 +25,7 @@ interface FlamegraphTreeTableRowProps {
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
+    expand: boolean,
     opts?: {expandChildren: boolean}
   ) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
@@ -57,7 +58,7 @@ export const FlamegraphTreeTableRow = forwardRef<
     const handleExpanding = useCallback(
       (evt: React.MouseEvent) => {
         evt.stopPropagation();
-        onExpandClick(node, {expandChildren: evt.metaKey});
+        onExpandClick(node, !node.expanded, {expandChildren: evt.metaKey});
       },
       [node, onExpandClick]
     );

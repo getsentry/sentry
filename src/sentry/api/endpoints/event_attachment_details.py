@@ -78,7 +78,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 

@@ -33,5 +33,6 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.nextjs': 'nextjs',
   'sentry.javascript.remix': 'remix',
   'sentry.javascript.svelte': 'svelte',
+  'sentry.javascript.sveltekit': 'sveltekit',
   'sentry.javascript.react-native': 'react-native',
 };

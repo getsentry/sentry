@@ -10,11 +10,11 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -48,7 +48,7 @@ function Chart(props: Props) {
   }
 
   function handleDisplayChange(value: string) {
-    trackAdvancedAnalyticsEvent('performance_views.span_summary.change_chart', {
+    trackAnalytics('performance_views.span_summary.change_chart', {
       organization: props.organization,
       change_to_display: value,
     });

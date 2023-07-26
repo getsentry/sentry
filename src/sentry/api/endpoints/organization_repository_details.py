@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, Repository, ScheduledDeletion
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -20,6 +21,7 @@ class RepositorySerializer(serializers.Serializer):
             # XXX(dcramer): these are aliased, and we prefer 'active' over 'visible'
             ("visible", "visible"),
             ("active", "active"),
+            ("hidden", "hidden"),
         )
     )
     name = serializers.CharField(required=False)
@@ -52,7 +54,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         update_kwargs = {}
         if result.get("status"):
             if result["status"] in ("visible", "active"):
-                update_kwargs["status"] = ObjectStatus.VISIBLE
+                update_kwargs["status"] = ObjectStatus.ACTIVE
+            elif result["status"] == "hidden":
+                update_kwargs["status"] = ObjectStatus.HIDDEN
             else:
                 raise NotImplementedError
         if result.get("integrationId"):
@@ -78,14 +82,16 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         if update_kwargs:
             old_status = repo.status
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Repository)):
                 repo.update(**update_kwargs)
                 if (
                     old_status == ObjectStatus.PENDING_DELETION
-                    and repo.status == ObjectStatus.VISIBLE
+                    and repo.status == ObjectStatus.ACTIVE
                 ):
                     repo.reset_pending_deletion_field_names()
                     repo.delete_pending_deletion_option()
+                elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
+                    repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
 
         return Response(serialize(repo, request.user))
 
@@ -98,9 +104,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Repository)):
             updated = Repository.objects.filter(
-                id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
+                id=repo.id, status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED]
             ).update(status=ObjectStatus.PENDING_DELETION)
             if updated:
                 repo.status = ObjectStatus.PENDING_DELETION

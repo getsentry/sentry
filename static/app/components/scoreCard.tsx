@@ -1,7 +1,7 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -92,7 +92,7 @@ const HeaderWrapper = styled('div')`
 export const ScoreWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: baseline;
   max-width: 100%;
 `;
 

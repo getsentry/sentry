@@ -68,13 +68,13 @@ class AsanaAuth(BaseOAuth2):
         response.raise_for_status()
 
         try:
-            response = response.json()
+            response_json = response.json()
         except (ValueError, KeyError):
             raise AuthUnknownError(self)
 
-        response.pop("data")
-        self.process_error(response)
-        return self.do_auth(response["access_token"], response=response, *args, **kwargs)
+        response_json.pop("data")
+        self.process_error(response_json)
+        return self.do_auth(response_json["access_token"], response=response_json, *args, **kwargs)
 
 
 # Backend definition

@@ -40,8 +40,8 @@ class FileBlobTest(TestCase):
         path2 = FileBlob.generate_unique_path()
         assert path != path2
 
-    @patch("sentry.models.file.delete_file_task")
-    def test_delete_handles_database_error(self, mock_delete_file):
+    @patch.object(FileBlob, "DELETE_FILE_TASK")
+    def test_delete_handles_database_error(self, mock_delete_file_region):
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj)
@@ -53,7 +53,7 @@ class FileBlobTest(TestCase):
                 blob.delete()
         # Even those postgres failed we should stil queue
         # a task to delete the filestore object.
-        assert mock_delete_file.apply_async.call_count == 1
+        assert mock_delete_file_region.apply_async.call_count == 1
 
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)

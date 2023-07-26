@@ -3,10 +3,11 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from sentry.models import outbox_context
 from sentry.types.region import RegionContextError, get_local_region
 
 _TTL = timedelta(minutes=5)
@@ -23,7 +24,9 @@ class SnowflakeIdMixin:
             if not self.id:
                 self.id = generate_snowflake_id(snowflake_redis_key)
             try:
-                with transaction.atomic():
+                # We need to route to the correct database in a split DB mode
+                #  so we use the class being mixed in to do this.
+                with outbox_context(transaction.atomic(using=router.db_for_write(type(self)))):
                     save_callback()
                 return
             except IntegrityError:
@@ -79,7 +82,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        segment_values[REGION_ID] = get_local_region().id
+        segment_values[REGION_ID] = get_local_region().snowflake_id
     except RegionContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = NULL_REGION_ID
 

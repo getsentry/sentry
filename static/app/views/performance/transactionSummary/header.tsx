@@ -1,4 +1,5 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,12 +10,12 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
@@ -55,7 +56,7 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+    trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
     });
   }
@@ -105,15 +106,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const projectIds = useMemo(
-    () => (project?.id ? [Number(project.id)] : []),
-    [project?.id]
-  );
-
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds,
   })[transactionName];
 
   return (
@@ -137,7 +132,9 @@ function TransactionHeader({
               avatarProps={{hasTooltip: true, tooltip: project.slug}}
             />
           )}
-          {transactionName}
+          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+            <TransactionName>{transactionName}</TransactionName>
+          </Tooltip>
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -193,12 +190,12 @@ function TransactionHeader({
                 gridColumn: '1 / -1',
               }}
             >
-              <TabList.Item key={Tab.TransactionSummary}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.Events}>{t('All Events')}</TabList.Item>
-              <TabList.Item key={Tab.Tags}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.Spans}>{t('Spans')}</TabList.Item>
+              <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+              <TabList.Item key={Tab.EVENTS}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
-                key={Tab.Anomalies}
+                key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}
                 hidden={!hasAnomalyDetection}
               >
@@ -206,28 +203,26 @@ function TransactionHeader({
                 <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
-                key={Tab.WebVitals}
+                key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}
                 hidden={!renderWebVitals}
               >
                 {t('Web Vitals')}
               </TabList.Item>
               <TabList.Item
-                key={Tab.Replays}
+                key={Tab.REPLAYS}
                 textValue={t('Replays')}
                 hidden={!hasSessionReplay}
               >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
               </TabList.Item>
               <TabList.Item
-                key={Tab.Profiling}
+                key={Tab.PROFILING}
                 textValue={t('Profiling')}
                 hidden={!hasProfiling}
               >
-                {t('Profiling')}
-                <FeatureBadge type="beta" tooltipProps={{disabled: true}} />
+                {t('Profiles')}
               </TabList.Item>
             </TabList>
           );
@@ -236,5 +231,9 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
+
+const TransactionName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
 
 export default TransactionHeader;

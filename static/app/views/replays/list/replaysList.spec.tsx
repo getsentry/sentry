@@ -59,6 +59,11 @@ function getMockContext(mockOrg: Organization) {
   return TestStubs.routerContext([{organization: mockOrg}]);
 }
 
+MockApiClient.addMockResponse({
+  url: '/organizations/org-slug/sdk-updates/',
+  body: [],
+});
+
 describe('ReplayList', () => {
   beforeEach(() => {
     mockUseReplayList.mockClear();
@@ -127,6 +132,6 @@ describe('ReplayList', () => {
     });
 
     await waitFor(() => expect(screen.getByTestId('replay-table')).toBeInTheDocument());
-    expect(mockUseReplayList).toHaveBeenCalledTimes(1);
+    expect(mockUseReplayList).toHaveBeenCalled();
   });
 });

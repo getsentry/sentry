@@ -6,13 +6,15 @@ from typing import TYPE_CHECKING, Mapping, Sequence
 from sentry import features
 from sentry.models import Group, GroupAssignee, Organization, Project
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
+@region_silo_function
 def where_should_sync(
     integration: RpcIntegration,
     key: str,
@@ -24,10 +26,14 @@ def where_should_sync(
     check the integration for that organization.
     """
     kwargs = dict()
-    if organization_id:
+    if organization_id is not None:
         kwargs["id"] = organization_id
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration.id, organization_id=organization_id
+        )
+    else:
+        ois = integration_service.get_organization_integrations(integration_id=integration.id)
 
-    ois = integration_service.get_organization_integrations(integration_id=integration.id)
     organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
 
     return [
@@ -52,6 +58,7 @@ def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> 
     return user_ids[0]
 
 
+@region_silo_function
 def sync_group_assignee_inbound(
     integration: RpcIntegration,
     email: str | None,
@@ -80,7 +87,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.deassign(group)
         return affected_groups
 
-    users = user_service.get_many_by_email(emails=[email])
+    users = user_service.get_many_by_email(emails=[email], is_verified=True)
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 

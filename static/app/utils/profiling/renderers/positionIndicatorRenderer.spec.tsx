@@ -61,9 +61,9 @@ describe('PositionIndicatorRenderer', () => {
     );
 
     expect(context.beginPath).toHaveBeenCalled();
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     expect(context.rect.mock.calls[0]).toEqual([0, 0, 200, 200]);
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     // We offset x by width of the border be
     expect(context.rect.mock.calls[1]).toEqual([
       80 - LightFlamegraphTheme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,

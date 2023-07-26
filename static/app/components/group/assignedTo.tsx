@@ -12,10 +12,6 @@ import {
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
-import {
-  findMatchedRules,
-  Rules,
-} from 'sentry/components/group/suggestedOwners/findMatchedRules';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
@@ -29,6 +25,30 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
+
+// TODO(ts): add the correct type
+type Rules = Array<any> | null;
+
+/**
+ * Given a list of rule objects returned from the API, locate the matching
+ * rules for a specific owner.
+ */
+function findMatchedRules(rules: Rules, owner: Actor) {
+  if (!rules) {
+    return undefined;
+  }
+
+  const matchOwner = (actorType: Actor['type'], key: string) =>
+    (actorType === 'user' && key === owner.email) ||
+    (actorType === 'team' && key === owner.name);
+
+  const actorHasOwner = ([actorType, key]) =>
+    actorType === owner.type && matchOwner(actorType, key);
+
+  return rules
+    .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
+    .map(([rule]) => rule);
+}
 
 interface AssignedToProps {
   group: Group;
@@ -151,9 +171,6 @@ function AssignedTo({
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const hasStreamlineTargetingFeature = organization.features.includes(
-    'streamline-targeting-context'
-  );
   const {data} = useCommitters(
     {
       eventId: event?.id ?? '',
@@ -161,7 +178,7 @@ function AssignedTo({
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: hasStreamlineTargetingFeature && defined(event?.id),
+      enabled: defined(event?.id),
     }
   );
 
@@ -171,7 +188,7 @@ function AssignedTo({
   }, [api, organization, project]);
 
   useEffect(() => {
-    if (!event || !organization.features.includes('streamline-targeting-context')) {
+    if (!event) {
       return () => {};
     }
 
@@ -194,32 +211,28 @@ function AssignedTo({
     };
   }, [api, event, organization, project.slug]);
 
-  const owners = hasStreamlineTargetingFeature
-    ? getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo)
-    : undefined;
+  const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
-        {hasStreamlineTargetingFeature && (
-          <Access access={['project:read']}>
-            <Button
-              onClick={() => {
-                openIssueOwnershipRuleModal({
-                  project,
-                  organization,
-                  issueId: group.id,
-                  eventData: event!,
-                });
-              }}
-              aria-label={t('Create Ownership Rule')}
-              icon={<IconSettings />}
-              borderless
-              size="xs"
-            />
-          </Access>
-        )}
+        <Access access={['project:read']}>
+          <Button
+            onClick={() => {
+              openIssueOwnershipRuleModal({
+                project,
+                organization,
+                issueId: group.id,
+                eventData: event!,
+              });
+            }}
+            aria-label={t('Create Ownership Rule')}
+            icon={<IconSettings />}
+            borderless
+            size="xs"
+          />
+        </Access>
       </StyledSidebarTitle>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown

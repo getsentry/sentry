@@ -1,30 +1,36 @@
-import {CSSProperties, forwardRef, MouseEvent} from 'react';
-import styled from '@emotion/styled';
+import {ComponentProps, CSSProperties, forwardRef, MouseEvent} from 'react';
+import classNames from 'classnames';
 
 import FileSize from 'sentry/components/fileSize';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
+import {
+  Cell,
+  StyledTimestampButton,
+  Text,
+} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {
+  getFrameMethod,
+  getFrameStatus,
+  getResponseBodySize,
+} from 'sentry/utils/replays/resourceFrame';
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
-const EMPTY_CELL = '\u00A0';
+const EMPTY_CELL = '--';
 
 type Props = {
   columnIndex: number;
-  handleClick: (span: NetworkSpan) => void;
-  handleMouseEnter: (span: NetworkSpan) => void;
-  handleMouseLeave: (span: NetworkSpan) => void;
-  isCurrent: boolean;
-  isHovered: boolean;
+  currentHoverTime: number | undefined;
+  currentTime: number;
+  frame: SpanFrame;
+  onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
+  onClickTimestamp: (crumb: SpanFrame) => void;
+  onMouseEnter: (span: SpanFrame) => void;
+  onMouseLeave: (span: SpanFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
-  span: NetworkSpan;
   startTimestampMs: number;
   style: CSSProperties;
 };
@@ -33,78 +39,98 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
   (
     {
       columnIndex,
-      handleClick,
-      handleMouseEnter,
-      handleMouseLeave,
-      isCurrent,
-      isHovered,
+      currentHoverTime,
+      currentTime,
+      onMouseEnter,
+      onMouseLeave,
+      onClickCell,
+      onClickTimestamp,
       rowIndex,
       sortConfig,
-      span,
+      frame,
       startTimestampMs,
       style,
     }: Props,
     ref
   ) => {
     // Rows include the sortable header, the dataIndex does not
-    const dataIndex = String(rowIndex - 1);
+    const dataIndex = rowIndex - 1;
 
-    const organization = useOrganization();
-    const {currentTime} = useReplayContext();
-    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
+    const {getParamValue} = useUrlParams('n_detail_row', '');
+    const isSelected = getParamValue() === String(dataIndex);
 
-    const isDetailsOpen = getParamValue() === dataIndex;
+    const method = getFrameMethod(frame);
+    const statusCode = getFrameStatus(frame);
+    const size = getResponseBodySize(frame);
 
-    const hasNetworkDetails =
-      organization.features.includes('session-replay-network-details') &&
-      ['resource.fetch', 'resource.xhr'].includes(span.op);
-
-    const startMs = span.startTimestamp * 1000;
-    const endMs = span.endTimestamp * 1000;
-    const statusCode = span.data.statusCode;
+    const hasOccurred = currentTime >= frame.offsetMs;
+    const isBeforeHover =
+      currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
     const isByTimestamp = sortConfig.by === 'startTimestamp';
+    const isAsc = isByTimestamp ? sortConfig.asc : undefined;
     const columnProps = {
-      hasOccurred: isByTimestamp
-        ? currentTime >= relativeTimeInMs(span.startTimestamp * 1000, startTimestampMs)
-        : undefined,
-      hasOccurredAsc: isByTimestamp ? sortConfig.asc : undefined,
-      isCurrent,
-      isDetailsOpen,
-      isHovered,
+      className: classNames({
+        beforeCurrentTime: isByTimestamp
+          ? isAsc
+            ? hasOccurred
+            : !hasOccurred
+          : undefined,
+        afterCurrentTime: isByTimestamp
+          ? isAsc
+            ? !hasOccurred
+            : hasOccurred
+          : undefined,
+        beforeHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? isBeforeHover
+              : !isBeforeHover
+            : undefined,
+        afterHoverTime:
+          isByTimestamp && currentHoverTime !== undefined
+            ? isAsc
+              ? !isBeforeHover
+              : isBeforeHover
+            : undefined,
+      }),
+      hasOccurred: isByTimestamp ? hasOccurred : undefined,
+      isSelected,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: hasNetworkDetails ? () => setParamValue(dataIndex) : undefined,
-      onMouseEnter: () => handleMouseEnter(span),
-      onMouseLeave: () => handleMouseLeave(span),
+      onClick: () => onClickCell({dataIndex, rowIndex}),
+      onMouseEnter: () => onMouseEnter(frame),
+      onMouseLeave: () => onMouseLeave(frame),
       ref,
       style,
-    };
-
-    // `data.responseBodySize` is from SDK version 7.44-7.45
-    const size = span.data.size ?? span.data.response?.size ?? span.data.responseBodySize;
+    } as ComponentProps<typeof Cell>;
 
     const renderFns = [
       () => (
         <Cell {...columnProps}>
-          <Text>{statusCode ? statusCode : EMPTY_CELL}</Text>
+          <Text>{method ? method : 'GET'}</Text>
+        </Cell>
+      ),
+      () => (
+        <Cell {...columnProps}>
+          <Text>{typeof statusCode === 'number' ? statusCode : EMPTY_CELL}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={span.description}
+            title={frame.description}
             isHoverable
             showOnlyOnOverflow
             overlayStyle={{maxWidth: '500px !important'}}
           >
-            <Text>{span.description || EMPTY_CELL}</Text>
+            <Text>{frame.description || EMPTY_CELL}</Text>
           </Tooltip>
         </Cell>
       ),
       () => (
         <Cell {...columnProps}>
-          <Tooltip title={operationName(span.op)} isHoverable showOnlyOnOverflow>
-            <Text>{operationName(span.op)}</Text>
+          <Tooltip title={operationName(frame.op)} isHoverable showOnlyOnOverflow>
+            <Text>{operationName(frame.op)}</Text>
           </Tooltip>
         </Cell>
       ),
@@ -117,19 +143,19 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <Text>{`${(endMs - startMs).toFixed(2)}ms`}</Text>
+          <Text>{`${(frame.endTimestampMs - frame.timestampMs).toFixed(2)}ms`}</Text>
         </Cell>
       ),
       () => (
         <Cell {...columnProps} numeric>
-          <TimestampButton
+          <StyledTimestampButton
             format="mm:ss.SSS"
             onClick={(event: MouseEvent) => {
               event.stopPropagation();
-              handleClick(span);
+              onClickTimestamp(frame);
             }}
             startTimestampMs={startTimestampMs}
-            timestampMs={startMs}
+            timestampMs={frame.timestampMs}
           />
         </Cell>
       ),
@@ -138,73 +164,5 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     return renderFns[columnIndex]();
   }
 );
-
-const cellBackground = p => {
-  if (p.hasOccurred === undefined && !p.isStatusError) {
-    return `background-color: ${p.isHovered ? p.theme.hover : 'inherit'};`;
-  }
-  const color = p.isStatusError ? p.theme.alert.error.backgroundLight : 'inherit';
-  return `background-color: ${color};`;
-};
-
-const cellBorder = p => {
-  if (p.hasOccurred === undefined) {
-    return null;
-  }
-  const color = p.isCurrent
-    ? p.theme.purple300
-    : p.isHovered
-    ? p.theme.purple200
-    : 'transparent';
-  return p.hasOccurredAsc
-    ? `border-bottom: 1px solid ${color};`
-    : `border-top: 1px solid ${color};`;
-};
-
-const cellColor = p => {
-  const colors = p.isStatusError
-    ? [p.theme.alert.error.borderHover, p.theme.alert.error.iconColor]
-    : ['inherit', p.theme.gray300];
-  if (p.hasOccurred === undefined) {
-    return `color: ${colors[0]};`;
-  }
-  return `color: ${p.hasOccurred ? colors[0] : colors[1]};`;
-};
-
-const Cell = styled('div')<{
-  hasOccurred: boolean | undefined;
-  hasOccurredAsc: boolean | undefined;
-  isCurrent: boolean;
-  isDetailsOpen: boolean;
-  isHovered: boolean;
-  isStatusError: boolean;
-  numeric?: boolean;
-  onClick?: undefined | (() => void);
-}>`
-  display: flex;
-  align-items: center;
-  padding: ${space(0.75)} ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
-
-  font-weight: ${p => (p.isDetailsOpen ? 'bold' : 'inherit')};
-
-  ${cellBackground}
-  ${cellBorder}
-  ${cellColor}
-
-  ${p =>
-    p.numeric &&
-    `
-    font-variant-numeric: tabular-nums;
-    justify-content: flex-end;
-  `};
-`;
-
-const Text = styled('div')`
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
 
 export default NetworkTableCell;

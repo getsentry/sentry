@@ -11,7 +11,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import (
+    discover,
+    metrics_enhanced_performance,
+    metrics_performance,
+    spans_indexed,
+    spans_metrics,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -48,6 +54,12 @@ METRICS_ENHANCED_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
+    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART.value,
+    Referrer.API_STARFISH_ENDPOINT_OVERVIEW.value,
+    Referrer.API_STARFISH_HTTP_ERROR_COUNT.value,
+    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
+    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
+    Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
 }
 
 
@@ -70,12 +82,13 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
     Referrer.API_PROFILING_LANDING_CHART.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_CHART.value,
     Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
 }
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
@@ -83,6 +96,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:use-metrics-layer",
+            "organizations:starfish-view",
+            "organizations:on-demand-metrics-extraction",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -156,20 +171,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 )
             )
 
-            use_profiles = features.has(
-                "organizations:profiling",
-                organization=organization,
-                actor=request.user,
-            )
+            dataset = self.get_dataset(request)
+            # Add more here until top events is supported on all the datasets
+            if top_events > 0:
+                dataset = (
+                    dataset if dataset in [discover, spans_indexed, spans_metrics] else discover
+                )
 
-            use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
-
-            use_custom_dataset = use_metrics or use_profiles
-            dataset = self.get_dataset(request) if use_custom_dataset else discover
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -180,7 +194,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
-                return discover.top_events_timeseries(
+                return dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -205,7 +219,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
-                use_metrics_layer=use_metrics_layer,
+                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                on_demand_metrics_enabled=use_on_demand_metrics
+                and batch_features.get("organizations:on-demand-metrics-extraction", False),
             )
 
         try:
@@ -220,6 +236,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                         request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                     ),
                     comparison_delta=comparison_delta,
+                    dataset=dataset,
                 ),
                 status=200,
             )

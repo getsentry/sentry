@@ -9,7 +9,7 @@ import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -152,6 +152,7 @@ class ActionsPanel extends PureComponent<Props> {
         trailingItems={
           <Button
             href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+            external
             size="xs"
           >
             {t('Learn More')}

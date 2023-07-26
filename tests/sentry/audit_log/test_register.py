@@ -24,7 +24,9 @@ class AuditLogEventRegisterTest(TestCase):
             "team.remove",
             "project.create",
             "project.edit",
+            "project.change-performance-issue-detection",
             "project.remove",
+            "project.remove-with-origin",
             "project.request-transfer",
             "project.accept-transfer",
             "project.enable",
@@ -60,6 +62,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sampling_priority.disabled",
             "monitor.add",
             "monitor.edit",
+            "monitor.environment.remove",
             "monitor.remove",
             "internal-integration.create",
             "internal-integration.add-token",
@@ -73,6 +76,9 @@ class AuditLogEventRegisterTest(TestCase):
             "notification_action.create",
             "notification_action.edit",
             "notification_action.remove",
+            "team-and-project.created",
+            "org-auth-token.create",
+            "org-auth-token.remove",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)

@@ -2,9 +2,9 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
@@ -25,7 +25,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
@@ -61,9 +61,9 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 type State = {
   event: Event | undefined;
   isSidebarVisible: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class EventDetailsContent extends AsyncComponent<Props, State> {
+class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -80,7 +80,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params, location, eventView} = this.props;
     const {eventSlug} = params;
 
@@ -130,7 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     // metrics
-    trackAdvancedAnalyticsEvent('discover_v2.event_details', {
+    trackAnalytics('discover_v2.event_details', {
       event_type: event.type,
       organization,
     });
@@ -183,12 +183,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 href={eventJsonUrl}
                 external
                 onClick={() =>
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.event_details.json_button_click',
-                    {
-                      organization,
-                    }
-                  )
+                  trackAnalytics('performance_views.event_details.json_button_click', {
+                    organization,
+                  })
                 }
               >
                 {t('JSON')} (<FileSize bytes={event.size} />)

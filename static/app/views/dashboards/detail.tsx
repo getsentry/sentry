@@ -28,7 +28,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -87,7 +87,7 @@ const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
-  widgetId?: number;
+  widgetId?: number | string;
   widgetIndex?: number;
 };
 
@@ -154,7 +154,12 @@ class DashboardDetail extends Component<Props, State> {
     if (isWidgetViewerPath(location.pathname)) {
       const widget =
         defined(widgetId) &&
-        (dashboard.widgets.find(({id}) => id === String(widgetId)) ??
+        (dashboard.widgets.find(({id}) => {
+          // This ternary exists because widgetId is in some places typed as string, while
+          // in other cases it is typed as number. Instead of changing the type everywhere,
+          // we check for both cases at runtime as I am not sure which is the correct type.
+          return typeof widgetId === 'number' ? id === String(widgetId) : id === widgetId;
+        }) ??
           dashboard.widgets[widgetId]);
       if (widget) {
         openWidgetViewerModal({
@@ -165,6 +170,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
+          dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -189,7 +195,7 @@ class DashboardDetail extends Component<Props, State> {
             }
           },
         });
-        trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
+        trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
           widget_type: widget.widgetType ?? WidgetType.DISCOVER,
           display_type: widget.displayType,
@@ -268,7 +274,7 @@ class DashboardDetail extends Component<Props, State> {
 
   onEdit = () => {
     const {dashboard, organization} = this.props;
-    trackAdvancedAnalyticsEvent('dashboards2.edit.start', {organization});
+    trackAnalytics('dashboards2.edit.start', {organization});
 
     this.setState({
       dashboardState: DashboardState.EDIT,
@@ -323,7 +329,7 @@ class DashboardDetail extends Component<Props, State> {
       deleteDashboard(api, organization.slug, dashboard.id)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
-          trackAdvancedAnalyticsEvent('dashboards2.delete', {organization});
+          trackAnalytics('dashboards2.delete', {organization});
           browserHistory.replace({
             pathname: `/organizations/${organization.slug}/dashboards/`,
             query: location.query,
@@ -365,14 +371,14 @@ class DashboardDetail extends Component<Props, State> {
       }
     }
     if (params.dashboardId) {
-      trackAdvancedAnalyticsEvent('dashboards2.edit.cancel', {organization});
+      trackAnalytics('dashboards2.edit.cancel', {organization});
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
       });
       return;
     }
-    trackAdvancedAnalyticsEvent('dashboards2.create.cancel', {organization});
+    trackAnalytics('dashboards2.create.cancel', {organization});
     browserHistory.replace(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/`,
@@ -458,6 +464,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -504,7 +511,7 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
           if (this.isPreview) {
-            trackAdvancedAnalyticsEvent('dashboards_manage.templates.add', {
+            trackAnalytics('dashboards_manage.templates.add', {
               organization,
               dashboard_id: dashboard.id,
               dashboard_title: dashboard.title,
@@ -524,7 +531,7 @@ class DashboardDetail extends Component<Props, State> {
           ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-              trackAdvancedAnalyticsEvent('dashboards2.create.complete', {organization});
+              trackAnalytics('dashboards2.create.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
               });
@@ -560,7 +567,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDashboardUpdate(newDashboard);
               }
               addSuccessMessage(t('Dashboard updated'));
-              trackAdvancedAnalyticsEvent('dashboards2.edit.complete', {organization});
+              trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
@@ -578,6 +585,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -638,6 +646,7 @@ class DashboardDetail extends Component<Props, State> {
       <PageFiltersContainer
         desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
         hideDesyncRevertButton
+        disablePersistence
         defaultSelection={{
           datetime: {
             start: null,
@@ -759,6 +768,7 @@ class DashboardDetail extends Component<Props, State> {
         <PageFiltersContainer
           desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
           hideDesyncRevertButton
+          disablePersistence
           defaultSelection={{
             datetime: {
               start: null,
@@ -883,6 +893,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}

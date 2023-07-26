@@ -44,7 +44,7 @@ describe('Issues Similar View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/similar/?limit=50&version=1',
+      url: '/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
   });

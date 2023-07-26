@@ -1,11 +1,11 @@
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class GroupTagsTest(APITestCase, SnubaTestCase):
+class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def test_simple(self):
         event1 = self.store_event(
             data={
@@ -71,64 +71,43 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         assert len(data[1]["topValues"]) == 1
 
     def test_simple_performance(self):
-        transaction_event_data = {
-            "message": "hello",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {"foo": "bar", "biz": "baz"},
-                "release": "releaseme",
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        event = self.create_performance_issue(
+            tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
+            fingerprint="group5",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
-        self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=2)),
-                "start_timestamp": iso_format(before_now(minutes=2, seconds=5)),
-                "tags": {"foo": "quux"},
-                "release": "releaseme",
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        self.create_performance_issue(
+            tags=[["foo", "quux"], ["sentry:release", "releaseme"]],
+            fingerprint="group5",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.groups[0].id}/tags/"
+        url = f"/api/0/issues/{event.group.id}/tags/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 5
+        assert len(response.data) == 14
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
         assert len(data[0]["topValues"]) == 1
 
-        assert data[1]["key"] == "foo"
-        assert len(data[1]["topValues"]) == 2
+        assert data[8]["key"] == "foo"
+        assert len(data[8]["topValues"]) == 2
 
-        assert data[2]["key"] == "level"
-        assert len(data[2]["topValues"]) == 1
+        assert data[9]["key"] == "level"
+        assert len(data[9]["topValues"]) == 1
 
-        assert data[3]["key"] == "release"  # Formatted from sentry:release
-        assert len(data[3]["topValues"]) == 1
+        assert data[10]["key"] == "release"  # Formatted from sentry:release
+        assert len(data[10]["topValues"]) == 1
 
-        assert data[4]["key"] == "transaction"
-        assert len(data[4]["topValues"]) == 1
+        assert data[11]["key"] == "transaction"
+        assert len(data[11]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
-        url = f"/api/0/issues/{event.groups[0].id}/tags/?key=foo&key=sentry:release"
+        url = f"/api/0/issues/{event.group.id}/tags/?key=foo&key=sentry:release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 

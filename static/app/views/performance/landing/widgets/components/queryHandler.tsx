@@ -1,7 +1,10 @@
 import {Fragment, useEffect} from 'react';
 
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {
+  getIsMetricsDataFromResults,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {QueryDefinitionWithKey, QueryHandlerProps, WidgetDataConstraint} from '../types';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
@@ -95,10 +98,10 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
   const transformed = query.transform(props.queryProps, results, props.query);
 
   useEffect(() => {
-    const isMetricsData =
-      results?.seriesAdditionalInfo?.[props.queryProps.fields[0]]?.isMetricsData ??
-      results?.histograms?.meta?.isMetricsData ??
-      results?.tableData?.meta?.isMetricsData;
+    const isMetricsData = getIsMetricsDataFromResults(
+      results,
+      props.queryProps.fields[0]
+    );
     mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);

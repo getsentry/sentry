@@ -3,7 +3,9 @@ from __future__ import annotations
 import io
 import os
 import random
+from base64 import b64encode
 from binascii import hexlify
+from contextlib import contextmanager
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
@@ -15,9 +17,10 @@ import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import router, transaction
+from django.test.utils import override_settings
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -47,7 +50,6 @@ from sentry.models import (
     ArtifactBundle,
     Commit,
     CommitAuthor,
-    CommitFileChange,
     DocIntegration,
     DocIntegrationAvatar,
     Environment,
@@ -92,6 +94,8 @@ from sentry.models import (
 )
 from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
     ActionService,
@@ -100,16 +104,21 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.releasefile import update_artifact_index
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
+from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+from sentry.types.region import Region, get_region_by_name
 from sentry.utils import json, loremipsum
-from sentry.utils.performance_issues.performance_detection import PerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -257,31 +266,66 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
 # TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
-    @exempt_from_silo_limits()
-    def create_organization(name=None, owner=None, **kwargs):
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
         if not name:
-            name = petname.Generate(2, " ", letters=10).title()
+            name = petname.generate(2, " ", letters=10).title()
 
-        org = Organization.objects.create(name=name, **kwargs)
+        if isinstance(region, str):
+            region = get_region_by_name(region)
+
+        @contextmanager
+        def org_creation_context():
+            if region is None:
+                yield
+            else:
+                with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
+                    yield
+
+        with org_creation_context():
+            org = Organization.objects.create(name=name, **kwargs)
+
+        if region is not None:
+            with assume_test_silo_mode(SiloMode.CONTROL), unguarded_write(
+                using=router.db_for_write(OrganizationMapping)
+            ):
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name=region.name)
+
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
 
     @staticmethod
-    @exempt_from_silo_limits()
-    def create_org_mapping(org, **kwds):
-        kwds.setdefault("organization_id", org.id)
-        kwds.setdefault("slug", org.slug)
-        kwds.setdefault("name", org.name)
-        kwds.setdefault("idempotency_key", uuid4().hex)
-        kwds.setdefault("region_name", "test-region")
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_mapping(org=None, **kwds):
+        if org:
+            kwds.setdefault("organization_id", org.id)
+            kwds.setdefault("slug", org.slug)
+            kwds.setdefault("name", org.name)
+            kwds.setdefault("idempotency_key", uuid4().hex)
+            kwds.setdefault("region_name", "na")
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
+
+        # user_id will have precedence over user
+        user = kwargs.pop("user", None)
+        user_id = kwargs.pop("user_id", None)
+        if not user_id and user:
+            user_id = user.id
+        kwargs["user_id"] = user_id
+
+        # inviter_id will have precedence over inviter
+        inviter = kwargs.pop("inviter", None)
+        inviter_id = kwargs.pop("inviter_id", None)
+        if not inviter_id and inviter:
+            inviter_id = inviter.id
+        kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
 
@@ -294,11 +338,13 @@ class Factories:
         return om
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
-            member, _ = OrganizationMember.objects.get_or_create(
-                user=user, organization=team.organization, defaults={"role": "member"}
+            member, created = OrganizationMember.objects.get_or_create(
+                user_id=user.id if user else None,
+                organization=team.organization,
+                defaults={"role": "member"},
             )
 
         return OrganizationMemberTeam.objects.create(
@@ -306,17 +352,26 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, scope_list=None, **kwargs):
         return ApiKey.objects.create(
             organization_id=organization.id if organization else None, scope_list=scope_list
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_auth_token(user, scope_list: List[str], **kwargs) -> ApiToken:
+        return ApiToken.objects.create(
+            user=user,
+            scope_list=scope_list,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_team(organization, **kwargs):
         if not kwargs.get("name"):
-            kwargs["name"] = petname.Generate(2, " ", letters=10).title()
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
             kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
@@ -328,9 +383,9 @@ class Factories:
         return team
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_environment(project, **kwargs):
-        name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
+        name = kwargs.get("name", petname.generate(3, " ", letters=10)[:64])
 
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
@@ -340,16 +395,16 @@ class Factories:
         return env
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
         if not kwargs.get("name"):
-            kwargs["name"] = petname.Generate(2, " ", letters=10).title()
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
             kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(organization=organization, **kwargs)
             if teams:
                 for team in teams:
@@ -361,12 +416,12 @@ class Factories:
         return project
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_project_rule(project, action_data=None, condition_data=None):
         action_data = action_data or [
             {
@@ -395,7 +450,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_slack_project_rule(project, integration_id, channel_id=None, channel_name=None):
         action_data = [
             {
@@ -409,12 +464,12 @@ class Factories:
         return Factories.create_project_rule(project, action_data)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_release(
         project: Project,
         user: Optional[User] = None,
@@ -427,7 +482,7 @@ class Factories:
         unadopted: Optional[datetime] = None,
     ):
         if version is None:
-            version = force_text(hexlify(os.urandom(20)))
+            version = force_str(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()
@@ -485,7 +540,7 @@ class Factories:
         return release
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_release_file(release_id, file=None, name=None, dist_id=None):
         if file is None:
             file = Factories.create_file(
@@ -509,7 +564,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_artifact_bundle_zip(
         org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
@@ -535,7 +590,7 @@ class Factories:
         return bundle.getvalue()
 
     @classmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_release_archive(cls, org, release: str, project=None, dist=None):
         bundle = cls.create_artifact_bundle_zip(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
@@ -544,9 +599,15 @@ class Factories:
         return update_artifact_index(release, dist, file_)
 
     @classmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
+        cls,
+        org,
+        bundle_id=None,
+        artifact_count=0,
+        fixture_path="artifact_bundle_debug_ids",
+        date_uploaded=None,
+        date_last_modified=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -558,15 +619,16 @@ class Factories:
         # mock it with an arbitrary value.
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=org.id,
-            bundle_id=uuid4(),
+            bundle_id=bundle_id or uuid4(),
             file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
+            date_last_modified=date_last_modified,
         )
         return artifact_bundle
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_code_mapping(project, repo=None, organization_integration=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
@@ -582,12 +644,12 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
         repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
-            or "{}-{}".format(petname.Generate(2, "", letters=10), random.randint(1000, 9999)),
+            or "{}-{}".format(petname.generate(2, "", letters=10), random.randint(1000, 9999)),
             provider=provider,
             integration_id=integration_id,
             url=url,
@@ -595,7 +657,7 @@ class Factories:
         return repo
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit(
         repo, project=None, author=None, release=None, message=None, key=None, date_added=None
     ):
@@ -628,7 +690,7 @@ class Factories:
         return commit
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_author(organization_id=None, project=None, user=None, email=None):
         if email:
             user_email = email
@@ -641,14 +703,14 @@ class Factories:
         )[0]
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
             organization_id=commit.organization_id, commit=commit, filename=filename, type="M"
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_user(email=None, **kwargs):
         if email is None:
             email = uuid4().hex + "@example.com"
@@ -669,7 +731,7 @@ class Factories:
         return user
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_useremail(user, email, **kwargs):
         if not email:
             email = uuid4().hex + "@example.com"
@@ -745,7 +807,7 @@ class Factories:
         return event
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, **kwargs):
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
@@ -756,12 +818,12 @@ class Factories:
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -772,7 +834,7 @@ class Factories:
         return file
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_event_attachment(event, file=None, **kwargs):
         if file is None:
             file = Factories.create_file(
@@ -791,7 +853,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_dif_file(
         project,
         debug_id=None,
@@ -835,7 +897,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_dif_from_path(path, object_name=None, **kwargs):
         if object_name is None:
             object_name = os.path.basename(path)
@@ -845,12 +907,12 @@ class Factories:
         return Factories.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def add_user_permission(user, permission):
         UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_sentry_app(**kwargs):
         published = kwargs.pop("published", False)
         args = Factories._sentry_app_kwargs(**kwargs)
@@ -863,7 +925,7 @@ class Factories:
         return app
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_internal_integration(**kwargs):
         args = Factories._sentry_app_kwargs(**kwargs)
         args["verify_install"] = False
@@ -872,7 +934,7 @@ class Factories:
         return app
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_internal_integration_token(install, **kwargs):
         user = kwargs.pop("user")
         request = kwargs.pop("request", None)
@@ -881,10 +943,24 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(organization, user, scopes, **kwargs):
+        sentry_app = Factories.create_sentry_app(
+            name="Org Token",
+            organization=organization,
+            scopes=scopes,
+        )
+
+        install = Factories.create_sentry_app_installation(
+            organization=organization, slug=sentry_app.slug, user=user
+        )
+        return Factories.create_internal_integration_token(install=install, user=user)
+
+    @staticmethod
     def _sentry_app_kwargs(**kwargs):
         _kwargs = {
             "user": kwargs.get("user", Factories.create_user()),
-            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "name": kwargs.get("name", petname.generate(2, " ", letters=10).title()),
             "organization_id": kwargs.get(
                 "organization_id", kwargs.pop("organization", Factories.create_organization()).id
             ),
@@ -900,7 +976,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_sentry_app_installation(
         organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
     ):
@@ -909,34 +985,37 @@ class Factories:
 
         Factories.create_project(organization=organization)
 
-        install = SentryAppInstallationCreator(
-            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
-            organization_id=organization.id,
-        ).run(
-            user=(user or Factories.create_user()),
-            request=None,
-        )
-
-        install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
-        install.save()
-
-        if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
-            token_exchange.GrantExchanger.run(
-                install=install,
-                code=install.api_grant.code,
-                client_id=install.sentry_app.application.client_id,
-                user=install.sentry_app.proxy_user,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            install = SentryAppInstallationCreator(
+                slug=(slug or Factories.create_sentry_app(organization=organization).slug),
+                organization_id=organization.id,
+            ).run(
+                user=(user or Factories.create_user()),
+                request=None,
             )
-            install = SentryAppInstallation.objects.get(id=install.id)
+
+            install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
+            install.save()
+            rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
+            if not prevent_token_exchange and (
+                install.sentry_app.status != SentryAppStatus.INTERNAL
+            ):
+
+                token_exchange.GrantExchanger.run(
+                    install=rpc_install,
+                    code=install.api_grant.code,
+                    client_id=install.sentry_app.application.client_id,
+                    user=install.sentry_app.proxy_user,
+                )
+                install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
 
     @staticmethod
-    @exempt_from_silo_limits()
     def create_issue_link_schema():
         return {
             "type": "issue-link",
@@ -975,7 +1054,6 @@ class Factories:
         }
 
     @staticmethod
-    @exempt_from_silo_limits()
     def create_alert_rule_action_schema():
         return {
             "type": "alert-rule-action",
@@ -1005,7 +1083,7 @@ class Factories:
         }
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
         if not actor:
             actor = Factories.create_user()
@@ -1039,7 +1117,7 @@ class Factories:
         return ServiceHook.objects.get(id=hook_id)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_sentry_app_feature(feature=None, sentry_app=None, description=None):
         if not sentry_app:
             sentry_app = Factories.create_sentry_app()
@@ -1058,7 +1136,7 @@ class Factories:
     @staticmethod
     def _doc_integration_kwargs(**kwargs):
         _kwargs = {
-            "name": kwargs.get("name", petname.Generate(2, " ", letters=10).title()),
+            "name": kwargs.get("name", petname.generate(2, " ", letters=10).title()),
             "author": kwargs.get("author", "me"),
             "description": kwargs.get("description", "hi im a description"),
             "url": kwargs.get("url", "https://sentry.io"),
@@ -1071,7 +1149,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration(features=None, has_avatar: bool = False, **kwargs) -> DocIntegration:
         doc = DocIntegration.objects.create(**Factories._doc_integration_kwargs(**kwargs))
         if features:
@@ -1081,7 +1159,7 @@ class Factories:
         return doc
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_features(
         features=None, doc_integration=None
     ) -> List[IntegrationFeature]:
@@ -1101,18 +1179,20 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_doc_integration_avatar(doc_integration=None, **kwargs) -> DocIntegrationAvatar:
         if not doc_integration:
             doc_integration = Factories.create_doc_integration()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(io.BytesIO(b"imaginethiswasphotobytes"))
-        return DocIntegrationAvatar.objects.create(
-            doc_integration=doc_integration, avatar_type=0, file_id=photo.id
-        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return DocIntegrationAvatar.objects.create(
+                doc_integration=doc_integration, avatar_type=0, file_id=photo.id
+            )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
             group_id=group.id,
@@ -1125,7 +1205,6 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
     def create_session():
         engine = import_module(settings.SESSION_ENGINE)
 
@@ -1134,7 +1213,7 @@ class Factories:
         return session
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_platform_external_issue(
         group=None, service_type=None, display_name=None, web_url=None
     ):
@@ -1147,7 +1226,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
@@ -1164,7 +1243,7 @@ class Factories:
         return external_issue
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_incident(
         organization,
         projects,
@@ -1179,7 +1258,7 @@ class Factories:
         alert_rule=None,
     ):
         if not title:
-            title = petname.Generate(2, " ", letters=10).title()
+            title = petname.generate(2, " ", letters=10).title()
         if alert_rule is None:
             alert_rule = Factories.create_alert_rule(
                 organization, projects, query=query, time_window=1
@@ -1206,14 +1285,14 @@ class Factories:
         return incident
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_incident_activity(incident, type, comment=None, user_id=None):
         return IncidentActivity.objects.create(
             incident=incident, type=type, comment=comment, user_id=user_id
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule(
         organization,
         projects,
@@ -1236,7 +1315,7 @@ class Factories:
         comparison_delta=None,
     ):
         if not name:
-            name = petname.Generate(2, " ", letters=10).title()
+            name = petname.generate(2, " ", letters=10).title()
 
         if query_type is None:
             query_type = query_datasets_to_type[dataset]
@@ -1268,15 +1347,17 @@ class Factories:
         return alert_rule
 
     @staticmethod
-    @exempt_from_silo_limits()
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_trigger(
+        alert_rule, label=None, alert_threshold=100, excluded_projects=None
+    ):
         if not label:
-            label = petname.Generate(2, " ", letters=10).title()
+            label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_incident_trigger(incident, alert_rule_trigger, status=None):
         if status is None:
             status = TriggerStatus.ACTIVE.value
@@ -1286,7 +1367,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -1301,13 +1382,13 @@ class Factories:
             type,
             target_type,
             target_identifier,
-            integration,
-            sentry_app,
+            integration.id if integration else None,
+            sentry_app.id if sentry_app else None,
             sentry_app_config=sentry_app_config,
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
@@ -1316,7 +1397,7 @@ class Factories:
         return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_external_team(team: Team, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
@@ -1324,7 +1405,7 @@ class Factories:
         return ExternalActor.objects.create(actor=team.actor, **kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_codeowners(project, code_mapping, **kwargs):
         kwargs.setdefault("raw", "")
 
@@ -1333,7 +1414,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_slack_integration(
         organization: Organization, external_id: str, **kwargs: Any
     ) -> Integration:
@@ -1350,7 +1431,7 @@ class Factories:
         return integration
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(
         organization: Organization,
         external_id: str,
@@ -1358,13 +1439,14 @@ class Factories:
         **integration_params: Any,
     ) -> Integration:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
-        organization_integration = integration.add_organization(organization)
+        with outbox_runner():
+            organization_integration = integration.add_organization(organization)
         organization_integration.update(**(oi_params or {}))
 
         return integration
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
         return IdentityProvider.objects.create(
             type=integration.provider,
@@ -1373,7 +1455,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity(
         user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
@@ -1383,17 +1465,18 @@ class Factories:
             user_id=user.id,
             status=IdentityStatus.VALID,
             scopes=[],
+            **kwargs,
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_group_history(
         group: Group,
         status: int,
         release: Optional[Release] = None,
-        actor: Actor = None,
-        prev_history: GroupHistory = None,
-        date_added: datetime = None,
+        actor: Optional[Actor] = None,
+        prev_history: Optional[GroupHistory] = None,
+        date_added: Optional[datetime] = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1415,7 +1498,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
@@ -1427,7 +1510,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_sentry_function(name, code, **kwargs):
         return SentryFunction.objects.create(
             name=name,
@@ -1438,7 +1521,7 @@ class Factories:
         )
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_saved_search(name: str, **kwargs):
         if "owner" in kwargs:
             owner = kwargs.pop("owner")
@@ -1446,9 +1529,11 @@ class Factories:
         return SavedSearch.objects.create(name=name, **kwargs)
 
     @staticmethod
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_notification_action(
-        organization: Organization = None, projects: List[Project] = None, **kwargs
+        organization: Optional[Organization] = None,
+        projects: Optional[List[Project]] = None,
+        **kwargs,
     ):
         if not organization:
             organization = Factories.create_organization()
@@ -1471,3 +1556,12 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    def create_basic_auth_header(username: str, password: str = "") -> str:
+        return b"Basic " + b64encode(f"{username}:{password}".encode())
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def snooze_rule(**kwargs):
+        return RuleSnooze.objects.create(**kwargs)

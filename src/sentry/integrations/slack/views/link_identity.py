@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
+from django.http import HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity, Integration, NotificationSetting
@@ -33,9 +34,13 @@ def build_linking_url(
 
 
 class SlackLinkIdentityView(BaseView):
+    """
+    Django view for linking user to slack account. Creates an entry on Identity table.
+    """
+
     @transaction_start("SlackLinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    @method_decorator(never_cache)
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

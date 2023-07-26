@@ -11,7 +11,7 @@ import {TeamWithProjects} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import Header from '../header';
 
@@ -112,7 +112,6 @@ function TeamStatsHealth({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
               />
             </DescriptionCard>
 

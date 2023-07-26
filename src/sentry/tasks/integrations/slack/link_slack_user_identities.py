@@ -1,17 +1,14 @@
+from __future__ import annotations
+
 import logging
 
 from django.utils import timezone
 
 from sentry.integrations.slack.utils import get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    Organization,
-    UserEmail,
-)
+from sentry.models import Identity, IdentityProvider, IdentityStatus, UserEmail
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -21,8 +18,17 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.link_users_identities",
     queue="integrations",
 )
-def link_slack_user_identities(integration: Integration, organization: Organization) -> None:
-    emails_by_user = UserEmail.objects.get_emails_by_user(organization)
+def link_slack_user_identities(
+    integration_id: int | None = None,
+    organization_id: int | None = None,
+) -> None:
+    if integration_id is not None:
+        integration = integration_service.get_integration(integration_id=integration_id)
+    if organization_id is not None:
+        organization = organization_service.get_organization_by_id(id=organization_id).organization
+    assert organization and integration  # type narrowing
+
+    emails_by_user = UserEmail.objects.get_emails_by_user(organization=organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
 
     idp = IdentityProvider.objects.get(

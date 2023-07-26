@@ -10,6 +10,7 @@ import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
 import {EmptyMessage} from './styles';
 import {SelectOption} from './types';
+import {getItemsWithKeys} from './utils';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {
   options: SelectOption<Value>[];
@@ -69,12 +70,6 @@ export interface CompositeSelectProps extends ControlProps {
    * whose values don't interfere with one another.
    */
   children: CompositeSelectChild | CompositeSelectChild[];
-  /**
-   * Whether to close the menu upon selection. This prop applies to the entire selector
-   * and functions as a fallback value. Each composite region also accepts the same
-   * prop, which will take precedence over this one.
-   */
-  closeOnSelect?: SingleListProps<React.Key>['closeOnSelect'];
 }
 
 /**
@@ -87,7 +82,6 @@ function CompositeSelect({
   disabled,
   emptyMessage,
   size = 'md',
-  closeOnSelect,
   ...controlProps
 }: CompositeSelectProps) {
   return (
@@ -100,13 +94,7 @@ function CompositeSelect({
             }
 
             return (
-              <Region
-                {...child.props}
-                grid={grid}
-                size={size}
-                compositeIndex={index}
-                closeOnSelect={child.props.closeOnSelect ?? closeOnSelect}
-              />
+              <Region {...child.props} grid={grid} size={size} compositeIndex={index} />
             );
           })}
 
@@ -175,16 +163,13 @@ function Region<Value extends React.Key>({
     };
   }, [multiple, value, defaultValue, onChange, closeOnSelect]);
 
-  const optionsWithKey = useMemo<SelectOption<Value>[]>(
-    () => options.map(item => ({...item, key: item.value})),
-    [options]
-  );
+  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   return (
     <List
       {...props}
       {...listProps}
-      items={optionsWithKey}
+      items={itemsWithKey}
       disallowEmptySelection={disallowEmptySelection}
       isOptionDisabled={isOptionDisabled}
       shouldFocusWrap={false}

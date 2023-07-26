@@ -25,12 +25,16 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerSerializer,
 )
 from sentry.models import ACTOR_TYPES, Environment, Integration
+from sentry.models.actor import get_actor_for_user
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -84,7 +88,17 @@ class TestAlertRuleSerializer(TestCase):
 
     @cached_property
     def context(self):
-        return {"organization": self.organization, "access": self.access, "user": self.user}
+        return {
+            "organization": self.organization,
+            "access": self.access,
+            "user": self.user,
+            "installations": app_service.get_installed_for_organization(
+                organization_id=self.organization.id
+            ),
+            "integrations": integration_service.get_integrations(
+                organization_id=self.organization.id
+            ),
+        }
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -93,7 +107,7 @@ class TestAlertRuleSerializer(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def setup_slack_integration(self):
         self.integration = Integration.objects.create(
             external_id="1",
@@ -440,7 +454,7 @@ class TestAlertRuleSerializer(TestCase):
         # and that the rule is not created.
         base_params = self.valid_params.copy()
         base_params["name"] = "Aun1qu3n4m3"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="1",
                 provider="slack",
@@ -469,7 +483,7 @@ class TestAlertRuleSerializer(TestCase):
 
         # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -569,7 +583,7 @@ class TestAlertRuleSerializer(TestCase):
             serializer.save()
         assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(
-            integration_service._serialize_integration(self.integration), "my-channel", 10
+            serialize_integration(self.integration), "my-channel", 10
         )
 
     def test_event_types(self):
@@ -650,9 +664,9 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         # Reload user for actor
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
-        assert alert_rule.owner == self.user.actor
+        assert alert_rule.owner == get_actor_for_user(self.user)
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
 
     def test_comparison_delta_above(self):
@@ -854,7 +868,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
-            {"nonFieldErrors": ["User does not exist"]},
+            {"nonFieldErrors": ["User does not belong to this organization"]},
         )
         other_user = self.create_user()
         self.run_fail_validation_test(
@@ -954,7 +968,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 1
 
@@ -997,7 +1011,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -1040,7 +1054,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was not created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration=integration)
+            AlertRuleTriggerAction.objects.filter(integration_id=integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
 
@@ -1083,7 +1097,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
         # # Make sure the action was created.
         alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(sentry_app=self.sentry_app)
+            AlertRuleTriggerAction.objects.filter(sentry_app_id=self.sentry_app.id)
         )
         assert len(alert_rule_trigger_actions) == 1
 
@@ -1110,7 +1124,9 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         # Update action
         serializer.save()
 
-        alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(sentry_app=self.sentry_app)
+        alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(
+            sentry_app_id=self.sentry_app.id
+        )
 
         # Make sure the changes got applied
         assert alert_rule_trigger_action.sentry_app_config == {"channel": "#announcements"}

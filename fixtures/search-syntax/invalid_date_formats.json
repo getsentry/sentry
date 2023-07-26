@@ -8,6 +8,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },
@@ -27,6 +28,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },
@@ -46,6 +48,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-date-format",
           "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. 2017-10-17 or 2017-10-17T02:41:00.000Z)",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },

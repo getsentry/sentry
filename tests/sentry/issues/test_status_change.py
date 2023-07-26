@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
@@ -6,10 +6,11 @@ from sentry.models import Activity, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
-class HandleStatusChangeTest(TestCase):  # type:ignore
-    def create_issue(self, status: str) -> None:
+class HandleStatusChangeTest(TestCase):
+    def create_issue(self, status: GroupStatus, substatus: Optional[GroupSubStatus] = None) -> None:
         self.group = self.create_group(status=status)
         self.group_list = [self.group]
         self.group_ids = [self.group]
@@ -27,6 +28,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             is_bulk=True,
             status_details={},
             new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
             sender=self,
             activity_type=None,
         )
@@ -50,6 +52,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             self.project_lookup,
             acting_user=self.user,
             new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
             is_bulk=True,
             status_details={},
             sender=self,
@@ -75,6 +78,7 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             self.project_lookup,
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
+            new_substatus=None,
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,
@@ -86,6 +90,32 @@ class HandleStatusChangeTest(TestCase):  # type:ignore
             group=self.group, type=ActivityType.SET_IGNORED.value
         ).first()
         assert activity.data.get("ignoreDuration") == 30
+
+        assert GroupHistory.objects.filter(
+            group=self.group, status=GroupHistoryStatus.IGNORED
+        ).exists()
+
+    @patch("sentry.signals.issue_ignored.send_robust")
+    def test_ignore_until_escalating(self, issue_ignored: Any) -> None:
+        self.create_issue(GroupStatus.UNRESOLVED)
+        handle_status_update(
+            self.group_list,
+            self.projects,
+            self.project_lookup,
+            acting_user=self.user,
+            new_status=GroupStatus.IGNORED,
+            new_substatus=None,
+            is_bulk=True,
+            status_details={"ignoreUntilEscalating": True},
+            sender=self,
+            activity_type=None,
+        )
+
+        assert issue_ignored.called
+        activity = Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_IGNORED.value
+        ).first()
+        assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(
             group=self.group, status=GroupHistoryStatus.IGNORED

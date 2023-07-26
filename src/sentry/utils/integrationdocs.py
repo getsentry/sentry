@@ -96,7 +96,7 @@ def load_doc(path: str) -> dict[str, Any] | None:
 
     try:
         with open(doc_path, encoding="utf-8") as f:
-            return json.load(f)  # type: ignore[no-any-return]
+            return json.load(f)
     except OSError:
         return None
 
@@ -110,7 +110,7 @@ def get_integration_id(platform_id: str, integration_id: str) -> str:
 def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 10) -> IO[bytes]:
     for i in range(retries):
         try:
-            return urlopen(url, timeout=timeout)  # type: ignore
+            return urlopen(url, timeout=timeout)
         except Exception:
             if i == retries - 1:
                 raise

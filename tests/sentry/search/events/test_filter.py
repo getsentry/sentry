@@ -9,6 +9,7 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.release import SemverFilter
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import (
@@ -17,12 +18,7 @@ from sentry.search.events.constants import (
     SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.fields import (
-    DiscoverFunction,
-    FunctionArg,
-    InvalidSearchQuery,
-    with_default,
-)
+from sentry.search.events.fields import DiscoverFunction, FunctionArg, with_default
 from sentry.search.events.filter import (
     _semver_build_filter_converter,
     _semver_filter_converter,
@@ -30,8 +26,9 @@ from sentry.search.events.filter import (
     parse_semver,
 )
 from sentry.search.events.types import ParamsType
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import OPERATOR_TO_FUNCTION, Dataset
+from sentry.utils.snuba import OPERATOR_TO_FUNCTION
 
 
 # Helper functions to make reading the expected output from the boolean tests easier to read. #

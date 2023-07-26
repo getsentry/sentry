@@ -6,23 +6,23 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import {Button} from 'sentry/components/button';
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {ORG_ROLES} from 'sentry/constants';
-import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {Member, MemberRole, Organization, OrganizationAuthProvider} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   RenderSearch,
   SearchWrapper,
@@ -32,23 +32,24 @@ import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncView['state'] & {
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-};
+}
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
-class OrganizationMembersList extends AsyncView<Props, State> {
+class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -60,14 +61,14 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   onLoadAllEndpointsSuccess() {
     const {organization} = this.props;
     const {inviteRequests, members} = this.state;
-    trackAdvancedAnalyticsEvent('member_settings_page.loaded', {
+    trackAnalytics('member_settings_page.loaded', {
       organization,
       num_members: members?.length,
       num_invite_requests: inviteRequests?.length,
     });
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
 
     return [
@@ -197,7 +198,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
       this.removeInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
-      trackAdvancedAnalyticsEvent(eventKey, {
+      trackAnalytics(eventKey, {
         member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,
         organization,
@@ -262,22 +263,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
-        <DeprecatedDropdownMenu closeOnEscape>
-          {({getActorProps, isOpen}) => (
-            <FilterWrapper>
-              <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
-                {t('Filter')}
-              </Button>
-              {isOpen && (
-                <StyledMembersFilter
-                  roles={currentMember?.roles ?? ORG_ROLES}
-                  query={value}
-                  onChange={(query: string) => handleChange(query)}
-                />
-              )}
-            </FilterWrapper>
-          )}
-        </DeprecatedDropdownMenu>
+        <MembersFilter
+          roles={currentMember?.roles ?? ORG_ROLES}
+          query={value}
+          onChange={(query: string) => handleChange(query)}
+        />
         {defaultSearchBar}
       </SearchWrapperWithFilter>
     );
@@ -356,34 +346,6 @@ const SearchWrapperWithFilter = styled(SearchWrapper)`
   display: grid;
   grid-template-columns: max-content 1fr;
   margin-top: 0;
-`;
-
-const FilterWrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledMembersFilter = styled(MembersFilter)`
-  position: absolute;
-  right: 0;
-  top: 42px;
-  z-index: ${p => p.theme.zIndex.dropdown};
-
-  &:before,
-  &:after {
-    position: absolute;
-    top: -16px;
-    right: 32px;
-    content: '';
-    height: 16px;
-    width: 16px;
-    border: 8px solid transparent;
-    border-bottom-color: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:before {
-    margin-top: -1px;
-    border-bottom-color: ${p => p.theme.border};
-  }
 `;
 
 const StyledPanelItem = styled('div')`

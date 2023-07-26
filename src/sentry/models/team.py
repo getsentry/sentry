@@ -5,9 +5,10 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -18,8 +19,10 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models.actor import Actor
+from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
@@ -38,18 +41,13 @@ class TeamManager(BaseManager):
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
-        from sentry.models import (
-            OrganizationMember,
-            OrganizationMemberTeam,
-            Project,
-            ProjectStatus,
-            ProjectTeam,
-        )
+        from sentry.models import OrganizationMember, OrganizationMemberTeam, Project
+        from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
             return []
 
-        base_team_qs = self.filter(organization=organization, status=TeamStatus.VISIBLE)
+        base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
         if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
@@ -77,7 +75,7 @@ class TeamManager(BaseManager):
 
         if with_projects:
             project_list = sorted(
-                Project.objects.filter(teams__in=team_list, status=ProjectStatus.VISIBLE),
+                Project.objects.filter(teams__in=team_list, status=ObjectStatus.ACTIVE),
                 key=lambda x: x.name.lower(),
             )
 
@@ -120,18 +118,18 @@ class TeamManager(BaseManager):
             except (Organization.DoesNotExist, Project.DoesNotExist):
                 pass
 
-        transaction.on_commit(_spawn_task)
+        transaction.on_commit(_spawn_task, router.db_for_write(Team))
 
 
 # TODO(dcramer): pull in enum library
 class TeamStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
 
 @region_silo_only_model
-class Team(Model):
+class Team(Model, SnowflakeIdMixin):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
@@ -146,11 +144,11 @@ class Team(Model):
     name = models.CharField(max_length=64)
     status = BoundedPositiveIntegerField(
         choices=(
-            (TeamStatus.VISIBLE, _("Active")),
+            (TeamStatus.ACTIVE, _("Active")),
             (TeamStatus.PENDING_DELETION, _("Pending Deletion")),
             (TeamStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
         ),
-        default=TeamStatus.VISIBLE,
+        default=TeamStatus.ACTIVE,
     )
     actor = FlexibleForeignKey(
         "sentry.Actor",
@@ -183,7 +181,13 @@ class Team(Model):
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-        super().save(*args, **kwargs)
+        if settings.SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "team_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Team, self).save(*args, **kwargs)
+            )
+        else:
+            super().save(*args, **kwargs)
 
     @property
     def member_set(self):
@@ -191,7 +195,8 @@ class Team(Model):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
-            user__is_active=True,
+            user_id__isnull=False,
+            user_is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):
@@ -226,13 +231,13 @@ class Team(Model):
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
-            ProjectTeam,
             ReleaseProject,
             ReleaseProjectEnvironment,
         )
+        from sentry.models.projectteam import ProjectTeam
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 self.update(organization=organization)
         except IntegrityError:
             # likely this means a team already exists, let's try to coerce to
@@ -267,13 +272,13 @@ class Team(Model):
         for member in old_memberships:
             try:
                 new_member = OrganizationMember.objects.get(
-                    user=member.user, organization=organization
+                    user_id=member.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 continue
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     OrganizationMemberTeam.objects.create(
                         team=new_team, organizationmember=new_member
                     )
@@ -290,13 +295,15 @@ class Team(Model):
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
-                cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
-                cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
+                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=False):
+                    cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
+                    self.outbox_for_update().save()
+                    cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
             finally:
                 cursor.close()
 
             # Change whatever new_team's actor is to the one from the old team.
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Team)):
                 Actor.objects.filter(id=self.actor_id).update(team_id=new_team.id)
                 new_team.actor_id = self.actor_id
                 new_team.save()
@@ -315,9 +322,30 @@ class Team(Model):
 
         return Project.objects.get_for_team_ids({self.id})
 
+    def outbox_for_update(self) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.TEAM_SCOPE,
+            shard_identifier=self.organization_id,
+            category=OutboxCategory.TEAM_UPDATE,
+            object_identifier=self.id,
+        )
+
     def delete(self, **kwargs):
         from sentry.models import ExternalActor
 
         # There is no foreign key relationship so we have to manually delete the ExternalActors
-        ExternalActor.objects.filter(actor_id=self.actor_id).delete()
-        return super().delete(**kwargs)
+        with outbox_context(transaction.atomic(router.db_for_write(ExternalActor))):
+            ExternalActor.objects.filter(actor_id=self.actor_id).delete()
+            self.outbox_for_update().save()
+
+            return super().delete(**kwargs)
+
+    def get_member_actor_ids(self):
+        owner_ids = [self.actor_id]
+        member_user_ids = self.member_set.values_list("user_id", flat=True)
+        owner_ids += Actor.objects.filter(
+            type=ACTOR_TYPES["user"],
+            user_id__in=member_user_ids,
+        ).values_list("id", flat=True)
+
+        return owner_ids

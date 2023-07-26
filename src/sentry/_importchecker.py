@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import atexit
 import builtins
 import functools
 import os
 import sys
+from typing import IO
 
 real_import = builtins.__import__
 
@@ -10,8 +13,8 @@ real_import = builtins.__import__
 TRACK_IMPORTS = os.environ.get("SENTRY_TRACK_IMPORTS") == "1"
 TRACKED_PACKAGES = ("sentry", "getsentry")
 
-observations = set()
-import_order = []
+observations: set[tuple[str, str]] = set()
+import_order: list[str] = []
 
 
 def resolve_full_name(base, name, level):
@@ -30,7 +33,7 @@ def is_relevant_import(package):
 
 
 def emit_dot(filename):
-    modules = {}
+    modules: dict[str, int] = {}
 
     def _register_module(name):
         if modules.get(name) is not None:
@@ -54,19 +57,17 @@ def emit_dot(filename):
 
 
 def emit_ascii_tree(filename):
-    dependencies = {}
+    dependencies: dict[str, set[str]] = {}
 
     for from_name, to_name in observations:
         dependencies.setdefault(from_name, set()).add(to_name)
 
     indentation = 0
 
-    def _write_dep(f, name, seen=None):
+    def _write_dep(f: IO[str], name: str, seen: dict[str, int]) -> None:
         nonlocal indentation
         marker = f"{indentation:02}"
-        children = dependencies.get(name) or []
-        if seen is None:
-            seen = {}
+        children = dependencies.get(name) or set()
         if name in seen:
             count = seen[name]
             seen[name] = count + 1
@@ -79,7 +80,7 @@ def emit_ascii_tree(filename):
             _write_dep(f, child, seen=seen)
         indentation -= 1
 
-    seen = {}
+    seen: dict[str, int] = {}
     with open(filename, "w") as f:
         for name in import_order:
             _write_dep(f, name, seen=seen)

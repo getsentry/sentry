@@ -3,8 +3,9 @@ import {useCallback, useRef} from 'react';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type {NetworkSpan} from 'sentry/views/replays/types';
+import {ReplayFrame} from 'sentry/utils/replays/types';
 
 function useCrumbHandlers(startTimestampMs: number = 0) {
   const {
@@ -17,7 +18,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   const {setActiveTab} = useActiveReplayTab();
 
   const mouseEnterCallback = useRef<{
-    id: string | number | null;
+    id: Crumb | ReplayFrame | null;
     timeoutId: NodeJS.Timeout | null;
   }>({
     id: null,
@@ -25,20 +26,25 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   });
 
   const handleMouseEnter = useCallback(
-    (item: Crumb | NetworkSpan) => {
+    (item: Crumb | ReplayFrame) => {
       // this debounces the mouseEnter callback in unison with mouseLeave
       // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
       // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
-      mouseEnterCallback.current.id = item.id;
+      mouseEnterCallback.current.id = item;
       mouseEnterCallback.current.timeoutId = setTimeout(() => {
         if (startTimestampMs) {
-          setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
+          setCurrentHoverTime(
+            'offsetMs' in item
+              ? item.offsetMs
+              : relativeTimeInMs(item.timestamp ?? '', startTimestampMs)
+          );
         }
 
         if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
           // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
           // crumb to a tooltip
           clearAllHighlights();
+          // @ts-expect-error: Property 'label' does not exist on type
           highlight({nodeId: item.data.nodeId, annotation: item.data.label});
         }
         mouseEnterCallback.current.id = null;
@@ -49,9 +55,9 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleMouseLeave = useCallback(
-    (item: Crumb | NetworkSpan) => {
+    (item: Crumb | ReplayFrame) => {
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
-      if (mouseEnterCallback.current.id === item.id) {
+      if (mouseEnterCallback.current.id === item) {
         if (mouseEnterCallback.current.timeoutId) {
           clearTimeout(mouseEnterCallback.current.timeoutId);
         }
@@ -71,7 +77,15 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleClick = useCallback(
-    (crumb: Crumb | NetworkSpan) => {
+    (crumb: Crumb | ReplayFrame) => {
+      if ('offsetMs' in crumb) {
+        const frame = crumb; // Finding `offsetMs` means we have a frame, not a crumb or span
+
+        setCurrentTime(frame.offsetMs);
+        setActiveTab(getFrameDetails(frame).tabKey);
+        return;
+      }
+
       if (crumb.timestamp !== undefined) {
         setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
       }
@@ -87,6 +101,10 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
       }
 
       if ('type' in crumb) {
+        if (crumb.type === BreadcrumbType.ERROR) {
+          setActiveTab('errors');
+          return;
+        }
         switch (crumb.type) {
           case BreadcrumbType.NAVIGATION:
             setActiveTab('network');

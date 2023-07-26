@@ -1,14 +1,15 @@
 from sentry.models import Group, Integration
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils import TestCase
 
 
 class SentryManagerTest(TestCase):
     def test_valid_only_message(self):
-        event = Group.objects.from_kwargs(1, message="foo")
+        proj = self.create_project()
+        event = Group.objects.from_kwargs(proj.id, message="foo")
         self.assertEqual(event.group.last_seen, event.datetime)
         self.assertEqual(event.message, "foo")
-        self.assertEqual(event.project_id, 1)
+        self.assertEqual(event.project_id, proj.id)
 
     def test_get_groups_by_external_issue(self):
         external_issue_key = "api-123"
@@ -20,7 +21,7 @@ class SentryManagerTest(TestCase):
             metadata={"base_url": "https://example.com"},
         )
         integration_model.add_organization(group.organization, self.user)
-        integration = integration_service._serialize_integration(integration=integration_model)
+        integration = serialize_integration(integration=integration_model)
         self.create_integration_external_issue(
             group=group, integration=integration, key=external_issue_key
         )

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import logging
+
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -8,8 +12,8 @@ from social_auth.models import UserSocialAuth
 
 
 class ProviderMixin:
-    auth_provider = None
-    logger = None
+    auth_provider: str | None = None
+    logger: logging.Logger | None = None
 
     def link_auth(self, user, organization, data):
         try:

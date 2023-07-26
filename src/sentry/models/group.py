@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -17,7 +17,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -34,15 +35,19 @@ from sentry.db.models import (
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
-from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
+from sentry.types.group import (
+    IGNORED_SUBSTATUS_CHOICES,
+    UNRESOLVED_SUBSTATUS_CHOICES,
+    GroupSubStatus,
+)
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team
+    from sentry.models import Environment, Organization, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -53,7 +58,7 @@ _short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
-def parse_short_id(short_id):
+def parse_short_id(short_id: str) -> ShortId:
     match = _short_id_re.match(short_id.strip())
     if match is None:
         return None
@@ -149,23 +154,28 @@ class GroupStatus:
     MUTED = IGNORED
 
 
-class GroupSubStatus:
-    UNTIL_ESCALATING = 1
-    ESCALATING = 2
-    ONGOING = 3
-
-
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,
+    "archived": GroupStatus.IGNORED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
     "reprocessing": GroupStatus.REPROCESSING,
 }
 QUERY_STATUS_LOOKUP = {
     status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
+}
+
+GROUP_SUBSTATUS_TO_STATUS_MAP = {
+    GroupSubStatus.ESCALATING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.REGRESSED: GroupStatus.UNRESOLVED,
+    GroupSubStatus.ONGOING: GroupStatus.UNRESOLVED,
+    GroupSubStatus.NEW: GroupStatus.UNRESOLVED,
+    GroupSubStatus.UNTIL_ESCALATING: GroupStatus.IGNORED,
+    GroupSubStatus.FOREVER: GroupStatus.IGNORED,
+    GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
 }
 
 # Statuses that can be updated from the regular "update group" API
@@ -184,16 +194,16 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
-SUBSTATUS_UPDATE_CHOICES = {
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
-    "escalating": GroupSubStatus.ESCALATING,
-    "ongoing": GroupSubStatus.ONGOING,
-}
-
 
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
+    MOST_HELPFUL = [
+        "-replayId",
+        "-profile.id",
+        "num_processing_errors",
+        "-timestamp",
+    ]
 
 
 def get_oldest_or_latest_event_for_environments(
@@ -204,28 +214,78 @@ def get_oldest_or_latest_event_for_environments(
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        apply_performance_conditions(conditions, group)
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[group.project_id],
-        )
-        dataset = Dataset.Transactions
+    if group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.Events
     else:
-        if group.issue_category == GroupCategory.ERROR:
-            dataset = Dataset.Events
-        else:
-            dataset = Dataset.IssuePlatform
+        dataset = Dataset.IssuePlatform
 
-        _filter = eventstore.Filter(
-            conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
-        )
-
-    events = eventstore.get_events(
+    _filter = eventstore.Filter(
+        conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
+    )
+    events = eventstore.backend.get_events(
         filter=_filter,
         limit=1,
         orderby=ordering.value,
         referrer="Group.get_latest",
+        dataset=dataset,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+
+    if events:
+        return events[0].for_group(group)
+
+    return None
+
+
+def get_replay_count_for_group(group: Group) -> int:
+    events = eventstore.backend.get_events(
+        filter=eventstore.Filter(
+            conditions=[["replay_id", "IS NOT NULL", None]],
+            project_ids=[group.project_id],
+            group_ids=[group.id],
+        ),
+        limit=1,
+        orderby=EventOrdering.MOST_HELPFUL.value,
+        referrer="Group.get_replay_count_for_group",
+        dataset=Dataset.Events,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    return len(events)
+
+
+def get_helpful_event_for_environments(
+    environments: Sequence[Environment],
+    group: Group,
+    conditions: Optional[Sequence[Condition]] = None,
+) -> GroupEvent | None:
+    if group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.Events
+    else:
+        dataset = Dataset.IssuePlatform
+
+    all_conditions = []
+    if len(environments) > 0:
+        all_conditions.append(
+            Condition(Column("environment"), Op.IN, [e.name for e in environments])
+        )
+    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
+    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+
+    if conditions:
+        all_conditions.extend(conditions)
+
+    end = group.last_seen + timedelta(minutes=1)
+    start = end - timedelta(days=7)
+
+    events = eventstore.get_events_snql(
+        organization_id=group.project.organization_id,
+        group_id=group.id,
+        start=start,
+        end=end,
+        conditions=all_conditions,
+        limit=1,
+        orderby=EventOrdering.MOST_HELPFUL.value,
+        referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
     )
@@ -292,7 +352,7 @@ class GroupManager(BaseManager):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id
@@ -306,7 +366,7 @@ class GroupManager(BaseManager):
         return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id, tenant_ids=None):
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
                 project_ids=project_ids,
@@ -348,18 +408,37 @@ class GroupManager(BaseManager):
         ).select_related("project")
 
     def update_group_status(
-        self, groups: Sequence[Group], status: GroupStatus, activity_type: ActivityType
+        self,
+        groups: Sequence[Group],
+        status: int,
+        substatus: int | None,
+        activity_type: ActivityType,
+        activity_data: Optional[Mapping[str, Any]] = None,
+        send_activity_notification: bool = True,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        updated_count = (
-            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
         )
-        if updated_count:
-            for group in groups:
-                Activity.objects.create_group_activity(group, activity_type)
-                record_group_history_from_activity_type(group, activity_type.value)
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+
+        self.bulk_update(to_be_updated, ["status", "substatus"])
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+            Activity.objects.create_group_activity(
+                group,
+                activity_type,
+                data=activity_data,
+                send_notification=send_activity_notification,
+            )
+            record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -436,6 +515,8 @@ class Group(Model):
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
             (GroupSubStatus.ONGOING, _("Ongoing")),
             (GroupSubStatus.ESCALATING, _("Escalating")),
+            (GroupSubStatus.UNTIL_CONDITION_MET, _("Until condition met")),
+            (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
@@ -449,8 +530,8 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
-    is_public = models.NullBooleanField(default=False, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    is_public = models.BooleanField(default=False, null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
@@ -469,6 +550,7 @@ class Group(Model):
             ("project", "status", "type", "last_seen", "id"),
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
+            ("project", "status", "substatus", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -537,6 +619,9 @@ class Group(Model):
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
 
+    def has_replays(self):
+        return get_replay_count_for_group(self) > 0
+
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
@@ -590,6 +675,22 @@ class Group(Model):
             EventOrdering.OLDEST,
             environments,
             self,
+        )
+
+    def get_helpful_event_for_environments(
+        self,
+        environments: Sequence[Environment] = (),
+        conditions: Optional[Sequence[Condition]] = None,
+    ) -> GroupEvent | None:
+        maybe_event = get_helpful_event_for_environments(
+            environments,
+            self,
+            conditions,
+        )
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event_for_environments([env.name for env in environments])
         )
 
     def get_first_release(self) -> str | None:
@@ -717,6 +818,33 @@ class Group(Model):
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+    # TODO(snigdha): Replace the logging with a ValueError once we are confident that this is working as expected.
     if instance:
-        if instance.status == GroupStatus.UNRESOLVED and instance.substatus is None:
-            instance.substatus = GroupSubStatus.ONGOING
+        # We only support substatuses for UNRESOLVED and IGNORED groups
+        if (
+            instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
+            and instance.substatus is not None
+        ):
+            logger.exception(
+                "No substatus allowed for group",
+                extra={"status": instance.status, "substatus": instance.substatus},
+            )
+
+        if (
+            instance.status == GroupStatus.IGNORED
+            and instance.substatus not in IGNORED_SUBSTATUS_CHOICES
+        ):
+            logger.exception(
+                "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+            )
+
+        if instance.status == GroupStatus.UNRESOLVED:
+            if instance.substatus is None:
+                instance.substatus = GroupSubStatus.ONGOING
+
+            # UNRESOLVED groups must have a substatus
+            if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
+                logger.exception(
+                    "Invalid substatus for UNRESOLVED group",
+                    extra={"substatus": instance.substatus},
+                )

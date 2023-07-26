@@ -27,6 +27,7 @@ import {
   getAggregateAlias,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
@@ -139,6 +140,10 @@ type EventsRequestPartialProps = {
    */
   dataLoadedCallback?: (any: EventsStats | MultiSeriesEventsStats | null) => void;
   /**
+   * Specify the dataset to query from. Defaults to discover.
+   */
+  dataset?: DiscoverDatasets;
+  /**
    * List of environments to query
    */
   environment?: Readonly<string[]>;
@@ -205,6 +210,11 @@ type EventsRequestPartialProps = {
    */
   topEvents?: number;
   /**
+   * Whether or not to use on demand metrics
+   * This is a temporary flag to allow us to test on demand metrics
+   */
+  useOnDemandMetrics?: boolean;
+  /**
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
@@ -215,13 +225,23 @@ type EventsRequestPartialProps = {
   yAxis?: string | string[];
 };
 
-type TimeAggregationProps =
-  | {includeTimeAggregation: true; timeAggregationSeriesName: string}
-  | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
+interface EventsRequestPropsWithTimeAggregation
+  extends DefaultProps,
+    EventsRequestPartialProps {
+  includeTimeAggregation: true;
+  timeAggregationSeriesName: string;
+}
 
-export type EventsRequestProps = DefaultProps &
-  TimeAggregationProps &
-  EventsRequestPartialProps;
+interface EventsRequestPropsWithoutTimeAggregation
+  extends DefaultProps,
+    EventsRequestPartialProps {
+  includeTimeAggregation?: false;
+  timeAggregationSeriesName?: undefined;
+}
+
+export type EventsRequestProps =
+  | EventsRequestPropsWithTimeAggregation
+  | EventsRequestPropsWithoutTimeAggregation;
 
 type EventsRequestState = {
   errored: boolean;

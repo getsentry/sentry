@@ -10,9 +10,10 @@ from sentry.testutils.silo import region_silo_test
 class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
     def setUp(self):
         super().setUp()
-        self.member = self.create_member(user=self.create_user(), organization=self.organization)
+        member_user = self.create_user()
+        self.member = self.create_member(user=member_user, organization=self.organization)
         self.team = self.create_team(
-            organization=self.organization, members=[self.user, self.member.user]
+            organization=self.organization, members=[self.user, member_user]
         )
         self.url = reverse(
             "sentry-api-0-organization-scim-team-details",

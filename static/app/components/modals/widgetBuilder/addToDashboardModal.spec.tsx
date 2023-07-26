@@ -80,9 +80,7 @@ describe('add to dashboard modal', () => {
   };
 
   beforeEach(() => {
-    initialData = initializeOrg({
-      ...initializeOrg(),
-    });
+    initialData = initializeOrg();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',

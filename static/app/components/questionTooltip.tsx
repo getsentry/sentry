@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 
 interface QuestionProps
   extends Partial<
     Pick<
-      React.ComponentProps<typeof Tooltip>,
+      TooltipProps,
       'containerDisplayMode' | 'isHoverable' | 'overlayStyle' | 'position'
     >
   > {

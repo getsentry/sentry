@@ -1,13 +1,12 @@
 from typing import Dict, List, Tuple, TypedDict
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
-from sentry.models.integrations.pagerduty_service import PagerDutyService
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
@@ -220,14 +219,16 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             return data
 
         service_id = data.get("target_identifier")
+        ois = integration_service.get_organization_integrations(
+            organization_id=self.context["organization"].id,
+            integration_id=self.integration.id,
+        )
 
         if not service_id:
             pd_service_options = [
                 f"{pds['id']} ({pds['service_name']})"
-                for pds in PagerDutyService.objects.filter(
-                    organization_integration__organization_id=self.context["organization"].id,
-                    organization_integration__integration_id=self.integration.id,
-                ).values("id", "service_name")
+                for oi in ois
+                for pds in oi.config.get("pagerduty_services", [])
             ]
 
             raise serializers.ValidationError(
@@ -237,19 +238,20 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
 
         try:
-            pds = PagerDutyService.objects.get(
-                id=service_id,
-                organization_integration__organization_id=self.context["organization"].id,
-                organization_integration__integration_id=self.integration.id,
+            pds = next(
+                pds
+                for oi in ois
+                for pds in oi.config.get("pagerduty_services", [])
+                if service_id == str(pds["id"])
             )
-        except PagerDutyService.DoesNotExist:
+        except StopIteration:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."
                 }
             )
-        data["target_display"] = pds.service_name
-        data["target_identifier"] = pds.id
+        data["target_display"] = pds["service_name"]
+        data["target_identifier"] = pds["id"]
         return data
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:
@@ -274,7 +276,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             organization_id=self.context["organization"].id,
             **validated_data,
         )
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationAction)):
             action.save()
             action.projects.set(projects)
         return action
@@ -287,7 +289,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         for key, value in validated_data.items():
             setattr(instance, key, value)
         instance.type = service_type
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(NotificationAction)):
             instance.save()
             instance.projects.set(projects)
         return instance

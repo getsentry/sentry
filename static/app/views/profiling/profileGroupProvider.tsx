@@ -1,5 +1,7 @@
 import {createContext, useContext, useMemo} from 'react';
+import * as Sentry from '@sentry/react';
 
+import {Frame} from 'sentry/utils/profiling/frame';
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 type ProfileGroupContextValue = ProfileGroup;
@@ -29,6 +31,7 @@ interface ProfileGroupProviderProps {
   input: Readonly<Profiling.ProfileInput> | null;
   traceID: string;
   type: 'flamegraph' | 'flamechart';
+  frameFilter?: (frame: Frame) => boolean;
 }
 
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
@@ -36,8 +39,13 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     if (!props.input) {
       return LoadingGroup;
     }
-    return importProfile(props.input, props.traceID, props.type);
-  }, [props.input, props.traceID, props.type]);
+    try {
+      return importProfile(props.input, props.traceID, props.type, props.frameFilter);
+    } catch (err) {
+      Sentry.captureException(err);
+      return LoadingGroup;
+    }
+  }, [props.input, props.traceID, props.type, props.frameFilter]);
 
   return (
     <ProfileGroupContext.Provider value={profileGroup}>

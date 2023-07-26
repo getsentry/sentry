@@ -1,8 +1,7 @@
 from django.conf import settings
-from django.conf.urls import url
 from django.http import HttpResponseRedirect
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -60,7 +59,7 @@ class APITestEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^api/0/test/$",
         APITestEndpoint.as_view(),
         name="test-endpoint",

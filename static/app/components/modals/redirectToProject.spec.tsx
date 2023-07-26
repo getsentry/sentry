@@ -11,9 +11,7 @@ describe('RedirectToProjectModal', function () {
 
   it('has timer to redirect to new slug after mounting', function () {
     const {router} = initializeOrg({
-      ...initializeOrg(),
       router: {
-        ...initializeOrg().router,
         routes: [
           {path: '/', childRoutes: []},
           {name: 'Organizations', path: ':orgId/', childRoutes: []},

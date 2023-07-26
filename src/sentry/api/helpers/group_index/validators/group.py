@@ -4,12 +4,13 @@ from rest_framework import serializers
 
 from sentry.api.fields import ActorField
 from sentry.models import Actor, Team, User
-from sentry.models.group import STATUS_UPDATE_CHOICES, SUBSTATUS_UPDATE_CHOICES
+from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
-class GroupValidator(serializers.Serializer):  # type: ignore
+class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(
@@ -17,7 +18,8 @@ class GroupValidator(serializers.Serializer):  # type: ignore
     )
     statusDetails = StatusDetailsValidator()
     substatus = serializers.ChoiceField(
-        choices=list(zip(SUBSTATUS_UPDATE_CHOICES.keys(), SUBSTATUS_UPDATE_CHOICES.keys()))
+        choices=list(zip(SUBSTATUS_UPDATE_CHOICES.keys(), SUBSTATUS_UPDATE_CHOICES.keys())),
+        allow_null=True,
     )
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()

@@ -241,9 +241,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
                         "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:
-                component.update(
-                    contributes=False, contributes_to_similarity=True, hint=precedence_hint
-                )
+                component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
     for (variant, components) in per_variant_components.items():
@@ -298,7 +296,6 @@ def get_grouping_variants_for_event(event, config=None):
         for (key, component) in components.items():
             component.update(
                 contributes=False,
-                contributes_to_similarity=True,
                 hint="custom fingerprint takes precedence",
             )
             rv[key] = ComponentVariant(component, context.config)

@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Iterable, Mapping, MutableMapping
+from urllib.parse import urlencode
 
 import pytz
 
+from sentry import features
 from sentry.db.models import Model
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import UserOption
+from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -20,7 +23,9 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
+    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
+    get_replay_id,
     get_rules,
     get_transaction_data,
     has_alert_integration,
@@ -29,11 +34,25 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
+
+
+def get_group_substatus_text(group: Group) -> str:
+    if group.substatus == GroupSubStatus.NEW:
+        return "New issue"
+    elif group.substatus == GroupSubStatus.REGRESSED:
+        return "Regressed issue"
+    elif group.substatus == GroupSubStatus.ONGOING:
+        return "Ongoing issue"
+    return "New Alert"
+
+
+GENERIC_TEMPLATE_NAME = "generic"
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -59,11 +78,21 @@ class AlertRuleNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
-        self.template_path = (
-            f"sentry/emails/{event.group.issue_category.name.lower()}"
-            if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
-            else "sentry/emails/generic"
-        )
+
+        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            # profile issues use the generic template for now
+            if (
+                isinstance(event, GroupEvent)
+                and event.occurrence
+                and event.occurrence.evidence_data.get("template_name") == "profile"
+            ):
+                email_template_name = GENERIC_TEMPLATE_NAME
+            else:
+                email_template_name = event.group.issue_category.name.lower()
+        else:
+            email_template_name = GENERIC_TEMPLATE_NAME
+
+        self.template_path = f"sentry/emails/{email_template_name}"
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
@@ -103,6 +132,11 @@ class AlertRuleNotification(ProjectNotification):
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
         rule_details = get_rules(self.rules, self.organization, self.project)
+        sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
+        for rule in rule_details:
+            rule.url = rule.url + sentry_query_params
+            rule.status_url = rule.url + sentry_query_params
+
         notification_reason = get_owner_reason(
             project=self.project,
             target_type=self.target_type,
@@ -110,10 +144,12 @@ class AlertRuleNotification(ProjectNotification):
             fallthrough_choice=self.fallthrough_choice,
         )
         fallback_params: MutableMapping[str, str] = {}
+        group_header = get_group_substatus_text(self.group)
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
+            "group_header": group_header,
             "event": self.event,
             "link": get_group_settings_link(
                 self.group, environment, rule_details, None, **fallback_params
@@ -126,11 +162,12 @@ class AlertRuleNotification(ProjectNotification):
             "slack_link": get_integration_link(self.organization, "slack"),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
-                "/settings/account/notifications/alerts/?referrer=alert_email"
+                f"/settings/account/notifications/alerts/{sentry_query_params}"
             ),
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
+            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -138,7 +175,27 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
-        if self.group.issue_category == GroupCategory.PERFORMANCE:
+        has_session_replay = features.has("organizations:session-replay", self.organization)
+        show_replay_link = features.has(
+            "organizations:session-replay-issue-emails", self.organization
+        )
+        if has_session_replay and show_replay_link and get_replay_id(self.event):
+            context.update(
+                {
+                    "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
+                }
+            )
+
+        template_name = (
+            self.event.occurrence.evidence_data.get("template_name")
+            if isinstance(self.event, GroupEvent) and self.event.occurrence
+            else None
+        )
+
+        if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
+            # This can't use data from the occurrence at the moment, so we'll keep fetching the event
+            # and gathering span evidence.
+
             context.update(
                 {
                     "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],
@@ -146,7 +203,13 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if getattr(self.event, "occurrence", None):
+        if len(self.rules) > 0:
+            context["snooze_alert"] = True
+            context[
+                "snooze_alert_url"
+            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+
+        if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
             context["culprit"] = self.event.occurrence.culprit

@@ -11,7 +11,7 @@ from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from packaging.version import parse as parse_version
 
 from sentry import options
@@ -217,7 +217,7 @@ def get_sentry_version(context):
 
 @register.filter
 def timesince(value, now=None):
-    from django.template.defaultfilters import timesince
+    from django.utils.timesince import timesince
 
     if now is None:
         now = timezone.now()

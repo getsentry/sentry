@@ -47,7 +47,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
@@ -896,7 +896,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                 const eventKey = showEmbeddedChildren
                   ? 'span_view.embedded_child.hide'
                   : 'span_view.embedded_child.show';
-                trackAdvancedAnalyticsEvent(eventKey, {organization});
+                trackAnalytics(eventKey, {organization});
 
                 const eventSlugs = transactions.map(transaction =>
                   generateEventSlug({

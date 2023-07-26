@@ -7,26 +7,26 @@ import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {getChartSetting} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import WidgetContainer from './widgetContainer';
 
-export type ChartRowProps = {
+export interface ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartCount: number;
   chartHeight: number;
   eventView: EventView;
   location: Location;
   withStaticFilters: boolean;
-};
+}
 
 function getInitialChartSettings(
   chartCount: number,
   chartHeight: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   allowedCharts: PerformanceWidgetSetting[]
 ) {
   return new Array(chartCount)

@@ -8,7 +8,7 @@ import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets
 import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 import {createDefinedContext} from './utils';
 
-interface MetricsEnhancedPerformanceDataContext {
+export interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
   isMetricsData?: boolean;
 }
@@ -35,9 +35,9 @@ export function MEPDataProvider({
         return;
       }
       if (value === true) {
-        setAutoSampleState(AutoSampleState.metrics);
+        setAutoSampleState(AutoSampleState.METRICS);
       } else if (value === false) {
-        setAutoSampleState(AutoSampleState.transactions);
+        setAutoSampleState(AutoSampleState.TRANSACTIONS);
       }
       _setIsMetricsData(value);
     },
@@ -52,6 +52,18 @@ export function MEPDataProvider({
 }
 
 export const useMEPDataContext = _useMEPDataContext;
+
+export function getIsMetricsDataFromResults(
+  results: any,
+  field = ''
+): boolean | undefined {
+  const isMetricsData =
+    results?.meta?.isMetricsData ??
+    results?.seriesAdditionalInfo?.[field]?.isMetricsData ??
+    results?.histograms?.meta?.isMetricsData ??
+    results?.tableData?.meta?.isMetricsData;
+  return isMetricsData;
+}
 
 export function MEPTag() {
   const {isMetricsData} = useMEPDataContext();

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Type
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -15,6 +15,15 @@ from sentry.silo import SiloMode
 
 
 class TombstoneBase(Model):
+    """
+    Records a hard deletion so that the delete action can be propagated
+    between regions. Subclasses provide specialized table names for each
+    direction data needs to flow in.
+
+    Tombstones are generally created by outbox receievers. Once
+    created, tombstones are propagated between regions with RPC (coming soon)
+    """
+
     class Meta:
         abstract = True
         unique_together = ("table_name", "object_identifier")
@@ -36,7 +45,7 @@ class TombstoneBase(Model):
     @classmethod
     def record_delete(cls, table_name: str, identifier: int):
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(cls)):
                 cls.objects.create(table_name=table_name, object_identifier=identifier)
         except IntegrityError:
             pass

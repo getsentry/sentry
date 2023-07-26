@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import FileSize from 'sentry/components/fileSize';
@@ -28,19 +28,19 @@ import {
   generateTraceTarget,
 } from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -60,7 +60,27 @@ import {
 
 const DEFAULT_ERRORS_VISIBLE = 5;
 
-const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
+const SIZE_DATA_KEYS = [
+  'Encoded Body Size',
+  'Decoded Body Size',
+  'Transfer Size',
+  'http.response_content_length',
+  'http.decoded_response_content_length',
+  'http.response_transfer_size',
+];
+
+const HIDDEN_DATA_KEYS = [
+  'http.request.redirect_start',
+  'http.request.fetch_start',
+  'http.request.domain_lookup_start',
+  'http.request.domain_lookup_end',
+  'http.request.connect_start',
+  'http.request.secure_connection_start',
+  'http.request.connection_end',
+  'http.request.request_start',
+  'http.request.response_start',
+  'http.request.response_end',
+];
 
 type TransactionResult = {
   id: string;
@@ -81,22 +101,29 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
 };
 
+function isSpanKeyVisible(key: string) {
+  return !HIDDEN_DATA_KEYS.includes(key);
+}
+
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = useTransactionProfileId();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === props.event.projectID);
 
   useEffect(() => {
     // Run on mount.
 
     const {span, organization, event} = props;
-    if ('type' in span) {
+    if (!('op' in span)) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
+    trackAnalytics('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
+      origin: span.origin ?? 'undefined',
       project_platform: event.platform ?? 'undefined',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -380,7 +407,7 @@ function SpanDetail(props: Props) {
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     const unknownKeys = Object.keys(span).filter(key => {
-      return !rawSpanKeys.has(key as any);
+      return isSpanKeyVisible(key) && !rawSpanKeys.has(key as any);
     });
 
     const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -411,33 +438,33 @@ function SpanDetail(props: Props) {
                       )}
                     >
                       Span ID
-                      <Clipboard
-                        value={`${window.location.href.replace(
-                          window.location.hash,
-                          ''
-                        )}#span-${span.span_id}`}
-                      >
-                        <StyledIconLink />
-                      </Clipboard>
                     </SpanIdTitle>
                   )
                 }
                 extra={renderTraversalButton()}
               >
                 {span.span_id}
+                <CopyToClipboardButton
+                  borderless
+                  size="zero"
+                  iconSize="xs"
+                  text={`${window.location.href.replace(window.location.hash, '')}#span-${
+                    span.span_id
+                  }`}
+                />
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {profileId && event.projectSlug && (
+              {profileId && project?.slug && (
                 <Row
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
                       size="xs"
-                      projectSlug={event.projectSlug}
+                      projectSlug={project.slug}
                       query={{
                         spanId: span.span_id,
                       }}
@@ -477,6 +504,9 @@ function SpanDetail(props: Props) {
               </Row>
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
+              <Row title="Origin">
+                {span.origin !== undefined ? String(span.origin) : null}
+              </Row>
               <Row title="Same Process as Parent">
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)
@@ -505,20 +535,20 @@ function SpanDetail(props: Props) {
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
-                    {value >= 1024 && (
-                      <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
-                    )}
+                    {value >= 1024 && <span>{` (${maybeStringify(value)} B)`}</span>}
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) => (
-                <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
-                </Row>
-              ))}
+              {map(nonSizeKeys, (value, key) =>
+                isSpanKeyVisible(key) ? (
+                  <Row title={key} key={key}>
+                    {maybeStringify(value)}
+                  </Row>
+                ) : null
+              )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
-                  {JSON.stringify(span[key], null, 4) || ''}
+                  {maybeStringify(span[key])}
                 </Row>
               ))}
             </tbody>
@@ -541,6 +571,13 @@ function SpanDetail(props: Props) {
   );
 }
 
+function maybeStringify(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return JSON.stringify(value, null, 4);
+}
+
 const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
   top: ${space(0.75)};
@@ -556,6 +593,10 @@ export const SpanDetailContainer = styled('div')`
 
 export const SpanDetails = styled('div')`
   padding: ${space(2)};
+
+  table.table.key-value td.key {
+    max-width: 280px;
+  }
 `;
 
 const ValueTd = styled('td')`
@@ -597,19 +638,13 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-const StyledIconLink = styled(IconLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
-`;
-
 export function Row({
   title,
   keep,
   children,
   extra = null,
 }: {
-  children: JSX.Element | string | null;
+  children: React.ReactNode;
   title: JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;

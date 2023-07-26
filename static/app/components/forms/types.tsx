@@ -1,10 +1,10 @@
 import {createFilter} from 'react-select';
 
-import {Alert} from 'sentry/components/alert';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import type {AlertProps} from 'sentry/components/alert';
 import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import FormModel from 'sentry/components/forms/model';
+import {SliderProps} from 'sentry/components/slider';
 import {AvatarProject, Project, SelectValue} from 'sentry/types';
 
 export const FieldType = [
@@ -36,8 +36,9 @@ export type FieldValue = any;
 // TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
-type BaseField = {
+interface BaseField {
   name: string;
+  'aria-label'?: string;
   autosize?: boolean;
   choices?:
     | ((props: {[key: string]: any}) => void)
@@ -45,7 +46,7 @@ type BaseField = {
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: string;
+  disabledReason?: React.ReactNode;
   extraHelp?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -77,8 +78,9 @@ type BaseField = {
   required?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
+  rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
@@ -97,7 +99,7 @@ type BaseField = {
   updatesForm?: boolean;
   validate?: (data: {form: Record<string, any>; id: string}) => string[][];
   visible?: boolean | ((props: any) => boolean);
-};
+}
 
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
@@ -109,6 +111,8 @@ export interface CustomType {
 
 type InputType = {type: 'string' | 'secret'} & {
   autoComplete?: string;
+  maxLength?: number;
+  minLength?: number;
 };
 
 type SelectControlType = {type: 'choice' | 'select'} & {
@@ -132,11 +136,7 @@ type NumberType = {type: 'number'} & {
   step?: number;
 };
 
-type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
-
-type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
-    value?: Pick<RangeSliderProps, 'value'>;
-  };
+type RangeType = {type: 'range'} & SliderProps;
 
 type FileType = {type: 'file'} & {
   accept?: string[];

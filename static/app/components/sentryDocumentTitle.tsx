@@ -40,15 +40,15 @@ function SentryDocumentTitle({
 
   const pageTitle = useMemo(() => {
     if (orgSlug && projectSlug) {
-      return `${title} - ${orgSlug} - ${projectSlug}`;
+      return `${title} — ${orgSlug} — ${projectSlug}`;
     }
 
     if (orgSlug) {
-      return `${title} - ${orgSlug}`;
+      return `${title} — ${orgSlug}`;
     }
 
     if (projectSlug) {
-      return `${title} - ${projectSlug}`;
+      return `${title} — ${projectSlug}`;
     }
 
     return title;
@@ -60,7 +60,7 @@ function SentryDocumentTitle({
     }
 
     if (pageTitle !== '') {
-      return `${pageTitle} - Sentry`;
+      return `${pageTitle} — Sentry`;
     }
 
     return DEFAULT_PAGE_TITLE;

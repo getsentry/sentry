@@ -4,7 +4,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Actor, ParsedOwnershipRule} from 'sentry/types';
 
-import {OwnershipRulesTable} from './ownshipRulesTable';
+import {OwnershipRulesTable} from './ownershipRulesTable';
 
 describe('OwnershipRulesTable', () => {
   const user1 = TestStubs.User();

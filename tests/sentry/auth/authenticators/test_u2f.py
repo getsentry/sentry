@@ -3,15 +3,17 @@ from fido2.ctap2 import AuthenticatorData
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
 
-from sentry.auth.authenticators import U2fInterface
 from sentry.auth.authenticators.base import ActivationChallengeResult
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def verifiy_origin(origin):
     return True
 
 
+@control_silo_test(stable=True)
 class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()

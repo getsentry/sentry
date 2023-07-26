@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 import responses
 from django.db.models import QuerySet
-from requests import Response
+from django.http.response import HttpResponseBase
 from rest_framework import status
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
@@ -16,14 +16,17 @@ from sentry.models import (
     Team,
 )
 from sentry.notifications.types import NotificationScopeType
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
+    url: str
+
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -51,14 +54,14 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             content_type="application/json",
         )
 
-    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> Response:
+    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
-        kwargs = dict(content_type="application/x-www-form-urlencoded")
-
         if data is not None:
-            response = self.client.post(self.url, urlencode(data), **kwargs)
+            response = self.client.post(
+                self.url, urlencode(data), content_type="application/x-www-form-urlencoded"
+            )
         else:
-            response = self.client.get(self.url, **kwargs)
+            response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
         assert response.status_code == status.HTTP_200_OK
         return response
 
@@ -78,7 +81,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         return ExternalActor.objects.filter(
             actor_id__in=actor_ids,
             organization=organization,
-            integration=self.integration,
+            integration_id=self.integration.id,
             provider=ExternalProviders.SLACK.value,
             external_name=self.channel_name,
             external_id=self.channel_id,
@@ -123,9 +126,9 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
             assert len(team_settings) == 1
 
@@ -161,7 +164,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.create(
                 organization_id=organization2.id, integration=self.integration
             )
@@ -211,9 +214,9 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
         assert len(team_settings) == 0
 
@@ -254,9 +257,9 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
             in get_response_text(data)
         )
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+                scope_type=NotificationScopeType.TEAM.value, team_id=self.team.id
             )
         assert len(team_settings) == 0
 
@@ -265,7 +268,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.create(
                 organization_id=organization2.id, integration=self.integration
             )

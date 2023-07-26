@@ -15,7 +15,7 @@ def get_teams_by_organization_member_id(
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(
-            team__status=TeamStatus.VISIBLE, organizationmember__in=organization_members
+            team__status=TeamStatus.ACTIVE, organizationmember__in=organization_members
         ).values_list("organizationmember_id", "team_id", "role")
     )
     team_ids = {team_id for (_om_id, team_id, _role) in organization_member_tuples}

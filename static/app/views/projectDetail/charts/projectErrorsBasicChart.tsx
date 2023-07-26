@@ -2,11 +2,11 @@ import {browserHistory} from 'react-router';
 import type {BarSeriesOption} from 'echarts';
 import {Location} from 'history';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -14,18 +14,18 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   location: Location;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
   projectId?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   projects: Project[] | null;
 };
 
-class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
+class ProjectErrorsBasicChart extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -33,7 +33,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, projectId} = this.props;
 
     if (!projectId) {
@@ -55,6 +55,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     const {location} = this.props;
     if (!ERRORS_BASIC_CHART_PERIODS.includes(location.query.statsPeriod)) {
       browserHistory.replace({

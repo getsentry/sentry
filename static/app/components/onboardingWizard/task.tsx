@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -28,7 +28,7 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAdvancedAnalyticsEvent('onboarding.wizard_clicked', {
+  trackAnalytics('onboarding.wizard_clicked', {
     organization,
     todo_id: task.task,
     todo_title: task.title,

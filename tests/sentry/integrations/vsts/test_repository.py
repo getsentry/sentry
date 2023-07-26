@@ -1,16 +1,18 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 from time import time
 
 import responses
-from django.utils import timezone
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class VisualStudioRepositoryProviderTest(TestCase):
     def setUp(self):
         self.base_url = "https://visualstudio.com/"
@@ -119,6 +121,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         assert result == repo.external_id
 
 
+@control_silo_test
 class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -17,6 +17,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 interface ProfileChartsProps {
   query: string;
+  referrer: string;
   compact?: boolean;
   hideCount?: boolean;
   selection?: PageFilters;
@@ -29,6 +30,7 @@ const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
 export function ProfileCharts({
   query,
+  referrer,
   selection,
   hideCount,
   compact = false,
@@ -45,7 +47,7 @@ export function ProfileCharts({
 
   const profileStats = useProfileEventsStats({
     query,
-    referrer: 'api.profiling.landing-chart',
+    referrer,
     yAxes: seriesOrder,
   });
 
@@ -110,7 +112,7 @@ export function ProfileCharts({
             {!hideCount && (
               <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
             )}
-            <StyledHeaderTitle compact>{t('Profiles by Percentiles')}</StyledHeaderTitle>
+            <StyledHeaderTitle compact>{t('Profiles Duration')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
             height={compact ? 150 : 300}

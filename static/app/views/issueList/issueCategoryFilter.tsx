@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
@@ -6,22 +6,25 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ISSUE_CATEGORY_FILTER = 'issue.category';
 
-function IssueCategoryFilter({
-  query,
-  onSearch,
-}: {
+interface IssueCategoryFilterProps {
   onSearch: (query: string) => void;
   query: string;
-}) {
+}
+
+function IssueCategoryFilter({query, onSearch}: IssueCategoryFilterProps) {
   const [isPerformanceSeen, setIsPerformanceSeen] = useLocalStorageState(
     'issue-category-dropdown-seen:performance',
+    false
+  );
+  const [isCronSeen, setIsCronSeen] = useLocalStorageState(
+    'issue-category-dropdown-seen:crons',
     false
   );
   const organization = useOrganization();
@@ -38,11 +41,18 @@ function IssueCategoryFilter({
               {!isTriggerLabel && !isPerformanceSeen && <FeatureBadge type="new" />}
             </LabelWrapper>
           );
+        case IssueCategory.CRON:
+          return (
+            <LabelWrapper>
+              {t('Crons')}
+              {!isTriggerLabel && !isCronSeen && <FeatureBadge type="new" />}
+            </LabelWrapper>
+          );
         default:
           return <LabelWrapper>{t('All Categories')}</LabelWrapper>;
       }
     },
-    [isPerformanceSeen]
+    [isPerformanceSeen, isCronSeen]
   );
 
   const options = useMemo(
@@ -58,8 +68,17 @@ function IssueCategoryFilter({
         value: IssueCategory.PERFORMANCE,
         textValue: IssueCategory.PERFORMANCE,
       },
+      ...(organization.features.includes('issue-platform')
+        ? [
+            {
+              label: renderLabel(IssueCategory.CRON),
+              value: IssueCategory.CRON,
+              textValue: IssueCategory.CRON,
+            },
+          ]
+        : []),
     ],
-    [renderLabel]
+    [renderLabel, organization]
   );
 
   const [selectedOption, setSelectedOption] = useState<SelectOption<string>>(options[0]);
@@ -92,11 +111,14 @@ function IssueCategoryFilter({
       search.setFilterValues(ISSUE_CATEGORY_FILTER, [option.value]);
     }
 
-    if (option.value === 'performance') {
+    if (option.value === IssueCategory.PERFORMANCE) {
       setIsPerformanceSeen(true);
     }
+    if (option.value === IssueCategory.CRON) {
+      setIsCronSeen(true);
+    }
 
-    trackAdvancedAnalyticsEvent('issues_stream.issue_category_dropdown_changed', {
+    trackAnalytics('issues_stream.issue_category_dropdown_changed', {
       organization,
       category: option.value,
     });

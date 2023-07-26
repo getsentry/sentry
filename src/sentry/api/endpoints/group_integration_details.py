@@ -1,6 +1,6 @@
 from typing import Any, Mapping, MutableMapping
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -192,7 +192,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"non_field_errors": [str(e)]}, status=400)
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -256,7 +256,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         )
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(GroupLink)):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -318,7 +318,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except ExternalIssue.DoesNotExist:
             return Response(status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(GroupLink)):
             GroupLink.objects.get_group_issues(group, external_issue_id).delete()
 
             # check if other groups reference this external issue

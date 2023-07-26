@@ -10,6 +10,9 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import InputField from 'sentry/components/forms/fields/inputField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -20,7 +23,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -59,6 +62,7 @@ import {
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
 
+import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
@@ -129,6 +133,7 @@ interface State {
   queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
+  description?: string;
   errors?: Record<string, any>;
   selectedDashboard?: DashboardDetails['id'];
   widgetToBeUpdated?: Widget;
@@ -209,6 +214,7 @@ function WidgetBuilder({
       queries: [],
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
+      description: undefined,
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
@@ -254,7 +260,7 @@ function WidgetBuilder({
   >(null);
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
+    trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
     });
@@ -299,6 +305,7 @@ function WidgetBuilder({
 
       setState({
         title: widgetFromDashboard.title,
+        description: widgetFromDashboard.description,
         displayType: newDisplayType,
         interval: widgetFromDashboard.interval,
         queries,
@@ -343,6 +350,7 @@ function WidgetBuilder({
 
   const currentWidget = {
     title: state.title,
+    description: state.description,
     displayType: state.displayType,
     interval: state.interval,
     queries: state.queries,
@@ -474,22 +482,23 @@ function WidgetBuilder({
     });
   }
 
-  function handleDisplayTypeOrTitleChange<
-    F extends keyof Pick<State, 'displayType' | 'title'>
+  function handleDisplayTypeOrAnnotationChange<
+    F extends keyof Pick<State, 'displayType' | 'title' | 'description'>
   >(field: F, value: State[F]) {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
-      from: source,
-      field,
-      value,
-      widget_type: widgetType,
-      organization,
-      new_widget: !isEditing,
-    });
+    value &&
+      trackAnalytics('dashboards_views.widget_builder.change', {
+        from: source,
+        field,
+        value,
+        widget_type: widgetType,
+        organization,
+        new_widget: !isEditing,
+      });
 
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
-      if (field === 'title') {
+      if (['title', 'description'].includes(field)) {
         set(newState, 'userHasModified', true);
       }
       return {...newState, errors: undefined};
@@ -501,7 +510,7 @@ function WidgetBuilder({
   }
 
   function handleDataSetChange(newDataSet: string) {
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.change', {
+    trackAnalytics('dashboards_views.widget_builder.change', {
       from: source,
       field: 'dataSet',
       value: newDataSet,
@@ -760,7 +769,7 @@ function WidgetBuilder({
 
     if (latestLibrarySelectionTitle) {
       // User has selected a widget library in this session
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add_widget', {
+      trackAnalytics('dashboards_views.widget_library.add_widget', {
         organization,
         title: latestLibrarySelectionTitle,
       });
@@ -791,7 +800,7 @@ function WidgetBuilder({
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
+      trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
         data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
         new_widget: false,
@@ -802,7 +811,7 @@ function WidgetBuilder({
     onSave([...dashboard.widgets, widgetData]);
     addSuccessMessage(t('Added widget.'));
     goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.save', {
+    trackAnalytics('dashboards_views.widget_builder.save', {
       organization,
       data_set: widgetData.widgetType ?? WidgetType.DISCOVER,
       new_widget: true,
@@ -976,17 +985,46 @@ function WidgetBuilder({
                     <Layout.Page>
                       <Header
                         orgSlug={orgSlug}
-                        title={state.title}
                         dashboardTitle={dashboard.title}
                         goBackLocation={previousLocation}
-                        onChangeTitle={newTitle => {
-                          handleDisplayTypeOrTitleChange('title', newTitle);
-                        }}
                       />
                       <Body>
                         <MainWrapper>
                           <Main>
                             <BuildSteps symbol="colored-numeric">
+                              <NameWidgetStep title={t('Name your widget')}>
+                                <TitleInput
+                                  name="title"
+                                  inline={false}
+                                  aria-label={t('Widget title')}
+                                  placeholder={t('Enter title')}
+                                  error={state.errors?.title}
+                                  data-test-id="widget-builder-title-input"
+                                  onChange={newTitle => {
+                                    handleDisplayTypeOrAnnotationChange(
+                                      'title',
+                                      newTitle
+                                    );
+                                  }}
+                                  value={state.title}
+                                />
+                                <StyledTextAreaField
+                                  name="description"
+                                  rows={4}
+                                  autosize
+                                  inline={false}
+                                  aria-label={t('Widget Description')}
+                                  placeholder={t('Enter description (Optional)')}
+                                  error={state.errors?.description}
+                                  onChange={newDescription => {
+                                    handleDisplayTypeOrAnnotationChange(
+                                      'description',
+                                      newDescription
+                                    );
+                                  }}
+                                  value={state.description}
+                                />
+                              </NameWidgetStep>
                               <VisualizationStep
                                 location={location}
                                 widget={currentWidget}
@@ -996,7 +1034,7 @@ function WidgetBuilder({
                                 displayType={state.displayType}
                                 error={state.errors?.displayType}
                                 onChange={newDisplayType => {
-                                  handleDisplayTypeOrTitleChange(
+                                  handleDisplayTypeOrAnnotationChange(
                                     'displayType',
                                     newDisplayType
                                   );
@@ -1138,6 +1176,10 @@ function WidgetBuilder({
 
 export default withPageFilters(withTags(WidgetBuilder));
 
+const TitleInput = styled(InputField)`
+  padding: 0 ${space(2)} 0 0;
+`;
+
 const BuildSteps = styled(List)`
   gap: ${space(4)};
   max-width: 100%;
@@ -1207,4 +1249,15 @@ const MainWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/-1;
   }
+`;
+
+const NameWidgetStep = styled(BuildStep)`
+  ${FieldWrapper} {
+    padding: 0 ${space(2)} 0 0;
+    border-bottom: none;
+  }
+`;
+
+const StyledTextAreaField = styled(TextareaField)`
+  margin-top: ${space(1.5)};
 `;

@@ -1,13 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserPermission
 from sentry.models import Relay
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RelayDetailsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

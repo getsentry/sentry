@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -9,99 +9,111 @@ import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolut
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconChevron} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
-  Organization,
-  Release,
+  GroupSubstatus,
+  Project,
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {formatVersion} from 'sentry/utils/formatters';
-import withOrganization from 'sentry/utils/withOrganization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const defaultProps = {
-  isResolved: false,
-  isAutoResolved: false,
-  confirmLabel: t('Resolve'),
-};
-
-type Props = {
+export interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
-  orgSlug: string;
-  organization: Organization;
+  confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
-  disableTooltip?: boolean;
   disabled?: boolean;
-  hideIcon?: boolean;
-  latestRelease?: Release;
+  isAutoResolved?: boolean;
+  isResolved?: boolean;
+  latestRelease?: Project['latestRelease'];
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
-} & Partial<typeof defaultProps>;
+}
 
-class ResolveActions extends Component<Props> {
-  static defaultProps = defaultProps;
+function ResolveActions({
+  size = 'xs',
+  isResolved = false,
+  isAutoResolved = false,
+  confirmLabel = t('Resolve'),
+  projectSlug,
+  hasRelease,
+  latestRelease,
+  confirmMessage,
+  shouldConfirm,
+  disabled,
+  disableDropdown,
+  priority,
+  projectFetchError,
+  onUpdate,
+}: ResolveActionsProps) {
+  const organization = useOrganization();
 
-  handleCommitResolution(statusDetails: ResolutionStatusDetails) {
-    const {onUpdate} = this.props;
+  function handleCommitResolution(statusDetails: ResolutionStatusDetails) {
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
   }
 
-  handleAnotherExistingReleaseResolution(statusDetails: ResolutionStatusDetails) {
-    const {organization, onUpdate} = this.props;
+  function handleAnotherExistingReleaseResolution(
+    statusDetails: ResolutionStatusDetails
+  ) {
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'anotherExisting',
     });
   }
 
-  handleCurrentReleaseResolution = () => {
-    const {onUpdate, organization, hasRelease, latestRelease} = this.props;
-    hasRelease &&
+  function handleCurrentReleaseResolution() {
+    if (hasRelease) {
       onUpdate({
         status: ResolutionStatus.RESOLVED,
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
+        substatus: null,
       });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    }
+
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'current',
     });
-  };
+  }
 
-  handleNextReleaseResolution = () => {
-    const {onUpdate, organization, hasRelease} = this.props;
-    hasRelease &&
+  function handleNextReleaseResolution() {
+    if (hasRelease) {
       onUpdate({
         status: ResolutionStatus.RESOLVED,
         statusDetails: {
           inNextRelease: true,
         },
+        substatus: null,
       });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
+    }
+
+    trackAnalytics('resolve_issue', {
       organization,
       release: 'next',
     });
-  };
+  }
 
-  renderResolved() {
-    const {isAutoResolved, onUpdate} = this.props;
-
+  function renderResolved() {
     return (
       <Tooltip
         title={
@@ -115,41 +127,30 @@ class ResolveActions extends Component<Props> {
         <Button
           priority="primary"
           size="xs"
-          icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
         />
       </Tooltip>
     );
   }
 
-  renderDropdownMenu() {
-    const {
-      projectSlug,
-      isResolved,
-      hasRelease,
-      latestRelease,
-      confirmMessage,
-      shouldConfirm,
-      disabled,
-      confirmLabel,
-      disableDropdown,
-      size = 'xs',
-      priority,
-    } = this.props;
-
+  function renderDropdownMenu() {
     if (isResolved) {
-      return this.renderResolved();
+      return renderResolved();
     }
 
     const actionTitle = !hasRelease
       ? t('Set up release tracking in order to use this feature.')
       : '';
 
-    const onActionOrConfirm = onAction => {
+    const onActionOrConfirm = (onAction: () => void) => {
       openConfirmModal({
         bypass: !shouldConfirm,
         onConfirm: onAction,
@@ -158,30 +159,39 @@ class ResolveActions extends Component<Props> {
       });
     };
 
+    const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
+    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
         label: t('The next release'),
         details: actionTitle,
-        onAction: () => onActionOrConfirm(this.handleNextReleaseResolution),
+        onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
       {
         key: 'current-release',
-        label: latestRelease
-          ? t('The current release (%s)', formatVersion(latestRelease.version))
-          : t('The current release'),
-        details: actionTitle,
-        onAction: () => onActionOrConfirm(this.handleCurrentReleaseResolution),
+        label:
+          hasIssueReleaseSemver || !latestRelease
+            ? t('The current release')
+            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        details: actionTitle
+          ? actionTitle
+          : hasIssueReleaseSemver && latestRelease
+          ? `${formatVersion(latestRelease.version)} (${
+              isSemver ? t('semver') : t('non-semver')
+            })`
+          : null,
+        onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
-        onAction: () => this.openCustomReleaseModal(),
+        onAction: () => openCustomReleaseModal(),
       },
       {
         key: 'a-commit',
         label: t('A commit\u2026'),
-        onAction: () => this.openCustomCommitModal(),
+        onAction: () => openCustomCommitModal(),
       },
     ];
 
@@ -211,105 +221,85 @@ class ResolveActions extends Component<Props> {
     );
   }
 
-  openCustomCommitModal() {
-    const {orgSlug, projectSlug} = this.props;
-
+  function openCustomCommitModal() {
     openModal(deps => (
       <CustomCommitsResolutionModal
         {...deps}
         onSelected={(statusDetails: ResolutionStatusDetails) =>
-          this.handleCommitResolution(statusDetails)
+          handleCommitResolution(statusDetails)
         }
-        orgSlug={orgSlug}
+        orgSlug={organization.slug}
         projectSlug={projectSlug}
       />
     ));
   }
 
-  openCustomReleaseModal() {
-    const {orgSlug, projectSlug} = this.props;
-
+  function openCustomReleaseModal() {
     openModal(deps => (
       <CustomResolutionModal
         {...deps}
         onSelected={(statusDetails: ResolutionStatusDetails) =>
-          this.handleAnotherExistingReleaseResolution(statusDetails)
+          handleAnotherExistingReleaseResolution(statusDetails)
         }
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
       />
     ));
   }
 
-  render() {
-    const {
-      isResolved,
-      onUpdate,
-      confirmMessage,
-      shouldConfirm,
-      disabled,
-      confirmLabel,
-      projectFetchError,
-      disableTooltip,
-      priority,
-      size = 'xs',
-      hideIcon = false,
-    } = this.props;
-
-    if (isResolved) {
-      return this.renderResolved();
-    }
-
-    const onResolve = () =>
-      openConfirmModal({
-        bypass: !shouldConfirm,
-        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
-        message: confirmMessage,
-        confirmText: confirmLabel,
-      });
-
-    return (
-      <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-        <ButtonBar merged>
-          <ResolveButton
-            priority={priority}
-            size={size}
-            title={t(
-              'Resolves the issue. The issue will get unresolved if it happens again.'
-            )}
-            tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
-            icon={hideIcon ? null : <IconCheckmark size={size} />}
-            onClick={onResolve}
-            disabled={disabled}
-          >
-            {t('Resolve')}
-          </ResolveButton>
-          {this.renderDropdownMenu()}
-        </ButtonBar>
-      </Tooltip>
-    );
+  if (isResolved) {
+    return renderResolved();
   }
+
+  return (
+    <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
+      <ButtonBar merged>
+        <ResolveButton
+          priority={priority}
+          size={size}
+          title={t("We'll nag you with a notification if another event is seen.")}
+          tooltipProps={{delay: 1000, disabled}}
+          onClick={() =>
+            openConfirmModal({
+              bypass: !shouldConfirm,
+              onConfirm: () =>
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                }),
+              message: confirmMessage,
+              confirmText: confirmLabel,
+            })
+          }
+          disabled={disabled}
+        >
+          {t('Resolve')}
+        </ResolveButton>
+        {renderDropdownMenu()}
+      </ButtonBar>
+    </Tooltip>
+  );
 }
 
-export default withOrganization(ResolveActions);
+export default ResolveActions;
 
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
   ${p =>
-    p.priority === 'primary'
-      ? `
-     &::after {
-       content: '';
-       position: absolute;
-       top: -1px;
-       bottom: -1px;
-       right: -1px;
-       border-right: solid 1px currentColor;
-       opacity: 0.25;
-     }
-  `
-      : ''}
+    p.priority === 'primary' &&
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        right: -1px;
+        border-right: solid 1px currentColor;
+        opacity: 0.25;
+      }
+    `}
 `;
 
 const DropdownTrigger = styled(Button)`

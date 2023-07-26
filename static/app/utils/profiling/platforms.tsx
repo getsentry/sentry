@@ -5,12 +5,17 @@ export const supportedProfilingPlatforms = profiling;
 export const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'go',
   'node',
   'python',
   'php',
-  'rust',
   'php',
+  'php-laravel',
+  'php-symfony2',
+  'ruby',
   'javascript-nextjs',
+  'javascript-remix',
+  'javascript-sveltekit',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -23,32 +28,53 @@ export function getDocsPlatformSDKForPlatform(
     return null;
   }
 
+  // Android
   if (platform === 'android') {
     return 'android';
   }
-
+  // iOS
   if (platform === 'apple-ios') {
     return 'apple-ios';
   }
 
+  // Go
+  if (platform === 'go') {
+    return 'go';
+  }
+
+  // Javascript
   if (platform.startsWith('node')) {
     return 'node';
   }
-
   if (platform === 'javascript-nextjs') {
     return 'javascript-nextjs';
   }
+  if (platform === 'javascript-remix') {
+    return 'javascript-remix';
+  }
+  if (platform === 'javascript-sveltekit') {
+    return 'javascript-sveltekit';
+  }
 
+  // Python
   if (platform.startsWith('python')) {
     return 'python';
   }
 
-  if (platform === 'rust') {
-    return 'rust';
+  // PHP
+  if (platform === 'php-laravel') {
+    return 'php-laravel';
   }
-
+  if (platform === 'php-symfony') {
+    return 'php-symfony2';
+  }
   if (platform.startsWith('php')) {
     return 'php';
+  }
+
+  // Ruby
+  if (platform.startsWith('ruby')) {
+    return 'ruby';
   }
 
   return null;

@@ -7,7 +7,7 @@ import {Client} from 'sentry/api';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChat, IconMute, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -95,7 +95,7 @@ class CompactIssue extends Component<Props, State> {
     issue: this.props.data || GroupStore.get(this.props.id),
   };
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
       this.setState({
         issue: GroupStore.get(this.props.id),

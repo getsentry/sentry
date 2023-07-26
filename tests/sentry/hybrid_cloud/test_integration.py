@@ -7,6 +7,7 @@ from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
+from sentry.models import PagerDutyService
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -14,45 +15,53 @@ from sentry.services.hybrid_cloud.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.services.hybrid_cloud.integration.serial import (
+    serialize_integration,
+    serialize_organization_integration,
+)
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.types.integrations import ExternalProviders
 
 
 class BaseIntegrationServiceTest(TestCase):
-    @exempt_from_silo_limits()
     def setUp(self):
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.integration1 = self.create_integration(
-            organization=self.organization,
-            name="Example",
-            provider="example",
-            external_id="example:1",
-            status=ObjectStatus.ACTIVE,
-            metadata={"meta": "data"},
-        )
-        self.org_integration1 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration1.id
-        )
-        self.integration2 = self.create_integration(
-            organization=self.organization,
-            name="Github",
-            provider="github",
-            external_id="github:1",
-            oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
-        )
-        self.org_integration2 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration2.id
-        )
-        self.integration3 = self.create_integration(
-            organization=self.organization,
-            name="Example",
-            provider="example",
-            external_id="example:2",
-        )
-        self.org_integration3 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration3.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user = self.create_user()
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization = self.create_organization(owner=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration1 = self.create_integration(
+                organization=self.organization,
+                name="Example",
+                provider="example",
+                external_id="example:1",
+                status=ObjectStatus.ACTIVE,
+                metadata={"meta": "data"},
+            )
+            self.org_integration1 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration1.id
+            )
+            self.integration2 = self.create_integration(
+                organization=self.organization,
+                name="Github",
+                provider="github",
+                external_id="github:1",
+                oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
+            )
+            self.org_integration2 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration2.id
+            )
+            self.integration3 = self.create_integration(
+                organization=self.organization,
+                name="Example",
+                provider="example",
+                external_id="example:2",
+            )
+            self.org_integration3 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration3.id
+            )
         self.integrations = [self.integration1, self.integration2, self.integration3]
         self.org_integrations = [
             self.org_integration1,
@@ -92,7 +101,7 @@ class BaseIntegrationServiceTest(TestCase):
 @all_silo_test(stable=True)
 class IntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_integration(self):
-        api_integration1 = integration_service._serialize_integration(self.integration1)
+        api_integration1 = serialize_integration(self.integration1)
         self.verify_integration_result(result=api_integration1, expected=self.integration1)
 
     def test_get_integrations(self):
@@ -144,6 +153,9 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integration()
         assert result is None
 
+        # non-unique result
+        assert integration_service.get_integration(organization_id=self.organization.id) is None
+
     def test_update_integrations(self):
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]
@@ -156,7 +168,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             assert i.metadata == new_metadata
 
     def test_get_installation(self):
-        api_integration1 = integration_service._serialize_integration(integration=self.integration1)
+        api_integration1 = serialize_integration(integration=self.integration1)
         api_install = integration_service.get_installation(
             integration=api_integration1, organization_id=self.organization.id
         )
@@ -166,9 +178,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_has_feature(self):
         for feature in IntegrationFeatures:
-            api_integration2 = integration_service._serialize_integration(
-                integration=self.integration2
-            )
+            api_integration2 = serialize_integration(integration=self.integration2)
             integration_has_feature = self.integration2.has_feature(feature)
             api_integration_has_feature = integration_service.has_feature(
                 provider=api_integration2.provider, feature=feature
@@ -179,9 +189,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 @all_silo_test(stable=True)
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_org_integration(self):
-        rpc_org_integration1 = integration_service._serialize_organization_integration(
-            self.org_integration1
-        )
+        rpc_org_integration1 = serialize_organization_integration(self.org_integration1)
         self.verify_org_integration_result(
             result=rpc_org_integration1, expected=self.org_integration1
         )
@@ -238,9 +246,46 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert result is None
 
+    def test_get_organization_integration__pd(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                name=ExternalProviders.PAGERDUTY.name,
+                provider=ExternalProviders.PAGERDUTY.name,
+                external_id="pd:1",
+                oi_params={"config": {}},
+            )
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            )
+            pds = PagerDutyService.objects.create(
+                organization_integration_id=org_integration.id,
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                integration_key="key1",
+                service_name="service1",
+            )
+            pds2 = PagerDutyService.objects.create(
+                organization_integration_id=org_integration.id,
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                integration_key="key2",
+                service_name="service2",
+            )
+
+        result = integration_service.get_organization_integration(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+        assert result
+        assert result.config["pagerduty_services"] == [
+            pds.as_dict(),
+            pds2.as_dict(),
+        ]
+
     def test_get_organization_context(self):
         new_org = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = self.integration3.add_organization(new_org)
 
         result_integration, result_org_integration = integration_service.get_organization_context(

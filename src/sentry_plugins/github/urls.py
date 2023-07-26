@@ -1,13 +1,13 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from .webhooks import GithubIntegrationsWebhookEndpoint, GithubWebhookEndpoint
 
 urlpatterns = [
-    url(
+    re_path(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
         GithubWebhookEndpoint.as_view(),
     ),
-    url(
+    re_path(
         r"^installations/webhook/$",
         GithubIntegrationsWebhookEndpoint.as_view(),
     ),

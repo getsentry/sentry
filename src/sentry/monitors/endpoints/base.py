@@ -4,12 +4,18 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, DSNAuthentication, TokenAuthentication
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    DSNAuthentication,
+    OrgAuthTokenAuthentication,
+    TokenAuthentication,
+)
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.models import Organization, Project, ProjectKey, ProjectStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Organization, Project, ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -63,7 +69,7 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
@@ -88,7 +94,7 @@ class MonitorEndpoint(Endpoint):
 
 class MonitorIngestEndpoint(Endpoint):
     """
-    This type of endpont explicitly only allows for DSN and Token / Key based authentication.
+    This type of endpoint explicitly only allows for DSN and Token / Key based authentication.
 
     [!!]: These endpoints are legacy and will be replaced by relay based
           checkin ingestion in the very near future.
@@ -98,13 +104,18 @@ class MonitorIngestEndpoint(Endpoint):
           validate
 
     [!!]: This type of endpoint supports lookup of monitors by slug AND by
-          GUID. However slug lookup is **ONLY** supported in two scenarios:
+          GUID. However, slug lookup is **ONLY** supported in two scenarios:
 
           - When the organization slug is part of the URL parameters.
           - When using DSN auth
     """
 
-    authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
+    authentication_classes = (
+        DSNAuthentication,
+        TokenAuthentication,
+        OrgAuthTokenAuthentication,
+        ApiKeyAuthentication,
+    )
     permission_classes = (ProjectMonitorPermission,)
 
     allow_auto_create_monitors = False
@@ -127,7 +138,6 @@ class MonitorIngestEndpoint(Endpoint):
         *args,
         **kwargs,
     ):
-        organization = None
         monitor = None
 
         # Include monitor_slug in kwargs when upsert is enabled
@@ -187,7 +197,7 @@ class MonitorIngestEndpoint(Endpoint):
         else:
             project = Project.objects.get_from_cache(id=monitor.project_id)
 
-        if project.status != ProjectStatus.VISIBLE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         # Validate that the authenticated project matches the monitor. This is

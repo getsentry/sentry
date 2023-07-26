@@ -24,12 +24,11 @@ const {
   router,
   project,
 } = initializeOrg({
-  ...initializeOrg(),
   organization,
   router: {
     location: {
       query: {
-        project: 1,
+        project: '1',
       },
     },
   },
@@ -260,7 +259,7 @@ describe('Performance > VitalDetail', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
       },
@@ -311,7 +310,7 @@ describe('Performance > VitalDetail', function () {
         end: undefined,
         query: 'sometag:value has:measurements.lcp',
         referrer: 'performance-transaction-summary',
-        unselectedSeries: 'p100()',
+        unselectedSeries: ['p100()', 'avg()'],
         showTransactions: 'recent',
         display: 'vitals',
         trendFunction: undefined,
@@ -363,7 +362,7 @@ describe('Performance > VitalDetail', function () {
         end: undefined,
         query: 'anothertag:value has:measurements.cls',
         referrer: 'performance-transaction-summary',
-        unselectedSeries: 'p100()',
+        unselectedSeries: ['p100()', 'avg()'],
         showTransactions: 'recent',
         display: 'vitals',
         trendFunction: undefined,

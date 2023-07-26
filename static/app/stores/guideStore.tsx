@@ -7,7 +7,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {CommonStoreDefinition} from './types';
 
@@ -82,6 +82,7 @@ interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
 
   closeGuide(dismissed?: boolean): void;
   fetchSucceeded(data: GuidesServerData): void;
+  init(): void;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
@@ -203,7 +204,7 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('assistant.guide_cued', {
+    trackAnalytics('assistant.guide_cued', {
       organization: this.state.orgId,
       guide,
     });

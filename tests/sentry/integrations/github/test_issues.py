@@ -57,7 +57,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -96,7 +96,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
         assert payload == {"body": "This is the description", "assignee": None, "title": "hello"}
 
@@ -106,10 +106,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         description = GitHubIssueBasic().get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
         title = GitHubIssueBasic().get_group_title(event.group, event)
-        assert (
-            title
-            == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
-        )
+        assert title == "N+1 Query"
 
     def test_generic_issues_content(self):
         """Test that a GitHub issue created from a generic issue has the expected title and description"""
@@ -170,7 +167,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -206,7 +203,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == "Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -289,13 +286,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         assert request.headers["Authorization"] == b"Bearer jwt_token_1"
 
         request = responses.calls[1].request
-        assert request.headers["Authorization"] == "token token_1"
+        assert request.headers["Authorization"] == "Bearer token_1"
         payload = json.loads(request.body)
         assert payload == {"body": "hello"}
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubClientMixin.get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields(self, mock_get_jwt):
         responses.add(
@@ -363,7 +360,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.client.GitHubClientMixin.get_token", return_value="jwt_token_1"
+        "sentry.integrations.github.client.GithubProxyClient._get_token", return_value="jwt_token_1"
     )
     def test_default_repo_link_fields_no_repos(self, mock_get_jwt):
         responses.add(

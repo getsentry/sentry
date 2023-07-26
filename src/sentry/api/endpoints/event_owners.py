@@ -21,7 +21,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 

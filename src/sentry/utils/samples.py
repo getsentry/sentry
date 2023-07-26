@@ -114,6 +114,7 @@ def load_data(
     spans=None,
     trace_context=None,
     fingerprint=None,
+    event_id=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -255,6 +256,9 @@ def load_data(
                     )
 
             data["fingerprint"] = fingerprint
+
+    if event_id is not None:
+        data["event_id"] = event_id
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.

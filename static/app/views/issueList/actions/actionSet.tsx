@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -82,7 +83,10 @@ function ActionSet({
   const canRemoveBookmark =
     allInQuerySelected || selectedIssues.some(issue => issue.isBookmarked);
   const canSetUnresolved =
-    allInQuerySelected || selectedIssues.some(issue => issue.status === 'resolved');
+    allInQuerySelected ||
+    selectedIssues.some(
+      issue => issue.status === 'resolved' || issue.status === 'ignored'
+    );
 
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
@@ -100,6 +104,7 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -187,6 +192,33 @@ function ActionSet({
 
   return (
     <Fragment>
+      {hasEscalatingIssuesUi && query.includes('is:archived') ? (
+        <Button
+          size="xs"
+          onClick={() => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
+              onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+              message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
+              confirmText: label('unarchive'),
+            });
+          }}
+          disabled={!anySelected}
+        >
+          {t('Unarchive')}
+        </Button>
+      ) : null}
+      {hasEscalatingIssuesUi ? (
+        <ArchiveActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('archive')}
+          disabled={ignoreDisabled}
+        />
+      ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -196,15 +228,14 @@ function ActionSet({
                 onShouldConfirm={onShouldConfirm}
                 onUpdate={onUpdate}
                 anySelected={anySelected}
-                orgSlug={organization.slug}
                 params={{
-                  hasReleases: selectedProject.hasOwnProperty('features')
+                  hasRelease: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
                     : false,
                   latestRelease: selectedProject.hasOwnProperty('latestRelease')
                     ? (selectedProject as Project).latestRelease
                     : undefined,
-                  projectId: selectedProject.slug,
+                  projectSlug: selectedProject.slug,
                   confirm,
                   label,
                   loadingProjects: !initiallyLoaded,
@@ -219,26 +250,14 @@ function ActionSet({
           onShouldConfirm={onShouldConfirm}
           onUpdate={onUpdate}
           anySelected={anySelected}
-          orgSlug={organization.slug}
           params={{
-            hasReleases: false,
+            hasRelease: false,
             confirm,
             label,
           }}
         />
       )}
-
-      {organization.features.includes('escalating-issues-ui') ? (
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      ) : (
+      {hasEscalatingIssuesUi ? null : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}

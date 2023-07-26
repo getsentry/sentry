@@ -2,13 +2,13 @@ import logging
 from typing import Any
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry
 from sentry import options
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
 
@@ -20,7 +20,7 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 )
 
 
-@pending_silo_endpoint
+@all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
@@ -95,11 +95,11 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(options.default_store.model)):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)
                     else:
-                        options.set(k, v)
+                        options.set(k, v, channel=options.UpdateChannel.APPLICATION)
 
                     logger.info(
                         "options.update",
@@ -123,5 +123,9 @@ class SystemOptionsEndpoint(Endpoint):
                 )
         # TODO(dcramer): this has nothing to do with configuring options and
         # should not be set here
-        options.set("sentry:version-configured", sentry.get_version())
+        options.set(
+            "sentry:version-configured",
+            sentry.get_version(),
+            channel=options.UpdateChannel.APPLICATION,
+        )
         return Response(status=200)

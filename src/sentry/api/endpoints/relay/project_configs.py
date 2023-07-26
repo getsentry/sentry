@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Optional
+from typing import Any, List, MutableMapping, Optional, Set
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -12,6 +12,8 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
+from sentry.relay.config.measurements import get_measurements_config
+from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -19,6 +21,16 @@ logger = logging.getLogger(__name__)
 
 # We'll log project IDS if their config size is larger than this value
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
+
+ProjectConfig = MutableMapping[str, Any]
+
+
+def get_global_config():
+    return {
+        "measurements": get_measurements_config(),
+        # Subset of conditional tagging rules that does not depend on the project:
+        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+    }
 
 
 def _sample_apm():
@@ -40,6 +52,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
+        response = {}
+
+        if request.relay_request_data.get("globalConfig"):
+            metrics.incr("relay.project_configs.global.fetched")
+            global_config = get_global_config()
+            response["global"] = global_config
 
         full_config_requested = request.relay_request_data.get("fullConfig")
 
@@ -53,19 +71,21 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            return self._post_or_schedule_by_key(request)
+            response.update(self._post_or_schedule_by_key(request))
         elif version in ["2", "3"]:
-            return self._post_by_key(
+            response["configs"] = self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
             )
         elif version == "1":
-            return self._post_by_project(
+            response["configs"] = self._post_by_project(
                 request=request,
                 full_config_requested=full_config_requested,
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
+
+        return Response(response, status=200)
 
     def _should_use_v3(self, version, request):
         set_tag("relay_endpoint_version", version)
@@ -123,9 +143,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
-        res = {"configs": proj_configs, "pending": pending}
-
-        return Response(res, status=200)
+        return {"configs": proj_configs, "pending": pending}
 
     def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
@@ -134,19 +152,21 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         Debouncing of the project happens after the task has been scheduled.
         """
-        cached_config = projectconfig_cache.get(public_key)
+        cached_config = projectconfig_cache.backend.get(public_key)
         if cached_config:
             return cached_config
 
         schedule_build_project_config(public_key=public_key)
         return None
 
-    def _post_by_key(self, request: Request, full_config_requested):
+    def _post_by_key(
+        self, request: Request, full_config_requested
+    ) -> MutableMapping[str, ProjectConfig]:
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
-        project_keys = {}  # type: dict[str, ProjectKey]
-        project_ids = set()  # type: set[int]
+        project_keys: MutableMapping[str, ProjectKey] = {}
+        project_ids: Set[int] = set()
 
         with start_span(op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
@@ -157,8 +177,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     project_keys[key.public_key] = key
                     project_ids.add(key.project_id)
 
-        projects = {}  # type: dict[int, Project]
-        organization_ids = set()  # type: set[int]
+        projects: MutableMapping[int, Project] = {}
+        organization_ids: Set[int] = set()
 
         with start_span(op="relay_fetch_projects"):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
@@ -169,7 +189,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         # Preload all organizations and their options to prevent repeated
         # database access when computing the project configuration.
 
-        orgs = {}  # type: dict[int, Organization]
+        orgs: MutableMapping[int, Organization] = {}
 
         with start_span(op="relay_fetch_orgs"):
             with metrics.timer("relay_project_configs.fetching_orgs.duration"):
@@ -186,7 +206,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.timing("relay_project_configs.projects_fetched", len(projects))
         metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
 
-        configs = {}
+        configs: MutableMapping[str, ProjectConfig] = {}
         for public_key in public_keys:
             configs[public_key] = {"disabled": True}
 
@@ -216,11 +236,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
             configs[public_key] = project_config.to_dict()
 
         if full_config_requested:
-            projectconfig_cache.set_many(configs)
+            projectconfig_cache.backend.set_many(configs)
 
-        return Response({"configs": configs}, status=200)
+        return configs
 
-    def _post_by_project(self, request: Request, full_config_requested):
+    def _post_by_project(
+        self, request: Request, full_config_requested
+    ) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):
@@ -233,11 +255,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_orgs"):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
-            org_ids = {project.organization_id for project in projects.values()}
+            org_ids: Set[int] = {project.organization_id for project in projects.values()}
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
-                    orgs = Organization.objects.get_many_from_cache(org_ids)
-                    orgs = {o.id: o for o in orgs if request.relay.has_org_access(o)}
+                    orgs_seq = Organization.objects.get_many_from_cache(org_ids)
+                    orgs = {o.id: o for o in orgs_seq if request.relay.has_org_access(o)}
             else:
                 orgs = {}
 
@@ -246,7 +268,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     OrganizationOption.objects.get_all_values(org_id)
 
         with start_span(op="relay_fetch_keys"):
-            project_keys = {}
+            project_keys: MutableMapping[int, List[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
@@ -254,7 +276,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.timing("relay_project_configs.projects_fetched", len(projects))
         metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
 
-        configs = {}
+        configs: MutableMapping[str, ProjectConfig] = {}
         for project_id in project_ids:
             configs[str(project_id)] = {"disabled": True}
 
@@ -280,6 +302,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
             configs[str(project_id)] = project_config.to_dict()
 
         if full_config_requested:
-            projectconfig_cache.set_many(configs)
+            projectconfig_cache.backend.set_many(configs)
 
-        return Response({"configs": configs}, status=200)
+        return configs

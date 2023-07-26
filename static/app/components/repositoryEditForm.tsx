@@ -1,5 +1,5 @@
 import {Alert} from 'sentry/components/alert';
-import {FieldFromConfig} from 'sentry/components/forms';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';

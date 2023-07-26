@@ -15,9 +15,7 @@ describe('event tags', function () {
     };
 
     const {organization, project, router} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: null,
       },
     });
@@ -63,9 +61,7 @@ describe('event tags', function () {
     };
 
     const {organization, project, router} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: null,
       },
     });
@@ -103,9 +99,7 @@ describe('event tags', function () {
     };
 
     const {organization, project, router} = initializeOrg({
-      ...initializeOrg(),
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: null,
       },
     });

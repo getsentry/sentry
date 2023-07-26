@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Collection, Mapping, Sequence
 
 from sentry_sdk import configure_scope
 
@@ -8,7 +8,8 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.services.hybrid_cloud.repository import RpcRepository
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class RepositoryMixin:
@@ -36,7 +37,7 @@ class RepositoryMixin:
         filepath = filepath.lstrip("/")
         try:
             client = self.get_client()
-        except Identity.DoesNotExist:
+        except (Identity.DoesNotExist, IntegrationError):
             return None
         try:
             response = client.check_file(repo, filepath, branch)
@@ -95,7 +96,11 @@ class RepositoryMixin:
         """
         raise NotImplementedError
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        """
+        Get all repositories which are in our database but no longer exist as far as
+        the external service is concerned.
+        """
         return []
 
     def reinstall_repositories(self) -> None:
@@ -105,9 +110,9 @@ class RepositoryMixin:
             organization_id__in=[i.organization_id for i in installs],
             provider=f"integrations:{self.model.provider}",
             integration_id=self.model.id,
-        ).update(status=ObjectStatus.VISIBLE)
+        ).update(status=ObjectStatus.ACTIVE)
 
-    def has_repo_access(self, repo: Repository) -> bool:
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         raise NotImplementedError
 
     def get_codeowner_file(

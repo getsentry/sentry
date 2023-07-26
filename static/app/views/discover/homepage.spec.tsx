@@ -25,7 +25,6 @@ describe('Discover > Homepage', () => {
       features,
     });
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: TestStubs.location(),
@@ -120,7 +119,6 @@ describe('Discover > Homepage', () => {
 
   it('renders event view from URL params over homepage query', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -242,7 +240,6 @@ describe('Discover > Homepage', () => {
 
   it('Disables the Set as Default button when no saved homepage', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -276,7 +273,6 @@ describe('Discover > Homepage', () => {
 
   it('follows absolute date selection', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -313,7 +309,6 @@ describe('Discover > Homepage', () => {
 
   it('renders changes to the discover query when no homepage', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -346,7 +341,6 @@ describe('Discover > Homepage', () => {
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -374,7 +368,6 @@ describe('Discover > Homepage', () => {
 
   it('renders changes to the discover query when loaded with valid event view in url params', () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -401,7 +394,6 @@ describe('Discover > Homepage', () => {
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
@@ -457,7 +449,6 @@ describe('Discover > Homepage', () => {
 
   it('allows users to set the All Events query as default', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {

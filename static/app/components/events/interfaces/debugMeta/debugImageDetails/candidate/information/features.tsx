@@ -29,10 +29,8 @@ function Features({download}: Props) {
 
   return (
     <Fragment>
-      {Object.keys(ImageFeature).map(imageFeature => {
-        const {label, description} = getImageFeatureDescription(
-          imageFeature as ImageFeature
-        );
+      {Object.values(ImageFeature).map(imageFeature => {
+        const {label, description} = getImageFeatureDescription(imageFeature);
 
         const isDisabled = !features.includes(imageFeature);
 

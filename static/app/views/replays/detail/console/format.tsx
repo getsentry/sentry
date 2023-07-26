@@ -22,7 +22,7 @@
 import {Fragment} from 'react';
 import isObject from 'lodash/isObject';
 
-import ObjectInspector, {OnExpand} from 'sentry/components/objectInspector';
+import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
 
 const formatRegExp = /%[sdj%]/g;
 
@@ -32,7 +32,7 @@ function isNull(arg: unknown) {
 interface FormatProps {
   args: any[];
   expandPaths?: string[];
-  onExpand?: OnExpand;
+  onExpand?: OnExpandCallback;
 }
 
 /**

@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
@@ -19,7 +19,7 @@ function MissingPerformanceButtons({organization}: Props) {
   const router = useRouter();
 
   function handleTourAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.performance_tour.advance', {
+    trackAnalytics('project_detail.performance_tour.advance', {
       organization,
       step,
       duration,
@@ -27,7 +27,7 @@ function MissingPerformanceButtons({organization}: Props) {
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.performance_tour.close', {
+    trackAnalytics('project_detail.performance_tour.close', {
       organization,
       step,
       duration,

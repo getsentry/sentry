@@ -26,11 +26,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 
-from sentry.utils.distutils import (
-    BuildAssetsCommand,
-    BuildIntegrationDocsCommand,
-    BuildJsSdkRegistryCommand,
-)
+from sentry.utils.distutils.commands.build_assets import BuildAssetsCommand
+from sentry.utils.distutils.commands.build_integration_docs import BuildIntegrationDocsCommand
+from sentry.utils.distutils.commands.build_js_sdk_registry import BuildJsSdkRegistryCommand
 
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 

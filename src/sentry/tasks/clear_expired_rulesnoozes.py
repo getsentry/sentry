@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from sentry.models import RuleSnooze
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.tasks.base import instrumented_task
 
 

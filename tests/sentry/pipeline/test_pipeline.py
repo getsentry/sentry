@@ -1,7 +1,10 @@
+from unittest.mock import MagicMock, patch
+
 from django.http import HttpRequest
 
 from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class PipelineStep(PipelineView):
@@ -29,8 +32,10 @@ class DummyPipeline(Pipeline):
         self.finished = True
 
 
+@control_silo_test
 class PipelineTestCase(TestCase):
-    def test_simple_pipeline(self):
+    @patch("sentry.pipeline.base.bind_organization_context")
+    def test_simple_pipeline(self, mock_bind_org_context: MagicMock):
         org = self.create_organization()
         request = HttpRequest()
         request.session = {}
@@ -40,8 +45,8 @@ class PipelineTestCase(TestCase):
         pipeline.initialize()
 
         assert pipeline.is_valid()
-
         assert "some_config" in pipeline.provider.config
+        mock_bind_org_context.assert_called_with(org)
 
         # Test state
         pipeline.finished = False

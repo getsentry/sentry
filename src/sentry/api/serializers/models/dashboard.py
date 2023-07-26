@@ -9,7 +9,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -36,6 +36,7 @@ class DashboardWidgetSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "description": obj.description,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),

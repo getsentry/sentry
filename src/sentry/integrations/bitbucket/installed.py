@@ -2,13 +2,13 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.pipeline import ensure_integration
 
 from .integration import BitbucketIntegrationProvider
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class BitbucketInstalledEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()

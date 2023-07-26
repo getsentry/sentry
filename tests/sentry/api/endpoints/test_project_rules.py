@@ -8,8 +8,9 @@ import responses
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
-from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.constants import ObjectStatus
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
+from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -38,7 +39,7 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -65,7 +66,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = Actor.objects.get(id=get_actor_id_for_user(self.user)).get_actor_identifier()
+        owner = get_actor_for_user(self.user).get_actor_identifier()
         self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
         if "environment" in kwargs:
@@ -97,7 +98,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == self.user.actor
+        assert rule.owner == get_actor_for_user(self.user)
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
         assert rule.data["actions"] == actions
@@ -189,8 +190,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    @override_settings(MAX_ISSUE_ALERTS_PER_PROJECT=1)
-    def test_exceed_limit(self):
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    def test_exceed_limit_fast_conditions(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         Rule.objects.filter(project=self.project).delete()
@@ -207,9 +208,45 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             conditions=conditions,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.data == "You may not exceed 1 rules per project"
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
+        self.run_test(conditions=conditions, actions=actions)
+
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    def test_exceed_limit_slow_conditions(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            }
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        Rule.objects.filter(project=self.project).delete()
+        self.run_test(conditions=conditions, actions=actions)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
+        # Make sure pending deletions don't affect the process
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):
@@ -310,11 +347,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
         self.run_test(
             actions=actions,
             conditions=conditions,
@@ -323,8 +364,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_no_filter_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         self.run_test(
             filter_match=None,
@@ -333,11 +378,15 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     def test_with_filters_without_match(self):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        filters = [
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        ]
+        filters: list[dict[str, Any]] = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -387,7 +436,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             }
         ]
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "environment": None,
@@ -408,7 +457,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert not Rule.objects.filter(label=payload["name"]).exists()
         kwargs = {
             "name": payload["name"],
-            "owner": self.user.actor.id,
+            "owner": get_actor_id_for_user(self.user),
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),

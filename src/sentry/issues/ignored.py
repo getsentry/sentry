@@ -1,13 +1,29 @@
 from __future__ import annotations
 
+import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
-from sentry.models import Group, GroupInboxRemoveAction, GroupSnooze, User, remove_group_from_inbox
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.models import (
+    Group,
+    GroupInboxRemoveAction,
+    GroupSnooze,
+    GroupStatus,
+    Project,
+    User,
+    remove_group_from_inbox,
+)
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import issue_archived
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 class IgnoredStatusDetails(TypedDict, total=False):
@@ -22,7 +38,9 @@ class IgnoredStatusDetails(TypedDict, total=False):
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
     acting_user: User | None,
-) -> None:
+    projects: Sequence[Project],
+    sender: Any,
+) -> Dict[str, bool]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -32,9 +50,30 @@ def handle_archived_until_escalating(
     metrics.incr("group.archived_until_escalating", skip_internal=True)
     for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
-    # TODO(snigdha): create a forecast for this group
+    generate_and_save_forecasts(group_list)
+    logger.info(
+        "archived_until_escalating.forecast_created",
+        extra={
+            "detail": "Created forecast for groups",
+            "group_ids": [group.id for group in group_list],
+        },
+    )
 
-    return
+    groups_by_project_id = defaultdict(list)
+    for group in group_list:
+        groups_by_project_id[group.project_id].append(group)
+
+    for project in projects:
+        project_groups = groups_by_project_id.get(project.id)
+        issue_archived.send_robust(
+            project=project,
+            user=acting_user,
+            group_list=project_groups,
+            activity_data={"until_escalating": True},
+            sender=sender,
+        )
+
+    return {"ignoreUntilEscalating": True}
 
 
 def handle_ignored(
@@ -86,9 +125,14 @@ def handle_ignored(
                     "actor_id": user.id if user.is_authenticated else None,
                 },
             )
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
+
+            Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+                substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
+            with in_test_hide_transaction_boundary():
+                serialized_user = user_service.serialize_many(
+                    filter=dict(user_ids=[user.id]), as_user=user
+                )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
                 ignoreUntil=ignore_until,
@@ -99,6 +143,5 @@ def handle_ignored(
             )
     else:
         GroupSnooze.objects.filter(group__in=group_ids).delete()
-        ignore_until = None
 
     return new_status_details

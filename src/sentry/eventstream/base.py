@@ -110,7 +110,7 @@ class EventStream(Service):
                 queue=queue,
             )
 
-    def _get_queue_for_post_process(self, event: Event) -> str:
+    def _get_queue_for_post_process(self, event: Event | GroupEvent) -> str:
         event_type = self._get_event_type(event)
         if event_type == EventStreamEventType.Transaction:
             return "post_process_transactions"
@@ -187,7 +187,7 @@ class EventStream(Service):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Union[str, bool] = False,
+        old_primary_hash: Optional[str] = None,
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:

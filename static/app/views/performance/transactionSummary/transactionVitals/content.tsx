@@ -16,7 +16,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
@@ -103,13 +103,10 @@ function VitalsContent(props: Props) {
                       value={activeFilter.value}
                       options={FILTER_OPTIONS}
                       onChange={opt => {
-                        trackAdvancedAnalyticsEvent(
-                          'performance_views.vitals.filter_changed',
-                          {
-                            organization,
-                            value: opt.value,
-                          }
-                        );
+                        trackAnalytics('performance_views.vitals.filter_changed', {
+                          organization,
+                          value: opt.value,
+                        });
                         handleFilterChange(opt.value);
                       }}
                       triggerProps={{prefix: t('Outliers')}}
@@ -117,12 +114,9 @@ function VitalsContent(props: Props) {
                     />
                     <Button
                       onClick={() => {
-                        trackAdvancedAnalyticsEvent(
-                          'performance_views.vitals.reset_view',
-                          {
-                            organization,
-                          }
-                        );
+                        trackAnalytics('performance_views.vitals.reset_view', {
+                          organization,
+                        });
 
                         handleResetView();
                       }}

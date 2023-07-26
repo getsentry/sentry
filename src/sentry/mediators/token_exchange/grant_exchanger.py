@@ -1,13 +1,17 @@
 from datetime import datetime
 
 import pytz
+from django.db import router
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
-from sentry.models import ApiApplication, ApiGrant, ApiToken, SentryApp
+from sentry.models import ApiApplication, ApiGrant, ApiToken, SentryApp, User
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.utils.cache import memoize
 
 
@@ -16,10 +20,11 @@ class GrantExchanger(Mediator):
     Exchanges a Grant Code for an Access Token
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
-    code = Param((str,))
-    client_id = Param((str,))
-    user = Param("sentry.models.User")
+    install = Param(RpcSentryAppInstallation)
+    code = Param(str)
+    client_id = Param(str)
+    user = Param(User)
+    using = router.db_for_write(User)
 
     def call(self):
         self._validate()
@@ -48,7 +53,7 @@ class GrantExchanger(Mediator):
             raise APIUnauthorized("Grant has already expired.")
 
     def _grant_belongs_to_install(self):
-        return self.grant.sentry_app_installation == self.install
+        return self.grant.sentry_app_installation.id == self.install.id
 
     def _sentry_app_user_owns_grant(self):
         return self.grant.application.owner == self.user
@@ -66,8 +71,7 @@ class GrantExchanger(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        self.install.api_token = self.token
-        self.install.save()
+        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=self.token)
 
     @memoize
     def grant(self):

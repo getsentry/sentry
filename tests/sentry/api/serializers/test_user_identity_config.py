@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserIdentityConfigSerializerTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()

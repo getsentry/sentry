@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +8,8 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.models import Organization
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -20,7 +22,13 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        integration_id: int,
+        **kwds: Any,
+    ) -> Response:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````
@@ -36,6 +44,11 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}
             return self.respond(context)
+
+        installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
+            status=ObjectStatus.HIDDEN
+        )
+        repo_names = {installed_repo.name for installed_repo in installed_repos}
 
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
@@ -54,6 +67,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
                     defaultBranch=repo.get("default_branch"),
                 )
                 for repo in repositories
+                if repo["identifier"] not in repo_names
             ]
             context = {"repos": serializedRepositories, "searchable": install.repo_search}
             return self.respond(context)

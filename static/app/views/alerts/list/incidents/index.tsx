@@ -5,19 +5,19 @@ import styled from '@emotion/styled';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
 
 import FilterBar from '../../filterBar';
@@ -49,8 +49,11 @@ type State = {
   hasAlertRule?: boolean;
 };
 
-class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class IncidentsList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
     const status = getQueryStatus(query.status);
@@ -288,7 +291,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
 function IncidentsListContainer(props: Props) {
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('alert_stream.viewed', {
+    trackAnalytics('alert_stream.viewed', {
       organization: props.organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

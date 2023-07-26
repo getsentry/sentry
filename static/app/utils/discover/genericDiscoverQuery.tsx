@@ -12,9 +12,9 @@ import EventView, {
 } from 'sentry/utils/discover/eventView';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import useApi from '../useApi';
+import useOrganization from '../useOrganization';
 
 export class QueryError {
   message: string;
@@ -77,6 +77,7 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
+  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
   /**
    * A container for query batching data and functions.
    */
@@ -84,7 +85,7 @@ type BaseDiscoverQueryProps = {
   /**
    * Extra query parameters to be added.
    */
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | string[] | undefined>;
   /**
    * Sets referrer parameter in the API Payload. Set of allowed referrers are defined
    * on the OrganizationDiscoverEndpoint view.
@@ -130,6 +131,7 @@ type ComponentProps<T, P> = {
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
+  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -203,22 +205,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       return this.props.parseError(error);
     }
 
-    if (!error) {
-      return null;
-    }
-
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return new QueryError(detail, error);
-    }
-
-    const message = detail?.message;
-    if (typeof message === 'string') {
-      return new QueryError(message, error);
-    }
-
-    const unknownError = new QueryError(t('An unknown error occurred.'), error);
-    return unknownError;
+    return parseError(error);
   };
 
   fetchData = async () => {
@@ -301,7 +288,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const organizationSlug = useContext(OrganizationContext)?.slug;
+  const organizationSlug = useOrganization({allowNull: true})?.slug;
   const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
 
   const orgSlug = props.orgSlug ?? organizationSlug;
@@ -414,16 +401,44 @@ function getPayload<T, P>(props: Props<T, P>) {
 
 export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const api = useApi();
-  const {orgSlug, route} = props;
+  const {orgSlug, route, options} = props;
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  return useQuery<T, QueryError>([route, apiPayload], async () => {
-    const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
-      queryBatching: props.queryBatching,
-    });
-    return resp;
-  });
+  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
+    [route, apiPayload],
+    () =>
+      doDiscoverQuery<T>(api, url, apiPayload, {
+        queryBatching: props.queryBatching,
+      }),
+    options
+  );
+
+  return {
+    ...res,
+    data: res.data?.[0] ?? undefined,
+    error: parseError(res.error),
+    statusCode: res.data?.[1] ?? undefined,
+    response: res.data?.[2] ?? undefined,
+  };
 }
+
+const parseError = (error: any): QueryError | null => {
+  if (!error) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return new QueryError(detail, error);
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return new QueryError(message, error);
+  }
+
+  return new QueryError(t('An unknown error occurred.'), error);
+};
 
 export default GenericDiscoverQuery;

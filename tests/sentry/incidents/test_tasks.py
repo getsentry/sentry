@@ -33,7 +33,7 @@ from sentry.incidents.tasks import (
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -180,14 +180,18 @@ class HandleTriggerActionTest(TestCase):
 
     def test_missing_trigger_action(self):
         with self.tasks():
-            handle_trigger_action.delay(1000, 1001, self.project.id, "hello")
+            handle_trigger_action.delay(
+                1000, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_action"
         )
 
     def test_missing_incident(self):
         with self.tasks():
-            handle_trigger_action.delay(self.action.id, 1001, self.project.id, "hello")
+            handle_trigger_action.delay(
+                self.action.id, 1001, self.project.id, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_incident"
         )
@@ -195,7 +199,9 @@ class HandleTriggerActionTest(TestCase):
     def test_missing_project(self):
         incident = self.create_incident()
         with self.tasks():
-            handle_trigger_action.delay(self.action.id, incident.id, 1002, "hello")
+            handle_trigger_action.delay(
+                self.action.id, incident.id, 1002, "hello", IncidentStatus.CRITICAL.value
+            )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.action.skipping_missing_project"
         )
@@ -210,7 +216,12 @@ class HandleTriggerActionTest(TestCase):
             metric_value = 1234
             with self.tasks():
                 handle_trigger_action.delay(
-                    self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
+                    self.action.id,
+                    incident.id,
+                    self.project.id,
+                    "fire",
+                    IncidentStatus.CRITICAL.value,
+                    metric_value=metric_value,
                 )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with(

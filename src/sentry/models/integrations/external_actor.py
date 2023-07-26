@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.db.models import (
@@ -9,19 +9,21 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
 
 
+# TODO(hybrid-cloud): This should probably be a control silo model. We'd need to replace the actor reference with a team_id and user_id
 @region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
-    integration = FlexibleForeignKey("sentry.Integration")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
@@ -44,11 +46,17 @@ class ExternalActor(DefaultFieldsModel):
         unique_together = (("organization", "provider", "external_name", "actor"),)
 
     def delete(self, **kwargs):
-        install = self.integration.get_installation(self.organization_id)
+        from sentry.services.hybrid_cloud.integration import integration_service
 
-        install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
-        notifications_service.remove_notification_settings(
-            actor_id=self.actor_id, provider=ExternalProviders(self.provider)
+        integration = integration_service.get_integration(integration_id=self.integration_id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        team = self.actor.resolve()
+        install.notify_remove_external_team(external_team=self, team=team)
+        notifications_service.remove_notification_settings_for_team(
+            team_id=team.id, provider=ExternalProviders(self.provider)
         )
 
         return super().delete(**kwargs)
@@ -61,12 +69,15 @@ def process_resource_change(instance, **kwargs):
     def _spawn_task():
         try:
             update_code_owners_schema.apply_async(
-                kwargs={"organization": instance.organization, "integration": instance.integration}
+                kwargs={
+                    "organization": instance.organization,
+                    "integration": instance.integration_id,
+                }
             )
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(Project))
 
 
 post_save.connect(

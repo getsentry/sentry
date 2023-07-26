@@ -1,6 +1,7 @@
 import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
 
+import {Organization} from 'sentry/types';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
 // Keep this in sync with the backend blueprint
@@ -78,6 +79,14 @@ export type ReplayRecord = {
     ip: null | string;
     username: null | string;
   };
+  /**
+   * The number of dead clicks associated with the replay.
+   */
+  count_dead_clicks?: number;
+  /**
+   * The number of rage clicks associated with the replay.
+   */
+  count_rage_clicks?: number;
 };
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
@@ -103,39 +112,66 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
+// Sync with ReplayListRecord above
+export function getReplayListFields(organization: Organization) {
+  const hasDeadRageCols = organization.features.includes(
+    'replay-rage-click-dead-click-columns'
+  );
+  return hasDeadRageCols
+    ? [
+        'activity',
+        'browser.name',
+        'browser.version',
+        'count_dead_clicks',
+        'count_errors',
+        'count_rage_clicks',
+        'duration',
+        'finished_at',
+        'id',
+        'is_archived',
+        'os.name',
+        'os.version',
+        'project_id',
+        'started_at',
+        'urls',
+        'user',
+      ]
+    : [
+        'activity',
+        'browser.name',
+        'browser.version',
+        'count_errors',
+        'duration',
+        'finished_at',
+        'id',
+        'is_archived',
+        'os.name',
+        'os.version',
+        'project_id',
+        'started_at',
+        'urls',
+        'user',
+      ];
+}
+
 // Sync with REPLAY_LIST_FIELDS below
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
+  | 'browser'
+  | 'count_dead_clicks'
   | 'count_errors'
+  | 'count_rage_clicks'
   | 'duration'
   | 'finished_at'
   | 'id'
   | 'is_archived'
+  | 'os'
   | 'project_id'
   | 'started_at'
+  | 'urls'
   | 'user'
-> &
-  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
-
-// Sync with ReplayListRecord above
-export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
-  'activity',
-  'browser.name',
-  'browser.version',
-  'count_errors',
-  'count_urls',
-  'duration',
-  'finished_at',
-  'id',
-  'is_archived',
-  'os.name',
-  'os.version',
-  'project_id',
-  'started_at',
-  'urls',
-  'user',
-];
+>;
 
 export type ReplaySegment = {
   dateAdded: string;
@@ -146,6 +182,8 @@ export type ReplaySegment = {
 
 /**
  * Highlight Replay Plugin types
+ *
+ * See also HighlightParams in static/app/components/replays/replayContext.tsx
  */
 export interface Highlight {
   nodeId: number;
@@ -165,15 +203,13 @@ export interface ReplaySpan<T = Record<string, any>> {
   description?: string;
 }
 
-export type MemorySpanType = ReplaySpan<{
+export type MemorySpan = ReplaySpan<{
   memory: {
     jsHeapSizeLimit: number;
     totalJSHeapSize: number;
     usedJSHeapSize: number;
   };
 }>;
-
-export type NetworkSpan = ReplaySpan;
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

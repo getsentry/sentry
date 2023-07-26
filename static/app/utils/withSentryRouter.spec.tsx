@@ -41,7 +41,6 @@ describe('withSentryRouter', function () {
     });
 
     const {routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
     });
 
@@ -66,7 +65,6 @@ describe('withSentryRouter', function () {
       orgId: 'something-else',
     };
     const {routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,

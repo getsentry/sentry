@@ -36,7 +36,7 @@ describe('IssueListSetAsDefault', () => {
       method: 'PUT',
       body: TestStubs.Search({
         isPinned: true,
-        visibility: SavedSearchVisibility.OwnerPinned,
+        visibility: SavedSearchVisibility.OWNER_PINNED,
       }),
     });
 

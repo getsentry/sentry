@@ -13,7 +13,9 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -21,7 +23,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -190,7 +192,7 @@ function CustomRepositories({
         'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
       );
       addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
+      handleXhrErrorResponse(errorMessage, error);
     }
   }
 

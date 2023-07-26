@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -13,36 +14,42 @@ import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
+  GroupActivitySetEscalating,
   GroupActivitySetIgnored,
   GroupActivityType,
   Organization,
   Project,
   User,
 } from 'sentry/types';
+import {isSemverRelease} from 'sentry/utils/formatters';
 
 type Props = {
   activity: GroupActivity;
   author: React.ReactNode;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   projectId: Project['id'];
 };
 
-function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
-  const issuesLink = `/organizations/${orgSlug}/issues/`;
+function GroupActivityItem({activity, organization, projectId, author}: Props) {
+  const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
+    const ignoredOrArchived = hasEscalatingIssuesUi ? t('archived') : t('ignored');
     if (data.ignoreDuration) {
-      return tct('[author] ignored this issue for [duration]', {
+      return tct('[author] [action] this issue for [duration]', {
         author,
+        action: ignoredOrArchived,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
     }
 
     if (data.ignoreCount && data.ignoreWindow) {
       return tct(
-        '[author] ignored this issue until it happens [count] time(s) in [duration]',
+        '[author] [action] this issue until it happens [count] time(s) in [duration]',
         {
           author,
+          action: ignoredOrArchived,
           count: data.ignoreCount,
           duration: <Duration seconds={data.ignoreWindow * 60} />,
         }
@@ -50,17 +57,19 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreCount) {
-      return tct('[author] ignored this issue until it happens [count] time(s)', {
+      return tct('[author] [action] this issue until it happens [count] time(s)', {
         author,
+        action: ignoredOrArchived,
         count: data.ignoreCount,
       });
     }
 
     if (data.ignoreUserCount && data.ignoreUserWindow) {
       return tct(
-        '[author] ignored this issue until it affects [count] user(s) in [duration]',
+        '[author] [action] this issue until it affects [count] user(s) in [duration]',
         {
           author,
+          action: ignoredOrArchived,
           count: data.ignoreUserCount,
           duration: <Duration seconds={data.ignoreUserWindow * 60} />,
         }
@@ -68,13 +77,30 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreUserCount) {
-      return tct('[author] ignored this issue until it affects [count] user(s)', {
+      return tct('[author] [action] this issue until it affects [count] user(s)', {
         author,
+        action: ignoredOrArchived,
         count: data.ignoreUserCount,
       });
     }
 
-    return tct('[author] ignored this issue', {author});
+    if (data.ignoreUntil) {
+      return tct('[author] [action] this issue until [date]', {
+        author,
+        action: ignoredOrArchived,
+        date: <DateTime date={data.ignoreUntil} />,
+      });
+    }
+    if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
+      return tct('[author] archived this issue until it escalates', {
+        author,
+      });
+    }
+
+    return tct('[author] [action] this issue forever', {
+      author,
+      action: ignoredOrArchived,
+    });
   }
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
@@ -127,6 +153,76 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     );
   }
 
+  function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
+    if (data.forecast) {
+      return tct(
+        '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+        {
+          author,
+          forecast: data.forecast,
+          event: data.forecast === 1 ? 'event' : 'events',
+        }
+      );
+    }
+
+    if (data.expired_snooze) {
+      if (data.expired_snooze.count && data.expired_snooze.window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened in [duration]',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+            duration: <Duration seconds={data.expired_snooze.window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count && data.expired_snooze.user_window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected in [duration]',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+            duration: <Duration seconds={data.expired_snooze.user_window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+          }
+        );
+      }
+
+      if (data.expired_snooze.until) {
+        return tct('[author] flagged this issue as escalating because [date] passed', {
+          author,
+          date: <DateTime date={data.expired_snooze.until} />,
+        });
+      }
+    }
+
+    return tct('[author] flagged this issue as escalating', {author}); // should not reach this
+  }
+
   function renderContent() {
     switch (activity.type) {
       case GroupActivityType.NOTE:
@@ -138,28 +234,41 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        const {current_release_version, version} = activity.data;
-        if (current_release_version) {
+        // Resolved in the next release
+        if ('current_release_version' in activity.data) {
+          const currentVersion = activity.data.current_release_version;
           return tct(
-            '[author] marked this issue as resolved in releases greater than [version]',
+            '[author] marked this issue as resolved in releases greater than [version] [semver]',
             {
               author,
               version: (
                 <Version
-                  version={current_release_version}
+                  version={currentVersion}
                   projectId={projectId}
                   tooltipRawVersion
                 />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(currentVersion)
+                  ? t('(semver)')
+                  : t('(non-semver)')
+                : '',
             }
           );
         }
+
+        const version = activity.data.version;
         return version
-          ? tct('[author] marked this issue as resolved in [version]', {
+          ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
+              semver: organization.features.includes('issue-release-semver')
+                ? isSemverRelease(version)
+                  ? t('(semver)')
+                  : t('(non-semver)')
+                : '',
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -170,7 +279,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           .sort(
             (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
           );
-        if (deployedReleases.length === 1) {
+        if (deployedReleases.length === 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
@@ -193,7 +302,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
             }
           );
         }
-        if (deployedReleases.length > 1) {
+        if (deployedReleases.length > 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
@@ -217,32 +326,50 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
             }
           );
         }
-        return tct('[author] marked this issue as resolved in [version]', {
-          author,
-          version: (
-            <CommitLink
-              inline
-              commitId={activity.data.commit.id}
-              repository={activity.data.commit.repository}
-            />
-          ),
-        });
+        if (activity.data.commit) {
+          return tct('[author] marked this issue as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] marked this issue as resolved in a commit', {author});
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] has created a PR for this issue: [version]', {
+        return tct('[author] has created a PR for this issue: [pullRequest]', {
           author,
-          version: (
+          pullRequest: pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={pullRequest}
               repository={pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
         });
       }
-      case GroupActivityType.SET_UNRESOLVED:
+      case GroupActivityType.SET_UNRESOLVED: {
+        // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
+        const {data} = activity;
+        if (data.forecast) {
+          return tct(
+            '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+            {
+              author,
+              forecast: data.forecast,
+              event: data.forecast === 1 ? 'event' : 'events',
+            }
+          );
+        }
         return tct('[author] marked this issue as unresolved', {author});
+      }
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
         return getIgnoredMessage(data);
@@ -253,14 +380,57 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         return tct('[author] made this issue private', {author});
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
-        return data.version
-          ? tct('[author] marked this issue as a regression in [version]', {
+        let subtext: React.ReactNode = null;
+        if (
+          organization.features.includes('issue-release-semver') &&
+          data.version &&
+          data.resolved_in_version &&
+          'follows_semver' in data
+        ) {
+          subtext = (
+            <Subtext>
+              {tct(
+                '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
+                {
+                  regressionVersion: (
+                    <Version
+                      version={data.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  resolvedVersion: (
+                    <Version
+                      version={data.resolved_in_version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  comparison: data.follows_semver ? t('semver') : t('release date'),
+                }
+              )}
+            </Subtext>
+          );
+        }
+
+        return data.version ? (
+          <Fragment>
+            {tct('[author] marked this issue as a regression in [version]', {
               author,
               version: (
                 <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
-            })
-          : tct('[author] marked this issue as a regression', {author});
+            })}
+            {subtext}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {tct('[author] marked this issue as a regression', {
+              author,
+            })}
+            {subtext}
+          </Fragment>
+        );
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
@@ -331,7 +501,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
           ['new-events']: (
             <Link
-              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
+              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
             >
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>
@@ -343,6 +513,20 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
         });
       }
+      case GroupActivityType.AUTO_SET_ONGOING: {
+        return activity.data?.afterDays
+          ? tct(
+              '[author] automatically marked this issue as ongoing after [afterDays] days',
+              {author, afterDays: activity.data.afterDays}
+            )
+          : tct('[author] automatically marked this issue as ongoing', {
+              author,
+            });
+      }
+      case GroupActivityType.SET_ESCALATING: {
+        return getEscalatingMessage(activity.data);
+      }
+
       default:
         return ''; // should never hit (?)
     }
@@ -352,6 +536,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
 }
 
 export default GroupActivityItem;
+
+const Subtext = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;

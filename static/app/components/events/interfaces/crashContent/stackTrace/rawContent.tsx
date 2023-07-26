@@ -81,6 +81,7 @@ export function getPythonFrame(frame: Frame): string {
 
 export function getJavaFrame(frame: Frame): string {
   let result = '    at';
+
   if (defined(frame.module)) {
     result += ' ' + frame.module + '.';
   }

@@ -29,7 +29,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
@@ -53,16 +53,17 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-type State = AsyncView['state'];
+type State = DeprecatedAsyncView['state'];
 
-class ProjectDetail extends AsyncView<Props, State> {
+class ProjectDetail extends DeprecatedAsyncView<Props, State> {
   getTitle() {
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
-    return routeTitleGen(t('Project %s', params.projectId), params.orgId, false);
+    return routeTitleGen(t('Project %s', params.projectId), organization.slug, false);
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.syncProjectWithSlug();
   }
 
@@ -198,7 +199,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
+      <PageFiltersContainer
+        disablePersistence
+        skipLoadLastUsed
+        showAbsolute={!hasOnlyBasicChart}
+      >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header>

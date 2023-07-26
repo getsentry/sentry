@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {
   MajorGridlines,
@@ -14,16 +14,8 @@ import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Resizeable} from 'sentry/components/replays/resizeable';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {};
-
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
 
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
@@ -37,9 +29,8 @@ function ReplayTimeline({}: Props) {
 
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().started_at.getTime();
-  const crumbs = replay.getRawCrumbs();
-  const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-  const networkSpans = replay.getNetworkSpans();
+  const chapterFrames = replay.getChapterFrames();
+  const networkFrames = replay.getNetworkFrames();
 
   return (
     <Panel ref={elem} {...mouseTrackingProps}>
@@ -52,13 +43,13 @@ function ReplayTimeline({}: Props) {
             <UnderTimestamp paddingTop="36px">
               <ReplayTimelineSpans
                 durationMs={durationMs}
-                spans={networkSpans}
+                frames={networkFrames}
                 startTimestampMs={startTimestampMs}
               />
             </UnderTimestamp>
             <UnderTimestamp paddingTop="26px">
               <ReplayTimelineEvents
-                crumbs={userCrumbs}
+                frames={chapterFrames}
                 durationMs={durationMs}
                 startTimestampMs={startTimestampMs}
                 width={width}

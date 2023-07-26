@@ -20,9 +20,9 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import LoadingMask from 'sentry/components/loadingMask';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
+import {IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -32,6 +32,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
@@ -75,6 +76,7 @@ type Props = {
   triggers: Trigger[];
   comparisonDelta?: number;
   header?: React.ReactNode;
+  isOnDemandMetricAlert?: boolean;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -207,8 +209,28 @@ class TriggersChart extends PureComponent<Props, State> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, environment, projects, query} = this.props;
+    const {
+      api,
+      organization,
+      location,
+      newAlertOrQuery,
+      environment,
+      projects,
+      query,
+      dataset,
+    } = this.props;
+
     const statsPeriod = this.getStatsPeriod();
+
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery,
+    });
+
+    const queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
+
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -216,6 +238,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         statsPeriod,
         environment: environment ? [environment] : [],
+        dataset: queryDataset,
       });
       this.setState({totalCount});
     } catch (e) {
@@ -254,6 +277,7 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       aggregate,
       comparisonType,
+      isOnDemandMetricAlert,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -269,21 +293,14 @@ class TriggersChart extends PureComponent<Props, State> {
         <TransparentLoadingMask visible={isReloading} />
         {isLoading && !error ? (
           <ChartPlaceholder />
+        ) : isOnDemandMetricAlert ? (
+          <WarningChart />
         ) : error ? (
-          <ChartErrorWrapper>
-            <PanelAlert type="error">
-              {!orgFeatures.includes('alert-allow-indexed') && !isQueryValid
-                ? t(
-                    'Your filter conditions contain an unsupported field - please review.'
-                  )
-                : typeof errorMessage === 'string'
-                ? errorMessage
-                : t('An error occurred while fetching data')}
-            </PanelAlert>
-            <StyledErrorPanel>
-              <IconWarning color="gray500" size="lg" />
-            </StyledErrorPanel>
-          </ChartErrorWrapper>
+          <ErrorChart
+            isAllowIndexed={orgFeatures.includes('alert-allow-indexed')}
+            errorMessage={errorMessage}
+            isQueryValid={isQueryValid}
+          />
         ) : (
           <ThresholdsChart
             period={statsPeriod}
@@ -301,6 +318,7 @@ class TriggersChart extends PureComponent<Props, State> {
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
           />
         )}
+
         <ChartControls>
           <InlineContainer data-test-id="alert-total-events">
             <SectionHeading>
@@ -322,6 +340,7 @@ class TriggersChart extends PureComponent<Props, State> {
               selected={period}
               onChange={this.handleStatsPeriodChange}
               title={t('Display')}
+              disabled={isOnDemandMetricAlert}
             />
           </InlineContainer>
         </ChartControls>
@@ -346,6 +365,7 @@ class TriggersChart extends PureComponent<Props, State> {
       triggers,
       thresholdType,
       isQueryValid,
+      isOnDemandMetricAlert,
     } = this.props;
 
     const period = this.getStatsPeriod();
@@ -359,6 +379,17 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery,
     });
+
+    // Currently we don't have anything to show for on-demand metric alerts
+    if (isOnDemandMetricAlert) {
+      return this.renderChart({
+        timeseriesData: [],
+        isQueryValid: true,
+        isLoading: false,
+        isReloading: false,
+        orgFeatures: organization.features,
+      });
+    }
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -417,6 +448,7 @@ class TriggersChart extends PureComponent<Props, State> {
         partial={false}
         queryExtras={queryExtras}
         dataLoadedCallback={handleMEPAlertDataset}
+        useOnDemandMetrics={isOnDemandMetricAlert}
       >
         {({
           loading,
@@ -469,9 +501,44 @@ const ChartPlaceholder = styled(Placeholder)`
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
+  /* Height and margin should with the alert should match up placeholder height of (184px) */
   padding: ${space(2)};
+  height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
+
+function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
+  return (
+    <ChartErrorWrapper>
+      <PanelAlert type="error">
+        {!isAllowIndexed && !isQueryValid
+          ? t('Your filter conditions contain an unsupported field - please review.')
+          : typeof errorMessage === 'string'
+          ? errorMessage
+          : t('An error occurred while fetching data')}
+      </PanelAlert>
+
+      <StyledErrorPanel>
+        <IconWarning color="gray500" size="lg" />
+      </StyledErrorPanel>
+    </ChartErrorWrapper>
+  );
+}
+
+function WarningChart() {
+  return (
+    <ChartErrorWrapper>
+      <PanelAlert type="info">
+        {t(
+          'Selected filters include advanced conditions, which is a feature that is currently in early access. We will start collecting data for the chart once this alert rule is saved.'
+        )}
+      </PanelAlert>
+      <StyledErrorPanel>
+        <IconSettings color="gray500" size="lg" />
+      </StyledErrorPanel>
+    </ChartErrorWrapper>
+  );
+}

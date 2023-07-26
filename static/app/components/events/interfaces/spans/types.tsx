@@ -25,6 +25,7 @@ export type RawSpanType = {
   exclusive_time?: number;
   hash?: string;
   op?: string;
+  origin?: string;
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   status?: string;
@@ -39,6 +40,7 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'timestamp',
   'same_process_as_parent',
   'op',
+  'origin',
   'description',
   'status',
   'data',
@@ -148,9 +150,9 @@ export type ParsedTraceType = {
 };
 
 export enum TickAlignment {
-  Left,
-  Right,
-  Center,
+  LEFT,
+  RIGHT,
+  CENTER,
 }
 
 export type TraceContextType = {

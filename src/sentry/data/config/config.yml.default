@@ -57,6 +57,21 @@ redis.clusters:
       0:
         host: 127.0.0.1
         port: 6379
+  rc-default:
+    is_redis_cluster: true
+    hosts:
+      - host: 127.0.0.1
+        port: 7000
+      - host: 127.0.0.1
+        port: 7001
+      - host: 127.0.0.1
+        port: 7002
+      - host: 127.0.0.1
+        port: 7003
+      - host: 127.0.0.1
+        port: 7004
+      - host: 127.0.0.1
+        port: 7005
 
 ################
 # File storage #

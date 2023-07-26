@@ -1,4 +1,4 @@
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';

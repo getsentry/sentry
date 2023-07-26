@@ -14,6 +14,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
@@ -21,7 +22,13 @@ from sentry.types.activity import ActivityType
 ONE_HOUR = 3600
 
 
-@instrumented_task(name="sentry.tasks.schedule_auto_resolution", time_limit=75, soft_time_limit=60)
+@instrumented_task(
+    name="sentry.tasks.schedule_auto_resolution",
+    queue="auto_transition_issue_states",
+    time_limit=75,
+    soft_time_limit=60,
+)
+@log_error_if_queue_has_items
 def schedule_auto_resolution():
     options = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
@@ -46,8 +53,12 @@ def schedule_auto_resolution():
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_resolve_project_issues", time_limit=75, soft_time_limit=60
+    name="sentry.tasks.auto_resolve_project_issues",
+    queue="auto_transition_issue_states",
+    time_limit=75,
+    soft_time_limit=60,
 )
+@log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
 
@@ -72,7 +83,9 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
     for group in queryset:
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
-            status=GroupStatus.RESOLVED, resolved_at=timezone.now()
+            status=GroupStatus.RESOLVED,
+            resolved_at=timezone.now(),
+            substatus=None,
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 

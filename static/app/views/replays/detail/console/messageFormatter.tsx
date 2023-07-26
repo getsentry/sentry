@@ -3,7 +3,7 @@ import isObject from 'lodash/isObject';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {OnExpand} from 'sentry/components/objectInspector';
+import {OnExpandCallback} from 'sentry/components/objectInspector';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
@@ -12,7 +12,7 @@ import Format from './format';
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   expandPaths?: string[];
-  onExpand?: OnExpand;
+  onExpand?: OnExpandCallback;
 }
 
 /**

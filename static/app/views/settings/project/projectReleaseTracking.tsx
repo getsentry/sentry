@@ -8,7 +8,9 @@ import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import PluginList from 'sentry/components/pluginList';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -16,11 +18,13 @@ import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 
 type Props = {
   organization: Organization;
@@ -33,20 +37,20 @@ type State = {
     token: string;
     webhookUrl: string;
   } | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 const placeholderData = {
   token: TOKEN_PLACEHOLDER,
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-class ProjectReleaseTracking extends AsyncView<Props, State> {
+class ProjectReleaseTracking extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Releases'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -103,7 +107,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, project, plugins} = this.props;
-    const hasWrite = organization.access.includes('project:write');
+    const hasWrite = hasEveryAccess(['project:write'], {organization, project});
 
     if (plugins.loading) {
       return <LoadingIndicator />;
@@ -121,6 +125,12 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
+        <TextBlock>
+          {t(
+            'Configure release tracking for this project to automatically record new releases of your application.'
+          )}
+        </TextBlock>
+
         {!hasWrite && (
           <Alert type="warning">
             {t(
@@ -128,11 +138,6 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             )}
           </Alert>
         )}
-        <p>
-          {t(
-            'Configure release tracking for this project to automatically record new releases of your application.'
-          )}
-        </p>
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
@@ -187,9 +192,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
                     'Are you sure you want to regenerate your token? Your current token will no longer be usable.'
                   )}
                 >
-                  <Button priority="danger" disabled={!hasWrite}>
-                    {t('Regenerate Token')}
-                  </Button>
+                  <Button priority="danger">{t('Regenerate Token')}</Button>
                 </Confirm>
               </div>
             </FieldGroup>

@@ -8,8 +8,8 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Organization, Relay} from 'sentry/types';
 
+import createTrustedRelaysResponseError from './createTrustedRelaysResponseError';
 import Form from './form';
-import handleXhrErrorResponse from './handleXhrErrorResponse';
 import Modal from './modal';
 
 type FormProps = React.ComponentProps<typeof Form>;
@@ -98,7 +98,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     }));
   }
 
-  convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+  handleErrorResponse(error: ReturnType<typeof createTrustedRelaysResponseError>) {
     switch (error.type) {
       case 'invalid-key':
       case 'missing-key':
@@ -142,7 +142,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
       onSubmitSuccess(response);
       closeModal();
     } catch (error) {
-      this.convertErrorXhrResponse(handleXhrErrorResponse(error));
+      this.handleErrorResponse(createTrustedRelaysResponseError(error));
     }
   };
 

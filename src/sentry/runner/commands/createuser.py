@@ -162,7 +162,9 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
                     role = roles.get_top_dog().id
                 else:
                     role = org.default_role
-                member = OrganizationMember.objects.create(organization=org, user=user, role=role)
+                member = OrganizationMember.objects.create(
+                    organization=org, user_id=user.id, role=role
+                )
 
                 # if we've only got a single team let's go ahead and give
                 # access to that team as its likely the desired outcome

@@ -158,7 +158,7 @@ function SidebarDropdown({
                         {t('User settings')}
                       </SidebarMenuItem>
                       <SidebarMenuItem to="/settings/account/api/">
-                        {t('API keys')}
+                        {t('User auth tokens')}
                       </SidebarMenuItem>
                       {hasOrganization && (
                         <Hook
@@ -209,6 +209,7 @@ const UserBadgeNoOverflow = styled(IdBadge)`
 
 const SidebarDropdownRoot = styled('div')`
   position: relative;
+  padding: 0 3px; /* align org icon with sidebar item icons */
 `;
 
 // So that long org names and user names do not overflow

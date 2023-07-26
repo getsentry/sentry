@@ -6,6 +6,7 @@ from zipfile import ZipFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils import TestCase
@@ -126,16 +127,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 67,
                         },
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 69,
                         },
@@ -177,16 +180,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "onClick",
                             "abs_path": None,
                             "class_name": "e.a.c.a",
+                            "name": "onClick",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 2,
                         },
                         {
-                            "name": "t",
                             "abs_path": None,
                             "class_name": "io.sentry.sample.MainActivity",
+                            "name": "t",
+                            "signature": "()V",
                             "source_file": "MainActivity.java",
                             "source_line": 1,
                         },
@@ -199,21 +204,24 @@ class ProfilesProcessTaskTest(TestCase):
         _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
-        assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
+        assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
 
         assert frames[0]["name"] == "onClick"
         assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
 
+        assert frames[1]["inline_frames"][0]["name"] == "onClickHandler"
+        assert frames[1]["inline_frames"][0]["source_line"] == 40
         assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
         assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-        assert frames[1]["inline_frames"][0]["name"] == "bar"
-        assert frames[1]["inline_frames"][0]["source_line"] == 54
+        assert frames[1]["inline_frames"][0]["signature"] == "()"
+
         assert frames[1]["inline_frames"][1]["name"] == "foo"
         assert frames[1]["inline_frames"][1]["source_line"] == 44
-        assert frames[1]["inline_frames"][2]["name"] == "onClickHandler"
-        assert frames[1]["inline_frames"][2]["source_line"] == 40
+
         assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
         assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
+        assert frames[1]["inline_frames"][2]["name"] == "bar"
+        assert frames[1]["inline_frames"][2]["source_line"] == 54
 
     def test_error_on_resolving(self):
         out = BytesIO()
@@ -266,6 +274,7 @@ class ProfilesProcessTaskTest(TestCase):
 
     def test_process_symbolicator_results_for_sample(self):
         profile = {
+            "version": 1,
             "platform": "rust",
             "profile": {
                 "frames": [
@@ -344,6 +353,76 @@ class ProfilesProcessTaskTest(TestCase):
             },
         ]
 
-        _process_symbolicator_results_for_sample(profile, stacktraces)
+        _process_symbolicator_results_for_sample(
+            profile, stacktraces, list(range(len(profile["profile"]["frames"])))
+        )
 
         assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
+
+    def test_process_symbolicator_results_for_sample_js(self):
+        profile = {
+            "version": 1,
+            "platform": "javascript",
+            "profile": {
+                "frames": [
+                    {
+                        "function": "functionA",
+                        "abs_path": "/root/functionA.js",
+                    },
+                    {
+                        "function": "functionB",
+                        "abs_path": "/root/functionB.js",
+                    },
+                    {
+                        "function": "functionC",
+                        "abs_path": "/root/functionC.js",
+                    },
+                    # frame not valid for symbolication
+                    {
+                        "function": "functionD",
+                    },
+                ],
+                "samples": [
+                    {"stack_id": 0},
+                    # a second sample with the same stack id, the stack should
+                    # not be processed a second time
+                    {"stack_id": 0},
+                ],
+                "stacks": [
+                    [0, 1, 2, 3],
+                ],
+            },
+        }
+
+        # returned from symbolicator
+        stacktraces = [
+            {
+                "frames": [
+                    {
+                        "function": "functionA",
+                        "abs_path": "/root/functionA.js",
+                        "original_index": 0,
+                    },
+                    {
+                        "function": "functionB",
+                        "abs_path": "/root/functionB.js",
+                        "original_index": 1,
+                    },
+                    {
+                        "function": "functionC",
+                        "abs_path": "/root/functionC.js",
+                        "original_index": 2,
+                    },
+                ],
+            },
+        ]
+
+        frames_sent = [
+            idx
+            for idx, frame in enumerate(profile["profile"]["frames"])
+            if is_valid_javascript_frame(frame, profile)
+        ]
+
+        _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
+
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]

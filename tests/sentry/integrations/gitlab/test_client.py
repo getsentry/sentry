@@ -18,7 +18,7 @@ GITLAB_CODEOWNERS = {
 }
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GitlabRefreshAuthTest(GitLabTestCase):
     get_user_should_succeed = True
 

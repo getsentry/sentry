@@ -118,13 +118,14 @@ export default function getConfiguration({
       name: t('SDK Setup'),
       items: [
         {
-          path: `${pathPrefix}/install/`,
-          title: t('Instrumentation'),
-        },
-        {
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
+        },
+        {
+          path: `${pathPrefix}/loader-script/`,
+          title: t('Loader Script'),
+          description: t("View and manage the project's Loader Script"),
         },
         {
           path: `${pathPrefix}/release-tracking/`,

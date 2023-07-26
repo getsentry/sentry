@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
@@ -20,7 +19,7 @@ describe('Incident Rules Create', () => {
     body: {count: 5},
   });
 
-  const api = new Client();
+  const api = new MockApiClient();
 
   it('renders a metric', async () => {
     const {organization, project, router} = initializeOrg();

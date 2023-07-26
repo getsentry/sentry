@@ -33,8 +33,7 @@ type UserEnrolledAuthenticator = {
   type: Authenticator['id'];
 };
 
-export type User = Omit<AvatarUser, 'options'> & {
-  authenticators: UserEnrolledAuthenticator[];
+export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
   emails: {
@@ -63,7 +62,8 @@ export type User = Omit<AvatarUser, 'options'> & {
     timezone: string;
   };
   permissions: Set<string>;
-};
+  authenticators?: UserEnrolledAuthenticator[];
+}
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
@@ -102,6 +102,16 @@ export type ApiApplication = {
   privacyUrl: string | null;
   redirectUris: string[];
   termsUrl: string | null;
+};
+
+export type OrgAuthToken = {
+  dateCreated: Date;
+  id: string;
+  name: string;
+  scopes: string[];
+  dateLastUsed?: Date;
+  projectLastUsedId?: string;
+  tokenLastCharacters?: string;
 };
 
 // Used in user session history.

@@ -5,8 +5,11 @@ import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {Button} from 'sentry/components/button';
-import {Panel, PanelBody} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -23,6 +26,18 @@ export function Banner({onViewSuggestion}: Props) {
         <div>
           <Title>
             {t('AI Solutions')}
+            <MoreInfoTooltip
+              isHoverable
+              size="sm"
+              title={tct(
+                'This is an OpenAI generated solution that suggests a fix for this issue. Be aware that this may not be accurate. [learnMore:Learn more]',
+                {
+                  learnMore: (
+                    <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+                  ),
+                }
+              )}
+            />
             <ExperimentalFeatureBadge />
           </Title>
           <Description>
@@ -50,12 +65,17 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
-  display: grid;
-  grid-template-columns: 1fr max-content;
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: ${space(1)};
 
+  > *:first-child {
+    flex: 1;
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    display: grid;
     grid-template-columns: 42% 1fr;
   }
 `;
@@ -69,6 +89,7 @@ const Title = styled('div')`
   /* to be consistent with the feature badge size */
   height: ${space(2)};
   line-height: ${space(2)};
+  white-space: nowrap;
 `;
 
 const Description = styled(TextBlock)`
@@ -91,6 +112,7 @@ const Sentaur = styled('img')`
     right: 6.608rem;
     object-fit: cover;
     z-index: 1;
+    pointer-events: none;
   }
 `;
 
@@ -128,4 +150,8 @@ const ViewSuggestionButton = styled(Button)`
     right: 1rem;
     top: 1.5rem;
   }
+`;
+
+const MoreInfoTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;

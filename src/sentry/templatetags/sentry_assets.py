@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from django import template
@@ -61,7 +63,7 @@ def script(parser, token):
 
 
 @register.simple_tag
-def injected_script_assets():
+def injected_script_assets() -> list[str]:
     return settings.INJECTED_SCRIPT_ASSETS
 
 

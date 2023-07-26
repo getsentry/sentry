@@ -10,7 +10,7 @@ import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {Column} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -45,7 +45,7 @@ function ColumnEditModal(props: Props) {
 
   // Only run once for each organization.id.
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('discover_v2.column_editor.open', {organization});
+    trackAnalytics('discover_v2.column_editor.open', {organization});
   }, [organization]);
 
   const tags = useTags();

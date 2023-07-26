@@ -1,11 +1,20 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from django.db import router
+
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
+from sentry.models.group import Group
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -42,12 +51,13 @@ class IssueLinkRequester(Mediator):
     issue in the UI (i.e. <project>#<identifier>)
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
-    uri = Param((str,))
-    group = Param("sentry.models.Group")
-    fields = Param(object)
-    user = Param("sentry.models.User")
-    action = Param((str,))
+    install = Param(RpcSentryAppInstallation)
+    uri = Param(str)
+    group = Param(Group)
+    fields = Param(dict)
+    user = Param(RpcUser)
+    action = Param(str)
+    using = router.db_for_write(Group)
 
     def call(self):
         return self._make_request()
@@ -104,7 +114,7 @@ class IssueLinkRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {"fields": {}}
+        body: dict[str, Any] = {"fields": {}}
         for name, value in self.fields.items():
             body["fields"][name] = value
 

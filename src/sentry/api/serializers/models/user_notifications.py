@@ -32,13 +32,13 @@ class UserNotificationsSerializer(Serializer):
         if not type:
             data = handle_legacy(notification_type, item_list)
         else:
-            actor_mapping = {user.actor_id: user for user in item_list}
+            user_mapping = {user.id: user for user in item_list}
             notifications_settings = NotificationSetting.objects._filter(
                 ExternalProviders.EMAIL,
                 get_type_from_fine_tuning_key(notification_type),
-                target_ids=actor_mapping.keys(),
+                user_ids=list(user_mapping.keys()),
             ).exclude(scope_type=NotificationScopeType.USER.value)
-            data = map_notification_settings_to_legacy(notifications_settings, actor_mapping)
+            data = map_notification_settings_to_legacy(notifications_settings, user_mapping)
 
         results = defaultdict(list)
         for uo in data:

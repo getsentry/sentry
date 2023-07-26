@@ -2,7 +2,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('CrashContent', function () {
   const exc = TestStubs.ExceptionWithMeta();
@@ -11,8 +11,8 @@ describe('CrashContent', function () {
   it('renders with meta data', function () {
     const wrapper = render(
       <CrashContent
-        stackView={STACK_VIEW.FULL}
-        stackType={STACK_TYPE.ORIGINAL}
+        stackView={StackView.FULL}
+        stackType={StackType.ORIGINAL}
         event={TestStubs.Event()}
         newestFirst
         exception={(proxiedExc as any).exception}

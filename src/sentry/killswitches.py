@@ -207,6 +207,16 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={"organization_id": "An organization ID to disable last deploys for."},
     ),
+    "crons.organization.disable-check-in": KillswitchInfo(
+        description="""
+        Do not consumer monitor check-ins for a specific organization.
+
+        This is valuable in scenarios where a organization is slamming in
+        progress check-ins without actually marking the check-in as complete
+        for whatever reason. This can cuase extranious strain on the system.
+        """,
+        fields={"organization_id": "An organization ID to disable check-ins for."},
+    ),
 }
 
 

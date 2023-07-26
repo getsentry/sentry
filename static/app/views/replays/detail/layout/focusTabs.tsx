@@ -1,21 +1,29 @@
+import {Fragment, ReactNode} from 'react';
 import queryString from 'query-string';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import ListLink from 'sentry/components/links/listLink';
 import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ReplayTabs: Record<TabKey, string> = {
-  [TabKey.console]: t('Console'),
-  [TabKey.network]: t('Network'),
-  [TabKey.dom]: t('DOM Events'),
-  [TabKey.issues]: t('Issues'),
-  [TabKey.memory]: t('Memory'),
-  [TabKey.trace]: t('Trace'),
-};
+function getReplayTabs(): Record<TabKey, ReactNode> {
+  return {
+    [TabKey.CONSOLE]: t('Console'),
+    [TabKey.NETWORK]: t('Network'),
+    [TabKey.DOM]: t('DOM Events'),
+    [TabKey.ERRORS]: (
+      <Fragment>
+        {t('Errors')} <FeatureBadge type="new" />
+      </Fragment>
+    ),
+    [TabKey.MEMORY]: t('Memory'),
+    [TabKey.TRACE]: t('Trace'),
+  };
+}
 
 type Props = {
   className?: string;
@@ -29,24 +37,26 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={className} underlined>
-      {Object.entries(ReplayTabs).map(([tab, label]) => (
-        <ListLink
-          key={tab}
-          isActive={() => tab === activeTab}
-          to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
-          onClick={e => {
-            e.preventDefault();
-            setActiveTab(tab);
+      {Object.entries(getReplayTabs()).map(([tab, label]) =>
+        label ? (
+          <ListLink
+            key={tab}
+            isActive={() => tab === activeTab}
+            to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+            onClick={e => {
+              e.preventDefault();
+              setActiveTab(tab);
 
-            trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
-              tab,
-              organization,
-            });
-          }}
-        >
-          {label}
-        </ListLink>
-      ))}
+              trackAnalytics('replay.details-tab-changed', {
+                tab,
+                organization,
+              });
+            }}
+          >
+            {label}
+          </ListLink>
+        ) : null
+      )}
     </ScrollableTabs>
   );
 }

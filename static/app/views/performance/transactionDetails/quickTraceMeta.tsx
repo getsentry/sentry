@@ -12,7 +12,7 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tct, tn} from 'sentry/locale';
 import {AvatarProject, OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -23,20 +23,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetaData} from './styles';
 
-type Props = Pick<
-  React.ComponentProps<typeof QuickTrace>,
-  'errorDest' | 'transactionDest'
-> & {
+interface Props
+  extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
   anchor: 'left' | 'right';
   event: Event;
   location: Location;
   quickTrace: QuickTraceQueryChildrenProps | null;
   traceMeta: TraceMeta | null;
   project?: AvatarProject;
-};
+}
 
 function handleTraceLink(organization: OrganizationSummary) {
-  trackAdvancedAnalyticsEvent('quick_trace.trace_id.clicked', {
+  trackAnalytics('quick_trace.trace_id.clicked', {
     organization: organization.id,
     source: 'events',
   });

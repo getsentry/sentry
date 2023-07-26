@@ -1,10 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
@@ -13,11 +15,13 @@ import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/h
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import {getReplayListFields} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
@@ -32,14 +36,14 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: REPLAY_LIST_FIELDS,
+        fields: getReplayListFields(organization),
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location]);
+  }, [location, organization]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -54,6 +58,8 @@ function ReplaysList() {
     <ReplayOnboardingPanel />
   );
 }
+
+const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
 function ReplaysListTable({
   eventView,
@@ -70,6 +76,45 @@ function ReplaysListTable({
     organization,
   });
 
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
+  const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
+    minVersion: MIN_REPLAY_CLICK_SDK,
+    organization,
+    projectId: projects.map(p => String(p)),
+  });
+
+  const conditions = useMemo(() => {
+    return new MutableSearch(decodeScalar(location.query.query, ''));
+  }, [location.query.query]);
+
+  const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
+
+  const hasDeadRageCols = organization.features.includes(
+    'replay-rage-click-dead-click-columns'
+  );
+  const visibleCols = hasDeadRageCols
+    ? [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_DEAD_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ]
+    : [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ];
+
   return (
     <Fragment>
       <ReplayTable
@@ -77,19 +122,25 @@ function ReplaysListTable({
         isFetching={isFetching}
         replays={replays}
         sort={eventView.sorts[0]}
-        visibleColumns={[
-          ReplayColumns.replay,
-          ReplayColumns.os,
-          ReplayColumns.browser,
-          ReplayColumns.duration,
-          ReplayColumns.countErrors,
-          ReplayColumns.activity,
-        ]}
+        visibleColumns={visibleCols}
+        emptyMessage={
+          allSelectedProjectsNeedUpdates && hasReplayClick ? (
+            <Fragment>
+              {t('Unindexed search field')}
+              <EmptyStateSubheading>
+                {tct('Field [field] requires an [sdkPrompt]', {
+                  field: <strong>'click'</strong>,
+                  sdkPrompt: <strong>{t('SDK version >= 7.44.0')}</strong>,
+                })}
+              </EmptyStateSubheading>
+            </Fragment>
+          ) : undefined
+        }
       />
       <Pagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
-          trackAdvancedAnalyticsEvent('replay.list-paginated', {
+          trackAnalytics('replay.list-paginated', {
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
           });
@@ -102,5 +153,10 @@ function ReplaysListTable({
     </Fragment>
   );
 }
+
+const EmptyStateSubheading = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 export default ReplaysList;

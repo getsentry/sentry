@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
@@ -10,6 +12,7 @@ from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
     OPERATOR_NEGATION_MAP,
@@ -20,7 +23,7 @@ from sentry.search.events.constants import (
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
-from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS
 from sentry.search.utils import (
     InvalidQuery,
     parse_datetime_range,
@@ -31,12 +34,8 @@ from sentry.search.utils import (
     parse_percentage,
     parse_size,
 )
-from sentry.utils.snuba import (
-    Dataset,
-    is_duration_measurement,
-    is_measurement,
-    is_span_op_breakdown,
-)
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
 from sentry.utils.validators import is_event_id, is_span_id
 
 # A wildcard is an asterisk prefixed by an even number of back slashes.
@@ -469,7 +468,7 @@ class SearchConfig:
     free_text_key = "message"
 
     @classmethod
-    def create_from(cls, search_config: "SearchConfig", **overrides):
+    def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
@@ -1131,6 +1130,7 @@ default_config = SearchConfig(
         "error.unhandled",
         "error.main_thread",
         "stack.in_app",
+        "is_application",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )
@@ -1138,7 +1138,7 @@ default_config = SearchConfig(
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> Sequence[SearchFilter]:
+) -> list[SearchFilter]:
     if config is None:
         config = default_config
 

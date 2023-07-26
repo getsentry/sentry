@@ -1,7 +1,8 @@
-__all__ = ("Plugin2",)
+from __future__ import annotations
 
 import logging
 from threading import local
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.http import HttpResponseRedirect
 
@@ -12,15 +13,18 @@ from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.utils.hashlib import md5_text
 
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
 
 class PluginMount(type):
     def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
+        new_cls: type[IPlugin2] = type.__new__(cls, name, bases, attrs)  # type: ignore[assignment]
         if IPlugin2 in bases:
             return new_cls
-        if new_cls.title is None:
+        if not hasattr(new_cls, "title"):
             new_cls.title = new_cls.__name__
-        if not new_cls.slug:
+        if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
         if not hasattr(new_cls, "logger"):
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
@@ -46,20 +50,20 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     """
 
     # Generic plugin information
-    title = None
-    slug = None
-    description = None
-    version = None
-    author = None
-    author_url = None
-    resource_links = ()
-    feature_descriptions = []
+    title: str | _StrPromise
+    slug: str
+    description: str | None = None
+    version: str | None = None
+    author: str | None = None
+    author_url: str | None = None
+    resource_links: list[tuple[str, str]] = []
+    feature_descriptions: Sequence[Any] = []
 
     # Configuration specifics
-    conf_key = None
-    conf_title = None
+    conf_key: str | None = None
+    conf_title: str | _StrPromise | None = None
 
-    project_conf_form = None
+    project_conf_form: Any = None
     project_conf_template = "sentry/plugins/project_configuration.html"
 
     # Global enabled state
@@ -70,7 +74,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     project_default_enabled = False
 
     # used by queries to determine if the plugin is configured
-    required_field = None
+    required_field: str | None = None
 
     def _get_option_key(self, key):
         return f"{self.get_conf_key()}:{key}"
@@ -455,3 +459,6 @@ class Plugin2(IPlugin2, metaclass=PluginMount):
     """
 
     __version__ = 2
+
+
+__all__ = ("Plugin2",)

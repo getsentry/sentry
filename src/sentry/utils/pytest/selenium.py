@@ -5,6 +5,7 @@ import os
 import sys
 from contextlib import contextmanager
 from datetime import datetime
+from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -18,7 +19,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.silo import SiloMode
 from sentry.utils.retries import TimedRetryPolicy
@@ -413,18 +414,17 @@ class Browser:
 
 
 def pytest_addoption(parser):
-    parser.addini("selenium_driver", help="selenium driver (chrome, phantomjs, or firefox)")
+    parser.addini("selenium_driver", help="selenium driver (chrome, or firefox)")
 
     group = parser.getgroup("selenium", "selenium")
     group._addoption(
         "--selenium-driver",
         dest="selenium_driver",
-        help="selenium driver (chrome, phantomjs, or firefox)",
+        help="selenium driver (chrome, or firefox)",
     )
     group._addoption(
         "--window-size", dest="window_size", help="window size (WIDTHxHEIGHT)", default="1680x1050"
     )
-    group._addoption("--phantomjs-path", dest="phantomjs_path", help="path to phantomjs driver")
     group._addoption("--chrome-path", dest="chrome_path", help="path to google-chrome")
     group._addoption("--chromedriver-path", dest="chromedriver_path", help="path to chromedriver")
     group._addoption(
@@ -449,7 +449,7 @@ def start_chrome(**chrome_args):
     try:
         return webdriver.Chrome(**chrome_args)
     except SessionNotCreatedException as e:
-        if "This version of ChromeDriver only supports Chrome version" in e.msg:
+        if "This version of ChromeDriver only supports Chrome version" in (e.msg or ""):
             raise Exception(
                 """ChromeDriver version does not match Chrome version, update ChromeDriver (e.g. if you use `homebrew`):
 
@@ -491,11 +491,6 @@ def browser(request, live_server):
             )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
-    elif driver_type == "phantomjs":
-        phantomjs_path = request.config.getoption("phantomjs_path")
-        if not phantomjs_path:
-            phantomjs_path = os.path.join("node_modules", "phantomjs-prebuilt", "bin", "phantomjs")
-        driver = webdriver.PhantomJS(executable_path=phantomjs_path)
     else:
         raise pytest.UsageError("--driver must be specified")
 
@@ -538,7 +533,7 @@ def browser(request, live_server):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    summary = []
+    summary: MutableSequence[str] = []
     extra = getattr(report, "extra", [])
     driver = getattr(item, "_driver", None)
     if driver is not None:

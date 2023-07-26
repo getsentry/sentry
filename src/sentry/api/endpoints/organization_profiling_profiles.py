@@ -12,10 +12,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
+from sentry.profiles.flamegraph import get_profile_ids, get_profile_ids_with_spans
 from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
-class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
     def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
@@ -41,3 +42,36 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
         kwargs = {"params": params}
 
         return proxy_profiling_service("GET", f"/organizations/{organization.id}/filters", **kwargs)
+
+
+@region_silo_endpoint
+class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        params = self.get_snuba_params(request, organization, check_global_views=False)
+        project_ids = params["project_id"]
+        if len(project_ids) > 1:
+            raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
+
+        span_group = request.query_params.get("spans.group", None)
+        if span_group is not None:
+            backend = request.query_params.get("backend", "indexed_spans")
+            profile_ids = get_profile_ids_with_spans(
+                organization.id,
+                project_ids[0],
+                params,
+                span_group,
+                backend,
+                request.query_params.get("query", None),
+            )
+        else:
+            profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+
+        kwargs: Dict[str, Any] = {
+            "method": "POST",
+            "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
+            "json_data": profile_ids,
+        }
+        return proxy_profiling_service(**kwargs)

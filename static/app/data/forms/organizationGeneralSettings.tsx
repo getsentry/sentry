@@ -42,6 +42,20 @@ const formGroups: JsonFormObject[] = [
           ),
         }),
       },
+      {
+        name: 'aiSuggestedSolution',
+        type: 'boolean',
+        label: t('AI Suggested Solution'),
+        visible: ({features}) => features.has('open-ai-suggestion'),
+        help: tct(
+          'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+            ),
+          }
+        ),
+      },
     ],
   },
 
@@ -64,7 +78,7 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         required: true,
         label: t('Open Membership'),
-        help: t('Allow organization members to freely join or leave any team'),
+        help: t('Allow organization members to freely join any team'),
       },
       {
         name: 'eventsMemberAdmin',

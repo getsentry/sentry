@@ -8,7 +8,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, Team
-from sentry.services.hybrid_cloud.actor import RpcActor
 
 
 @region_silo_endpoint
@@ -69,8 +68,6 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         """
 
         notification_settings = validate(request.data, team=team)
-        NotificationSetting.objects.update_settings_bulk(
-            notification_settings, actor=RpcActor.from_orm_team(team)
-        )
+        NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

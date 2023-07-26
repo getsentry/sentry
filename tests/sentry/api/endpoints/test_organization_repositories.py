@@ -48,6 +48,63 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
         assert first_row["externalSlug"] == str(repo.external_id)
 
+    def test_get_active_repos(self):
+        repo1 = Repository.objects.create(
+            name="getsentry/example",
+            organization_id=self.org.id,
+            external_id=12345,
+            provider="dummy",
+            config={"name": "getsentry/example"},
+        )
+        repo2 = Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.org.id,
+            external_id=54321,
+            provider="dummy",
+            config={"name": "getsentry/sentry"},
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        first_row = response.data[0]
+        assert first_row["id"] == str(repo1.id)
+        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
+        assert first_row["externalSlug"] == str(repo1.external_id)
+
+        second_row = response.data[1]
+        assert second_row["id"] == str(repo2.id)
+        assert second_row["provider"] == {"id": "dummy", "name": "Example"}
+        assert second_row["externalSlug"] == str(repo2.external_id)
+
+    def test_get_exclude_hidden_repo(self):
+        repo = Repository.objects.create(
+            name="getsentry/example",
+            organization_id=self.org.id,
+            external_id=12345,
+            provider="dummy",
+            config={"name": "getsentry/example"},
+        )
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.org.id,
+            external_id=54321,
+            provider="dummy",
+            config={"name": "getsentry/sentry"},
+            status=ObjectStatus.HIDDEN,
+        )
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        first_row = response.data[0]
+        assert first_row["id"] == str(repo.id)
+        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
+        assert first_row["externalSlug"] == str(repo.external_id)
+
     def test_status_unmigratable(self):
         self.url = self.url + "?status=unmigratable"
 
@@ -155,6 +212,30 @@ class OrganizationRepositoriesListTest(APITestCase):
             # Shouldn't even make the request to get repos
             assert not f.called
 
+    def test_passing_integration_id(self):
+        integration = self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:1",
+        )
+        repo = Repository.objects.create(
+            name="example", organization_id=self.org.id, integration_id=integration.id
+        )
+        integration2 = self.create_integration(
+            organization=self.org,
+            provider="github",
+            external_id="github:2",
+        )
+        Repository.objects.create(
+            name="example2", organization_id=self.org.id, integration_id=integration2.id
+        )
+        response = self.client.get(f"{self.url}?integration_id={integration.id}", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert response.data[0]["externalSlug"] is None
+
 
 @region_silo_test(stable=True)
 class OrganizationRepositoriesCreateTest(APITestCase):
@@ -252,7 +333,10 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     )
     def test_floating_repo(self, mock_build_repository_config):
         repo = Repository.objects.create(
-            organization_id=self.org.id, name="getsentry/sentry", status=2
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            status=2,
+            external_id="my_external_id",
         )
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data

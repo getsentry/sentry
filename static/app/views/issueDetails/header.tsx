@@ -11,14 +11,13 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
@@ -26,10 +25,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization, Project} from 'sentry/types';
+import {Event, Group, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -60,25 +59,23 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
-  const projectIds = useMemo(
-    () => (project.id ? [Number(project.id)] : []),
-    [project.id]
-  );
+
   const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
-    projectIds,
   })[group.id];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
-  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasSessionReplay =
-    organizationFeatures.has('session-replay') && projectSupportsReplay(project);
+  const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
+
+  useRouteAnalyticsParams({
+    group_has_replay: (replaysCount ?? 0) > 0,
+  });
 
   return (
     <StyledTabList hideBorder>
@@ -141,14 +138,6 @@ function GroupHeaderTabs({
         {t('Merged Issues')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.GROUPING}
-        hidden={!hasGroupingTreeUI || !issueTypeConfig.grouping.enabled}
-        disabled={disabledTabs.includes(Tab.GROUPING)}
-        to={`${baseUrl}grouping/${location.search}`}
-      >
-        {t('Grouping')}
-      </TabList.Item>
-      <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
@@ -159,12 +148,11 @@ function GroupHeaderTabs({
       <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
-        hidden={!hasSessionReplay || !issueTypeConfig.replays.enabled}
+        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
         to={`${baseUrl}replays/${location.search}`}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
-        <ReplaysFeatureBadge tooltipProps={{disabled: true}} />
       </TabList.Item>
     </StyledTabList>
   );
@@ -179,6 +167,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -194,7 +183,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
       ];
@@ -206,7 +194,6 @@ function GroupHeader({
         Tab.ATTACHMENTS,
         Tab.EVENTS,
         Tab.MERGED,
-        Tab.GROUPING,
         Tab.SIMILAR_ISSUES,
         Tab.TAGS,
         Tab.USER_FEEDBACK,
@@ -258,38 +245,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Consecutive HTTP Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Slow DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
-          <FeatureBadge
-            type="beta"
-            title={t(
-              'Consecutive DB Query Performance Issues are in active development and may change'
-            )}
-          />
-        )}
-        {group.issueType === IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET && (
-          <FeatureBadge
-            type="alpha"
-            title={t(
-              'Large Render Blocking Asset Performance Issues are in active development and may change'
-            )}
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
@@ -319,9 +274,18 @@ function GroupHeader({
           <TitleWrapper>
             <TitleHeading>
               <h3>
-                <StyledEventOrGroupTitle hasGuideAnchor data={group} />
+                <StyledEventOrGroupTitle data={group} />
               </h3>
-              {group.inbox && <InboxReason inbox={group.inbox} fontSize="md" />}
+              {!hasEscalatingIssuesUi && group.inbox && (
+                <InboxReason inbox={group.inbox} fontSize="md" />
+              )}
+              {hasEscalatingIssuesUi && (
+                <GroupStatusBadge
+                  status={group.status}
+                  substatus={group.substatus}
+                  fontSize="md"
+                />
+              )}
             </TitleHeading>
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}

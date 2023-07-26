@@ -1,10 +1,10 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
-import type {TimeseriesValue} from './core';
+import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
-import type {Deploy, Release} from './release';
+import type {Deploy} from './release';
 import type {DynamicSamplingBias, DynamicSamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
@@ -15,6 +15,7 @@ export type AvatarProject = {
 };
 
 export type Project = {
+  access: Scope[];
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
@@ -24,7 +25,7 @@ export type Project = {
     symbolicationDegraded: boolean;
   };
   features: string[];
-  firstEvent: 'string' | null;
+  firstEvent: string | null;
   firstTransactionEvent: boolean;
   groupingAutoUpdate: boolean;
   groupingConfig: string;
@@ -37,18 +38,21 @@ export type Project = {
   isBookmarked: boolean;
   isInternal: boolean;
   isMember: boolean;
+  name: string;
   organization: Organization;
   plugins: Plugin[];
+
   processingIssues: number;
   relayPiiConfig: string;
 
   subjectTemplate: string;
+  team: Team;
   teams: Team[];
   builtinSymbolSources?: string[];
   dynamicSamplingRules?: DynamicSamplingRule[] | null;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
-  latestRelease?: Release;
+  latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;
@@ -77,6 +81,11 @@ export type ProjectKey = {
     secret: string;
     security: string;
     unreal: string;
+  };
+  dynamicSdkLoaderOptions: {
+    hasDebug: boolean;
+    hasPerformance: boolean;
+    hasReplay: boolean;
   };
   id: string;
   isActive: boolean;

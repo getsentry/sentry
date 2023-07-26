@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.models import GroupSubscriptionManager
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @region_silo_endpoint

@@ -33,7 +33,7 @@ function EventDetails({organization, location, params}: Props) {
 
   return (
     <SentryDocumentTitle
-      title={documentTitle.join(' - ')}
+      title={documentTitle.join(' — ')}
       orgSlug={organization.slug}
       projectSlug={projectSlug}
     >
