@@ -357,11 +357,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        assert event.data["errors"] == [{
-            "type": "js_no_source",
-            "symbolicator_type": "missing_source",
-            "url": "http//example.com/index.html"
-        }]
+        assert event.data["errors"] == [
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -545,11 +547,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        assert event.data["errors"] == [{
-            "type": "js_no_source",
-            "symbolicator_type": "missing_source",
-            "url": "http//example.com/index.html"
-        }]
+        assert event.data["errors"] == [
+            {
+                "type": "js_no_source",
+                "symbolicator_type": "missing_source",
+                "url": "http//example.com/index.html",
+            }
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
