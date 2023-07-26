@@ -40,14 +40,19 @@ class IntegrationRequestBuffer:
         Get the list at the buffer key.
         """
 
-        return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+        # return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+        return [
+            self.client.lrange(key, 0, BUFFER_SIZE - 1)
+            for key in self.client.keys(buffer_key + "*")
+        ]
 
     def _get(self):
         """
         Returns the list of daily aggregate error counts.
         """
         return [
-            self._convert_obj_to_dict(obj) for obj in self._get_all_from_buffer(self.integrationkey)
+            self._convert_obj_to_dict(obj)
+            for obj in self._get_all_from_buffer(self.integrationkey)[0]
         ]
 
     def is_integration_broken(self):
@@ -92,9 +97,9 @@ class IntegrationRequestBuffer:
             raise Exception("Requires a valid key param.")
 
         other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
-        buffer_key = self.integrationkey
         now = datetime.now().strftime("%Y-%m-%d")
 
+        buffer_key = self.integrationkey + now
         pipe = self.client.pipeline()
 
         # get first element from array
