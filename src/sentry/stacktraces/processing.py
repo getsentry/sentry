@@ -226,11 +226,7 @@ def find_stacktraces_in_data(
 
 def _get_frames_metadata(frames: Sequence[Any], fallback_platform: Optional[str]) -> set[str]:
     """Extract the set of platforms involved in the frames."""
-    platforms = set()
-    for frame in frames:
-        platforms.add(frame.get("platform", fallback_platform))
-
-    return platforms
+    return {frame.get("platform", fallback_platform) for frame in frames}
 
 
 def _has_system_frames(frames):
