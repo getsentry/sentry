@@ -190,7 +190,7 @@ function SpanSummaryPage({params, location}: Props) {
                     <Block
                       title={DataTitles.avg}
                       description={tct(
-                        '95% of [spanType] in the selected period have a lower duration than this value',
+                        'The average duration of [spanType] in the selected period',
                         {
                           spanType: spanDescriptionCardTitle.endsWith('y')
                             ? `${spanDescriptionCardTitle.slice(0, -1)}ies`
