@@ -16,7 +16,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationMapping, OrganizationStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -226,8 +226,10 @@ class AuthLoginView(BaseView):
         Returns the auth provider for the given org, or None if there isn't one.
         """
         try:
-            organization = Organization.objects.get(slug=org_slug, status=OrganizationStatus.ACTIVE)
-        except Organization.DoesNotExist:
+            organization = OrganizationMapping.objects.get(
+                slug=org_slug, status=OrganizationStatus.ACTIVE
+            )
+        except OrganizationMapping.DoesNotExist:
             return None
 
         try:
