@@ -149,7 +149,7 @@ function CardTable({
     perPage: 3,
   });
 
-  const gridRows = new Array(replays ? (replays.length > 0 ? 2 : 0) : 0)
+  const gridRows = new Array(replays ? (replays.length > 0 ? 3 : 1) : 1)
     .fill(' ')
     .map(_ => '1fr')
     .join(' ');
@@ -162,7 +162,7 @@ function CardTable({
       sort={undefined}
       visibleColumns={visibleColumns}
       saveLocation
-      gridRows={'auto 1fr ' + gridRows}
+      gridRows={'auto ' + gridRows}
     />
   );
 }
