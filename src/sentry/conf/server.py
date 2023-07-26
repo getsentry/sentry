@@ -1455,8 +1455,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Allow orgs to install a custom source code management integration
-    "organizations:integrations-custom-scm": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
     # Enable Discord integration notifications
@@ -2714,7 +2712,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
-    "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
