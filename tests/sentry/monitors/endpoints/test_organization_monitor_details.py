@@ -199,6 +199,9 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
         rule = self._create_alert_rule(monitor)
         new_environment = self.create_environment(name="jungle")
+        new_user = self.create_user()
+        self.create_team_membership(user=new_user, team=self.team)
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
@@ -207,7 +210,7 @@ class UpdateMonitorTest(MonitorTestCase):
                 "name": "new-name",
                 "slug": "new-slug",
                 "alert_rule": {
-                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+                    "targets": [{"targetIdentifier": new_user.id, "targetType": "Member"}],
                     "environment": new_environment.name,
                 },
             },
@@ -217,8 +220,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
-        assert monitor_rule.data["name"] == "Monitor Alert: new-name"
-        assert monitor_rule.data["filters"] == [
+        assert monitor_rule.label == "Monitor Alert: new-name"
+        assert monitor_rule.data["conditions"] == [
             {
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
@@ -227,7 +230,14 @@ class UpdateMonitorTest(MonitorTestCase):
                 "value": "new-slug",
             }
         ]
-        assert monitor_rule.data["actions"] != rule.data["actions"]
+        assert monitor_rule.data["actions"] == [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "name": "Send a notification to Member",
+                "targetIdentifier": new_user.id,
+                "targetType": "Member",
+            }
+        ]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 

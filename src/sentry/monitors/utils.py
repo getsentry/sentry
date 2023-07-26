@@ -295,6 +295,7 @@ def update_alert_rule(
         data={
             "actions": actions,
             "environment": alert_rule_data.get("environment", None),
+            "filterMatch": "all",
             "filters": [
                 {
                     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -309,14 +310,25 @@ def update_alert_rule(
         partial=True,
     )
 
-    if serializer.is_valid():
+    if serializer.is_valid(raise_exception=True):
         data = serializer.validated_data
+
+        # combine filters and conditions into one conditions criteria for the rule object
+        conditions = alert_rule.data.get("conditions", [])
+        if "filters" in data:
+            # do not include old slug filters in the new rule
+            new_conditions = []
+            for condition in conditions:
+                if condition.get("key") != "monitor.slug":
+                    new_conditions.append(condition)
+            new_conditions.extend(data["filters"])
+            conditions = new_conditions
 
         kwargs = {
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
-            "filters": data.get("filters", []),
+            "conditions": conditions,
             "name": data.get("name", None),
         }
 

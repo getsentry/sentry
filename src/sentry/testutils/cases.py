@@ -2566,8 +2566,23 @@ class MonitorTestCase(APITestCase):
             project=self.project,
             action_match="all",
             filter_match="any",
-            conditions=[],
-            actions=[],
+            conditions=[
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "name": f"The event's tags match monitor.slug contains {monitor.slug}",
+                    "value": f"{monitor.slug}",
+                }
+            ],
+            actions=[
+                {
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "name": "Send a notification to Member",
+                    "targetIdentifier": self.user.id,
+                    "targetType": "Member",
+                }
+            ],
             frequency=5,
             environment=self.environment.id,
         ).call()
