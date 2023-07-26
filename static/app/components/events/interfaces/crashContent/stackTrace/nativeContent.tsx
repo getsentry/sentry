@@ -10,7 +10,13 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import NativeFrame from '../../nativeFrame';
-import {getImageRange, parseAddress} from '../../utils';
+import {
+  findImageForAddress,
+  getHiddenFrameIndices,
+  getLastFrameIndex,
+  isRepeatedFrame,
+  parseAddress,
+} from '../../utils';
 
 type Props = {
   data: StacktraceType;
@@ -28,19 +34,6 @@ type Props = {
   meta?: Record<any, any>;
   newestFirst?: boolean;
 };
-
-function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
-  if (!nextFrame) {
-    return false;
-  }
-  return (
-    frame.lineNo === nextFrame.lineNo &&
-    frame.instructionAddr === nextFrame.instructionAddr &&
-    frame.package === nextFrame.package &&
-    frame.module === nextFrame.module &&
-    frame.function === nextFrame.function
-  );
-}
 
 export function NativeContent({
   data,
@@ -102,63 +95,6 @@ export function NativeContent({
     return countMap;
   }
 
-  function getRepeatedFrameIndices() {
-    const repeats: number[] = [];
-    (data.frames ?? []).forEach((frame, frameIdx) => {
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
-      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
-
-      if (repeatedFrame) {
-        repeats.push(frameIdx);
-      }
-    });
-    return repeats;
-  }
-
-  function getHiddenFrameIndices(frameCountMap: {[frameIndex: number]: number}) {
-    const repeatedIndeces = getRepeatedFrameIndices();
-    let hiddenFrameIndices: number[] = [];
-    Object.keys(toggleFrameMap)
-      .filter(frameIndex => toggleFrameMap[frameIndex] === true)
-      .forEach(indexString => {
-        const index = parseInt(indexString, 10);
-        const indicesToBeAdded: number[] = [];
-        let i = 1;
-        let numHidden = frameCountMap[index];
-        while (numHidden > 0) {
-          if (!repeatedIndeces.includes(index - i)) {
-            indicesToBeAdded.push(index - i);
-            numHidden -= 1;
-          }
-          i += 1;
-        }
-        hiddenFrameIndices = [...hiddenFrameIndices, ...indicesToBeAdded];
-      });
-    return hiddenFrameIndices;
-  }
-
-  function findImageForAddress(
-    address: Frame['instructionAddr'],
-    addrMode: Frame['addrMode']
-  ) {
-    const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
-
-    if (!images || !address) {
-      return null;
-    }
-
-    const image = images.find((img, idx) => {
-      if (!addrMode || addrMode === 'abs') {
-        const [startAddress, endAddress] = getImageRange(img);
-        return address >= (startAddress as any) && address < (endAddress as any);
-      }
-
-      return addrMode === `rel:${idx}`;
-    });
-
-    return image;
-  }
-
   function isFrameUsedForGrouping(frame: Frame) {
     const {minGroupingLevel} = frame;
 
@@ -191,21 +127,6 @@ export function NativeContent({
     }));
   };
 
-  function getLastFrameIndex() {
-    const inAppFrameIndexes = frames
-      .map((frame, frameIndex) => {
-        if (frame.inApp) {
-          return frameIndex;
-        }
-        return undefined;
-      })
-      .filter(frame => frame !== undefined);
-
-    return !inAppFrameIndexes.length
-      ? frames.length - 1
-      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
-  }
-
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
     return t(
       'Frames %d until %d were omitted and not available.',
@@ -216,18 +137,23 @@ export function NativeContent({
 
   const firstFrameOmitted = framesOmitted?.[0] ?? null;
   const lastFrameOmitted = framesOmitted?.[1] ?? null;
-  const lastFrameIndex = getLastFrameIndex();
+  const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices: number[] = getHiddenFrameIndices(frameCountMap);
+  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+    data,
+    toggleFrameMap,
+    frameCountMap,
+  });
 
   let nRepeats = 0;
 
   const maxLengthOfAllRelativeAddresses = frames.reduce(
     (maxLengthUntilThisPoint, frame) => {
-      const correspondingImage = findImageForAddress(
-        frame.instructionAddr,
-        frame.addrMode
-      );
+      const correspondingImage = findImageForAddress({
+        event,
+        addrMode: frame.instructionAddr!,
+        address: frame.addrMode!,
+      });
 
       try {
         const relativeAddress = (
@@ -277,7 +203,11 @@ export function NativeContent({
           onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
             handleToggleFrames(e, frameIndex);
           },
-          image: findImageForAddress(frame.instructionAddr, frame.addrMode),
+          image: findImageForAddress({
+            event,
+            addrMode: frame.instructionAddr!,
+            address: frame.addrMode!,
+          }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: {},
           includeSystemFrames,
