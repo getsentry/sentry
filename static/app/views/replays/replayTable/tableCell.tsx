@@ -29,6 +29,8 @@ type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
+export type ReferrerTableType = 'main' | 'dead-rage-table' | 'errors-table';
+
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
     ? {
@@ -53,13 +55,13 @@ export function ReplayCell({
   referrer,
   replay,
   showUrl,
-  trackingEvent,
+  referrer_table,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
+  referrer_table: ReferrerTableType;
   showUrl: boolean;
-  trackingEvent: string;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -72,23 +74,13 @@ export function ReplayCell({
     },
   };
 
-  const setTrackingEvent = () => {
-    switch (trackingEvent) {
-      case 'mostRageClicks':
-        return 'replay.dead-rage-table-navigate-to-details';
-      case 'mostErroneousReplays':
-        return 'replay.erroroneous-table-navigate-to-details';
-      default:
-        return 'replay.list-navigate-to-details';
-    }
-  };
-
   const trackNavigationEvent = () =>
-    trackAnalytics(setTrackingEvent(), {
+    trackAnalytics('replay.list-navigate-to-details', {
       project_id: project?.id,
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {

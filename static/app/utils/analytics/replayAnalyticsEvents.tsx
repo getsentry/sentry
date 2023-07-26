@@ -1,5 +1,6 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.details-data-loaded': {
@@ -44,17 +45,13 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
-  'replay.erroroneous-table-navigate-to-details': {
-    platform: string | undefined;
-    project_id: string | undefined;
-    referrer: string;
-  };
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
+    referrer_table: ReferrerTableType;
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
@@ -70,11 +67,6 @@ export type ReplayEventParameters = {
   'replay.play-pause': {
     play: boolean;
     user_email: string;
-  };
-  'replay.rage-dead-table-navigate-to-details': {
-    platform: string | undefined;
-    project_id: string | undefined;
-    referrer: string;
   };
   'replay.render-issues-group-list': {
     platform: string | undefined;
@@ -112,10 +104,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
-  'replay.erroroneous-table-navigate-to-details':
-    'Replays Erroneous Table Navigate to Replay Details',
-  'replay.rage-dead-table-navigate-to-details':
-    'Replays Dead and Rage Click Table Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
