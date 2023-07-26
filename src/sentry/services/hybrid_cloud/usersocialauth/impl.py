@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from django.db.models import QuerySet
 
@@ -14,6 +14,15 @@ from social_auth.models import UserSocialAuth
 
 
 class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
+    def get_auths(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+        return self._FQ.get_many(filter=filter)
+
+    def get_auth(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+        auths = self.get_auths(filter=filter)
+        if len(auths) == 0:
+            return None
+        return auths[0]
+
     class _UserSocialAuthFilterQuery(
         FilterQueryDatabaseImpl[UserSocialAuth, UserSocialAuthFilterArgs, RpcUserSocialAuth, None]
     ):
