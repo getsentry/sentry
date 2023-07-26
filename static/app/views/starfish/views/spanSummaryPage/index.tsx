@@ -396,7 +396,6 @@ const DescriptionContainer = styled('div')`
 
 const DescriptionPanelBody = styled(PanelBody)`
   padding: ${space(2)};
-  height: 208px;
 `;
 
 const BlockWrapper = styled('div')`
