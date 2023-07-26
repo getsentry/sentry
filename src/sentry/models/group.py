@@ -43,6 +43,7 @@ from sentry.types.group import (
     UNRESOLVED_SUBSTATUS_CHOICES,
     GroupSubStatus,
 )
+from sentry.utils import metrics
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -237,6 +238,7 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
+@metrics.wraps("replays.get_replay_count_for_group")
 def get_replay_count_for_group(group: Group) -> int:
     events = eventstore.backend.get_events(
         filter=eventstore.Filter(
