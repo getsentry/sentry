@@ -30,7 +30,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
     public = {"GET"}
 
     @extend_schema(
-        operation_id="Retrieve a single replay instance",
+        operation_id="Retrieve a Replay Instance",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("data", ReplayDetailsResponse),

@@ -43,7 +43,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         return filter_params
 
     @extend_schema(
-        operation_id="Query for a list of replays",
+        operation_id="Query for a List of Replays",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("data", List[ReplayDetailsResponse]),
