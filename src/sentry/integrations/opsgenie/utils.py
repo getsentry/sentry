@@ -1,12 +1,11 @@
-from typing import Optional
-
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 import logging
+from typing import Optional
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
@@ -18,12 +17,16 @@ def build_incident_attachment(incident, new_status: IncidentStatus, metric_value
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
+    priority = "P1"
+    if new_status == IncidentStatus.WARNING:
+        priority = "P2"
     else:
         payload = {
             "message": incident.alert_rule.name,
             "alias": alert_key,
             "description": data["text"],
             "source": "Sentry",
+            "priority": priority,
             "details": {
                 "URL": data["title_link"],
             },
