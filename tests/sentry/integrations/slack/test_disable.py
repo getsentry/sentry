@@ -169,8 +169,7 @@ class SlackClientDisable(TestCase):
     @responses.activate
     def test_expiry(self):
         """
-        slow test with disable flag on
-        put errors and success in buffer for 10 days, assert integration is not broken or disabled
+        call add in buffer for 32 days, assert buffer len is 30, keys are expired
         """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
