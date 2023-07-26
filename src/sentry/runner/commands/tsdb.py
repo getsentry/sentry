@@ -94,7 +94,7 @@ def organizations(metrics, since, until):
 
         results = {}
         for metric in metrics.values():
-            results[metric] = tsdb.get_range(metric, list(instances.keys()), since, until)
+            results[metric] = tsdb.backend.get_range(metric, list(instances.keys()), since, until)
 
         for key, instance in instances.items():
             values = []

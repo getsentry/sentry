@@ -1,6 +1,8 @@
 import click
+import yaml
 
 from sentry.runner.decorators import configuration
+from sentry.utils import json
 
 
 @click.group()
@@ -53,11 +55,7 @@ def info(id, format):
     stdout = click.get_text_stream("stdout")
 
     if format == "yaml":
-        from sentry.utils import yaml
-
         yaml.safe_dump(obj, stdout)
     elif format == "json":
-        from sentry.utils import json
-
         json.dump(obj, stdout)
         stdout.write("\n")

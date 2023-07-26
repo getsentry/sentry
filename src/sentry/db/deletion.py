@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import itertools
 from datetime import timedelta
+from typing import Generator
 from uuid import uuid4
 
 from django.db import connections, router
@@ -70,7 +73,7 @@ class BulkDeleteQuery:
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def iterator(self, chunk_size=100, batch_size=100000):
+    def iterator(self, chunk_size=100, batch_size=100000) -> Generator[tuple[int, ...], None, None]:
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 

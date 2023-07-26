@@ -60,7 +60,7 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
     if with_nodestore:
         from sentry import nodestore
 
-        nodestore.bootstrap()
+        nodestore.backend.bootstrap()
 
     if repair:
         from sentry.runner import call_command
