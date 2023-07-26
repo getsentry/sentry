@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -17,14 +17,18 @@ export function StarfishProjectSelector() {
   const router = useRouter();
   const {selection} = usePageFilters();
 
-  const allowedProjectIDs: string[] =
-    ALLOWED_PROJECT_IDS_FOR_ORG_SLUG[organization.slug] ?? [];
+  const allowedProjectIDs: string[] = useMemo(
+    () => ALLOWED_PROJECT_IDS_FOR_ORG_SLUG[organization.slug] ?? [],
+    [organization.slug]
+  );
 
-  const [selectedProjectId, setSelectedProjectId] = useState(selection.projects[0]);
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    selection.projects[0] ?? allowedProjectIDs[0]
+  );
 
   useEffect(() => {
-    setSelectedProjectId(selection.projects[0]);
-  }, [selection.projects]);
+    setSelectedProjectId(selection.projects[0] ?? allowedProjectIDs[0]);
+  }, [selection.projects, allowedProjectIDs]);
 
   if (!projectsLoaded) {
     return (
