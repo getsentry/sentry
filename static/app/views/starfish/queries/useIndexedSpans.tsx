@@ -17,7 +17,7 @@ export const useIndexedSpans = (
   filters: Filters,
   limit: number = DEFAULT_LIMIT,
   enabled: boolean = true,
-  _referrer: string = 'use-indexed-span'
+  referrer: string = 'use-indexed-spans'
 ) => {
   const location = useLocation();
   const eventView = getEventView(filters, location);
@@ -27,6 +27,7 @@ export const useIndexedSpans = (
     limit,
     initialData: [],
     enabled,
+    referrer,
   });
 };
 

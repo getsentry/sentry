@@ -16,6 +16,6 @@ export function useEventJSON(
 
   return useApiQuery<RawTransactionEvent>(
     [`/projects/${organization.slug}/${projectSlug}/events/${eventID}/json/`],
-    {staleTime: Infinity, enabled: Boolean(eventID && projectSlug && organization)}
+    {staleTime: Infinity, enabled: Boolean(eventID && projectSlug && organization.slug)}
   );
 }
