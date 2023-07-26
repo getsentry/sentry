@@ -21,7 +21,7 @@ export const highlightSql = (
     } else if (token === ' ' || token === '\n' || description[i + 1] === ')') {
       final = acc;
     } else if (acc === '%s') {
-      final = <Parameter>{acc}</Parameter>;
+      final = <Parameter key={i}>{acc}</Parameter>;
     } else if (i === description.length - 1) {
       final = acc;
     }
