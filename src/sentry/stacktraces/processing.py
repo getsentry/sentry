@@ -33,7 +33,7 @@ class StacktraceInfo(NamedTuple):
         return self is not other
 
     def get_frames(self) -> Sequence[dict[str, Any]]:
-        return get_path(self.stacktrace, "frames", filter=True, default=())
+        return [frame for frame in self.stacktrace.get("frames", ()) if frame]
 
 
 class ProcessableFrame:
@@ -194,12 +194,11 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
-        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
+        frames = [frame for frame in stacktrace.get("frames", ()) if frame]
+        if not is_exception and (not stacktrace or not frames):
             return
 
-        platforms = _get_frames_metadata(
-            get_path(stacktrace, "frames", filter=True, default=()), data.get("platform", "unknown")
-        )
+        platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -231,11 +230,7 @@ def find_stacktraces_in_data(
 
 def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: str) -> set[str]:
     """Create a set of platforms involved"""
-    platforms = set()
-    for frame in frames:
-        platforms.add(frame.get("platform", fallback_platform))
-
-    return platforms
+    return {frame.get("platform", fallback_platform) for frame in frames}
 
 
 def _has_system_frames(frames):

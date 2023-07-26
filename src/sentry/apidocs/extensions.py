@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union, get_type_hints
+from typing import Any, Dict, List, Optional, Union, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -43,9 +43,7 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.api.serializers.base.Serializer"
     match_subclasses = True
 
-    def get_name(
-        self, auto_schema: AutoSchema, direction: Literal["request", "response"]
-    ) -> Optional[str]:
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
@@ -66,9 +64,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
     target_class = "sentry.apidocs.utils._RawSchema"
     match_subclasses = True
 
-    def get_name(
-        self, auto_schema: AutoSchema, direction: Literal["request", "response"]
-    ) -> Optional[str]:
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> Optional[str]:
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
