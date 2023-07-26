@@ -126,7 +126,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
             resp = self.client.get(resp["Location"], follow=True)
             assert resp.status_code == 200
             assert resp.redirect_chain == [("/organizations/baz/issues/", 302)]
-            assert resp.context["user"] == self.user
+            assert resp.context["user"].id == self.user.id
 
             assert urlopen.called
             data = urlopen.call_args[1]["data"]

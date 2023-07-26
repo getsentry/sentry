@@ -43,6 +43,9 @@ def test_user_ip_event():
         )
     )
 
+    with assume_test_silo_mode(SiloMode.REGION):
+        RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
+
     log_service.record_user_ip(
         event=UserIpEvent(
             user_id=user.id,
@@ -54,5 +57,5 @@ def test_user_ip_event():
         RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
-        assert UserIP.objects.count() == 2
         assert UserIP.objects.last().ip_address == "1.0.0.5"
+        assert UserIP.objects.count() == 2
