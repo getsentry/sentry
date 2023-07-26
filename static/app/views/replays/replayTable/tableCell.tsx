@@ -53,11 +53,13 @@ export function ReplayCell({
   referrer,
   replay,
   showUrl,
+  trackingEvent,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   showUrl: boolean;
+  trackingEvent: string;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -70,8 +72,19 @@ export function ReplayCell({
     },
   };
 
+  const setTrackingEvent = () => {
+    switch (trackingEvent) {
+      case 'mostRageClicks':
+        return 'replay.dead-rage-table-navigate-to-details';
+      case 'mostErroneousReplays':
+        return 'replay.erroroneous-table-navigate-to-details';
+      default:
+        return 'replay.list-navigate-to-details';
+    }
+  };
+
   const trackNavigationEvent = () =>
-    trackAnalytics('replay.list-navigate-to-details', {
+    trackAnalytics(setTrackingEvent(), {
       project_id: project?.id,
       platform: project?.platform,
       organization,
