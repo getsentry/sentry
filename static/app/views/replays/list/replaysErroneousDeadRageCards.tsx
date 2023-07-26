@@ -1,7 +1,8 @@
-import {useMemo} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -9,6 +10,9 @@ import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {EmptyStateSubheading} from 'sentry/views/replays/list/replaysList';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -111,6 +115,18 @@ function ReplaysErroneousDeadRageCards() {
     ReplayColumn.ACTIVITY,
   ];
 
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
+  const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
+
+  const needSDKUpgrade = useProjectSdkNeedsUpdate({
+    minVersion: MIN_DEAD_RAGE_CLICK_SDK,
+    organization,
+    projectId: projects.map(p => String(p)),
+  });
+
   return hasSessionReplay && !fetching && hasSentOneReplay ? (
     hasDeadRageCards ? (
       <SplitCardContainer>
@@ -125,6 +141,19 @@ function ReplaysErroneousDeadRageCards() {
           location={newLocation}
           organization={organization}
           visibleColumns={deadRageCols}
+          emptyMessage={
+            needSDKUpgrade.needsUpdate ? (
+              <Fragment>
+                {t('There are no items to display')}
+                <EmptyStateSubheading>
+                  {tct('[data] require an [sdkPrompt]', {
+                    data: <strong>Rage and dead clicks</strong>,
+                    sdkPrompt: <strong>{t('SDK version >= 7.60.1')}</strong>,
+                  })}
+                </EmptyStateSubheading>
+              </Fragment>
+            ) : undefined
+          }
         />
       </SplitCardContainer>
     ) : null
@@ -136,11 +165,13 @@ function CardTable({
   location,
   organization,
   visibleColumns,
+  emptyMessage,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
   visibleColumns: ReplayColumn[];
+  emptyMessage?: ReactNode;
 }) {
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -163,6 +194,7 @@ function CardTable({
       visibleColumns={visibleColumns}
       saveLocation
       gridRows={'auto ' + gridRows}
+      emptyMessage={emptyMessage}
     />
   );
 }
