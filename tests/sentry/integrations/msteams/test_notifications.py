@@ -10,13 +10,14 @@ from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 TEST_CARD = {"type": "test_card"}
 
 
+@region_silo_test(stable=True)
 @patch(
     "sentry.integrations.msteams.MSTeamsNotificationsMessageBuilder.build_notification_card",
     Mock(return_value=TEST_CARD),
@@ -34,7 +35,6 @@ TEST_CARD = {"type": "test_card"}
     Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
 @patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
-@control_silo_test(stable=True)
 class MSTeamsNotificationTest(TestCase):
     def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"

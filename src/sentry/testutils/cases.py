@@ -2410,25 +2410,26 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.MSTEAMS,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(

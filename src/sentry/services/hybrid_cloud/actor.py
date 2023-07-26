@@ -82,10 +82,9 @@ class RpcActor(RpcModel):
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
             missing = set(user_ids)
-            actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
-            for actor in actors:
-                missing.remove(actor.user_id)
-                result.append(RpcActor(id=actor.user_id, actor_type=ActorType.USER))
+            for user_id in user_ids:
+                missing.remove(user_id)
+                result.append(RpcActor(id=user_id, actor_type=ActorType.USER))
             if len(missing):
                 for user_id in missing:
                     actor = get_actor_for_user(user_id)
