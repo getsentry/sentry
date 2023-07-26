@@ -97,7 +97,7 @@ class RpcAuthentication(BaseAuthentication):
         from sentry.services.hybrid_cloud.auth.service import auth_service
 
         response = auth_service.authenticate_with(
-            request=authentication_request_from(request, True), authenticator_types=self.types
+            request=authentication_request_from(request), authenticator_types=self.types
         )
 
         if response.user is not None:
@@ -165,14 +165,14 @@ class AuthenticationRequest(RpcModel):
         return self
 
 
-def authentication_request_from(request: Request, is_api_request: bool) -> AuthenticationRequest:
+def authentication_request_from(request: Request) -> AuthenticationRequest:
     from sentry.utils.linksign import find_signature
 
     return AuthenticationRequest(
         sentry_relay_id=get_header_relay_id(request),
         sentry_relay_signature=get_header_relay_signature(request),
         remote_addr=request.META["REMOTE_ADDR"],
-        signature=find_signature(request) if not is_api_request else "",
+        signature=find_signature(request),
         absolute_url=request.build_absolute_uri(),
         absolute_url_root=request.build_absolute_uri("/"),
         path=request.path,
