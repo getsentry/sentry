@@ -146,9 +146,7 @@ export default function EndpointOverview() {
                 <QuestionTooltip
                   size="sm"
                   position="right"
-                  title={t(
-                    '95% of requests in the selected period have a lower duration than this value'
-                  )}
+                  title={t('The average duration of requests in the selected period')}
                 />
               </Header>
               <ChartSummaryValue
