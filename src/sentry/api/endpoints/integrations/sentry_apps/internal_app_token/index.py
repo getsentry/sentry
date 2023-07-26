@@ -19,6 +19,9 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         if not sentry_app.is_internal:
             return Response([])
 
+        if request.data.get("token_type", None):
+            return Response("Cannot request tokens via token", status=401)
+
         tokens = ApiToken.objects.filter(application_id=sentry_app.application_id)
         attrs = {"application": None}
 

@@ -26,6 +26,9 @@ class ApiTokensEndpoint(Endpoint):
 
     @never_cache
     def get(self, request: Request) -> Response:
+        if request.data.get("token_type", None):
+            return Response("Cannot request tokens via token", status=401)
+
         user_id = request.user.id
         if is_active_superuser(request):
             user_id = request.GET.get("userId", user_id)
