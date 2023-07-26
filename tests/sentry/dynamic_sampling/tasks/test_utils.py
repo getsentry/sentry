@@ -13,7 +13,7 @@ def test_injection_dynamic_sampling_task_with_context():
     @dynamic_sampling_task_with_context(max_task_execution=duration)
     def inner(context: TaskContext):
         assert context.name == "sentry.tasks.dynamic_sampling.inner"
-        assert context.max_task_execution == duration
+        assert context.num_seconds == duration
 
     inner()
 

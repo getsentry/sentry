@@ -43,7 +43,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
 
 def dynamic_sampling_task(func):
     @wraps(func)
-    def wrapped_func():
+    def _wrapper(*args, **kwargs):
         function_name = func.__name__
         task_name = _compute_task_name(function_name)
 
@@ -51,6 +51,6 @@ def dynamic_sampling_task(func):
         metrics.incr(f"{task_name}.start", sample_rate=1.0)
         # We will count how much it takes to run the function.
         with metrics.timer(task_name, sample_rate=1.0):
-            return func()
+            return func(*args, **kwargs)
 
-    return wrapped_func
+    return _wrapper
