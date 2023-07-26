@@ -2,7 +2,6 @@ import logging
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import unquote
 
-from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError, Project
@@ -286,6 +285,4 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
-    if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_js_stacktraces
-    return None
+    return process_js_stacktraces
