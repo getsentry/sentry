@@ -415,7 +415,7 @@ class MonitorEnvironmentTestCase(TestCase):
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
             reason=MonitorFailure.DURATION,
-            occurrence_context={"timeout": monitor.config.get("max_runtime")},
+            occurrence_context={"duration": monitor.config.get("max_runtime")},
         )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
