@@ -13,7 +13,7 @@ export type SpanMetrics = {
   'http_error_count()': number;
   'p95(span.self_time)': number;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
 };
 
