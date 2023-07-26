@@ -41,6 +41,13 @@ class AggregationFn(Enum):
     P99 = "p99"
     RATE = "rate"
 
+    def __contains__(cls, item):
+        try:
+            AggregationFn(item)
+            return True
+        except ValueError:
+            return False
+
 
 class ArithmeticFn(Enum):
     """
@@ -52,9 +59,22 @@ class ArithmeticFn(Enum):
     MULTIPLY = "multiply"
     DIVIDE = "divide"
 
+    def __contains__(cls, item):
+        try:
+            ArithmeticFn(item)
+            return True
+        except ValueError:
+            return False
+
 
 # Function name used for filtering.
 FILTER = "filter"
+
+
+@dataclass(frozen=True)
+class MetricQueryScope:
+    org_id: int
+    project_ids: Sequence[int] = []
 
 
 @dataclass(frozen=True)
@@ -63,12 +83,14 @@ class SeriesQuery:
     A metrics query that resolves time series.
     """
 
+    # The organization and projects to query metrics for.
+    scope: MetricQueryScope
     # Metric expressions to resolve.
     expressions: Sequence[Expression]
     # A set of conditions to filter the time series specified by expressions by.
     # This is a shorthand for wrapping every one of the expressions in the
     # specified filters.
-    filters: Sequence[Condition]
+    filters: Sequence[Condition]  # TODO: Just one boolean condition expression?
     # A set of tag names to group the time series specified by expressions by.
     groups: Sequence[Column]
     # The inclusive start of the time range to query.
@@ -231,6 +253,7 @@ def __example_to_remove():
     )
 
     query = SeriesQuery(
+        scope=MetricQueryScope(org_id=1),
         expressions=[expr],
         filters=[],
         groups=[],

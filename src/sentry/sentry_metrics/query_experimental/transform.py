@@ -30,7 +30,7 @@ class QueryVisitor(ABC, Generic[TVisited]):
     def visit(self, node: QueryNode) -> TVisited:
         if isinstance(node, SeriesQuery):
             return self._visit_query(node)
-        if isinstance(node, Function):
+        elif isinstance(node, Function):
             if node.function == FILTER:
                 return self._visit_filter(node)
             return self._visit_function(node)

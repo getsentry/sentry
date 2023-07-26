@@ -8,9 +8,9 @@ TRequest = TypeVar("TRequest")
 
 class MetricsBackend(ABC, Generic[TRequest]):
     @abstractmethod
-    def generate_request(self, query: SeriesQuery) -> TRequest:
+    def create_request(self, query: SeriesQuery) -> TRequest:
         raise NotImplementedError()
 
     @abstractmethod
-    def run_query(self, query: SeriesQuery) -> SeriesResult:
+    def query(self, query: SeriesQuery) -> SeriesResult:
         raise NotImplementedError()

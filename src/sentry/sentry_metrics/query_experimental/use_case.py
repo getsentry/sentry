@@ -5,39 +5,29 @@ queries.
 
 from typing import Set
 
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.query_experimental.transform import QueryTransform, QueryVisitor
+from sentry.sentry_metrics.query_experimental.transform import QueryVisitor
 from sentry.sentry_metrics.query_experimental.types import (
     Column,
     Condition,
     Function,
     InvalidMetricsQuery,
     SeriesQuery,
-    SeriesResult,
 )
-from sentry.sentry_metrics.query_experimental.use_case import get_use_case
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import parse_mri
 
-#: Special integer used to represent a string missing from the indexer
-# TODO: Import or move from sentry.snuba.metrics.utils
-STRING_NOT_FOUND = -1
 
-
-def map_query_indexes(query: SeriesQuery) -> SeriesQuery:
+def get_use_case(query: SeriesQuery) -> UseCaseID:
     """
-    Map public metric names in a series query to MRIs and map tag names.
+    Get the single use case referenced by a query. Raises a ``ValueError`` if
+    the query references multiple use cases.
     """
 
-    return IndexerTransform(get_use_case(query), query.scope.org_id).visit(query)
+    use_cases = UseCaseExtractor().visit(query)
+    if len(use_cases) != 1:
+        raise ValueError("All metrics in a query must belong to the same use case")
 
-
-def map_result_indexes(result: SeriesResult) -> SeriesResult:
-    """
-    Map MRIs in a series result to public metric names and map tag names.
-    """
-
-    raise NotImplementedError()
+    return use_cases.pop()
 
 
 class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
@@ -84,19 +74,3 @@ class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
 
     def _visit_float(self, value: float) -> Set[UseCaseID]:
         return set()
-
-
-class IndexerTransform(QueryTransform):
-    def __init__(self, use_case: UseCaseID, org_id: int):
-        self.use_case = use_case
-        self.org_id = org_id
-
-    def _visit_column(self, column: Column) -> Column:
-        resolved = indexer.resolve(self.use_case, self.org_id, column.name)
-        if resolved is None:
-            resolved = STRING_NOT_FOUND
-
-        # TODO: Skip tag values based on the flag? -> _visit_condition
-        #       currently hard-coded in ``resolve_tag_value``
-        # TODO: New type for resolved column names?
-        return Column(name=str(resolved))

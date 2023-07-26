@@ -13,19 +13,19 @@ from sentry.sentry_metrics.query_experimental.types import SeriesQuery, SeriesRe
 # TODO: projects as function args or as filters/expressions in SeriesQuery?
 
 
-def get_series_public(query: SeriesQuery, org_id: int) -> SeriesResult:
+def get_series_public(query: SeriesQuery) -> SeriesResult:
     resolved = map_query_names(query)
-    result = get_series_internal(resolved, org_id)
+    result = get_series_internal(resolved)
     return map_result_names(result)
 
 
-def get_series_internal(query: SeriesQuery, org_id: int) -> SeriesResult:
+def get_series_internal(query: SeriesQuery) -> SeriesResult:
     query = expand_derived_metrics(query)
-    query = map_query_indexes(query, org_id)
+    query = map_query_indexes(query)
 
     calculation = generate_calculation(query)
     for subquery in calculation.queries:
-        result = default_backend.run_query(subquery)
+        result = default_backend.query(subquery)
         calculation.add_result(subquery, result)
 
     result = calculation.evaluate()
