@@ -14,6 +14,7 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB = 200
     GITLAB = 210
 
+    # TODO: do migration to delete this from database
     CUSTOM = 700
 
     @property
