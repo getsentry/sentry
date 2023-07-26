@@ -31,7 +31,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
@@ -91,7 +91,7 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
+    fields: ['tps()', 'avg(transaction.duration)', 'http_error_count()'],
     dataset: DiscoverDatasets.METRICS,
     start: pageFilter.selection.datetime.start ?? undefined,
     end: pageFilter.selection.datetime.end ?? undefined,
@@ -126,7 +126,7 @@ export default function EndpointOverview() {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
+        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -142,7 +142,7 @@ export default function EndpointOverview() {
           return (
             <Fragment>
               <Header>
-                <ChartLabel>{DataTitles.p95}</ChartLabel>
+                <ChartLabel>{DataTitles.avg}</ChartLabel>
                 <QuestionTooltip
                   size="sm"
                   position="right"
@@ -157,7 +157,7 @@ export default function EndpointOverview() {
                   defined(totals)
                     ? t(
                         '%sms',
-                        (totals.data[0]['p95(transaction.duration)'] as number).toFixed(2)
+                        (totals.data[0]['avg(transaction.duration)'] as number).toFixed(2)
                       )
                     : undefined
                 }
@@ -176,7 +176,7 @@ export default function EndpointOverview() {
                 disableXAxis
                 definedAxisTicks={2}
                 isLineChart
-                chartColors={[P95_COLOR]}
+                chartColors={[AVG_COLOR]}
                 tooltipFormatterOptions={{
                   valueFormatter: value =>
                     tooltipFormatterUsingAggregateOutputType(value, 'duration'),

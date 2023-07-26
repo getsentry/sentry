@@ -395,6 +395,7 @@ const BlockWrapper = styled('div')`
   padding-right: ${space(4)};
   flex: 1;
   min-width: 0;
+  word-break: break-word;
 `;
 
 const DescriptionTitle = styled('h4')`
