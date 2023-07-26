@@ -115,10 +115,11 @@ class SlackClientDisable(TestCase):
         assert buffer.is_integration_broken() is False
 
     @responses.activate
-    def slow_test_integration_is_broken(self):
+    @with_feature("organizations:slack-disable-on-broken")
+    def test_slow_integration_is_not_broken_or_disabled(self):
         """
-        slow shut off with disable flag off
-        put errors in buffer for 10 days, assert integration is broken but not disabled
+        slow test with disable flag on
+        put errors and success in buffer for 10 days, assert integration is not broken or disabled
         """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
@@ -138,14 +139,13 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
-    @with_feature("organizations:slack-disable-on-broken")
-    def slow_test_integration_is_not_broken_or_disabled(self):
+    def test_slow_integration_is_broken(self):
         """
-        slow test with disable flag on
-        put errors and success in buffer for 10 days, assert integration is not broken or disabled
+        slow shut off with disable flag off
+        put errors in buffer for 10 days, assert integration is broken but not disabled
         """
         bodydict = {"ok": False, "error": "The requested resource does not exist"}
         self.resp.add(
@@ -164,10 +164,10 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
-    def test_add(self):
+    def test_expiry(self):
         """
         slow test with disable flag on
         put errors and success in buffer for 10 days, assert integration is not broken or disabled
