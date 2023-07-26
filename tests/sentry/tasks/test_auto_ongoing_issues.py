@@ -89,22 +89,22 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         new_groups = []
         older_groups = []
         for day, hours in [
-            (0, 0),
-            (1, 1),
-            (2, 2),
-            (2, 9),  # recent group_inbox should stay the same
-            (3, 1),
-            (3, 2),
-            (3, 3),
-            (3, 12),
-            (3, 15),
-            (3, 18),
-            (3, 21),
-            (3, 24),  # 3+ day olds ones
-            (7, 14),
-            (12, 1),
+            (17, 2),  # really old issues would be created first
             (15, 5),
-            (17, 2),  # really old issues
+            (12, 1),
+            (7, 14),
+            (3, 24),  # 3+ day olds ones
+            (3, 21),
+            (3, 18),
+            (3, 15),
+            (3, 12),
+            (3, 3),
+            (3, 2),
+            (3, 1),
+            (2, 9),  # recent group_inbox should stay the same
+            (2, 2),
+            (1, 1),
+            (0, 0),
         ]:
             group = self.create_group(
                 project=project,
