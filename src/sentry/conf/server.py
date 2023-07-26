@@ -1385,9 +1385,9 @@ SENTRY_FEATURES = {
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
     # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart"
+    "organizations:profiling-cpu-chart": True,
     # Enable profiling Memory chart
-    "organizations:profiling-memory-chart"
+    "organizations:profiling-memory-chart": True,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
