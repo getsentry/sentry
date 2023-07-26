@@ -241,8 +241,6 @@ def send_to_webhook(json_data):
         # todo: change webhook url (pass in as k8s secret? eng pipes is public)
         #       send http post request to engpipes webhook
         #       figure out how to add env var k8s secrets
-        response = requests.post("webhook_url", data=json.dumps(json_data), headers=headers)
-        response.raise_for_status()  # Raise an exception for non-2xx responses
-        click.echo("Post request successful")
+        requests.post("webhook_url", data=json.dumps(json_data), headers=headers)
     except requests.exceptions.RequestException as e:
         click.echo(f"{e}")
