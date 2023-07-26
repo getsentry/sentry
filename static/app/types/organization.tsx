@@ -70,6 +70,8 @@ export interface Organization extends OrganizationSummary {
   storeCrashReports: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  desiredSampleRate?: number | null;
+  effectiveSampleRate?: number | null;
   orgRole?: string;
 }
 

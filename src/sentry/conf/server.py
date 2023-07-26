@@ -1235,6 +1235,7 @@ LOGGING = {
         "sentry.errors": {"handlers": ["console"], "propagate": False},
         "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "sentry.rules": {"handlers": ["console"], "propagate": False},
+        "sentry.profiles": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -1337,8 +1338,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Use new listing page for crons
-    "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1381,8 +1380,6 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
-    # Enable profiling GA messaging (update paths from AM1 to AM2)
-    "organizations:profiling-ga": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
@@ -1463,7 +1460,7 @@ SENTRY_FEATURES = {
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
     # Enable Discord integration notifications
-    "organizations:integrations-discord-notifications"
+    "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
