@@ -1,8 +1,8 @@
 import datetime
 import re
+from datetime import timezone
 
 import pytest
-from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or

@@ -1,10 +1,10 @@
 import datetime
 import math
+from datetime import timezone
 from typing import List
 from unittest import mock
 
 import pytest
-from django.utils import timezone
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery

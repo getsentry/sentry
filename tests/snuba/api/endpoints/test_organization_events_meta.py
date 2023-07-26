@@ -1,8 +1,8 @@
+from datetime import timezone
 from unittest import mock
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 from pytz import utc
 from rest_framework.exceptions import ParseError
 

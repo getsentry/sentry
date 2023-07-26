@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn

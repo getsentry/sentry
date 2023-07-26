@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Type
 from uuid import uuid4
@@ -9,7 +9,6 @@ from uuid import uuid4
 from click.testing import CliRunner
 from django.core.management import call_command
 from django.db import models, router
-from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.incidents.models import (

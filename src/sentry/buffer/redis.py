@@ -1,11 +1,10 @@
 import logging
 import pickle
 import threading
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from time import time
 
 from django.db import models
-from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 
 from sentry.buffer.base import Buffer

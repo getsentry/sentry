@@ -1,4 +1,5 @@
-from django.utils import timezone
+from datetime import timezone
+
 from freezegun import freeze_time
 
 from sentry.incidents.models import (

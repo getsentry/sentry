@@ -1,8 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import responses
-from django.utils import timezone
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.jira import JIRA_KEY

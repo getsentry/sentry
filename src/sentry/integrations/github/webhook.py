@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from datetime import timezone
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt

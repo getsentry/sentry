@@ -1,9 +1,9 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 
 import pytest
 import responses
-from django.utils import timezone
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider

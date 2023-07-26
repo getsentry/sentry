@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
 from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage

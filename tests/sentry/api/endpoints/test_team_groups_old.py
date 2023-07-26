@@ -1,6 +1,4 @@
-from datetime import datetime, timedelta
-
-from django.utils import timezone
+from datetime import datetime, timedelta, timezone
 
 from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
 from sentry.testutils import APITestCase

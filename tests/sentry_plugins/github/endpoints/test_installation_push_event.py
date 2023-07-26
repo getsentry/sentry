@@ -1,7 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
-
-from django.utils import timezone
 
 from sentry.models import Commit, Integration, Repository
 from sentry.testutils import APITestCase

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Sequence
 
 import sentry_sdk
 import sqlparse
-from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize

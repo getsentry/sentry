@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
