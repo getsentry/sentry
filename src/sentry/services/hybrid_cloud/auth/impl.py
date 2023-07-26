@@ -237,7 +237,10 @@ class DatabaseBackedAuthService(AuthService):
         )
 
     def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        return list(AuthProvider.objects.filter(organization_id=organization_id))
+        return [
+            serialize_auth_provider(auth_provider)
+            for auth_provider in AuthProvider.objects.filter(organization_id=organization_id)
+        ]
 
     def change_scim(
         self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool
