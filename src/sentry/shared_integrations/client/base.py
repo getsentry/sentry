@@ -392,6 +392,7 @@ class BaseApiClient(TrackResponseMixin):
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
             return
 
     def record_request_error(self, resp: Response):
@@ -404,14 +405,19 @@ class BaseApiClient(TrackResponseMixin):
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
             return
 
     def record_request_success(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_success()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_success()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
 
     def record_request_fatal(self, resp: Response):
         redis_key = self._get_redis_key()
@@ -423,6 +429,7 @@ class BaseApiClient(TrackResponseMixin):
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
             return
 
     def disable_integration(self) -> None:
