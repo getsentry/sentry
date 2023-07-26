@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+import string
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
 
 from django.conf import settings
@@ -121,7 +123,12 @@ def get_organization_id_from_token(token_id: str) -> int | None:
     from sentry.models import SentryAppInstallation
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
-    return installation.organization_id if installation else None
+
+    # Temporary fix to avoid collisions caused by tokens not being associated with a SentryAppInstallation
+    if not installation:
+        return random.choice(string.ascii_letters)
+
+    return installation.organization_id
 
 
 def get_rate_limit_config(
