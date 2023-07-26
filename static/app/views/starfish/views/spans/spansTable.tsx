@@ -153,7 +153,7 @@ function renderBodyCell(
     const sort: string | undefined = queryString?.[QueryParameterNames.SORT];
 
     // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
-    if (sort?.includes(`${StarfishFunctions.TIME_SPENT_PERCENTAGE}()`)) {
+    if (sort?.includes(`${TIME_SPENT_PERCENTAGE}()`)) {
       queryString[QueryParameterNames.SORT] = sort.replace(
         `${TIME_SPENT_PERCENTAGE}()`,
         `${TIME_SPENT_PERCENTAGE}(local)`
