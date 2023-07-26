@@ -1,4 +1,8 @@
-import {render, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -43,9 +47,19 @@ describe('SampleTable', function () {
       );
 
       await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
-      expect(
-        container.queryByText('No results found for your query')
-      ).not.toBeInTheDocument();
+    });
+
+    it('should never show no results', async () => {
+      const container = render(
+        <SampleTable
+          groupId="groupId123"
+          transactionMethod="GET"
+          transactionName="/endpoint"
+        />
+      );
+
+      await expectNever(() => container.getByText('No results found for your query'));
+      expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
   });
 
@@ -150,3 +164,7 @@ const initializeMockRequests = () => {
     },
   });
 };
+
+async function expectNever(callable: () => unknown): Promise<void> {
+  await expect(() => waitFor(callable)).rejects.toEqual(expect.anything());
+}
