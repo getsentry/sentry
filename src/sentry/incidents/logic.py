@@ -1340,7 +1340,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
     oi = integration_service.get_organization_integration(
         integration_id=integration_id, organization_id=organization.id
     )
-    team = get_team(oi, target_value)
+    team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
     return team["id"], team["team"]
