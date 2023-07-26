@@ -43,7 +43,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         return filter_params
 
     @extend_schema(
-        operation_id="Query for a List of Replays",
+        operation_id="List an Organization's Replays",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("data", List[ReplayDetailsResponse]),
@@ -54,7 +54,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Query for a list of replays using the Replays GET Request.
+        Return a list of replays belonging to an organization.
         """
 
         if not features.has("organizations:session-replay", organization, actor=request.user):

@@ -41,7 +41,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization, replay_id: str) -> Response:
         """
-        Retrieve a single replay instance.
+        Return details on an individual replay.
         """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
