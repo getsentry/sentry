@@ -66,6 +66,7 @@ function Content({
   hideIcon,
   threadId,
   lockAddress,
+  organization,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -315,6 +316,7 @@ function Content({
           threadId,
           lockAddress,
           hiddenFrameCount: frameCountMap[frameIndex],
+          organization,
         };
 
         nRepeats = 0;
