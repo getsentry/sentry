@@ -55,10 +55,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
-        from sentry.auth.access import get_cached_organization_member
-
         try:
-            member = get_cached_organization_member(
+            member = OrganizationMember.objects.get(
                 user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:

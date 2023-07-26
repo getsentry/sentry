@@ -32,8 +32,8 @@ class RecordTest(BasePostgresRuleHistoryBackendTest):
         assert RuleFireHistory.objects.filter(rule=rule).count() == 3
 
 
-@freeze_time()
 @region_silo_test(stable=True)
+@freeze_time()
 class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def run_test(self, rule, start, end, expected, cursor=None, per_page=25):
         result = self.backend.fetch_rule_groups_paginated(rule, start, end, cursor, per_page)
@@ -193,8 +193,8 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
 
 
-@freeze_time()
 @region_silo_test(stable=True)
+@freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
     def test(self):
         rule = Rule.objects.create(project=self.event.project)
