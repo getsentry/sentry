@@ -24,6 +24,7 @@ export const SORTABLE_FIELDS = new Set([
   `p95(${SPAN_SELF_TIME})`,
   'sps()',
   'time_spent_percentage()',
+  'time_spent_percentage(local)',
   'http_error_count()',
 ]);
 
