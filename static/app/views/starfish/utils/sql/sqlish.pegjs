@@ -21,7 +21,7 @@ JoinType
 = "OUTER"i / "INNER"i
 
 Parameter
-  = "%s" { return { type: 'Parameter' } }
+  = "%s" { return { type: 'Parameter', content: "%s" } }
 
 CollapsedColumns
   = ".." { return { type: 'CollapsedColumns' } }
