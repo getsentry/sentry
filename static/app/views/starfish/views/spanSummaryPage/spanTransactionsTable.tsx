@@ -204,13 +204,13 @@ const getColumnOrder = (
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps()',
+    key: 'spm()',
     name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
-    name: DataTitles.p95,
+    key: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+    name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
   ...(span?.['span.op']?.startsWith('http')

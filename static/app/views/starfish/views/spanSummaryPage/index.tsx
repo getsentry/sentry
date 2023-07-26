@@ -12,14 +12,15 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import {RateUnits, Sort} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
@@ -35,7 +36,6 @@ import {
 } from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -84,9 +84,9 @@ function SpanSummaryPage({params, location}: Props) {
       SpanMetricsFields.SPAN_ACTION,
       SpanMetricsFields.SPAN_DOMAIN,
       'count()',
-      'sps()',
+      'spm()',
       `sum(${SpanMetricsFields.SPAN_SELF_TIME})`,
-      `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
+      `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
       'time_spent_percentage()',
       'http_error_count()',
     ],
@@ -108,7 +108,7 @@ function SpanSummaryPage({params, location}: Props) {
     useSpanMetricsSeries(
       groupId,
       queryFilter,
-      [`p95(${SpanMetricsFields.SPAN_SELF_TIME})`, 'sps()', 'http_error_count()'],
+      [`avg(${SpanMetricsFields.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
       'api.starfish.span-summary-page-metrics-chart'
     );
 
@@ -118,7 +118,7 @@ function SpanSummaryPage({params, location}: Props) {
     seriesName: span?.[SpanMetricsFields.SPAN_OP]?.startsWith('db')
       ? 'Queries'
       : 'Requests',
-    data: spanMetricsSeriesData?.['sps()'].data,
+    data: spanMetricsSeriesData?.['spm()'].data,
   };
 
   const title = getDescriptionLabel(span[SpanMetricsFields.SPAN_OP], true);
@@ -178,14 +178,17 @@ function SpanSummaryPage({params, location}: Props) {
                       )}
                     <Block
                       title={getThroughputTitle(span?.[SpanMetricsFields.SPAN_OP])}
-                      description={tct('Throughput of this [spanType] per second', {
+                      description={tct('Throughput of this [spanType] per minute', {
                         spanType: spanDescriptionCardTitle,
                       })}
                     >
-                      <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
+                      <ThroughputCell
+                        rate={spanMetrics?.['spm()']}
+                        unit={RateUnits.PER_MINUTE}
+                      />
                     </Block>
                     <Block
-                      title={t('Duration (P95)')}
+                      title={DataTitles.avg}
                       description={tct(
                         '95% of [spanType] in the selected period have a lower duration than this value',
                         {
@@ -197,7 +200,7 @@ function SpanSummaryPage({params, location}: Props) {
                     >
                       <DurationCell
                         milliseconds={
-                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
+                          spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]
                         }
                       />
                     </Block>
@@ -216,10 +219,8 @@ function SpanSummaryPage({params, location}: Props) {
                       )}
                     >
                       <TimeSpentCell
-                        timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                        totalSpanTime={
-                          spanMetrics?.[`p95(${SpanMetricsFields.SPAN_SELF_TIME})`]
-                        }
+                        percentage={spanMetrics?.['time_spent_percentage()']}
+                        total={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
                       />
                     </Block>
                   </BlockContainer>
@@ -253,25 +254,27 @@ function SpanSummaryPage({params, location}: Props) {
                           isLineChart
                           definedAxisTicks={4}
                           aggregateOutputFormat="rate"
+                          rateUnit={RateUnits.PER_MINUTE}
                           tooltipFormatterOptions={{
-                            valueFormatter: value => formatThroughput(value),
+                            valueFormatter: value =>
+                              formatRate(value, RateUnits.PER_MINUTE),
                           }}
                         />
                       </ChartPanel>
                     </Block>
 
                     <Block>
-                      <ChartPanel title={DataTitles.p95}>
+                      <ChartPanel title={DataTitles.avg}>
                         <Chart
                           height={140}
                           data={[
                             spanMetricsSeriesData?.[
-                              `p95(${SpanMetricsFields.SPAN_SELF_TIME})`
+                              `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
                             ],
                           ]}
                           loading={areSpanMetricsSeriesLoading}
                           utc={false}
-                          chartColors={[P95_COLOR]}
+                          chartColors={[AVG_COLOR]}
                           isLineChart
                           definedAxisTicks={4}
                         />

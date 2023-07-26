@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -84,7 +84,7 @@ Retrieve a collection of replays.
 | count_urls        | number                        | The number of urls visited in the replay.              |
 | device.brand      | optional[string]              | -                                                      |
 | device.family     | optional[string]              | -                                                      |
-| device.model_id   | optional[string]              | Same search field as Events                            |
+| device.model      | optional[string]              | Same search field as Events                            |
 | device.name       | optional[string]              | -                                                      |
 | dist              | optional[string]              | -                                                      |
 | duration          | number                        | Difference of `finishedAt` and `startedAt` in seconds. |
@@ -129,7 +129,7 @@ Retrieve a collection of replays.
         "device": {
           "brand": "Apple",
           "family": "iPhone",
-          "model_id": "11",
+          "model": "11",
           "name": "iPhone 11"
         },
         "dist": null,
@@ -144,7 +144,7 @@ Retrieve a collection of replays.
           "version": "16.2"
         },
         "platform": "Sentry",
-        "project_dd": "639195",
+        "project_id": "639195",
         "releases": ["version@1.4"],
         "sdk": {
           "name": "Thundercat",
@@ -160,7 +160,7 @@ Retrieve a collection of replays.
           "display_name": "John Doe",
           "email": "john.doe@example.com",
           "id": "30246326",
-          "ip_address": "213.164.1.114",
+          "ip": "213.164.1.114",
           "username": "John Doe"
         }
       }
@@ -195,7 +195,7 @@ Retrieve a single replay instance.
       "device": {
         "brand": "Apple",
         "family": "iPhone",
-        "model_id": "11",
+        "model": "11",
         "name": "iPhone 11"
       },
       "dist": null,

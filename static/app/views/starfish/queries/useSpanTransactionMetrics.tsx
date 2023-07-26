@@ -11,13 +11,9 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
+  'avg(span.self_time)': number;
   'http_error_count()': number;
-  'http_error_count_percent_change()': number;
-  'p50(span.self_time)': number;
-  'p95(span.self_time)': number;
-  'percentile_percent_change(span.self_time, 0.95)': number;
-  'sps()': number;
-  'sps_percent_change()': number;
+  'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
@@ -65,9 +61,9 @@ function getEventView(
       fields: [
         'transaction',
         'transaction.method',
-        'sps()',
+        'spm()',
         `sum(${SPAN_SELF_TIME})`,
-        `p95(${SPAN_SELF_TIME})`,
+        `avg(${SPAN_SELF_TIME})`,
         'time_spent_percentage(local)',
         'transaction.op',
         'http_error_count()',

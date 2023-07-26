@@ -33,11 +33,11 @@ def naive_build_integration(data):
     return data
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
@@ -436,11 +436,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert call.called
 
 
+@control_silo_test(stable=True)
 @patch(
     "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
-@control_silo_test(stable=True)
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 

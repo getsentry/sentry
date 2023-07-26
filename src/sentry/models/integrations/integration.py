@@ -68,7 +68,7 @@ class Integration(DefaultFieldsModel):
 
     def delete(self, *args, **kwds):
         with outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationIntegration)), flush=False
+            transaction.atomic(router.db_for_write(OrganizationIntegration)), flush=False
         ):
             for organization_integration in self.organizationintegration_set.all():
                 organization_integration.delete()
@@ -107,7 +107,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,
@@ -134,11 +134,3 @@ class Integration(DefaultFieldsModel):
                 },
             )
             return False
-
-    def disable(self):
-        """
-        Disable this integration
-        """
-
-        self.update(status=ObjectStatus.DISABLED)
-        self.save()
