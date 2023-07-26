@@ -11,7 +11,6 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.processing import get_native_symbolication_function
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import Organization, Project
 from sentry.processing import realtime_metrics
@@ -80,6 +79,15 @@ def should_demote_symbolication(project_id: int) -> bool:
         # realtime_metrics is empty in getsentry
         except AttributeError:
             return False
+
+
+# This is f*** joke:
+# The `mock.patch` in `test_symbolication.py` will not work with a static import,
+# so we gotta import the function dynamically here. Great! Hooray!
+def get_native_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
+    from sentry.lang.native.processing import get_native_symbolication_function
+
+    return get_native_symbolication_function(data)
 
 
 def get_symbolication_function(
