@@ -386,19 +386,25 @@ class BaseApiClient(TrackResponseMixin):
             return
         if not self.is_considered_error(error):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_error()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            return
 
     def record_request_error(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_error()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            return
 
     def record_request_success(self, resp: Response):
         redis_key = self._get_redis_key()
@@ -411,10 +417,13 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_fatal()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_fatal()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            return
 
     def disable_integration(self) -> None:
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
