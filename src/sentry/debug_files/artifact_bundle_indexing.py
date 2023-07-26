@@ -49,7 +49,7 @@ class FlatFileMeta:
         if len(parsed) != 3:
             raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
 
-        return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(int(parsed[2])))
+        return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(float(parsed[2]) / 1000))
 
 
 @sentry_sdk.tracing.trace
@@ -137,7 +137,8 @@ class FlatFileIdentifier(NamedTuple):
 
         try:
             return FlatFileMeta.from_str(flat_file_meta)
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return None
 
     def delete_flat_file_meta_from_cache(self):

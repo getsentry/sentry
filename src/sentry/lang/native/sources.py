@@ -222,11 +222,10 @@ def get_bundle_index_urls(
         # The artifact-lookup API will ignore the additional timestamp on download.
         return f"{base_url}?download={flat_file_meta.to_string()}"
 
+    url_index = None
     identifier = FlatFileIdentifier(
         project_id=project.id, release=release or NULL_STRING, dist=dist or NULL_STRING
     )
-
-    url_index = None
     if identifier.is_indexing_by_release():
         url_meta = identifier.get_flat_file_meta()
         if url_meta is not None:
