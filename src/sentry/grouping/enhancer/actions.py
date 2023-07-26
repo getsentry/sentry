@@ -16,10 +16,10 @@ ACTION_BITSIZE = {
 }
 assert len(ACTIONS) < 1 << max(ACTION_BITSIZE.values())
 ACTION_FLAGS = {
-    (True, ""): 0,
+    (True, None): 0,
     (True, "up"): 1,
     (True, "down"): 2,
-    (False, ""): 3,
+    (False, None): 3,
     (False, "up"): 4,
     (False, "down"): 5,
 }
@@ -66,16 +66,16 @@ class Action:
 
 
 class FlagAction(Action):
-    def __init__(self, key: str, flag: bool, range: str) -> None:
+    def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key
         self._is_updater = key in {"group", "app", "prefix", "sentinel"}
         self._is_modifier = key == "app"
         self.flag = flag
-        self.range = range  # e.g. "", "up", "down"
+        self.range = range  # e.g. None, "up", "down"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
-            {"up": "^", "down": "v"}.get(self.range, ""),
+            {"up": "^", "down": "v", None: ""}.get(self.range),
             self.flag and "+" or "-",
             self.key,
         )
