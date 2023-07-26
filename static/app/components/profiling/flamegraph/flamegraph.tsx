@@ -41,7 +41,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
+import {FlamegraphChart, FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
@@ -232,6 +232,19 @@ function Flamegraph(): ReactElement {
 
     return new SpanChart(spanTree, {unit: profile.unit});
   }, [spanTree, profile]);
+
+  const CPUChart = useMemo(() => {
+    if (!profile) {
+      return null;
+    }
+
+    return new FlamegraphChart(
+      profileGroup.measurements?.cpu_usage_0 ?? {
+        unit: 'percentage',
+        values: [],
+      }
+    );
+  }, [profile, profileGroup.measurements?.cpu_usage_0]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
