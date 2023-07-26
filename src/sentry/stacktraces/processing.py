@@ -218,7 +218,8 @@ def find_stacktraces_in_data(
         _append_stacktrace(thread.get("stacktrace"), thread)
 
     if include_raw:
-        for info in rv:
+        # Iterate over a copy of rv, otherwise, it will infinitely append to itself
+        for info in rv[:]:
             if info.container is not None:
                 _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
 
