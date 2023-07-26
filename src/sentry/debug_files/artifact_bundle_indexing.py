@@ -25,8 +25,10 @@ from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
-# The TTL of the cache containing information about a specific flat file index.
-FLAT_FILE_IDENTIFIER_CACHE_TTL = 60
+# The TTL of the cache containing information about a specific flat file index. The TTL is set to 1 hour, since
+# we know that the cache will be invalidated in case of flat file index updates, thus it is mostly to keep the
+# size of the caches under control in case of no uploads from the user end.
+FLAT_FILE_IDENTIFIER_CACHE_TTL = 3600
 
 
 @dataclass(frozen=True)
