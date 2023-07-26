@@ -69,7 +69,9 @@ class ReplayDetailsResponse(TypedDict, total=False):
     dist: Optional[str]
 
 
-def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
+def process_raw_response(
+    response: List[Dict[str, Any]], fields: List[str]
+) -> List[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
@@ -100,7 +102,7 @@ def generate_normalized_output(
     for item in response:
         ret_item: ReplayDetailsResponse = {}
         if item["isArchived"]:
-            yield _archived_row(item["replay_id"], item["project_id"])
+            yield _archived_row(item["replay_id"], item["project_id"])  # type: ignore
             continue
 
         ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
