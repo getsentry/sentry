@@ -29,6 +29,8 @@ type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
 
+export type ReferrerTableType = 'main' | 'dead-rage-table' | 'errors-table';
+
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
     ? {
@@ -53,10 +55,12 @@ export function ReplayCell({
   referrer,
   replay,
   showUrl,
+  referrer_table,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
+  referrer_table: ReferrerTableType;
   showUrl: boolean;
 }) {
   const {projects} = useProjects();
@@ -76,6 +80,7 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {

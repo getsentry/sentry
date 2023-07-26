@@ -133,6 +133,7 @@ function ReplayTable({
                       organization={organization}
                       referrer={referrer}
                       showUrl
+                      referrer_table="main"
                     />
                   );
 
@@ -154,6 +155,7 @@ function ReplayTable({
                       referrer={referrer}
                       showUrl={false}
                       eventView={eventView}
+                      referrer_table="dead-rage-table"
                     />
                   );
 
@@ -166,6 +168,7 @@ function ReplayTable({
                       referrer={referrer}
                       showUrl={false}
                       eventView={eventView}
+                      referrer_table="errors-table"
                     />
                   );
 
