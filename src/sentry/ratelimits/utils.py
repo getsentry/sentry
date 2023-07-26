@@ -124,7 +124,8 @@ def get_organization_id_from_token(token_id: str) -> int | None:
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
 
-    # Temporary fix to avoid collisions caused by tokens not being associated with a SentryAppInstallation
+    # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
+    # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
     if not installation:
         return random.choice(string.ascii_letters)
 
