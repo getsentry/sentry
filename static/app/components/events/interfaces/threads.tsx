@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
@@ -117,6 +117,15 @@ export function Threads({
   const stackView = activeThread
     ? getIntendedStackView(activeThread, exception)
     : undefined;
+
+  useEffect(() => {
+    const thread = threads.length ? findBestThread(threads) : undefined;
+    setState(s => ({
+      ...s,
+      activeThread: thread,
+    }));
+    // eslint-disable-next-line
+  }, [event.id]);
 
   function renderPills() {
     const {
