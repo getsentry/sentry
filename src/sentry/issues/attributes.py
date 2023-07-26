@@ -1,7 +1,8 @@
+import dataclasses
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -40,22 +41,45 @@ def _log_group_attributes_changed(
     )
 
 
-def _retrieve_snapshot_values(group: Group, group_deleted: bool = False) -> GroupAttributesSnapshot:
+@dataclasses.dataclass
+class GroupValues:
+    id: int
+    project_id: int
+    status: int
+    substatus: Optional[int]
+    first_seen: datetime
+    num_comments: int
+
+
+def _retrieve_group_values(group_id: int) -> GroupValues:
     group_values = list(
-        Group.objects.filter(id=group.id).values(
-            "status", "substatus", "first_seen", "num_comments"
+        Group.objects.filter(id=group_id).values(
+            "project_id", "status", "substatus", "first_seen", "num_comments"
         )
     )
     assert len(group_values) == 1
 
+    return GroupValues(
+        id=group_id,
+        project_id=group_values[0]["project_id"],
+        status=group_values[0]["status"],
+        substatus=group_values[0]["substatus"],
+        first_seen=group_values[0]["first_seen"],
+        num_comments=group_values[0]["num_comments"],
+    )
+
+
+def _retrieve_snapshot_values(
+    group_values: Union[Group, GroupValues], group_deleted: bool = False
+) -> GroupAttributesSnapshot:
     group_assignee_values = list(
-        GroupAssignee.objects.filter(group_id=group.id)
+        GroupAssignee.objects.filter(group_id=group_values.id)
         .order_by("-date_added")
         .values("user_id", "team_id")
     )
 
     group_owner_values = list(
-        GroupOwner.objects.filter(group_id=group.id).values(
+        GroupOwner.objects.filter(group_id=group_values.id).values(
             "type", "user_id", "team_id", "date_added"
         )
     )
@@ -69,12 +93,12 @@ def _retrieve_snapshot_values(group: Group, group_deleted: bool = False) -> Grou
 
     return {
         "group_deleted": group_deleted,
-        "project_id": group.project.id,
-        "group_id": group.id,
-        "status": group_values[0]["status"],
-        "substatus": group_values[0]["substatus"],
-        "first_seen": group_values[0]["first_seen"],
-        "num_comments": group_values[0]["num_comments"],
+        "project_id": group_values.project_id,
+        "group_id": group_values.id,
+        "status": group_values.status,
+        "substatus": group_values.substatus,
+        "first_seen": group_values.first_seen,
+        "num_comments": group_values.num_comments,
         "assignee_user_id": group_assignee_values[0]["user_id"]
         if len(group_assignee_values) > 0
         else None,
@@ -108,6 +132,22 @@ def _retrieve_snapshot_values(group: Group, group_deleted: bool = False) -> Grou
         else None,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+def send_snapshot_values(
+    group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
+) -> None:
+
+    if group_id is None and group is None:
+        raise ValueError("cannot send snapshot values when group_id and group are None")
+
+    if group is not None:
+        return produce_snapshot_to_kafka(_retrieve_snapshot_values(group, group_deleted))
+
+    if group_id is not None:
+        return produce_snapshot_to_kafka(
+            _retrieve_snapshot_values(_retrieve_group_values(group_id), group_deleted)
+        )
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
