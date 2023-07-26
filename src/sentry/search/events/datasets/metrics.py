@@ -530,7 +530,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     "epm",
                     snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "floored_epm",
@@ -573,13 +573,13 @@ class MetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "eps",
                     snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="number",
+                    default_result_type="rate",
                 ),
                 fields.MetricsFunction(
                     "failure_count",

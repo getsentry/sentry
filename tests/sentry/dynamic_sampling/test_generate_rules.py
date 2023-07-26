@@ -17,7 +17,7 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
-from sentry.models import ProjectTeam
+from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.utils import json

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Type
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -45,7 +45,7 @@ class TombstoneBase(Model):
     @classmethod
     def record_delete(cls, table_name: str, identifier: int):
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(cls)):
                 cls.objects.create(table_name=table_name, object_identifier=identifier)
         except IntegrityError:
             pass

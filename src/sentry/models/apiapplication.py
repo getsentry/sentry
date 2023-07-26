@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import petname
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -75,7 +75,7 @@ class ApiApplication(Model):
 
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_project(self)
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)

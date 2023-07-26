@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Generator, Mapping, Union
 
+import rb
 import requests
-from redis import Redis
 from rediscluster import RedisCluster
 
 
@@ -35,11 +35,9 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
 
 # Based on configuration, this could be:
 # - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
-# - a straight `Redis` client (actually `FailoverRedis`)
+# - a `rb.Cluster` (client side routing cluster client)
 # - or any class configured via `client_class`.
-# It could in theory also be a `rb` (aka redis blaster) Cluster, but we
-# intentionally do not support these.
-Cluster = Union[RedisCluster, Redis]
+Cluster = Union[RedisCluster, rb.Cluster]
 
 
 def get_memory_usage(info: Mapping[str, Any]) -> ServiceMemory:
@@ -57,8 +55,12 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
     """
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
-        for info in cluster.info().values():
-            yield get_memory_usage(info)
+        cluster_info = cluster.info()
     else:
-        # otherwise, lets just hope that `info()` does the right thing
-        yield get_memory_usage(cluster.info())
+        # rb.Cluster returns a promise with a dictionary with a _local_ node-id as key
+        with cluster.all() as client:
+            promise = client.info()
+        cluster_info = promise.value
+
+    for info in cluster_info.values():
+        yield get_memory_usage(info)

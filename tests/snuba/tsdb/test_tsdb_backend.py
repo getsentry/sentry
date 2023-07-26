@@ -698,6 +698,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                     insert_time=time_step,
                 )
 
+            assert group_info is not None
             assert self.db.get_range(
                 TSDBModel.group_generic,
                 [group_info.group.id],

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, List
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
@@ -67,7 +67,9 @@ class Integration(DefaultFieldsModel):
         return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationIntegration)), flush=False
+        ):
             for organization_integration in self.organizationintegration_set.all():
                 organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
@@ -105,7 +107,7 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
                     organization_id=organization.id,
                     integration_id=self.id,

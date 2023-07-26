@@ -696,6 +696,8 @@ def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
     Returns a tuple of (text, background_color, border_color)
     Should be similar to GroupStatusBadge.tsx in the frontend
     """
+    if group.status == GroupStatus.RESOLVED:
+        return ("Resolved", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
             return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")

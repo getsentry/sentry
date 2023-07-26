@@ -1,21 +1,16 @@
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
@@ -34,8 +29,10 @@ class GithubRequestParserTest(TestCase):
             organization=self.organization, external_id="github:1", provider="github"
         )
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_invalid_webhook(self):
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            return
+
         request = self.factory.post(
             self.path, data=b"invalid-data", content_type="application/x-www-form-urlencoded"
         )
@@ -44,8 +41,7 @@ class GithubRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"no-error"
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_properly(self):
+    def test_routing_webhook_properly(self):
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
@@ -70,7 +66,25 @@ class GithubRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_outbox_creation.called
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_search_properly(self):
+        path = reverse(
+            "sentry-integration-github-search",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "integration_id": self.integration.id,
+            },
+        )
+        request = self.factory.post(path, data={}, content_type="application/json")
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
+
     def test_get_integration_from_request(self):
         request = self.factory.post(
             self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
@@ -79,7 +93,6 @@ class GithubRequestParserTest(TestCase):
         integration = parser.get_integration_from_request()
         assert integration == self.integration
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
@@ -91,23 +104,8 @@ class GithubRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": self.path,
-                "uri": f"http://testserver{self.path}",
-                "headers": {
-                    "Content-Length": "36",
-                    "Content-Type": "application/json",
-                    "Cookie": "",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-            assert outbox.payload == expected_payload
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.region_name == self.region.name
-            assert outbox.payload == expected_payload
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                region_names=[self.region.name],
+            )

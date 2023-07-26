@@ -37,6 +37,8 @@ class SentryAppTest(TestCase):
 
     def test_related_names(self):
         self.sentry_app.save()
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
         assert self.sentry_app.application.sentry_app == self.sentry_app
         assert self.sentry_app.proxy_user.sentry_app == self.sentry_app
 

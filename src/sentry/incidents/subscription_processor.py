@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -484,7 +484,7 @@ class SubscriptionProcessor:
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
         fired_incident_triggers = []
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(AlertRule)):
             for trigger in self.triggers:
                 if alert_operator(
                     aggregation_value, trigger.alert_threshold
@@ -701,7 +701,8 @@ class SubscriptionProcessor:
                     method=method,
                     new_status=new_status,
                     metric_value=metric_value,
-                ).delay
+                ).delay,
+                router.db_for_write(AlertRule),
             )
 
     def handle_incident_severity_update(self) -> None:

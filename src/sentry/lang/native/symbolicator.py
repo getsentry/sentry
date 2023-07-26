@@ -14,6 +14,7 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.cache import default_cache
 from sentry.lang.native.sources import (
+    get_bundle_index_urls,
     get_internal_artifact_lookup_source,
     sources_for_symbolication,
 )
@@ -180,6 +181,12 @@ class Symbolicator:
             "options": {"apply_source_context": apply_source_context},
         }
 
+        debug_id_index, url_index = get_bundle_index_urls(self.project, release, dist)
+        if debug_id_index:
+            json["debug_id_index"] = debug_id_index
+        if url_index:
+            json["url_index"] = url_index
+
         if release is not None:
             json["release"] = release
         if dist is not None:
@@ -236,12 +243,9 @@ class SymbolicatorSession:
             self.session.close()
             self.session = None
 
-    def _ensure_open(self):
+    def _request(self, method, path, **kwargs):
         if not self.session:
             raise RuntimeError("Session not opened")
-
-    def _request(self, method, path, **kwargs):
-        self._ensure_open()
 
         url = urljoin(self.url, path)
 

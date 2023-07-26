@@ -15,7 +15,9 @@ class FilterToTeamTest(TestCase):
         other_team = self.create_team(other_org, members=[self.user])
         other_project = self.create_project(organization=other_org, teams=[other_team])
         other_group = self.store_event(data={}, project_id=other_project.id).group
+        assert other_group is not None
         other_group_2 = self.store_event(data={}, project_id=other_project.id).group
+        assert other_group_2 is not None
         GroupAssignee.objects.assign(other_group, self.user)
         GroupAssignee.objects.assign(other_group_2, other_team)
         other_history = set(GroupHistory.objects.filter(group__in=[other_group, other_group_2]))

@@ -182,7 +182,7 @@ class PerformanceDetectionTest(TestCase):
 
         default_settings = get_detection_settings(self.project)
 
-        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 90
         assert (
             default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
         )
@@ -191,9 +191,12 @@ class PerformanceDetectionTest(TestCase):
         assert (
             default_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 500 * 1024
         )
-        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 500
+        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 300
         assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 100
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
+        assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
+        assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
+        assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 900
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
@@ -205,6 +208,8 @@ class PerformanceDetectionTest(TestCase):
             "db_on_main_thread_duration_threshold": 50,
             "file_io_on_main_thread_duration_threshold": 33,
             "consecutive_db_min_time_saved_threshold": 500,
+            "n_plus_one_api_calls_total_duration_threshold": 500,
+            "consecutive_http_spans_min_time_saved_threshold": 1000,
         }
 
         configured_settings = get_detection_settings(self.project)
@@ -212,6 +217,7 @@ class PerformanceDetectionTest(TestCase):
         assert (
             configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
         )
+        assert configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 500
         assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
         assert (
             configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"]
@@ -228,6 +234,7 @@ class PerformanceDetectionTest(TestCase):
         assert configured_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 50
         assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 33
         assert configured_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 500
+        assert configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 1000
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
@@ -467,32 +474,22 @@ class PerformanceDetectionTest(TestCase):
             )
             in incr_mock.mock_calls
         )
-        assert (
-            call(
-                "performance.performance_issue.detected",
-                instance="True",
-                tags={
-                    "sdk_name": "sentry.javascript.react",
-                    "consecutive_db": False,
-                    "large_http_payload": False,
-                    "consecutive_http": False,
-                    "consecutive_http_ext": False,
-                    "slow_db_query": False,
-                    "render_blocking_assets": False,
-                    "n_plus_one_db": False,
-                    "n_plus_one_db_ext": False,
-                    "file_io_main_thread": False,
-                    "db_main_thread": False,
-                    "n_plus_one_api_calls": False,
-                    "n_plus_one_api_calls_ext": False,
-                    "m_n_plus_one_db": False,
-                    "uncompressed_assets": True,
-                    "browser_name": "Chrome",
-                    "is_early_adopter": False,
-                },
-            )
-            in incr_mock.mock_calls
-        )
+        detection_calls = [
+            call
+            for call in incr_mock.mock_calls
+            if call.args[0] == "performance.performance_issue.detected"
+        ]
+        assert len(detection_calls) == 1
+        tags = detection_calls[0].kwargs["tags"]
+
+        assert tags["uncompressed_assets"]
+        assert tags["sdk_name"] == "sentry.javascript.react"
+        assert not tags["is_early_adopter"]
+        assert tags["browser_name"] == "Chrome"
+
+        # Ensure all other detections are set to false in tags
+        pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
+        assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
 @region_silo_test

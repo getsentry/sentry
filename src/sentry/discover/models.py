@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
@@ -67,7 +67,7 @@ class DiscoverSavedQuery(Model):
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
     def set_projects(self, project_ids):
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)):
             DiscoverSavedQueryProject.objects.filter(discover_saved_query=self).exclude(
                 project__in=project_ids
             ).delete()

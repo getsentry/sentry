@@ -65,7 +65,7 @@ OPTION_KEYS = frozenset(
 )
 
 
-class ProjectOptionManager(OptionManager["Project"]):
+class ProjectOptionManager(OptionManager["ProjectOption"]):
     def get_value_bulk(self, instances: Sequence[Project], key: str) -> Mapping[Project, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)

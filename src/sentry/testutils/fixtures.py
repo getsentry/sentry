@@ -120,6 +120,9 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_user_auth_token(self, *args, **kwargs):
+        return Factories.create_user_auth_token(*args, **kwargs)
+
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
 
@@ -269,6 +272,9 @@ class Fixtures:
     def create_internal_integration_token(self, *args, **kwargs):
         return Factories.create_internal_integration_token(*args, **kwargs)
 
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
+
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
@@ -322,6 +328,9 @@ class Fixtures:
         return self.create_incident_activity(
             incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
         )
+
+    def create_incident_trigger(self, incident, alert_rule_trigger, status):
+        return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
 
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
@@ -401,7 +410,8 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            user = organization.get_default_owner()
+            with assume_test_silo_mode(SiloMode.REGION):
+                user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(
             organization=organization, external_id=external_id, **kwargs
@@ -442,6 +452,9 @@ class Fixtures:
 
     def create_organization_mapping(self, *args, **kwargs):
         return Factories.create_org_mapping(*args, **kwargs)
+
+    def create_basic_auth_header(self, *args, **kwargs):
+        return Factories.create_basic_auth_header(*args, **kwargs)
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)

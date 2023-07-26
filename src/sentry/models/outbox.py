@@ -16,6 +16,7 @@ from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -82,6 +83,10 @@ class OutboxCategory(IntEnum):
     ORGAUTHTOKEN_UPDATE = 16
     PROVISION_ORGANIZATION = 17
     PROVISION_SUBSCRIPTION = 18
+    SEND_MODEL_SIGNAL = 19
+    DISABLE_AUTH_PROVIDER = 20
+    RESET_IDP_FLAGS = 21
+    MARK_INVALID_SSO = 22
 
     @classmethod
     def as_choices(cls):
@@ -106,6 +111,8 @@ class WebhookProviderIdentifier(IntEnum):
     BITBUCKET = 5
     VSTS = 6
     JIRA_SERVER = 7
+    GITHUB_ENTERPRISE = 8
+    BITBUCKET_SERVER = 9
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -117,6 +124,15 @@ def _ensure_not_null(k: str, v: Any) -> Any:
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
+
+    @classmethod
+    def from_outbox_name(cls, name: str) -> Type[Self]:
+        from django.apps import apps
+
+        app_name, model_name = name.split(".")
+        outbox_model = apps.get_model(app_name, model_name)
+        assert issubclass(outbox_model, cls)
+        return outbox_model
 
     @classmethod
     def next_object_identifier(cls):
@@ -308,8 +324,7 @@ class OutboxBase(Model):
 
 
 # Outboxes bound from region silo -> control silo
-@region_silo_only_model
-class RegionOutbox(OutboxBase):
+class RegionOutboxBase(OutboxBase):
     def send_signal(self):
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -322,6 +337,14 @@ class RegionOutbox(OutboxBase):
     sharding_columns = ("shard_scope", "shard_identifier")
     coalesced_columns = ("shard_scope", "shard_identifier", "category", "object_identifier")
 
+    class Meta:
+        abstract = True
+
+    __repr__ = sane_repr(*coalesced_columns)
+
+
+@region_silo_only_model
+class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -340,20 +363,9 @@ class RegionOutbox(OutboxBase):
             ("shard_scope", "shard_identifier", "id"),
         )
 
-    @classmethod
-    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
-        """
-        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
-        semantic of creating and instance to invoke `drain_shard` on.
-        """
-        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
-
-    __repr__ = sane_repr(*coalesced_columns)
-
 
 # Outboxes bound from control silo -> region silo
-@control_silo_only_model
-class ControlOutbox(OutboxBase):
+class ControlOutboxBase(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
         "region_name",
@@ -376,28 +388,12 @@ class ControlOutbox(OutboxBase):
         )
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_controloutbox"
-        index_together = (
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
-            ),
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
-            ),
-            ("region_name", "shard_scope", "shard_identifier", "id"),
-        )
+        abstract = True
 
     __repr__ = sane_repr(*coalesced_columns)
 
-    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+    @classmethod
+    def get_webhook_payload_from_request(cls, request: HttpRequest) -> OutboxWebhookPayload:
         return OutboxWebhookPayload(
             method=request.method,
             path=request.get_full_path(),
@@ -435,16 +431,27 @@ class ControlOutbox(OutboxBase):
             result.payload = dataclasses.asdict(payload)
             yield result
 
-    @classmethod
-    def for_shard(
-        cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int, region_name: str
-    ) -> _T:
-        """
-        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
-        semantic of creating and instance to invoke `drain_shard` on.
-        """
-        return cls(
-            shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
+
+@control_silo_only_model
+class ControlOutbox(ControlOutboxBase):
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_controloutbox"
+        index_together = (
+            (
+                "region_name",
+                "shard_scope",
+                "shard_identifier",
+                "category",
+                "object_identifier",
+            ),
+            (
+                "region_name",
+                "shard_scope",
+                "shard_identifier",
+                "scheduled_for",
+            ),
+            ("region_name", "shard_scope", "shard_identifier", "id"),
         )
 
 

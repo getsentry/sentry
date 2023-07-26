@@ -4,6 +4,8 @@ import collections
 from itertools import zip_longest
 from typing import Any, Generator, Iterable, Iterator, MutableMapping
 
+from sentry.replays.validators import VALID_FIELD_SET
+
 
 def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
@@ -116,7 +118,7 @@ def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
 
 
 def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
-    return {
+    archived_replay_response = {
         "id": _strip_dashes(replay_id),
         "project_id": str(project_id),
         "trace_ids": [],
@@ -130,12 +132,25 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "device": {"name": None, "brand": None, "model": None, "family": None},
         "urls": None,
         "activity": None,
+        "count_dead_clicks": None,
+        "count_rage_clicks": None,
         "count_errors": None,
         "duration": None,
         "finished_at": None,
         "started_at": None,
         "is_archived": True,
+        "count_segments": None,
+        "count_urls": None,
+        "dist": None,
+        "platform": None,
+        "releases": None,
+        "clicks": None,
     }
+    for field in VALID_FIELD_SET:
+        if field not in archived_replay_response:
+            archived_replay_response[field] = None
+
+    return archived_replay_response
 
 
 CLICK_FIELD_MAP = {

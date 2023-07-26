@@ -22,14 +22,20 @@ import {
   renderHeadCell,
   SORTABLE_FIELDS,
 } from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {
+  SpanIndexedFields,
+  SpanIndexedFieldTypes,
+  SpanMetricsFields,
+  SpanMetricsFieldTypes,
+} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_OP} = SpanMetricsFields;
 
 type Row = {
   metrics: SpanTransactionMetrics;
@@ -39,7 +45,10 @@ type Row = {
 
 type Props = {
   sort: ValidSort;
-  span: Pick<IndexedSpan, 'group'>;
+  span: Pick<
+    SpanMetricsFieldTypes,
+    SpanMetricsFields.SPAN_GROUP | SpanMetricsFields.SPAN_OP
+  >;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
@@ -68,7 +77,7 @@ export function SpanTransactionsTable({
     meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span, {
+  } = useSpanTransactionMetrics(span[SpanMetricsFields.SPAN_GROUP], {
     transactions: endpoint ? [endpoint] : undefined,
     sorts: [sort],
   });
@@ -150,7 +159,10 @@ type CellProps = {
   column: TableColumnHeader;
   location: Location;
   row: Row;
-  span: Pick<IndexedSpan, 'group'>;
+  span: Pick<
+    SpanMetricsFieldTypes,
+    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_GROUP
+  >;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransactionName?: (row: Row) => void;
@@ -165,7 +177,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
     <Fragment>
       <Link
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span.group
+          span[SpanMetricsFields.SPAN_GROUP]
         )}?${qs.stringify({
           ...location.query,
           endpoint,
@@ -180,30 +192,25 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] => [
+const getColumnOrder = (
+  span: Pick<
+    SpanIndexedFieldTypes,
+    SpanIndexedFields.SPAN_GROUP | SpanIndexedFields.SPAN_OP
+  >
+): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps()',
-    name: DataTitles.throughput,
+    key: 'spm()',
+    name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps_percent_change()',
-    name: DataTitles.change,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
-    name: DataTitles.p95,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
-    name: DataTitles.change,
+    key: `avg(${SpanMetricsFields.SPAN_SELF_TIME})`,
+    name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
   ...(span?.['span.op']?.startsWith('http')
@@ -211,11 +218,6 @@ const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] =
         {
           key: `http_error_count()`,
           name: DataTitles.errorCount,
-          width: COL_WIDTH_UNDEFINED,
-        },
-        {
-          key: `http_error_count_percent_change()`,
-          name: DataTitles.change,
           width: COL_WIDTH_UNDEFINED,
         },
       ] as TableColumnHeader[])

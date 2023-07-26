@@ -71,7 +71,11 @@ describe('ResolveActions', function () {
       expect(button).toHaveTextContent('');
 
       await userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({status: 'unresolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'unresolved',
+        statusDetails: {},
+        substatus: 'ongoing',
+      });
     });
   });
 
@@ -98,7 +102,11 @@ describe('ResolveActions', function () {
       render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith({status: 'resolved', statusDetails: {}});
+      expect(spy).toHaveBeenCalledWith({
+        status: 'resolved',
+        statusDetails: {},
+        substatus: null,
+      });
     });
   });
 
@@ -151,6 +159,38 @@ describe('ResolveActions', function () {
       statusDetails: {
         inRelease: 'sentry-android-shop@1.2.0',
       },
+      substatus: null,
     });
+  });
+
+  it('displays the current release version', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@1.2.3'}}
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current release (1.2.3)')).toBeInTheDocument();
+  });
+
+  it('displays if the current release version uses semver', async function () {
+    const organization = TestStubs.Organization({features: ['issue-release-semver']});
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease
+        projectSlug="proj-1"
+        latestRelease={{version: 'frontend@1.2.3'}}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(screen.getByText('The current release')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
   });
 });

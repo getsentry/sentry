@@ -29,6 +29,7 @@ class SelectRequester(Mediator):
     uri = Param(str)
     query = Param(str, required=False)
     dependent_data = Param(str, required=False)
+    using = None
 
     def call(self):
         return self._make_request()

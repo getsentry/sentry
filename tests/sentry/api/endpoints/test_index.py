@@ -1,5 +1,3 @@
-from base64 import b64encode
-
 from django.urls import reverse
 
 from sentry.models import ApiKey, ApiToken
@@ -29,7 +27,8 @@ class ApiIndexTest(APITestCase):
         key = ApiKey.objects.create(organization_id=org.id)
         url = reverse("sentry-api-index")
         response = self.client.get(
-            url, HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode())
+            url,
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
         )
         assert response.status_code == 200
         assert response.data["version"] == "0"

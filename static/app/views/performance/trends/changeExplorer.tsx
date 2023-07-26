@@ -3,13 +3,19 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {Button} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconFire} from 'sentry/icons';
+import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {
@@ -19,6 +25,7 @@ import {
   TrendsStats,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
@@ -50,8 +57,13 @@ type ExplorerBodyProps = {
 };
 
 type HeaderProps = {
+  organization: Organization;
+  projects: Project[];
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
+  trendFunction: string;
+  trendParameter: TrendParameter;
+  trendView: TrendView;
 };
 
 export function PerformanceChangeExplorer({
@@ -100,6 +112,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
     isLoading,
     location,
     organization,
+    projects,
   } = props;
   const breakpointDate = transaction.breakpoint
     ? moment(transaction.breakpoint * 1000).format('ddd, DD MMM YYYY HH:mm:ss z')
@@ -109,7 +122,15 @@ function ExplorerBody(props: ExplorerBodyProps) {
   const end = moment(trendView.end).format('DD MMM YYYY HH:mm:ss z');
   return (
     <Fragment>
-      <Header transaction={transaction} trendChangeType={trendChangeType} />
+      <Header
+        transaction={transaction}
+        trendChangeType={trendChangeType}
+        trendView={trendView}
+        projects={projects}
+        organization={organization}
+        trendFunction={trendFunction}
+        trendParameter={trendParameter}
+      />
       <div style={{display: 'flex', gap: space(4)}}>
         <InfoItem
           label={
@@ -164,9 +185,25 @@ function InfoItem({label, value}: {label: string; value: string}) {
 }
 
 function Header(props: HeaderProps) {
-  const {transaction, trendChangeType} = props;
+  const {
+    transaction,
+    trendChangeType,
+    trendView,
+    projects,
+    organization,
+    trendFunction,
+    trendParameter,
+  } = props;
 
   const regression = trendChangeType === TrendChangeType.REGRESSION;
+  const transactionSummaryLink = getTransactionSummaryLink(
+    trendView,
+    transaction,
+    projects,
+    organization,
+    trendFunction,
+    trendParameter
+  );
 
   return (
     <HeaderWrapper data-test-id="pce-header">
@@ -177,10 +214,42 @@ function Header(props: HeaderProps) {
         <ChangeType regression={regression}>
           {regression ? t('Ongoing Regression') : t('Ongoing Improvement')}
         </ChangeType>
-        <TransactionName>{transaction.transaction}</TransactionName>
+        <TransactionNameWrapper>
+          <TransactionName>{transaction.transaction}</TransactionName>
+          <ViewTransactionButton
+            borderless
+            to={normalizeUrl(transactionSummaryLink)}
+            icon={<IconOpen />}
+            aria-label={t('View transaction summary')}
+          />
+        </TransactionNameWrapper>
       </HeaderTextWrapper>
     </HeaderWrapper>
   );
+}
+
+function getTransactionSummaryLink(
+  eventView: TrendView,
+  transaction: NormalizedTrendsTransaction,
+  projects: Project[],
+  organization: Organization,
+  currentTrendFunction: string,
+  trendParameter: TrendParameter
+) {
+  const summaryView = eventView.clone();
+  const projectID = getTrendProjectId(transaction, projects);
+  const target = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: String(transaction.transaction),
+    query: summaryView.generateQueryStringObject(),
+    projectID,
+    display: DisplayModes.TREND,
+    trendFunction: currentTrendFunction,
+    additionalQuery: {
+      trendParameter: trendParameter.column,
+    },
+  });
+  return target;
 }
 
 const PanelBodyWrapper = styled('div')`
@@ -214,8 +283,23 @@ const FireIcon = styled('div')<ChangeTypeProps>`
 
 const TransactionName = styled('h4')`
   margin-right: ${space(1)};
+  margin-bottom: ${space(0)};
   ${p => p.theme.overflowEllipsis};
 `;
+
+const TransactionNameWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(3)};
+  width: fit-content;
+`;
+
+const ViewTransactionButton = styled(Button)`
+  padding: ${space(0)};
+  height: min-content;
+  min-height: 0px;
+`;
+
 const InfoLabel = styled('strong')`
   color: ${p => p.theme.gray300};
 `;

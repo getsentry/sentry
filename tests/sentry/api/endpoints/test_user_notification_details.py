@@ -12,7 +12,7 @@ class UserNotificationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
     def test_lookup_self(self):
         self.get_success_response("me")
@@ -75,7 +75,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
         assert response.data.get("subscribeByDefault") is False
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
@@ -99,6 +99,17 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
             user_id=self.user.id,
         )
         assert value == NotificationSettingOptionValues.ALWAYS
+
+    # def test_save_approvals(self):
+    #     data = {"approval": {"user": {"me": {"email": "always"}}}}
+    #
+    #     self.get_success_response("me", **data)
+    #     value = NotificationSetting.objects.get_settings(
+    #         ExternalProviders.EMAIL,
+    #         NotificationSettingTypes.APPROVAL,
+    #         user_id=self.user.id,
+    #     )
+    #     assert value == NotificationSettingOptionValues.ALWAYS
 
     def test_saves_and_returns_values_when_defaults_present(self):
         NotificationSetting.objects.update_settings(

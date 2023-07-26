@@ -75,10 +75,24 @@ export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFram
   return Boolean(frame && 'category' in frame && frame.category === 'issue');
 }
 
-export function frameOpOrCategory(frame: ReplayFrame) {
+export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  return frame.data.endReason === 'timeout';
+}
+
+export function isDeadRageClick(frame: SlowClickFrame) {
+  return Boolean(
+    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+  );
+}
+
+export function isRageClick(frame: MultiClickFrame) {
+  return frame.data.clickCount >= 5;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;

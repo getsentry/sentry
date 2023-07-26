@@ -2,7 +2,7 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
@@ -270,6 +270,8 @@ def schedule_invalidate_project_config(
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
     """
+    from sentry.models import Project
+
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ):
@@ -283,7 +285,8 @@ def schedule_invalidate_project_config(
                 project_id=project_id,
                 public_key=public_key,
                 countdown=countdown,
-            )
+            ),
+            router.db_for_write(Project),
         )
 
 

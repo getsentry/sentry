@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -181,7 +181,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        with transaction.atomic():
+                        with transaction.atomic(router.db_for_write(OrganizationMember)):
                             member.regenerate_token()
                             member.save()
                     else:
@@ -274,7 +274,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
         ]
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
             # If the member has any existing team roles that are less than or equal
             # to their new minimum role, overwrite the redundant team roles with
             # null. We do this because such a team role would be effectively
@@ -352,7 +352,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         audit_data = member.get_audit_log_data()
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(Project)):
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
             proj_list = list(

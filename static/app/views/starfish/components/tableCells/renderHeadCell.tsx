@@ -20,14 +20,12 @@ type Options = {
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const SORTABLE_FIELDS = new Set([
+  `avg(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
-  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
   'sps()',
-  'sps_percent_change()',
+  'spm()',
   'time_spent_percentage()',
-  'time_spent_percentage(local)',
   'http_error_count()',
-  'http_error_count_percent_change()',
 ]);
 
 export const renderHeadCell = ({column, location, sort}: Options) => {
@@ -62,7 +60,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
   );
 };
 
-const getAlignment = (key: string): Alignments => {
+export const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
   if (result) {
     const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);

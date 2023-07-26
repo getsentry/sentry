@@ -32,9 +32,7 @@ def issue_search_query_to_conditions(
     from sentry.utils.snuba import resolve_column, resolve_conditions
 
     dataset = (
-        Dataset.Events
-        if group.issue_category == GroupCategory.ERROR.value
-        else Dataset.IssuePlatform
+        Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
     )
 
     # syntactically correct search filters

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
-
-from django.utils import timezone
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
@@ -16,6 +14,7 @@ BITBUCKET_IP_IN_RANGE = "104.192.143.10"
 BITBUCKET_IP = "34.198.178.64"
 
 
+@region_silo_test(stable=True)
 class WebhookBaseTest(APITestCase):
     endpoint = "sentry-extensions-bitbucket-webhook"
 
@@ -67,11 +66,13 @@ class WebhookBaseTest(APITestCase):
         )
 
 
+@region_silo_test(stable=True)
 class WebhookGetTest(WebhookBaseTest):
     def test_get_request_fails(self):
         self.get_error_response(self.organization_id, status_code=405)
 
 
+@region_silo_test(stable=True)
 class WebhookTest(WebhookBaseTest):
     method = "post"
 
@@ -107,7 +108,7 @@ class WebhookTest(WebhookBaseTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 

@@ -2,7 +2,7 @@ import logging
 from typing import cast
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.adoption import manager
@@ -205,7 +205,7 @@ class FeatureAdoptionManager(BaseManager):
             )
 
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(FeatureAdoption)):
                 self.bulk_create(features)
         except IntegrityError:
             # This can occur if redis somehow loses the set of complete features and

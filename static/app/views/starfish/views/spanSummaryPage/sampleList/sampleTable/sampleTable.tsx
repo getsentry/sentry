@@ -33,10 +33,10 @@ function SampleTable({
   transactionMethod,
 }: Props) {
   const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    'api.starfish.span-summary-panel-samples-table-avg'
   );
   const organization = useOrganization();
 
@@ -45,6 +45,7 @@ function SampleTable({
   const {
     data: spans,
     isFetching: isFetchingSamples,
+    isEnabled: isSamplesEnabled,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -56,10 +57,11 @@ function SampleTable({
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
+    isEnabled: isTransactionsEnabled,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
-    'span-summary-panel-samples-table-transactions'
+    'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
   const [loadedSpans, setLoadedSpans] = useState(false);
@@ -91,7 +93,8 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    (!areNoSamples && isFetchingTransactions);
+    !isSamplesEnabled ||
+    (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
     setPageError(t('An error has occured while loading the samples table'));
@@ -115,7 +118,7 @@ function SampleTable({
             };
           })}
           isLoading={isLoading}
-          p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+          avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
         />
       </VisuallyCompleteWithData>
       <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>

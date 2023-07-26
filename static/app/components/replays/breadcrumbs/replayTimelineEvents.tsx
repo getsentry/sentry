@@ -7,7 +7,7 @@ import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {getColor} from 'sentry/utils/replays/frame';
+import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
@@ -97,16 +97,32 @@ function Event({
     }
   `;
 
-  // If we have more than 3 events we want to make sure of showing all the different colors that we have
-  const uniqueColors = uniq(frames.map(getColor));
+  // We want to show the full variety of colors available.
+  const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
   // We just need to stack up to 3 times
-  const frameCount = Math.min(frames.length, 3);
+  const frameCount = Math.min(uniqueColors.length, 3);
+
+  // Sort the frame colors by color priority
+  // Priority order: red300, yellow300, green300, purple300, gray300
+  const sortedUniqueColors = uniqueColors.sort(function (x, y) {
+    const colorOrder: Color[] = [
+      'red300',
+      'yellow300',
+      'green300',
+      'purple300',
+      'gray300',
+    ];
+    function getColorPos(c: Color) {
+      return colorOrder.indexOf(c);
+    }
+    return getColorPos(x) - getColorPos(y);
+  });
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        <IconNode colors={uniqueColors} frameCount={frameCount} />
+        <IconNode colors={sortedUniqueColors} frameCount={frameCount} />
       </IconNodeTooltip>
     </IconPosition>
   );

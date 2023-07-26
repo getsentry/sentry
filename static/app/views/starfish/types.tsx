@@ -3,11 +3,17 @@ import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 
+export enum StarfishType {
+  BACKEND = 'backend',
+  MOBILE = 'mobile',
+  FRONTEND = 'frontend',
+}
+
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
-  NONE = 'none',
   ALL = '',
+  OTHER = 'other',
 }
 
 export enum SpanMetricsFields {
@@ -21,6 +27,17 @@ export enum SpanMetricsFields {
   SPAN_SELF_TIME = 'span.self_time',
 }
 
+export type SpanMetricsFieldTypes = {
+  [SpanMetricsFields.SPAN_OP]: string;
+  [SpanMetricsFields.SPAN_DESCRIPTION]: string;
+  [SpanMetricsFields.SPAN_MODULE]: string;
+  [SpanMetricsFields.SPAN_ACTION]: string;
+  [SpanMetricsFields.SPAN_DOMAIN]: string;
+  [SpanMetricsFields.SPAN_GROUP]: string;
+  [SpanMetricsFields.SPAN_SELF_TIME]: number;
+  [SpanMetricsFields.SPAN_DURATION]: number;
+};
+
 export enum SpanIndexedFields {
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group',
@@ -30,28 +47,38 @@ export enum SpanIndexedFields {
   ID = 'span_id',
   SPAN_ACTION = 'span.action',
   TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_METHOD = 'transaction.method',
+  TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
-  GROUP = 'span.group',
   PROJECT = 'project',
-}
-
-export enum StarfishFunctions {
-  SPS = 'sps',
-  SPS_PERCENENT_CHANGE = 'sps_percent_change',
-  TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
-  HTTP_ERROR_COUNT = 'http_error_count',
 }
 
 export type SpanIndexedFieldTypes = {
   [SpanIndexedFields.SPAN_SELF_TIME]: number;
-  [SpanIndexedFields.TIMESTAMP]: string;
+  [SpanIndexedFields.SPAN_GROUP]: string;
+  [SpanIndexedFields.SPAN_MODULE]: string;
+  [SpanIndexedFields.SPAN_DESCRIPTION]: string;
+  [SpanIndexedFields.SPAN_OP]: string;
+  [SpanIndexedFields.ID]: string;
   [SpanIndexedFields.SPAN_ACTION]: string;
   [SpanIndexedFields.TRANSACTION_ID]: string;
+  [SpanIndexedFields.TRANSACTION_METHOD]: string;
+  [SpanIndexedFields.TRANSACTION_OP]: string;
   [SpanIndexedFields.SPAN_DOMAIN]: string;
+  [SpanIndexedFields.TIMESTAMP]: string;
   [SpanIndexedFields.PROJECT]: string;
-  [SpanIndexedFields.ID]: string;
 };
+
+export type Op = SpanIndexedFieldTypes[SpanIndexedFields.SPAN_OP];
+
+export enum StarfishFunctions {
+  SPS = 'sps',
+  SPM = 'spm',
+  SPS_PERCENENT_CHANGE = 'sps_percent_change',
+  TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
+  HTTP_ERROR_COUNT = 'http_error_count',
+}
 
 export const StarfishDatasetFields = {
   [DiscoverDatasets.SPANS_METRICS]: SpanIndexedFields,
@@ -64,6 +91,12 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
 > = {
   [StarfishFunctions.SPS]: {
     desc: t('Spans per second'),
+    kind: FieldKind.FUNCTION,
+    defaultOutputType: 'number',
+    valueType: FieldValueType.NUMBER,
+  },
+  [StarfishFunctions.SPM]: {
+    desc: t('Spans per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,

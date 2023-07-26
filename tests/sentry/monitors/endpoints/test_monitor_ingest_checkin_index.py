@@ -359,6 +359,25 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert resp.status_code == 403
             assert "MonitorEnvironmentLimitsExceeded" in resp.data.keys()
 
+    def test_monitor_environment_validation(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            invalid_name = "x" * 65
+
+            resp = self.client.post(
+                path,
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                    "environment": f"environment-{invalid_name}",
+                },
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 403
+            assert "MonitorEnvironmentValidationFailed" in resp.data.keys()
+
     def test_with_dsn_auth_and_guid(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()

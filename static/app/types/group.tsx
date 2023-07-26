@@ -1,5 +1,6 @@
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -132,7 +133,10 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
-  values?: string[];
+  /**
+   * Usually values are strings, but a predefined tag can define its SearchGroups
+   */
+  values?: string[] | SearchGroup[];
 };
 
 export type TagCollection = Record<string, Tag>;
@@ -325,14 +329,31 @@ interface GroupActivityMarkReviewed extends GroupActivityBase {
 
 interface GroupActivityRegression extends GroupActivityBase {
   data: {
+    /**
+     * True if the project is using semver to decide if the event is a regression.
+     * Available when the issue was resolved in a release.
+     */
+    follows_semver?: boolean;
+    /**
+     * The version that the issue was previously resolved in.
+     * Available when the issue was resolved in a release.
+     */
+    resolved_in_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_REGRESSION;
 }
 
+export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
+  data: {
+    // Set for semver releases
+    current_release_version: string;
+  };
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+}
+
 export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
-    current_release_version?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -457,6 +478,7 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
@@ -537,7 +559,7 @@ export type ResolutionStatusDetails = {
 export type GroupStatusResolution = {
   status: ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
-  substatus?: GroupSubstatus;
+  substatus: GroupSubstatus | null;
 };
 
 // TODO(ts): incomplete
@@ -593,7 +615,7 @@ export interface GroupResolution
   // A proper fix for this would be to make the status field an enum or string and correctly extend it.
   extends Omit<BaseGroup, 'status'>,
     GroupStats,
-    GroupStatusResolution {}
+    Omit<GroupStatusResolution, 'substatus'> {}
 
 export type Group = GroupResolution | GroupReprocessing;
 

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -113,13 +113,17 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
+InstanceKey = Tuple[str, str, bool]
+
+
 class FrameMatch(Match):
 
     # Global registry of matchers
-    instances = {}
+    instances: Dict[InstanceKey, Match] = {}
+    field: Any = None
 
     @classmethod
-    def from_key(cls, key, pattern, negated):
+    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
@@ -131,7 +135,7 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key, pattern, negated):
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
 
         subclass = {
             "package": PackageMatch,
@@ -269,6 +273,8 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    field_path: List[str]
+
     def matches_frame(self, frames, idx, platform, exception_data, cache):
         match_frame = None
         rv = self._positive_frame_match(match_frame, platform, exception_data, cache)

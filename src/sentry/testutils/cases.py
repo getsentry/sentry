@@ -246,6 +246,8 @@ class BaseTestCase(Fixtures):
         path="/",
         secure_scheme=False,
         subdomain=None,
+        *,
+        GET: dict[str, str] | None = None,
     ) -> HttpRequest:
         request = HttpRequest()
         if subdomain:
@@ -256,6 +258,9 @@ class BaseTestCase(Fixtures):
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
+        if GET is not None:
+            for k, v in GET.items():
+                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -286,7 +291,7 @@ class BaseTestCase(Fixtures):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         request.user = user
 
@@ -1673,7 +1678,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[int] | int,
+        value: List[float] | float,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
@@ -2261,12 +2266,15 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider_inst = AuthProviderModel(
-            organization_id=self.organization.id, provider=provider
-        )
-        self.auth_provider_inst.enable_scim(self.user)
-        self.auth_provider_inst.save()
-        self.scim_user = ApiToken.objects.get(token=self.auth_provider_inst.get_scim_token()).user
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider_inst = AuthProviderModel(
+                organization_id=self.organization.id, provider=provider
+            )
+            self.auth_provider_inst.enable_scim(self.user)
+            self.auth_provider_inst.save()
+            self.scim_user = ApiToken.objects.get(
+                token=self.auth_provider_inst.get_scim_token()
+            ).user
         self.login_as(user=self.scim_user)
 
 
@@ -2278,6 +2286,7 @@ class SCIMAzureTestCase(SCIMTestCase):
 
 
 class ActivityTestCase(TestCase):
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def another_user(self, email_string, team=None, alt_email_string=None):
         user = self.create_user(email_string)
         if alt_email_string:
@@ -2334,34 +2343,37 @@ class SlackActivityNotificationTest(ActivityTestCase):
         return mail_adapter
 
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        self.integration = install_slack(self.organization)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        self.identity = Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.WORKFLOW,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user.id,
+            )
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+            self.integration = install_slack(self.organization)
+            self.idp = IdentityProvider.objects.create(
+                type="slack", external_id="TXXXXXXX1", config={}
+            )
+            self.identity = Identity.objects.create(
+                external_id="UXXXXXXX1",
+                idp=self.idp,
+                user=self.user,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",

@@ -9,10 +9,10 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectTeam,
     Team,
     TeamStatus,
 )
+from sentry.models.projectteam import ProjectTeam
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,

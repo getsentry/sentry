@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import base64
 import logging
+import random
 import sys
 from copy import deepcopy
+from datetime import datetime
+from typing import Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -10,7 +15,9 @@ from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.utils import json, safe
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
+from sentry.models.project import Project
+from sentry.utils import json, redis, safe
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +122,26 @@ SOURCES_SCHEMA = {
     },
 }
 
+LAST_UPLOAD_TTL = 24 * 3600
+
+
+def _get_cluster():
+    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)
+
+
+def _last_upload_key(project_id: int) -> str:
+    return f"symbols:last_upload:{project_id}"
+
+
+def record_last_upload(project: Project):
+    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
+
+
+def get_last_upload(project_id: int):
+    return _get_cluster().get(_last_upload_key(project_id))
+
 
 class InvalidSourcesError(Exception):
     pass
@@ -137,7 +164,7 @@ def get_internal_url_prefix() -> str:
     return internal_url_prefix.rstrip("/")
 
 
-def get_internal_source(project):
+def get_internal_source(project: Project):
     """
     Returns the source configuration for a Sentry project.
     """
@@ -149,6 +176,13 @@ def get_internal_source(project):
         ),
     )
 
+    if last_upload := get_last_upload(project.id):
+        # Adding a random query string parameter here makes sure that the
+        # Symbolicator-internal `list_files` cache that is querying this API
+        # is not being hit. This means that uploads will be immediately visible
+        # to Symbolicator, and not depending on its internal cache TTL.
+        sentry_source_url += f"?_last_upload={last_upload}"
+
     return {
         "type": "sentry",
         "id": INTERNAL_SOURCE_NAME,
@@ -157,7 +191,7 @@ def get_internal_source(project):
     }
 
 
-def get_internal_artifact_lookup_source_url(project):
+def get_internal_artifact_lookup_source_url(project: Project):
     """
     Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
@@ -173,7 +207,44 @@ def get_internal_artifact_lookup_source_url(project):
     )
 
 
-def get_internal_artifact_lookup_source(project):
+def get_bundle_index_urls(
+    project: Project, release: Optional[str], dist: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
+    if options.get("symbolicator.sourcemaps-bundle-index-sample-rate") <= random.random():
+        return (None, None)
+
+    base_url = get_internal_artifact_lookup_source_url(project)
+
+    def make_download_url(bundle: ArtifactBundleFlatFileIndex):
+        # TODO: do we want to also auto-expire and refresh the `ArtifactBundleFlatFileIndex`?
+
+        timestamp = int(bundle.date_added.timestamp() * 1000)
+        # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
+        # and it is also used as the the download key for the artifact-lookup API.
+        # The artifact-lookup API will ignore the additional timestamp on download.
+
+        return f"{base_url}?download=bundle_index/{bundle.id}/{timestamp}"
+
+    # We query the empty release/dist which is a marker for the debug-id index,
+    # as well as the normal release index if we have a release.
+    debug_id_index = ArtifactBundleFlatFileIndex.objects.filter(
+        project_id=project.id, release_name=NULL_STRING, dist_name=NULL_STRING
+    ).first()
+    if debug_id_index:
+        debug_id_index = make_download_url(debug_id_index)
+
+    url_index = None
+    if release:
+        url_index = ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=project.id, release_name=release, dist_name=dist or NULL_STRING
+        ).first()
+    if url_index:
+        url_index = make_download_url(url_index)
+
+    return debug_id_index, url_index
+
+
+def get_internal_artifact_lookup_source(project: Project):
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
@@ -185,7 +256,7 @@ def get_internal_artifact_lookup_source(project):
     }
 
 
-def is_internal_source_id(source_id):
+def is_internal_source_id(source_id: str):
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 
     This is trivial, but multiple functions in this file need to use the same definition.

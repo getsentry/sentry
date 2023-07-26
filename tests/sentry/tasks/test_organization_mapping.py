@@ -13,7 +13,7 @@ from sentry.testutils.factories import Factories
 
 @pytest.fixture(autouse=True)
 def role_override():
-    with unguarded_write():
+    with unguarded_write(using=router.db_for_write(OrganizationMapping)):
         yield
 
 

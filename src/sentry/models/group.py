@@ -202,7 +202,6 @@ class EventOrdering(Enum):
         "-replayId",
         "-profile.id",
         "num_processing_errors",
-        "-trace.sampled",
         "-timestamp",
     ]
 
@@ -241,17 +240,17 @@ def get_oldest_or_latest_event_for_environments(
 def get_replay_count_for_group(group: Group) -> int:
     events = eventstore.backend.get_events(
         filter=eventstore.Filter(
-            conditions=[["replayId", "!=", None]],
+            conditions=[["replay_id", "IS NOT NULL", None]],
             project_ids=[group.project_id],
             group_ids=[group.id],
         ),
         limit=1,
-        orderby=EventOrdering.MOST_HELPFUL,
+        orderby=EventOrdering.MOST_HELPFUL.value,
         referrer="Group.get_replay_count_for_group",
         dataset=Dataset.Events,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    return events
+    return len(events)
 
 
 def get_helpful_event_for_environments(
@@ -411,8 +410,8 @@ class GroupManager(BaseManager):
     def update_group_status(
         self,
         groups: Sequence[Group],
-        status: GroupStatus,
-        substatus: GroupSubStatus | None,
+        status: int,
+        substatus: int | None,
         activity_type: ActivityType,
         activity_data: Optional[Mapping[str, Any]] = None,
         send_activity_notification: bool = True,
@@ -532,7 +531,7 @@ class Group(Model):
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
@@ -551,6 +550,7 @@ class Group(Model):
             ("project", "status", "type", "last_seen", "id"),
             ("project", "status", "substatus", "last_seen", "id"),
             ("project", "status", "substatus", "type", "last_seen", "id"),
+            ("project", "status", "substatus", "id"),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -687,7 +687,11 @@ class Group(Model):
             self,
             conditions,
         )
-        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event_for_environments([env.name for env in environments])
+        )
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release

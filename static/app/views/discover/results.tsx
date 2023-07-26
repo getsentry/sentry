@@ -57,6 +57,7 @@ import {addRoutePerformanceContext} from '../performance/utils';
 import {DEFAULT_EVENT_VIEW} from './data';
 import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
+import {SampleDataAlert} from './sampleDataAlert';
 import Table from './table';
 import Tags from './tags';
 import {generateTitle} from './utils';
@@ -620,6 +621,7 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
+                {!query.includes('event.type:error') && <SampleDataAlert />}
                 <MetricsCardinalityProvider
                   organization={organization}
                   location={location}
