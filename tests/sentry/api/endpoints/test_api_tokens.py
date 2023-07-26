@@ -31,6 +31,38 @@ class ApiTokensListTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
+    def test_foo(self):
+        sentry_app_api_token = ApiToken.objects.create(user=self.user, scope_list=[])
+        ApiToken.objects.create(
+            user=self.user,
+            scope_list=[
+                "project:read",
+                "project:write",
+                "project:admin",
+                "project:releases",
+                "team:read",
+                "team:write",
+                "team:admin",
+                "event:read",
+                "event:write",
+                "event:admin",
+                "org:read",
+                "org:write",
+                "org:admin",
+                "member:read",
+                "member:write",
+                "member:admin",
+            ],
+        )
+
+        # self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {sentry_app_api_token.token}"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
 
 @control_silo_test(stable=True)
 class ApiTokensCreateTest(APITestCase):

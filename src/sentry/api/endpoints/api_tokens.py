@@ -12,11 +12,17 @@ from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ApiToken
+from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.security import capture_security_activity
 
 
-class ApiTokenSerializer(serializers.Serializer):
+class PostApiTokenSerializer(serializers.Serializer):
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
+
+
+def show_auth_info(token: ApiToken, access):
+    encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
+    return set(token.scope_list).issubset(encoded_scopes)
 
 
 @control_silo_endpoint
@@ -36,11 +42,16 @@ class ApiTokensEndpoint(Endpoint):
             )
         )
 
+        for token in token_list:
+            if not show_auth_info(token=token, access=request.access):
+                token.token = MASKED_VALUE
+                token.refreshToken = MASKED_VALUE
+
         return Response(serialize(token_list, request.user))
 
     @never_cache
     def post(self, request: Request) -> Response:
-        serializer = ApiTokenSerializer(data=request.data)
+        serializer = PostApiTokenSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
