@@ -18,6 +18,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    cast,
 )
 from unittest import TestCase
 
@@ -87,14 +88,14 @@ class SiloModeTestDecorator:
         return issubclass(test_class, AcceptanceTestCase)
 
     def _add_siloed_test_classes_to_module(
-        self, test_class: type, regions: Sequence[Region] | None
-    ) -> type:
+        self, test_class: Type[TestCase], regions: Sequence[Region] | None
+    ) -> Type[TestCase]:
         is_acceptance_test = self._is_acceptance_test(test_class)
         final_regions = tuple(regions or _DEFAULT_TEST_REGIONS)
         # settings: Dict[str, Any] | None = getattr(test_class, '_overridden_settings', None)
 
-        def create_overriding_test_class(name: str, silo_mode: SiloMode) -> type:
-            def decorate_with_context(callable: Callable[[...], Any]) -> Callable[[...], Any]:
+        def create_overriding_test_class(name: str, silo_mode: SiloMode) -> Type[TestCase]:
+            def decorate_with_context(callable: Callable[..., Any]) -> Callable[..., Any]:
                 def wrapper(*args, **kwds):
                     with contextlib.ExitStack() as stack:
                         stack.enter_context(
@@ -117,12 +118,18 @@ class SiloModeTestDecorator:
                 functools.update_wrapper(wrapper, callable)
                 return wrapper
 
-            return type(
-                name,
-                (test_class,),
-                dict(
-                    _callSetUp=decorate_with_context(test_class._callSetUp),
-                    _callTestMethod=decorate_with_context(test_class._callTestMethod),
+            # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
+            # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
+            # test method in order to use override_settings correctly in django test cases.
+            return cast(
+                Type[TestCase],
+                type(
+                    name,
+                    (test_class,),
+                    dict(
+                        _callSetUp=decorate_with_context(test_class._callSetUp),  # type: ignore
+                        _callTestMethod=decorate_with_context(test_class._callTestMethod),  # type: ignore
+                    ),
                 ),
             )
 
@@ -136,7 +143,6 @@ class SiloModeTestDecorator:
             setattr(module, siloed_test_class.__name__, siloed_test_class)
 
         # Return the value to be wrapped by the original decorator
-        return test_class
         return create_overriding_test_class(test_class.__name__, SiloMode.MONOLITH)
 
     def __call__(

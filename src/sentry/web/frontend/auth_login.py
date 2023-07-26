@@ -602,10 +602,12 @@ class AuthLoginView(BaseView):
             # may need to configure 2FA in which case, we don't want to make
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
-                organization: RpcOrganization = organization_service.get_default_organization()
+                default_organization: RpcOrganization = (
+                    organization_service.get_default_organization()
+                )
                 organization_service.add_organization_member(
-                    organization_id=organization.id,
-                    default_org_role=organization.default_role,
+                    organization_id=default_organization.id,
+                    default_org_role=default_organization.default_role,
                     user_id=user.id,
                 )
 
