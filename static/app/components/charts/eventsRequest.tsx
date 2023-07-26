@@ -198,6 +198,10 @@ type EventsRequestPartialProps = {
    */
   referrer?: string;
   /**
+   * Sample rate used for data extrapolation in OnDemnadMetricsRequest
+   */
+  sampleRate?: number;
+  /**
    * Should loading be shown.
    */
   showLoading?: boolean;
@@ -219,6 +223,7 @@ type EventsRequestPartialProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+
   /**
    * The yAxis being plotted. If multiple yAxis are requested,
    * the child render function will be called with `results`
@@ -240,12 +245,9 @@ interface EventsRequestPropsWithoutTimeAggregation
   timeAggregationSeriesName?: undefined;
 }
 
-export type EventsRequestProps = (
+export type EventsRequestProps =
   | EventsRequestPropsWithTimeAggregation
-  | EventsRequestPropsWithoutTimeAggregation
-) & {
-  sampleRate?: number;
-};
+  | EventsRequestPropsWithoutTimeAggregation;
 
 type EventsRequestState = {
   errored: boolean;

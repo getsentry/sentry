@@ -27,6 +27,38 @@ function applyCompensationFactor(timeseriesData, sampleRate = 1) {
 }
 
 class OnDemandMetricRequest extends EventsRequest {
+  fetchMetricsData = async () => {
+    const {api, ...props} = this.props;
+
+    try {
+      api.clear();
+
+      const timeseriesData = await doEventsRequest(api, {
+        ...props,
+        useOnDemandMetrics: true,
+      });
+
+      return timeseriesData;
+    } catch (resp) {
+      return {
+        data: [],
+        isMetricsData: false,
+      };
+    }
+  };
+
+  fetchIndexedData = async () => {
+    const {api, sampleRate, ...props} = this.props;
+
+    const timeseriesData = await doEventsRequest(api, {
+      ...props,
+      useOnDemandMetrics: false,
+      queryExtras: {dataset: DiscoverDatasets.DISCOVER},
+    });
+
+    return applyCompensationFactor(timeseriesData, sampleRate);
+  };
+
   fetchData = async () => {
     const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
@@ -54,22 +86,13 @@ class OnDemandMetricRequest extends EventsRequest {
       try {
         api.clear();
 
-        timeseriesData = await doEventsRequest(api, {
-          ...props,
-          useOnDemandMetrics: true,
-        });
+        timeseriesData = await this.fetchMetricsData();
 
         const fallbackToIndexed =
           !timeseriesData.isMetricsData || numOfEvents(timeseriesData) === 0;
 
         if (fallbackToIndexed) {
-          timeseriesData = await doEventsRequest(api, {
-            ...props,
-            useOnDemandMetrics: false,
-            queryExtras: {dataset: DiscoverDatasets.DISCOVER},
-          });
-
-          timeseriesData = applyCompensationFactor(timeseriesData, this.props.sampleRate);
+          timeseriesData = await this.fetchIndexedData();
         }
       } catch (resp) {
         if (resp && resp.responseJSON && resp.responseJSON.detail) {

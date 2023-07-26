@@ -40,7 +40,6 @@ import {
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-// import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -142,6 +141,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
 };
 
 type State = {
+  sampleRate: number;
   statsPeriod: TimePeriod;
   totalCount: number | null;
 };
@@ -154,6 +154,7 @@ class TriggersChart extends PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.SEVEN_DAYS,
     totalCount: null,
+    sampleRate: 1,
   };
 
   componentDidMount() {
@@ -174,6 +175,9 @@ class TriggersChart extends PureComponent<Props, State> {
         !isEqual(prevState.statsPeriod, statsPeriod))
     ) {
       this.fetchTotalCount();
+      if (this.props.isOnDemandMetricAlert) {
+        this.fetchSampleRate();
+      }
     }
   }
 
@@ -209,6 +213,18 @@ class TriggersChart extends PureComponent<Props, State> {
       COMPARISON_DELTA_OPTIONS.find(({value}) => value === this.props.comparisonDelta)
         ?.label || ''
     );
+  }
+
+  async fetchSampleRate() {
+    const {api, organization, projects} = this.props;
+    try {
+      const {sampleRate} = await api.requestPromise(
+        `/api/0/projects/${organization.slug}/${projects[0].slug}/dynamic-sampling/rate/`
+      );
+      this.setState({sampleRate});
+    } catch (err) {
+      this.setState({sampleRate: 1});
+    }
   }
 
   async fetchTotalCount() {
@@ -407,7 +423,7 @@ class TriggersChart extends PureComponent<Props, State> {
           currentSeriesNames={[aggregate]}
           partial={false}
           queryExtras={queryExtras}
-          sampleRate={1.0}
+          sampleRate={this.state.sampleRate}
         >
           {({
             loading,
