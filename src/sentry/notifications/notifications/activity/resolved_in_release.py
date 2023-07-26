@@ -21,12 +21,12 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
         self.version_parsed = parse_release(self.version)["description"]
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        url = self.organization.absolute_url(
-            f"/organizations/{self.organization.slug}/releases/{self.version}/",
-            query=f"project={self.project.id}",
-        )
-
         if self.version:
+            url = self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/releases/{self.version}/",
+                query=f"project={self.project.id}",
+            )
+
             return (
                 "{author} marked {an issue} as resolved in {version}",
                 {"version": self.version_parsed},
