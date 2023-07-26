@@ -26,6 +26,7 @@ from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
 from sentry.sentry_metrics.consumers.indexer.parsed_message import ParsedMessage
 from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
@@ -442,6 +443,9 @@ class IndexerBatch:
                     "value": old_payload_value["value"],
                     "sentry_received_timestamp": sentry_received_timestamp,
                 }
+                if aggregation_option := get_aggregation_option(old_payload_value["name"]):
+                    new_payload_v2["aggregation_option"] = aggregation_option.value
+
                 new_payload_value = new_payload_v2
 
             kafka_payload = KafkaPayload(
