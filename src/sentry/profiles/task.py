@@ -603,7 +603,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
         # we still need to decode signatures
-        for m in profile["methods"]:
+        for m in profile["profile"]["methods"]:
             if m.get("signature"):
                 m["signature"] = deobfuscate_signature(m["signature"])
         return
@@ -629,7 +629,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"], method["name"], method["source_line"] or 0
             )
 
-            if m.get("signature"):
+            if method.get("signature"):
                 method["signature"] = deobfuscate_signature(method["signature"], mapper)
 
             if len(mapped) >= 1:
