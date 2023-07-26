@@ -7,11 +7,11 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationProvider
+from sentry.models.integrations.integration import IntegrationMemoryMixin
 from sentry.services.hybrid_cloud import RpcModel
 
 
-class RpcIntegration(RpcModel):
+class RpcIntegration(RpcModel, IntegrationMemoryMixin):
     id: int
     provider: str
     external_id: str
@@ -21,11 +21,6 @@ class RpcIntegration(RpcModel):
 
     def __hash__(self) -> int:
         return hash(self.id)
-
-    def get_provider(self) -> IntegrationProvider:
-        from sentry import integrations
-
-        return integrations.get(self.provider)
 
     def get_status_display(self) -> str:
         for status_id, display in ObjectStatus.as_choices():

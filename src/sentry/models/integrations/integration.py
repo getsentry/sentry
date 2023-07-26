@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, Protocol, Type
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -20,7 +20,11 @@ from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.integrations import IntegrationInstallation, IntegrationProvider
+    from sentry.integrations import (
+        IntegrationFeatures,
+        IntegrationInstallation,
+        IntegrationProvider,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +38,37 @@ class IntegrationManager(BaseManager):
         )
 
 
+class IntegrationProtocol(Protocol):
+    provider: str
+
+
+class IntegrationMemoryMixin:
+    """
+    A collection of shared methods for accessing in-memory structures from
+    an Integration or RpcIntegration
+    """
+
+    def get_provider(self: IntegrationProtocol) -> Type[IntegrationProvider]:
+        from sentry import integrations
+
+        return integrations.get(self.provider)
+
+    def get_installation(
+        self: IntegrationProtocol, organization_id: int, **kwargs: Any
+    ) -> Type[IntegrationInstallation]:
+        installation = self.get_provider().get_installation(
+            model=self,
+            organization_id=organization_id,
+            **kwargs,
+        )
+        return installation
+
+    def has_feature(self: IntegrationProtocol, feature: IntegrationFeatures) -> bool:
+        return feature in self.get_provider().features
+
+
 @control_silo_only_model
-class Integration(DefaultFieldsModel):
+class Integration(DefaultFieldsModel, IntegrationMemoryMixin):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
@@ -60,11 +93,6 @@ class Integration(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_integration"
         unique_together = (("provider", "external_id"),)
-
-    def get_provider(self) -> IntegrationProvider:
-        from sentry import integrations
-
-        return integrations.get(self.provider)
 
     def delete(self, *args, **kwds):
         with outbox_context(
@@ -91,12 +119,6 @@ class Integration(DefaultFieldsModel):
             )
             for region_name in find_regions_for_orgs(org_ids)
         ]
-
-    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return self.get_provider().get_installation(self, organization_id, **kwargs)
-
-    def has_feature(self, feature):
-        return feature in self.get_provider().features
 
     def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
         """
