@@ -196,6 +196,12 @@ describe('formatAbbreviatedNumber()', function () {
     expect(formatAbbreviatedNumber('100000000000')).toBe('100b');
     expect(formatAbbreviatedNumber('1000000000000')).toBe('1000b');
   });
+
+  it('should round to 1 decimal place', function () {
+    expect(formatAbbreviatedNumber(100.12)).toBe('100.12');
+    expect(formatAbbreviatedNumber(1500)).toBe('1.5k');
+    expect(formatAbbreviatedNumber(1213122)).toBe('1.2m');
+  });
 });
 
 describe('formatFloat()', function () {

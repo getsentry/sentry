@@ -204,7 +204,7 @@ const getColumnOrder = (
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sps()',
+    key: 'spm()',
     name: getThroughputTitle(span[SPAN_OP]),
     width: COL_WIDTH_UNDEFINED,
   },

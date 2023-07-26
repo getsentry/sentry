@@ -348,7 +348,7 @@ class ProfileRegexType(GroupType):
     slug = "profile_regex_main_thread"
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
-    release = True
+    released = True
 
 
 @dataclass(frozen=True)
