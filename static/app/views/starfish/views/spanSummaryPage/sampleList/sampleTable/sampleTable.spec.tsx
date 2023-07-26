@@ -25,8 +25,11 @@ jest.mock('sentry/utils/usePageFilters', () => {
 
 describe('SampleTable', function () {
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
     initializeMockRequests();
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   describe('When all data is available', () => {
