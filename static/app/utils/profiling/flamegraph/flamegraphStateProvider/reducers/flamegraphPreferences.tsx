@@ -18,6 +18,7 @@ export interface FlamegraphPreferences {
   layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting;
   timelines: {
+    cpu_chart: boolean;
     minimap: boolean;
     transaction_spans: boolean;
     ui_frames: boolean;

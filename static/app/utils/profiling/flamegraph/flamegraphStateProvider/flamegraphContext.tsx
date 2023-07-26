@@ -22,6 +22,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
       ui_frames: true,
       minimap: true,
       transaction_spans: true,
+      cpu_chart: true,
     },
     colorCoding: 'by system vs application frame',
     sorting: 'call order',

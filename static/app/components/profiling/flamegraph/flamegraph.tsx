@@ -67,6 +67,7 @@ import {
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
+import {FlamegraphCpuChart} from './flamegraphCpuChart';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
@@ -195,6 +196,14 @@ function Flamegraph(): ReactElement {
       organization.features.includes('profiling-ui-frames')
     );
   }, [organization.features, profileGroup.metadata.platform]);
+
+  const hasCPUChart = useMemo(() => {
+    const platform = profileGroup.metadata.platform;
+    return (
+      (platform === 'cocoa' || platform === 'android') &&
+      organization.features.includes('profiling-cpu-chart')
+    );
+  }, [profileGroup.metadata.platform, organization.features]);
 
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === threadId);
@@ -863,6 +872,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
+        cpuChart={hasCPUChart ? <FlamegraphCpuChart /> : null}
         spansTreeDepth={spanChart?.depth}
         spans={
           spanChart ? (
