@@ -219,10 +219,8 @@ function SpanSummaryPage({params, location}: Props) {
                       )}
                     >
                       <TimeSpentCell
-                        timeSpentPercentage={spanMetrics?.['time_spent_percentage()']}
-                        totalSpanTime={
-                          spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]
-                        }
+                        percentage={spanMetrics?.['time_spent_percentage()']}
+                        total={spanMetrics?.[`avg(${SpanMetricsFields.SPAN_SELF_TIME})`]}
                       />
                     </Block>
                   </BlockContainer>
