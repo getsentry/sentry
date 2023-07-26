@@ -32,6 +32,9 @@ class StacktraceInfo(NamedTuple):
     def __ne__(self, other: object) -> bool:
         return self is not other
 
+    def get_frames(self) -> Sequence[dict[str, Any]]:
+        return get_path(self.stacktrace, "frames", filter=True, default=())
+
 
 class ProcessableFrame:
     def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
@@ -269,7 +272,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
 
     with sentry_sdk.start_span(op=op, description="find_stacktraces_in_data"):
         for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-            frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+            frames = stacktrace_info.get_frames()
             if frames:
                 stacktrace_frames.append(frames)
                 stacktrace_containers.append(
@@ -376,7 +379,7 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    frames = stacktrace_info.get_frames()
     frame_count = len(frames)
     rv: list[ProcessableFrame] = []
     for idx, frame in enumerate(frames):
@@ -396,7 +399,7 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
     processed_frames = []
     all_errors: list[Any] = []
 
-    bare_frames = get_path(stacktrace_info.stacktrace, "frames", filter=True, default=())
+    bare_frames = stacktrace_info.get_frames()
     frame_count = len(bare_frames)
     processable_frames = {frame.idx: frame for frame in processable_frames}
 
