@@ -251,11 +251,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           background: 'transparent',
         },
       }),
-      valueContainer: provided => ({
+      valueContainer: (provided, state) => ({
         ...provided,
         alignItems: 'center',
         paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
         paddingRight: space(0.5),
+        // offset horizontal margin/padding from multiValue (space(0.25)) &
+        // multiValueLabel (space(0.75))
+        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
       }),
       input: provided => ({
         ...provided,
@@ -279,31 +282,32 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       }),
       multiValue: provided => ({
         ...provided,
-        color: '#007eff',
-        backgroundColor: '#ebf5ff',
+        color: theme.textColor,
+        backgroundColor: theme.background,
         borderRadius: '2px',
-        border: '1px solid #c2e0ff',
+        border: `1px solid ${theme.border}`,
         display: 'flex',
+        marginLeft: space(0.25),
       }),
       multiValueLabel: provided => ({
         ...provided,
-        color: '#007eff',
+        color: theme.textColor,
         padding: '0',
-        paddingLeft: '6px',
+        paddingLeft: space(0.75),
         lineHeight: '1.8',
       }),
       multiValueRemove: () => ({
         cursor: 'pointer',
         alignItems: 'center',
-        borderLeft: '1px solid #c2e0ff',
+        borderLeft: `1px solid ${theme.innerBorder}`,
         borderRadius: '0 2px 2px 0',
         display: 'flex',
         padding: '0 4px',
         marginLeft: '4px',
 
         '&:hover': {
-          color: '#6284b9',
-          background: '#cce5ff',
+          color: theme.headingColor,
+          background: theme.backgroundTertiary,
         },
       }),
       indicatorsContainer: () => ({
