@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from django.utils import timezone
+from datetime import datetime, timezone
 
 from sentry.models import UserIP
 from sentry.testutils import APITestCase

@@ -20,7 +20,7 @@ export type SpanMetrics = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
@@ -82,7 +82,7 @@ function getEventView(
     SPAN_GROUP,
     SPAN_DESCRIPTION,
     SPAN_DOMAIN,
-    'sps()',
+    'spm()',
     `sum(${SPAN_SELF_TIME})`,
     `avg(${SPAN_SELF_TIME})`,
     'http_error_count()',

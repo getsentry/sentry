@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 from django.utils import timezone
@@ -52,7 +54,7 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
             days=0,
         ).iterator(1)
 
-        results = set()
+        results: set[int] = set()
         for chunk in iterator:
             results.update(chunk)
 

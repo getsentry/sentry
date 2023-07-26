@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from django.utils import timezone
 
 from fixtures.github_enterprise import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,

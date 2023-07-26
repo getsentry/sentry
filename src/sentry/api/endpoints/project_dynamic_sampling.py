@@ -12,6 +12,7 @@ from snuba_sdk.request import Request as SnubaRequest
 from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.dynamic_sampling.rules.base import get_guarded_blended_sample_rate
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
@@ -40,8 +41,27 @@ class DynamicSamplingPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
+class ProjectDynamicSamplingRateEndpoint(ProjectEndpoint):
+    permission_classes = (DynamicSamplingPermission,)
 
+    def get(self, request: Request, project: Project) -> Response:
+        try:
+            sample_rate = get_guarded_blended_sample_rate(project.organization, project)
+            return Response(
+                {
+                    "sampleRate": sample_rate,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {"detail": "Unable to fetch project sample rate"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+@region_silo_endpoint
+class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod

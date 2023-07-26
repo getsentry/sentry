@@ -33,10 +33,11 @@ def django_test_transaction_water_mark(using: str | None = None):
         return
 
     from sentry.testutils import hybrid_cloud  # NOQA:S007
-    from sentry.testutils.silo import assume_test_silo_mode  # NOQA:S007
 
     # Exempt get_connection call from silo validation checks
-    with assume_test_silo_mode(SiloMode.MONOLITH):
+    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+        SiloMode.MONOLITH
+    ):
         connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
