@@ -444,6 +444,7 @@ register("msteams.app-id")
 register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -914,6 +915,8 @@ register(
     "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Option to disable misbehaving use case IDs
+register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # A slow rollout option for writing "new" cache keys
 # as the transition from UseCaseKey to UseCaseID occurs
@@ -1004,7 +1007,7 @@ register(
 
 register(
     "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # per-organization limits on the number of timeseries that can be observed in
@@ -1227,12 +1230,12 @@ register(
 )
 register(
     "performance.issues.n_plus_one_db.duration_threshold",
-    default=100.0,
+    default=90.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.slow_db_query.duration_threshold",
-    default=1000.0,  # ms
+    default=900.0,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1252,12 +1255,12 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.size_threshold",
-    default=1000000,
+    default=500000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.consecutive_http.max_duration_between_spans",
-    default=1000,
+    default=500,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1267,12 +1270,17 @@ register(
 )
 register(
     "performance.issues.consecutive_http.span_duration_threshold",
-    default=1000,
+    default=900,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.consecutive_http.min_time_saved_threshold",
+    default=2000,  # ms
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.size_threshold",
-    default=1000000,
+    default=300000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 register(
@@ -1292,7 +1300,7 @@ register(
 )  # 512 kilo bytes
 register(
     "performance.issues.uncompressed_asset.duration_threshold",
-    default=500,
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 register(
@@ -1303,6 +1311,11 @@ register(
 register(
     "performance.issues.http_overhead.http_request_delay_threshold",
     default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.n_plus_one_api_calls.total_duration",
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # ms
 

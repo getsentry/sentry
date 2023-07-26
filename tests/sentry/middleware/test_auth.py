@@ -49,7 +49,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
             self.middleware.process_request(request)
             # Force the user object to materialize
             request.user.id  # noqa
+
         with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.refresh_from_db()
             assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated

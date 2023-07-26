@@ -107,9 +107,8 @@ def source_map_debug(project, event_id, exception_idx, frame_idx):
 
     if can_use_debug_id:
         # at this point we know the source maps aren't mapped but we can use a debug id
-        # however, we can't give them any advice other than to add Sentry to their build pipeline
-        # it's possible they tried to do this but failed but we won't know that
-        return SourceMapDebug(issue=SourceMapProcessingIssue.NOT_PART_OF_PIPELINE)
+        # so we will show them the sourcemap wizard command to send source maps
+        return SourceMapDebug(issue=SourceMapProcessingIssue.DEBUG_ID_NO_SOURCEMAPS)
 
     return SourceMapDebug()
 

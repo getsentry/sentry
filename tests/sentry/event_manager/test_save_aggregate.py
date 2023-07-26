@@ -3,13 +3,17 @@ import time
 from threading import Thread
 
 import pytest
+from django.db import router, transaction
 
 from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
+from sentry.models import GroupHash
+from sentry.testutils.silo import region_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @pytest.mark.parametrize(
     "is_race_free",
     [
@@ -27,6 +31,7 @@ from sentry.grouping.result import CalculatedHashes
         False,
     ],
 )
+@region_silo_test(stable=True)
 def test_group_creation_race(monkeypatch, default_project, is_race_free):
     CONCURRENCY = 2
 
@@ -48,27 +53,30 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
     return_values = []
 
     def save_event():
-        data = {"timestamp": time.time()}
-        evt = Event(
-            default_project.id,
-            "89aeed6a472e4c5fb992d14df4d7e1b6",
-            data=data,
-        )
-        ret = _save_aggregate(
-            evt,
-            hashes=CalculatedHashes(
-                hashes=["a" * 32, "b" * 32],
-                hierarchical_hashes=[],
-                tree_labels=[],
-            ),
-            release=None,
-            metadata={},
-            received_timestamp=0,
-            level=10,
-            culprit="",
-        )
-        assert ret is not None
-        return_values.append(ret)
+        try:
+            data = {"timestamp": time.time()}
+            evt = Event(
+                default_project.id,
+                "89aeed6a472e4c5fb992d14df4d7e1b6",
+                data=data,
+            )
+            ret = _save_aggregate(
+                evt,
+                hashes=CalculatedHashes(
+                    hashes=["a" * 32, "b" * 32],
+                    hierarchical_hashes=[],
+                    tree_labels=[],
+                ),
+                release=None,
+                metadata={},
+                received_timestamp=0,
+                level=10,
+                culprit="",
+            )
+            assert ret is not None
+            return_values.append(ret)
+        finally:
+            transaction.get_connection(router.db_for_write(GroupHash)).close()
 
     threads = []
     for _ in range(CONCURRENCY):

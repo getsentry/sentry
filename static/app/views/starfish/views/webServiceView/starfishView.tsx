@@ -91,11 +91,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
             <Fragment>
               <MiniChartPanel title={DataTitles.p95}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[percentileData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
                   loading={loading}
                   utc={false}
                   grid={{
@@ -115,11 +112,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
               </MiniChartPanel>
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[throughputData]}
-                  start=""
-                  end=""
                   loading={loading}
                   utc={false}
                   grid={{
@@ -141,11 +135,8 @@ export function StarfishView(props: BaseStarfishViewProps) {
 
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
-                  statsPeriod={eventView.statsPeriod}
                   height={71}
                   data={[errorsData]}
-                  start={eventView.start as string}
-                  end={eventView.end as string}
                   loading={loading}
                   utc={false}
                   grid={{

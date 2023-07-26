@@ -388,7 +388,12 @@ def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
 
 
 @sentry_sdk.tracing.trace
-def update_artifact_index(release: Release, dist: Optional[Distribution], archive_file: File):
+def update_artifact_index(
+    release: Release,
+    dist: Optional[Distribution],
+    archive_file: File,
+    temp_file: Optional[IO] = None,
+):
     """Add information from release archive to artifact index
 
     :returns: The created ReleaseFile instance
@@ -403,7 +408,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     )
 
     files_out = {}
-    with ReleaseArchive(archive_file.getfile()) as archive:
+    with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
         manifest = archive.manifest
 
         files = manifest.get("files", {})

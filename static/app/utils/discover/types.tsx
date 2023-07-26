@@ -9,7 +9,6 @@ export enum DisplayModes {
   TOP5 = 'top5',
   DAILY = 'daily',
   DAILYTOP5 = 'dailytop5',
-  WORLDMAP = 'worldmap',
   BAR = 'bar',
 }
 
@@ -38,7 +37,6 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
-  {value: DisplayModes.WORLDMAP, label: t('World Map')},
   {value: DisplayModes.BAR, label: t('Bar Chart')},
 ];
 
@@ -55,7 +53,6 @@ export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.TOP5]: DisplayModes.DEFAULT,
   [DisplayModes.DAILY]: DisplayModes.DEFAULT,
   [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
-  [DisplayModes.WORLDMAP]: DisplayModes.DEFAULT,
   [DisplayModes.BAR]: DisplayModes.DEFAULT,
 };
 
