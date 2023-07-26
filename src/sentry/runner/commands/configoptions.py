@@ -243,6 +243,6 @@ def send_to_webhook(json_data):
         #       figure out how to add env var k8s secrets
         response = requests.post("webhook_url", data=json.dumps(json_data), headers=headers)
         response.raise_for_status()  # Raise an exception for non-2xx responses
-        click.echo("Webhook request sent successfully!")
+        click.echo("Post request successful")
     except requests.exceptions.RequestException as e:
         click.echo(f"{e}")
