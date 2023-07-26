@@ -27,11 +27,9 @@ ProjectConfig = MutableMapping[str, Any]
 
 def get_global_config():
     return {
-        "global": {
-            "measurements": get_measurements_config(),
-            # Subset of conditional tagging rules that does not depend on the project:
-            "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
-        }
+        "measurements": get_measurements_config(),
+        # Subset of conditional tagging rules that does not depend on the project:
+        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
     }
 
 
