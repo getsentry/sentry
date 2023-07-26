@@ -66,7 +66,6 @@ const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `${SPS}()`,
   `${SPM}()`,
-  'spm()',
   `${TIME_SPENT_PERCENTAGE}()`,
   `${TIME_SPENT_PERCENTAGE}(local)`,
   `${HTTP_ERROR_COUNT}()`,
