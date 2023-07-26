@@ -115,10 +115,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <TimeSpentCell
-          timeSpentPercentage={cumulativeTimePercentage}
-          totalSpanTime={cumulativeTime}
-        />
+        <TimeSpentCell percentage={cumulativeTimePercentage} total={cumulativeTime} />
       );
     }
 
