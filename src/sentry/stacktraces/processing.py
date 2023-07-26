@@ -33,7 +33,14 @@ class StacktraceInfo(NamedTuple):
         return self is not other
 
     def get_frames(self) -> Sequence[dict[str, Any]]:
-        return [frame for frame in self.stacktrace.get("frames", ()) if frame]
+        return _safe_get_frames(self.stacktrace)
+
+
+def _safe_get_frames(stacktrace) -> Sequence[dict[str, Any]]:
+    frames = []
+    if stacktrace and stacktrace.get("frames"):
+        frames = [frame for frame in stacktrace.get("frames") if frame]
+    return frames
 
 
 class ProcessableFrame:
@@ -194,7 +201,7 @@ def find_stacktraces_in_data(
     rv = []
 
     def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
-        frames = [frame for frame in stacktrace.get("frames", ()) if frame] if stacktrace else ()
+        frames = _safe_get_frames(stacktrace)
         if not is_exception and (not stacktrace or not frames):
             return
 
