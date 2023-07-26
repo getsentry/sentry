@@ -31,14 +31,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def path(self):
         return reverse("sentry-login")
 
-    def setUp(self) -> None:
-        from sentry.utils import redis
-
-        # Unfortunately, ratelimiting, which is backed by redis, will fail this test when it runs
-        # twice in silo mode, so we're forced to clear the redis cluster to block the rate limiting.
-        redis.redis_clusters.get("default").flushall(asynchronous=False)
-        super().setUp()
-
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
