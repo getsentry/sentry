@@ -40,22 +40,14 @@ class IntegrationRequestBuffer:
         Get the list at the buffer key.
         """
 
-        # return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
-        return sum(
-            [
-                self.client.lrange(key, 0, BUFFER_SIZE - 1)
-                for key in self.client.keys(buffer_key + "*")
-            ],
-            [],
-        )
+        return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
     def _get(self):
         """
         Returns the list of daily aggregate error counts.
         """
         return [
-            self._convert_obj_to_dict(obj)
-            for obj in [obj for obj in self._get_all_from_buffer(self.integrationkey)]
+            self._convert_obj_to_dict(obj) for obj in self._get_all_from_buffer(self.integrationkey)
         ]
 
     def is_integration_broken(self):
@@ -102,7 +94,7 @@ class IntegrationRequestBuffer:
         other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
         now = datetime.now().strftime("%Y-%m-%d")
 
-        buffer_key = self.integrationkey + now
+        buffer_key = self.integrationkey
         pipe = self.client.pipeline()
 
         # get first element from array
@@ -130,7 +122,7 @@ class IntegrationRequestBuffer:
             }
             pipe.lpush(buffer_key, json.dumps(data))
 
-        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
         pipe.execute()
 
     def record_error(self):
