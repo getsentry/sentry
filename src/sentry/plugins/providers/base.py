@@ -6,9 +6,18 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Integration, OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+    integration_service,
+)
+
+# from sentry.models import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud.user import RpcUser
-from social_auth.models import UserSocialAuth
+from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
+
+# from social_auth.models import UserSocialAuth
 
 
 class ProviderMixin:
@@ -16,11 +25,14 @@ class ProviderMixin:
     logger: logging.Logger | None = None
 
     def link_auth(self, user, organization, data):
-        try:
-            usa = UserSocialAuth.objects.get(
-                user=user, id=data["default_auth_id"], provider=self.auth_provider
-            )
-        except UserSocialAuth.DoesNotExist:
+        usa = usersocialauth_service.get_auth(
+            filter={
+                "id": data["default_auth_id"],
+                "user_id": user.id,
+                "provider": self.auth_provider,
+            }
+        )
+        if not usa:
             raise PluginError
 
         integration = Integration.objects.get_or_create(
@@ -91,7 +103,7 @@ class ProviderMixin:
 
         return not UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).exists()
 
-    def get_auth(self, user: RpcUser, **kwargs):
+    def get_auth(self, user: RpcUser, **kwargs) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
 
@@ -110,8 +122,9 @@ class ProviderMixin:
 
         if not user.is_authenticated:
             return None
-
-        return UserSocialAuth.objects.filter(user_id=user.id, provider=self.auth_provider).first()
+        return usersocialauth_service.get_auth(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
 
     def handle_api_error(self, e):
         context = {"error_type": "unknown"}
