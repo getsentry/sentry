@@ -6,6 +6,7 @@ import threading
 from django.conf import settings
 from django.db import connections, transaction
 
+from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
 
 
@@ -26,23 +27,29 @@ def django_test_transaction_water_mark(using: str | None = None):
 
     if using is None:
         with contextlib.ExitStack() as stack:
-            for db_name in settings.DATABASES:  # type: ignore
+            for db_name in settings.DATABASES:
                 stack.enter_context(django_test_transaction_water_mark(db_name))
             yield
         return
 
     from sentry.testutils import hybrid_cloud
 
-    connection = transaction.get_connection(using)
+    # Exempt get_connection call from silo validation checks
+    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+        SiloMode.MONOLITH
+    ):
+        connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
     hybrid_cloud.simulated_transaction_watermarks.state[
         using
     ] = hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    old_run_on_commit = connection.run_on_commit
+    connection.run_on_commit = []
     try:
-        connection.maybe_flush_commit_hooks()
         yield
     finally:
+        connection.run_on_commit = old_run_on_commit
         hybrid_cloud.simulated_transaction_watermarks.state[using] = min(
             hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection), prev
         )

@@ -4,6 +4,7 @@ from typing import Optional, Sequence
 
 from django.utils import timezone
 
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import SnubaTestCase
 
 
@@ -48,7 +49,7 @@ class PerfIssueTransactionTestMixin:
 
         # read the transaction back and verify it was successfully written to snuba
         result = snuba.raw_query(
-            dataset=snuba.Dataset.Transactions,
+            dataset=Dataset.Transactions,
             start=insert_time - timedelta(days=1),
             end=insert_time + timedelta(days=1),
             selected_columns=[

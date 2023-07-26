@@ -116,7 +116,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         return [{"identifier": full_name, "name": full_name} for full_name in result]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         client = self.get_client()
         try:
             client.get_hooks(repo.config["name"])
