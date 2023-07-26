@@ -58,6 +58,7 @@ function SampleTable({
     data: transactions,
     isFetching: isFetchingTransactions,
     isEnabled: isTransactionsEnabled,
+    isLoading: isLoadingTransactions,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
@@ -66,7 +67,7 @@ function SampleTable({
 
   const [loadedSpans, setLoadedSpans] = useState(false);
   useEffect(() => {
-    if (isFetchingTransactions || isFetchingSamples) {
+    if (isLoadingTransactions || isFetchingTransactions || !isTransactionsEnabled) {
       setLoadedSpans(false);
       return;
     }
@@ -80,10 +81,11 @@ function SampleTable({
     setLoadedSpans(true);
   }, [
     loadedSpans,
-    isFetchingSamples,
     transactions,
     isFetchingTransactions,
     organization,
+    isLoadingTransactions,
+    isTransactionsEnabled,
   ]);
 
   const transactionsById = keyBy(transactions, 'id');
