@@ -42,12 +42,20 @@ class IntegrationRequestBuffer:
 
         return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
+    def _get_brokenrange_from_buffer(self, buffer_key):
+        """
+        Get the list at the buffer key ib the broken range.
+        """
+
+        return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
+
     def _get(self):
         """
         Returns the list of daily aggregate error counts.
         """
         return [
-            self._convert_obj_to_dict(obj) for obj in self._get_all_from_buffer(self.integrationkey)
+            self._convert_obj_to_dict(obj)
+            for obj in self._get_brokenrange_from_buffer(self.integrationkey)
         ]
 
     def is_integration_broken(self):
@@ -61,7 +69,7 @@ class IntegrationRequestBuffer:
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in items
             if item.get("fatal_count", 0) > 0 and item.get("date")
-        ][0:IS_BROKEN_RANGE]
+        ]
 
         if len(data) > 0:
             return True
@@ -72,7 +80,7 @@ class IntegrationRequestBuffer:
             if item.get("error_count", 0) > 0
             and item.get("success_count", 0) == 0
             and item.get("date")
-        ][0:IS_BROKEN_RANGE]
+        ]
 
         if not len(data):
             return False
