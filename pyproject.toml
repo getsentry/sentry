@@ -193,7 +193,6 @@ module = [
     "sentry.api.endpoints.integration_features",
     "sentry.api.endpoints.integrations.index",
     "sentry.api.endpoints.integrations.install_request",
-    "sentry.api.endpoints.integrations.organization_integrations.details",
     "sentry.api.endpoints.integrations.organization_integrations.index",
     "sentry.api.endpoints.integrations.plugins.configs_index",
     "sentry.api.endpoints.integrations.sentry_apps.authorizations",
