@@ -1,10 +1,12 @@
 import sys
-from typing import Any, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 import click
+import requests
 from yaml import safe_dump, safe_load
 
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils import json
 
 # These messages are produced more than once and referenced in tests.
 # This is the reason they are constants.
@@ -17,7 +19,12 @@ UNSET_MSG = "[UNSET] Option %s unset."
 
 
 def _attempt_update(
-    key: str, value: Any, drifted_options: Set[str], dry_run: bool, hide_drift: bool
+    key: str,
+    value: Any,
+    drifted_options: Set[str],
+    json_data: Dict[str, List[str]],
+    dry_run: bool,
+    hide_drift: bool,
 ) -> None:
     """
     Updates the option if it is not drifted and if we are not in dry
@@ -36,6 +43,7 @@ def _attempt_update(
     if key in drifted_options:
         click.echo(DRIFT_MSG % key)
         logger.error("Option %s drifted and cannot be updated.", key)
+        json_data["drifted_options"].append(DRIFT_MSG % key)
         if not hide_drift:
             click.echo(DB_VALUE % key)
             # This is yaml instead of the python representation as the
@@ -60,19 +68,23 @@ def _attempt_update(
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
             click.echo(SET_MSG % (key, value))
+            json_data["updated_options"].append(SET_MSG % (key, value))
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
             click.echo(CHANNEL_UPDATE_MSG % key)
+            json_data["updated_options"].append(CHANNEL_UPDATE_MSG % key)
         return
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
     if last_update_channel is not None:
         click.echo(UPDATE_MSG % (key, db_value, value))
+        json_data["updated_options"].append(UPDATE_MSG % (key, db_value, value))
     else:
         click.echo(SET_MSG % (key, value))
+        json_data["updated_options"].append(SET_MSG % (key, value))
 
 
 @click.group()
@@ -135,19 +147,23 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
+
+    json_data = {"dry-run": dry_run, "updated_options": [], "drifted_options": []}
+
     for key, value in options_to_update.items():
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-            click.echo(
-                f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
-            )
+            msg = f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
+            click.echo(msg)
+
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)
 
     ctx.obj["drifted_options"] = drifted_options
     ctx.obj["hide_drift"] = hide_drift
+    ctx.obj["json_data"] = json_data
 
 
 @configoptions.command()
@@ -165,8 +181,15 @@ def patch(ctx) -> None:
 
     for key, value in ctx.obj["options_to_update"].items():
         _attempt_update(
-            key, value, ctx.obj["drifted_options"], dry_run, bool(ctx.obj["hide_drift"])
+            key,
+            value,
+            ctx.obj["drifted_options"],
+            ctx.obj["json_data"],
+            dry_run,
+            bool(ctx.obj["hide_drift"]),
         )
+
+    send_to_webhook(ctx.obj["json_data"])
 
 
 @configoptions.command()
@@ -194,6 +217,7 @@ def sync(ctx):
                 opt.name,
                 options_to_update[opt.name],
                 ctx.obj["drifted_options"],
+                ctx.obj["json_data"],
                 dry_run,
                 bool(ctx.obj["hide_drift"]),
             )
@@ -203,5 +227,22 @@ def sync(ctx):
                     if not dry_run:
                         options.delete(opt.name)
                     click.echo(UNSET_MSG % opt.name)
+                    ctx.obj["updated_options"].append(UNSET_MSG % opt.name)
                 else:
                     click.echo(DRIFT_MSG % opt.name)
+                    ctx.obj["drifted_options"].append(DRIFT_MSG % opt.name)
+
+    send_to_webhook(ctx.obj["json_data"])
+
+
+def send_to_webhook(json_data):
+    headers = {"Content-Type": "application/json"}
+    try:
+        # todo: change webhook url (pass in as k8s secret? eng pipes is public)
+        #       send http post request to engpipes webhook
+        #       figure out how to add env var k8s secrets
+        response = requests.post("webhook_url", data=json.dumps(json_data), headers=headers)
+        response.raise_for_status()  # Raise an exception for non-2xx responses
+        click.echo("Webhook request sent successfully!")
+    except requests.exceptions.RequestException as e:
+        click.echo(f"{e}")
