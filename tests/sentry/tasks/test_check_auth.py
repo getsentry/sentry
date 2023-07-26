@@ -21,12 +21,9 @@ class CheckAuthTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        with assume_test_silo_mode(SiloMode.REGION):
-            OrganizationMember.objects.create(
-                user_id=user.id,
-                organization=organization,
-                flags=OrganizationMember.flags["sso:linked"],
-            )
+        self.create_member(
+            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+        )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_synced=timezone.now() - timedelta(days=1)
@@ -52,12 +49,9 @@ class CheckAuthIdentityTest(TestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy"
         )
-        with assume_test_silo_mode(SiloMode.REGION):
-            om = OrganizationMember.objects.create(
-                user_id=user.id,
-                organization=organization,
-                flags=OrganizationMember.flags["sso:linked"],
-            )
+        om = self.create_member(
+            user_id=user.id, organization=organization, flags=OrganizationMember.flags["sso:linked"]
+        )
 
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, last_verified=timezone.now() - timedelta(days=1)
@@ -71,7 +65,7 @@ class CheckAuthIdentityTest(TestCase):
 
         # because of an error, it should become inactive
         with assume_test_silo_mode(SiloMode.REGION):
-            om = OrganizationMember.objects.get(id=om.id)
+            om.refresh_from_db()
         assert not om.flags["sso:linked"]
         assert om.flags["sso:invalid"]
 
