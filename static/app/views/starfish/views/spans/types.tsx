@@ -61,10 +61,10 @@ export const getThroughputTitle = (spanOp?: string) => {
 
 export const getThroughputChartTitle = (spanOp?: string) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries Per Second');
+    return t('Queries Per Minute');
   }
   if (spanOp) {
-    return t('Requests Per Second');
+    return t('Requests Per Minute');
   }
   return '--';
 };

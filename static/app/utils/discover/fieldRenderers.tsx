@@ -31,11 +31,16 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  RATE_UNIT_LABELS,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {
+  formatAbbreviatedNumber,
+  formatFloat,
+  formatPercentage,
+} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import toArray from 'sentry/utils/toArray';
@@ -168,12 +173,6 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
-const RATE_UNIT_LABELS = {
-  '1/second': '/s',
-  '1/minute': '/min',
-  '1/hour': '/hr',
-};
-
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
@@ -238,7 +237,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
 
       return (
         <NumberContainer>
-          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
+          {`${formatAbbreviatedNumber(data[field])}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
         </NumberContainer>
       );
     },

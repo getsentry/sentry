@@ -5,13 +5,14 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
@@ -98,7 +99,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
     {
       'avg(span.self_time)': number;
       interval: number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -113,7 +114,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
     return {
       seriesName: label ?? 'Throughput',
       data: (groupData ?? []).map(datum => ({
-        value: datum['sps()'],
+        value: datum['spm()'],
         name: datum.interval,
       })),
     };
@@ -133,11 +134,12 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       }}
       definedAxisTicks={4}
       aggregateOutputFormat="rate"
+      rateUnit={RateUnits.PER_MINUTE}
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatThroughput(value),
+        valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
       }}
     />
   );
@@ -153,7 +155,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
     {
       'avg(span.self_time)': number;
       interval: number;
-      'sps()': number;
+      'spm()': number;
     }[]
   >({
     eventView,
@@ -242,7 +244,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', `avg(${SPAN_SELF_TIME})`],
+      yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),

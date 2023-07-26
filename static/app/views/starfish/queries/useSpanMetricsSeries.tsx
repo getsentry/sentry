@@ -16,7 +16,7 @@ const {SPAN_GROUP} = SpanMetricsFields;
 export type SpanMetrics = {
   interval: number;
   'p95(span.self_time)': number;
-  'sps()': number;
+  'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };

@@ -33,7 +33,7 @@ type Row = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -60,6 +60,7 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   'sps()',
+  'spm()',
   'time_spent_percentage()',
   'time_spent_percentage(local)',
   'http_error_count()',
@@ -245,7 +246,7 @@ function getColumns(
         ]
       : []),
     {
-      key: 'sps()',
+      key: 'spm()',
       name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },

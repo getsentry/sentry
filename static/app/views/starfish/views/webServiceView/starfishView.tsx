@@ -15,14 +15,15 @@ import {useTheme} from '@emotion/react';
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -123,12 +124,13 @@ export function StarfishView(props: BaseStarfishViewProps) {
                     bottom: '0',
                   }}
                   aggregateOutputFormat="rate"
+                  rateUnit={RateUnits.PER_SECOND}
                   definedAxisTicks={2}
                   stacked
                   isLineChart
                   chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
-                    valueFormatter: value => formatThroughput(value),
+                    valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
                   }}
                 />
               </MiniChartPanel>
