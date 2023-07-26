@@ -18,6 +18,7 @@ from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_value
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -143,17 +144,13 @@ class Enhancements:
         """This applies the frame modifications to the frames itself. This
         does not affect grouping.
         """
+        # XXX: We need to fingerprint self._modifier_rules, if it changes, we need to invalidate the cache
         match_frames, stacktrace_fingerprint = _generate_matching_frames(frames, platform)
         # The most expensive part of creating groups is applying the rules to frames (next code block)
-        # matching frames contain the essential information to applying rules. Once they're processed
-        # we cache the contents and can fetch it here.
         if stacktrace_fingerprint:
-            cached_frames = cache.get(stacktrace_fingerprint)
-            if cached_frames:
-                # For now, do the merge on a copy
-                _merge_frames(frames[:], cached_frames)
-                # XXX:
-                # return
+            # XXX: For now, do the merge on a copy and continue. Once we're ready,
+            # we will return from the function
+            _merge_values(frames[:], stacktrace_fingerprint)
 
         in_memory_cache: dict[str, str] = {}
 
@@ -169,11 +166,7 @@ class Enhancements:
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
         if stacktrace_fingerprint and not cache.get(stacktrace_fingerprint):
-            # frames have been modified in the block above
-            # XXX: We can only include the values that can be modified
-            cache.set(stacktrace_fingerprint, frames)
-            # XXX: Track stacktrace storage size
-            # metrics.incr("save_event.stacktrace_caching_tbd", tags={"platform": platform})
+            _cache_changed_frame_values(frames, stacktrace_fingerprint)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -498,14 +491,32 @@ class EnhancementsVisitor(NodeVisitor):
         return node.match.groups()[0].lstrip("!")
 
 
-def _merge_frames(
-    frames: Sequence[dict[str, Any]],
-    cached_frames: Sequence[dict[str, Any]],
-) -> None:
-    """It places the processed values from the cached_frames into the incoming frame."""
-    for frame, cached_frame in zip(frames, cached_frames):
-        pass
-    logger.info("We have merged the cached stacktrace to the incoming one.")
+def _merge_values(frames: Sequence[dict[str, Any]], cache_key: str) -> None:
+    """This will merge the cached values if any is found for this stacktrace."""
+    changed_frames_values = cache.get(cache_key)
+    if not changed_frames_values:
+        return
+
+    try:
+        for frame, changed_frame_values in zip(frames, changed_frames_values):
+            frame["in_app"] = changed_frame_values["in_app"]
+            set_path(frame, "data", "category", value=changed_frame_values["category"])
+
+        logger.info("We have merged the cached stacktrace to the incoming one.")
+    except Exception:
+        logger.exception("We have failed to update the stacktrace from the cache.")
+
+
+def _cache_changed_frame_values(frames: Sequence[dict[str, Any]], cache_key: str) -> None:
+    # XXX: How do we make sure that we stay in sync with actions's apply_modifications_to_frame?
+    changed_frames_values = [
+        {
+            "in_app": frame.get("in_app"),  # Based on FlagAction
+            "category": get_path(frame, "data", "category"),  # Based on VarAction's
+        }
+        for frame in frames
+    ]
+    cache.set(cache_key, changed_frames_values)
 
 
 def _generate_matching_frames(
@@ -533,8 +544,8 @@ def _generate_matching_frames(
                 )
 
     if not failed_to_hash:
-        stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    # This will help us calculate the ratio of success to failure stacktrace fingerprinting
+        stacktrace_fingerprint = f"stacktrace_fing:v1:{stacktrace_hash.hexdigest()}"
+    # This will help us calculate the ratio of success to failure stacktrace fingerprint calculation
     metrics.incr("save_event.stacktrace_fingerprint", tags={"created": failed_to_hash})
 
     return (matched_frames, stacktrace_fingerprint)
