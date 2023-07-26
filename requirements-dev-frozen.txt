@@ -45,7 +45,7 @@ django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
 django-stubs==4.2.0
 django-stubs-ext==4.2.0
-djangorestframework==3.12.4
+djangorestframework==3.14.0
 djangorestframework-stubs==3.14.0
 docker==3.7.0
 docker-pycreds==0.4.0
