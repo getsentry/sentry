@@ -95,7 +95,7 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                with transaction.atomic(router.db_for_write(type(option))):
+                with transaction.atomic(router.db_for_write(options.default_store.model)):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)
                     else:
