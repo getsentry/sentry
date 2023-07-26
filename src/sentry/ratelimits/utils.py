@@ -119,7 +119,7 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: str) -> int:
+def get_organization_id_from_token(token_id: str) -> int | str:
     from sentry.models import SentryAppInstallation
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
