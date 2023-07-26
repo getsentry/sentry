@@ -639,7 +639,7 @@ def test_project_config_get_at_path(default_project):
     assert project_cfg.get_at_path() == project_cfg
 
 
-@pytest.mark.django_db
+@django_db_all
 @pytest.mark.parametrize(
     "health_check_set",
     [True, False],
