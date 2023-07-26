@@ -74,6 +74,36 @@ export function ReplayCell({
     },
   };
 
+  const replayDetailsErrorTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'errors',
+    },
+  };
+
+  const replayDetailsDOMEventsTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'dom',
+      f_d_type: 'ui.slowClickDetected',
+    },
+  };
+
+  const detailsTab = () => {
+    switch (referrer_table) {
+      case 'errors-table':
+        return replayDetailsErrorTab;
+      case 'dead-rage-table':
+        return replayDetailsDOMEventsTab;
+      default:
+        return replayDetails;
+    }
+  };
+
   const trackNavigationEvent = () =>
     trackAnalytics('replay.list-navigate-to-details', {
       project_id: project?.id,
@@ -106,7 +136,7 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails} onClick={trackNavigationEvent}>
+          <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
         </Row>
@@ -126,7 +156,7 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
               {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )
