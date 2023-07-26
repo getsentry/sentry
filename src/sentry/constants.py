@@ -134,6 +134,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "guide",
         "help",
         "ingest",
+        "ingest-beta",
         "integration-platform",
         "integrations",
         "invoice",
