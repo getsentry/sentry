@@ -60,14 +60,14 @@ type Props = {
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
-const {TIME_SPENT_PERCENTAGE} = StarfishFunctions;
+const {TIME_SPENT_PERCENTAGE, SPS, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
-  'sps()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
+  `${SPS}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
 export default function SpansTable({
