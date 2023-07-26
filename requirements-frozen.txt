@@ -21,7 +21,7 @@ botocore==1.25.12
 brotli==1.0.9
 cachetools==5.3.0
 celery==4.4.7
-certifi==2022.12.7
+certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.0.1
 click==8.0.4
@@ -36,7 +36,7 @@ django==3.2.20
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
-djangorestframework==3.12.4
+djangorestframework==3.14.0
 drf-spectacular==0.26.3
 email-reply-parser==0.5.12
 fastjsonschema==2.16.2

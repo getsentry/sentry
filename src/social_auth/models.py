@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import time
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.apps import apps
 from django.conf import settings
@@ -29,7 +32,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth", on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default="{}")
+    extra_data: models.Field[dict[str, Any], dict[str, Any]] = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
