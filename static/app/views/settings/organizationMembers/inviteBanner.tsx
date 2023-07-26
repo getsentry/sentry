@@ -1,5 +1,7 @@
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -9,17 +11,56 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconInfo, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember} from 'sentry/types';
+import {MissingMember, Organization} from 'sentry/types';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import useApi from 'sentry/utils/useApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   missingMembers: MissingMember[];
   onSendInvite: (email: string) => void;
-  // organization: Organization;
+  organization: Organization;
 };
 
-export function InviteBanner({missingMembers, onSendInvite}: Props) {
-  // TODO(cathy): include docs link and snooze option
+export function InviteBanner({missingMembers, onSendInvite, organization}: Props) {
+  const [showBanner, setShowBanner] = useState<boolean>(false);
 
+  const api = useApi();
+
+  const snoozePrompt = useCallback(async () => {
+    await promptsUpdate(api, {
+      organizationId: organization.id,
+      feature: 'github_missing_members',
+      status: 'snoozed',
+    });
+
+    setShowBanner(false);
+  }, [api, organization]);
+
+  useEffect(() => {
+    let isUnmounted = false;
+
+    promptsCheck(api, {
+      organizationId: organization.id,
+      feature: 'github_missing_members',
+    }).then(prompt => {
+      if (isUnmounted) {
+        return;
+      }
+
+      setShowBanner(!promptIsDismissed(prompt));
+    });
+
+    return () => {
+      isUnmounted = true;
+    };
+  });
+
+  if (!showBanner) {
+    return null;
+  }
+
+  // TODO(cathy): include docs link
   const menuItems: MenuItemProps[] = [
     {
       key: 'invite-banner-snooze',
@@ -28,7 +69,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to snooze this banner?'),
-          onConfirm: () => true,
+          onConfirm: snoozePrompt,
         });
       },
     },
@@ -82,7 +123,8 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
       <Button
         size="sm"
         priority="primary"
-        // onClick={() => onSendInvite(member.email)}
+        // TODO(cathy): open up invite modal
+        // onClick={}
         data-test-id="view-all-missing-members"
       >
         {t('View All')}
@@ -133,7 +175,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
   );
 }
 
-export default InviteBanner;
+export default withOrganization(InviteBanner);
 
 const StyledCard = styled(Card)`
   padding: ${space(2)};
