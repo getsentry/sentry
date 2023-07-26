@@ -3,6 +3,7 @@ from base64 import b64encode
 from sentry import options as options_store
 from sentry.models import SentryAppAvatar
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class SentryAppAvatarTestBase(APITestCase):
@@ -35,6 +36,7 @@ class SentryAppAvatarTestBase(APITestCase):
         return self.get_success_response(self.unpublished_app.slug, **data)
 
 
+@control_silo_test(stable=True)
 class SentryAppAvatarTest(SentryAppAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.unpublished_app.slug)
@@ -52,6 +54,7 @@ class SentryAppAvatarTest(SentryAppAvatarTestBase):
         assert response.data["uuid"] == str(self.unpublished_app.uuid)
 
 
+@control_silo_test(stable=True)
 class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
     method = "put"
 
@@ -59,7 +62,7 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         resp = self.create_avatar(is_color=True)
 
         avatar = SentryAppAvatar.objects.get(sentry_app=self.unpublished_app, color=True)
-        assert avatar.file_id
+        assert avatar.control_file_id
         assert avatar.get_avatar_type_display() == "upload"
         color_avatar = self.get_avatar(resp)
         assert color_avatar["avatarType"] == "upload"
@@ -90,14 +93,14 @@ class SentryAppAvatarPutTest(SentryAppAvatarTestBase):
         avatars = SentryAppAvatar.objects.filter(sentry_app=self.unpublished_app)
 
         assert len(avatars) == 2
-        assert avatars[0].file_id
+        assert avatars[0].control_file_id
         assert avatars[0].get_avatar_type_display() == "upload"
         color_avatar = self.get_avatar(resp)
         assert color_avatar["color"] is True
         assert color_avatar["avatarType"] == "upload"
         assert color_avatar["avatarUuid"] is not None
 
-        assert avatars[1].file_id
+        assert avatars[1].control_file_id
         assert avatars[1].get_avatar_type_display() == "upload"
         simple_avatar = self.get_avatar(resp, False)
         assert simple_avatar["color"] is False

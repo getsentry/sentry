@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry import options as options_store
 from sentry.models import UserAvatar
-from sentry.models.files import ControlFile, File
+from sentry.models.files import ControlFile
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -54,7 +54,7 @@ class UserAvatarTest(APITestCase):
         avatar = UserAvatar.objects.get(user=user)
         assert response.status_code == 200, response.content
         assert avatar.get_avatar_type_display() == "upload"
-        assert avatar.file_id
+        assert avatar.control_file_id
 
     def test_transition_to_control_before_options_set(self):
         with self.tasks():
@@ -74,8 +74,8 @@ class UserAvatarTest(APITestCase):
 
             avatar = UserAvatar.objects.get(user=user)
             assert response.status_code == 200, response.content
-            assert avatar.file_id
-            assert isinstance(avatar.get_file(), File)
+            assert avatar.control_file_id
+            assert isinstance(avatar.get_file(), ControlFile)
 
     def test_transition_to_control_after_options_set(self):
         with self.options(
