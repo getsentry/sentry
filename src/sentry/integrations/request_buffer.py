@@ -55,9 +55,11 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
+        items = self._get()
+
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in self._get()
+            for item in items
             if item.get("fatal_count", 0) > 0 and item.get("date")
         ][0:IS_BROKEN_RANGE]
 
@@ -66,7 +68,7 @@ class IntegrationRequestBuffer:
 
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in self._get()
+            for item in items
             if item.get("error_count", 0) > 0
             and item.get("success_count", 0) == 0
             and item.get("date")
