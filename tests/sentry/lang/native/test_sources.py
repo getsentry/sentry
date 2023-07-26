@@ -26,6 +26,25 @@ def _mock_flat_file_index(
 
 @pytest.mark.django_db
 @freeze_time("2023-07-26T10:00:00")
+@override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 0.0})
+def test_get_bundle_index_urls_with_no_zero_sample_rate(default_project):
+    release = "1.0"
+    dist = "android"
+
+    # We want to create both indexes to show that still we get no data back.
+    _mock_flat_file_index(project_id=default_project.id, release=release, dist=dist)
+    _mock_flat_file_index(project_id=default_project.id, release=None, dist=None)
+
+    debug_id_index, url_index = get_bundle_index_urls(
+        project=default_project, release=release, dist=dist
+    )
+
+    assert debug_id_index is None
+    assert url_index is None
+
+
+@pytest.mark.django_db
+@freeze_time("2023-07-26T10:00:00")
 @override_options({"symbolicator.sourcemaps-bundle-index-sample-rate": 1.0})
 def test_get_bundle_index_urls_with_no_cached_values(default_project):
     release = "1.0"
