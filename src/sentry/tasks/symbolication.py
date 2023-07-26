@@ -164,10 +164,10 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    if task_kind.is_js:
-        symbolication_function = process_js_stacktraces
-    else:
+    if not task_kind.is_js:
         symbolication_function = get_native_symbolication_function(data)
+    else:
+        symbolication_function = process_js_stacktraces
 
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
