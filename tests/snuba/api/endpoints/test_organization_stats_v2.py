@@ -163,6 +163,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             }
         )
         assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "intervals": ["2021-03-14T12:00:00Z"],
+            "groups": [
+                {"by": {}, "series": {"sum(quantity)": [0]}, "totals": {"sum(quantity)": 0}}
+            ],
+            "start": "2021-03-14T12:00:00Z",
+            "end": "2021-03-14T12:28:00Z",
+        }
 
     def test_unknown_category(self):
         response = self.do_request(
