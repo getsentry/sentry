@@ -650,12 +650,12 @@ def get_occurrence_data(reason: str, **kwargs):
             "subtitle": f"No check-in reported on {expected_time}.",
         }
     elif reason == MonitorFailure.DURATION:
-        timeout = kwargs.get("timeout", 30)
+        duration = kwargs.get("duration", 30)
         return {
             "group_type": MonitorCheckInTimeout,
             "level": "error",
             "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
+            "subtitle": f"Check-in exceeded maximum duration of {duration} minutes.",
         }
 
     return {
