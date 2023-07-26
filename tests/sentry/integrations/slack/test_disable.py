@@ -135,7 +135,6 @@ class SlackClientDisable(TestCase):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
                 buffer.record_success()
-
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
@@ -166,3 +165,27 @@ class SlackClientDisable(TestCase):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
         assert Integration.objects.filter(id=self.integration.id).status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_add(self):
+        """
+        slow test with disable flag on
+        put errors and success in buffer for 10 days, assert integration is not broken or disabled
+        """
+        bodydict = {"ok": False, "error": "The requested resource does not exist"}
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=404,
+            content_type="application/json",
+            body=json.dumps(bodydict),
+        )
+        client = SlackClient(integration_id=self.integration.id)
+        buffer = IntegrationRequestBuffer(client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(32)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+        with pytest.raises(ApiError):
+            client.post("/chat.postMessage", data=self.payload)
+        assert len(buffer._get_all_from_buffer(client._get_redis_key())) == 30
