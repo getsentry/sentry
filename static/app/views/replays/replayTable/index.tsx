@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -101,6 +102,7 @@ function ReplayTable({
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
       gridRows={isFetching ? undefined : gridRows}
+      loader={<LoadingIndicator style={{margin: '54px auto'}} />}
     >
       {replays?.map(replay => {
         return (
