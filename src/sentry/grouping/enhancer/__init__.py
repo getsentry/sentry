@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import Any, List, Sequence, Tuple
+from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
@@ -118,8 +118,8 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules: List[Rule] = []  # Modifier rules only update the frame
-        self._updater_rules = []  # Updater rules affect the grouping
+        self._modifier_rules: list[Rule] = []  # Modifier rules only update the frame
+        self._updater_rules: list[Rule] = []  # Updater rules affect the grouping
         for rule in self.iter_rules():
             if modifier_rule := rule._as_modifier_rule():
                 self._modifier_rules.append(modifier_rule)
@@ -336,11 +336,11 @@ class Rule:
 
     def get_matching_frame_actions(
         self,
-        frames: dict[str, Any],
+        match_frames: Sequence[dict[str, Any]],
         platform: str,
         exception_data: dict[str, Any],
         cache: dict[str, str],
-    ) -> list[Tuple[int, Action]]:
+    ) -> list[tuple[int, Action]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -349,15 +349,15 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(frames, None, platform, exception_data, cache):
+            if not m.matches_frame(match_frames, None, platform, exception_data, cache):
                 return []
 
         rv = []
 
         # 2 - Check if frame matchers match
-        for idx, _ in enumerate(frames):
+        for idx, _ in enumerate(match_frames):
             if all(
-                m.matches_frame(frames, idx, platform, exception_data, cache)
+                m.matches_frame(match_frames, idx, platform, exception_data, cache)
                 for m in self._other_matchers
             ):
                 for action in self.actions:

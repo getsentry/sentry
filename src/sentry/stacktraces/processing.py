@@ -196,7 +196,7 @@ def find_stacktraces_in_data(
             return
 
         frames = get_path(stacktrace, "frames", filter=True, default=())
-        platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
+        platforms = _get_frames_metadata(frames, data.get("platform"))
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -225,7 +225,7 @@ def find_stacktraces_in_data(
     return rv
 
 
-def _get_frames_metadata(frames: Sequence[Any], fallback_platform: str) -> set[str]:
+def _get_frames_metadata(frames: Sequence[Any], fallback_platform: Optional[str]) -> set[str]:
     """Extract the set of platforms involved in the frames."""
     platforms = set()
     for frame in frames:
