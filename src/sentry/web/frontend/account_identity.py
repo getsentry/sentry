@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -10,7 +11,7 @@ from sentry.web.helpers import render_to_response
 
 
 class AccountIdentityAssociateView(ControlSiloOrganizationView):
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, organization, provider_key, external_id) -> HttpResponse:
         try:
             provider_model = IdentityProvider.objects.get(

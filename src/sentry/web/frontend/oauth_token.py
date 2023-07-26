@@ -4,6 +4,7 @@ from typing import Optional
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
@@ -19,7 +20,7 @@ logger = logging.getLogger("sentry.api.oauth_token")
 
 class OAuthTokenView(View):
     @csrf_exempt
-    @never_cache
+    @method_decorator(never_cache)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
@@ -42,7 +43,7 @@ class OAuthTokenView(View):
             json.dumps({"error": name}), content_type="application/json", status=status
         )
 
-    @never_cache
+    @method_decorator(never_cache)
     def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")

@@ -16,7 +16,7 @@ signed_auth_required_m = method_decorator(signed_auth_required)
 class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     auth_required = False
 
-    @never_cache
+    @method_decorator(never_cache)
     @signed_auth_required_m
     def handle(self, request: Request, **kwargs) -> HttpResponse:
         with transaction.atomic(using=router.db_for_write(OrganizationMember)):

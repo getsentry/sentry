@@ -3,6 +3,7 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db.models import Value
 from django.db.models.functions import Coalesce
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import status
 from rest_framework.request import Request
@@ -25,7 +26,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class OrgAuthTokensEndpoint(OrganizationEndpoint):
     permission_classes = (OrgAuthTokenPermission,)
 
-    @never_cache
+    @method_decorator(never_cache)
     def get(self, request: Request, organization: Organization) -> Response:
         # We want to sort by date_last_used, but sort NULLs last
         the_past = datetime.min

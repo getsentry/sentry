@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
 from sentry.auth.helper import CHANNEL_PROVIDER_MAP
@@ -10,7 +11,7 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 
 
 class AuthChannelLoginView(AuthOrganizationLoginView):
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request, channel, resource_id):
         if request.subdomain is not None:
             return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
