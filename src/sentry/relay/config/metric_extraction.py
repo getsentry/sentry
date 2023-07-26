@@ -181,7 +181,7 @@ def get_metric_conditional_tagging_rules(
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
 
-    rules.extend(_HISTOGRAM_OUTLIER_RULES)
+    rules.extend(HISTOGRAM_OUTLIER_RULES)
 
     return rules
 
@@ -771,4 +771,4 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
-_HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
+HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)

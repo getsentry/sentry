@@ -74,6 +74,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
       statusDetails: {ignoreDuration: 30},
+      substatus: 'archived_until_condition_met',
     });
   });
 });

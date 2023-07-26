@@ -19,7 +19,7 @@ from sentry.debug_files.artifact_bundles import (
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import ArtifactBundle, Distribution, Project, Release, ReleaseFile
-from sentry.models.artifactbundle import NULL_STRING
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -38,7 +38,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         split = download_id.split("/")
         if len(split) < 2:
             raise Http404
-        ty, ty_id = split
+        ty, ty_id, *_rest = split
 
         rate_limited = ratelimits.is_limited(
             project=project,
@@ -72,10 +72,20 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
+        elif ty == "bundle_index":
+            file = (
+                ArtifactBundleFlatFileIndex.objects.filter(id=ty_id, project_id=project.id)
+                .select_related("flat_file_index")
+                .first()
+            )
+            metrics.incr("sourcemaps.download.flat_file_index")
 
         if file is None:
             raise Http404
-        file = file.file
+        if isinstance(file, ArtifactBundleFlatFileIndex):
+            file = file.flat_file_index
+        else:
+            file = file.file
 
         try:
             fp = file.getfile()
