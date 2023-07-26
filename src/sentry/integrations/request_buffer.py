@@ -123,6 +123,7 @@ class IntegrationRequestBuffer:
             pipe.lpush(buffer_key, json.dumps(data))
 
         pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
+        pipe.expire(buffer_key, KEY_EXPIRY)
         pipe.execute()
 
     def record_error(self):
