@@ -271,6 +271,7 @@ const config: Config.InitialOptions = {
       },
     ],
   ],
+  clearMocks: true,
 
   testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
   testEnvironmentOptions: {
