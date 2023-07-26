@@ -1,18 +1,23 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import zlib
+from hashlib import md5
 from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
+from django.core.cache import cache
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
+from sentry.utils import metrics
+from sentry.utils.hashlib import hash_value
 from sentry.utils.strings import unescape_string
 
 from .actions import Action, FlagAction, VarAction
@@ -25,6 +30,8 @@ from .matchers import (
     Match,
     create_match_frame,
 )
+
+logger = logging.getLogger(__name__)
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -136,9 +143,14 @@ class Enhancements:
         """This applies the frame modifications to the frames itself. This
         does not affect grouping.
         """
-        in_memory_cache: dict[str, str] = {}
+        match_frames, stacktrace_sha = _generate_matching_frames(frames, platform)
+        # The most expensive part of creating groups is applying the rules to frames
+        # matching frames contain the
+        if stacktrace_sha and cache.get(stacktrace_sha):
+            _merge_frames(frames, match_frames)
+            return
 
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        in_memory_cache: dict[str, str] = {}
 
         with sentry_sdk.start_span(
             op="stacktrace_processing",
@@ -148,8 +160,16 @@ class Enhancements:
                 for idx, action in rule.get_matching_frame_actions(
                     match_frames, platform, exception_data, in_memory_cache
                 ):
-                    # Both frames and match_frames are updated
+                    # Both frames and match_frames will be updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+
+        # The cache may already have something stored by the time we get here
+        if stacktrace_sha and not cache.get(stacktrace_sha):
+            # XXX: Do we want a key to prevent races?
+            # Store in the cache for 24 hours by default
+            cache.set(stacktrace_sha, match_frames)
+            # XXX: Track metric of a hit
+            pass
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -472,6 +492,35 @@ class EnhancementsVisitor(NodeVisitor):
     def visit_quoted_ident(self, node, children):
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
+
+
+def _merge_frames():
+    pass
+
+
+def _generate_matching_frames(
+    frames: Sequence[dict[str, Any]], platform: str
+) -> tuple(list[dict[str, Any]], str):
+    """Return frames that can be used for matching and a fingerprint representing them."""
+    matched_frames = []
+    failed_to_hash = False
+    frames_hash = md5()
+    for frame in frames:
+        match_frame = create_match_frame(frame, platform)
+        matched_frames.append(match_frame)
+
+        if not failed_to_hash:
+            try:
+                # We create the hash based on the match_frame since it does not
+                # contain values like the `vars` which is not necessary for grouping
+                hash_value(frames_hash, match_frame)
+            except TypeError:
+                failed_to_hash = True
+                logger.exception(
+                    "We failed to hash a frame.", extra={"frame": frame, "platform": platform}
+                )
+                metrics.incr("enhancer.frame_failed_to_hash", tags={"platform": platform})
+    return (matched_frames, "" if failed_to_hash else frames_hash.hexdigest())
 
 
 def _load_configs():
