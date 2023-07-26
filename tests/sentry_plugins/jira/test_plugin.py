@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import Any
 
 import responses
 from django.contrib.auth.models import AnonymousUser
@@ -180,7 +183,7 @@ create_meta_response = {
     ],
 }
 
-issue_response = {
+issue_response: dict[str, Any] = {
     "key": "SEN-19",
     "id": "10708",
     "fields": {"summary": "TypeError: 'set' object has no attribute '__getitem__'"},
