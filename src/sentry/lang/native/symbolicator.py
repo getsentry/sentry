@@ -14,6 +14,7 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.cache import default_cache
 from sentry.lang.native.sources import (
+    get_bundle_index_urls,
     get_internal_artifact_lookup_source,
     sources_for_symbolication,
 )
@@ -179,6 +180,12 @@ class Symbolicator:
             "modules": modules,
             "options": {"apply_source_context": apply_source_context},
         }
+
+        debug_id_index, url_index = get_bundle_index_urls(self.project, release, dist)
+        if debug_id_index:
+            json["debug_id_index"] = debug_id_index
+        if url_index:
+            json["url_index"] = url_index
 
         if release is not None:
             json["release"] = release
