@@ -19,14 +19,17 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self.application_id = "application-id"
         self.public_key = "public-key"
         self.bot_token = "bot-token"
+        self.client_secret = "client-secret"
         options.set("discord.application-id", self.application_id)
-        options.set("discord.bot-token", self.bot_token)
         options.set("discord.public-key", self.public_key)
+        options.set("discord.bot-token", self.bot_token)
+        options.set("discord.client-secret", self.client_secret)
 
     def assert_setup_flow(
         self,
         guild_id="1234567890",
         server_name="Cool server",
+        auth_code="auth_code",
     ):
         responses.reset()
 
@@ -52,11 +55,25 @@ class DiscordIntegrationTest(IntegrationTestCase):
                 "name": server_name,
             },
         )
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
+        )
 
-        resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id})))
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id, "code": auth_code}))
+        )
 
-        mock_request = responses.calls[0].request
-        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+        call_list = responses.calls
+        assert call_list[0].request.headers["Authorization"] == f"Bot {self.bot_token}"
+        assert f"code={auth_code}" in call_list[1].request.body
+        assert call_list[2].request.headers["Authorization"] == "Bearer access_token"
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)

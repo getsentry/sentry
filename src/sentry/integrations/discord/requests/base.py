@@ -72,7 +72,7 @@ class DiscordRequest:
     def user_id(self) -> str | None:
         try:
             return self.data.get("member")["user"]["id"]  # type: ignore
-        except AttributeError:
+        except (AttributeError, TypeError):
             return None
 
     @property

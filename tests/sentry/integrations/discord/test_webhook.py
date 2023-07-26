@@ -30,9 +30,7 @@ class DiscordWebhookTest(APITestCase):
         mock_verify_signature.return_value = True
         resp = self.client.post(
             path=WEBHOOK_URL,
-            data={
-                "type": 2,
-            },
+            data={"type": 2, "data": {"name": "command_name"}},
             format="json",
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",

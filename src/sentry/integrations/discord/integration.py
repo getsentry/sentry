@@ -155,7 +155,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         We don't keep the granted token beyond this function because we don't
         need it.
 
-        If something goes wrong with this we will throw an error because the
+        If something goes wrong with this we will throw an error because we
+        need an initial identity to configure the identity provider for this
+        integration.
 
         """
         form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={self.setup_url}"
