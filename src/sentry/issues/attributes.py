@@ -137,6 +137,8 @@ def _retrieve_snapshot_values(
 def send_snapshot_values(
     group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
 ) -> None:
+    if not settings.SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA:
+        return
 
     if group_id is None and group is None:
         raise ValueError("cannot send snapshot values when group_id and group are None")
@@ -175,6 +177,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
     try:
         if created:
             _log_group_attributes_changed(Operation.CREATED, "group", None)
+            send_snapshot_values(None, instance, False)
         else:
             if "update_fields" in kwargs:
                 update_fields = kwargs["update_fields"]
@@ -187,6 +190,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
                     _log_group_attributes_changed(
                         Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
                     )
+                    send_snapshot_values(None, instance, False)
     except Exception:
         logger.error("failed to log group attributes after group post_save", exc_info=True)
 
@@ -195,6 +199,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
 def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs):
     try:
         _log_group_attributes_changed(Operation.DELETED, "group", "all")
+        send_snapshot_values(None, group, True)
     except Exception:
         logger.error("failed to log group attributes after group delete", exc_info=True)
 
@@ -203,6 +208,7 @@ def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs):
 def on_issue_assigned_log_group_assignee_attributes_changed(project, group, user, **kwargs):
     try:
         _log_group_attributes_changed(Operation.UPDATED, "group_assignee", "all")
+        send_snapshot_values(None, group, False)
     except Exception:
         logger.error(
             "failed to log group attributes after group_assignee assignment", exc_info=True
@@ -213,6 +219,7 @@ def on_issue_assigned_log_group_assignee_attributes_changed(project, group, user
 def on_issue_unassigned_log_group_assignee_attributes_changed(project, group, user, **kwargs):
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_assignee", "all")
+        send_snapshot_values(None, group, False)
     except Exception:
         logger.error(
             "failed to log group attributes after group_assignee unassignment", exc_info=True
@@ -227,6 +234,7 @@ def post_save_log_group_owner_changed(instance, sender, created, update_fields, 
         _log_group_attributes_changed(
             Operation.CREATED if created else Operation.UPDATED, "group_owner", "all"
         )
+        send_snapshot_values(instance.group_id, None, False)
     except Exception:
         logger.error("failed to log group attributes after group_owner updated", exc_info=True)
 
@@ -237,5 +245,6 @@ def post_save_log_group_owner_changed(instance, sender, created, update_fields, 
 def post_delete_log_group_owner_changed(instance, sender, *args, **kwargs):
     try:
         _log_group_attributes_changed(Operation.DELETED, "group_owner", "all")
+        send_snapshot_values(instance.group_id, None, False)
     except Exception:
         logger.error("failed to log group attributes after group_owner delete", exc_info=True)
