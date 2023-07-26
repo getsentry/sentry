@@ -14,8 +14,11 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurityDetails', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
   describe('Totp', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         body: TestStubs.AllAuthenticators(),
@@ -41,28 +44,16 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -86,28 +77,16 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -138,28 +117,16 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -191,28 +158,16 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
 
-      const {router, route, routerContext} = initializeOrg({
+      const {routerContext, routerProps} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -252,28 +207,16 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -295,28 +238,16 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
@@ -344,7 +275,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
+      const {routerProps, routerContext} = initializeOrg({
         router: {
           params,
         },
@@ -355,21 +286,9 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper {...routerProps}>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
+            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
