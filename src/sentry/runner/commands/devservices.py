@@ -69,10 +69,14 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                     ]
                     if APPLE_ARM64:
                         args = [*args, "--vm-type=vz", "--vz-rosetta"]
-                    subprocess.check_call((
-                        "colima", "start", f"--mount=/private/tmp/colima:w,{os.path.expanduser('~')}:r",
-                        *args
-                    ))
+                    subprocess.check_call(
+                        (
+                            "colima",
+                            "start",
+                            f"--mount=/private/tmp/colima:w,{os.path.expanduser('~')}:r",
+                            *args,
+                        )
+                    )
                 else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
