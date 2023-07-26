@@ -248,64 +248,66 @@ function SpanSummaryPage({params, location}: Props) {
                         </DescriptionPanelBody>
                       </Panel>
                     </Block>
-
-                    <Block>
-                      <ChartPanel
-                        title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
-                      >
-                        <Chart
-                          height={140}
-                          data={[spanMetricsThroughputSeries]}
-                          loading={areSpanMetricsSeriesLoading}
-                          utc={false}
-                          chartColors={[THROUGHPUT_COLOR]}
-                          isLineChart
-                          definedAxisTicks={4}
-                          aggregateOutputFormat="rate"
-                          rateUnit={RateUnits.PER_MINUTE}
-                          tooltipFormatterOptions={{
-                            valueFormatter: value =>
-                              formatRate(value, RateUnits.PER_MINUTE),
-                          }}
-                        />
-                      </ChartPanel>
-                    </Block>
-
-                    <Block>
-                      <ChartPanel title={DataTitles.avg}>
-                        <Chart
-                          height={140}
-                          data={[
-                            spanMetricsSeriesData?.[
-                              `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
-                            ],
-                          ]}
-                          loading={areSpanMetricsSeriesLoading}
-                          utc={false}
-                          chartColors={[AVG_COLOR]}
-                          isLineChart
-                          definedAxisTicks={4}
-                        />
-                      </ChartPanel>
-                    </Block>
-
-                    {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
-                      <Block>
-                        <ChartPanel title={DataTitles.errorCount}>
-                          <Chart
-                            height={140}
-                            data={[spanMetricsSeriesData?.[`http_error_count()`]]}
-                            loading={areSpanMetricsSeriesLoading}
-                            utc={false}
-                            chartColors={[ERRORS_COLOR]}
-                            isLineChart
-                            definedAxisTicks={4}
-                          />
-                        </ChartPanel>
-                      </Block>
-                    )}
                   </BlockContainer>
                 )}
+
+                <BlockContainer>
+                  <Block>
+                    <ChartPanel
+                      title={getThroughputChartTitle(span?.[SpanMetricsFields.SPAN_OP])}
+                    >
+                      <Chart
+                        height={140}
+                        data={[spanMetricsThroughputSeries]}
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[THROUGHPUT_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                        aggregateOutputFormat="rate"
+                        rateUnit={RateUnits.PER_MINUTE}
+                        tooltipFormatterOptions={{
+                          valueFormatter: value =>
+                            formatRate(value, RateUnits.PER_MINUTE),
+                        }}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  <Block>
+                    <ChartPanel title={DataTitles.avg}>
+                      <Chart
+                        height={140}
+                        data={[
+                          spanMetricsSeriesData?.[
+                            `avg(${SpanMetricsFields.SPAN_SELF_TIME})`
+                          ],
+                        ]}
+                        loading={areSpanMetricsSeriesLoading}
+                        utc={false}
+                        chartColors={[AVG_COLOR]}
+                        isLineChart
+                        definedAxisTicks={4}
+                      />
+                    </ChartPanel>
+                  </Block>
+
+                  {span?.[SpanMetricsFields.SPAN_OP]?.startsWith('http') && (
+                    <Block>
+                      <ChartPanel title={DataTitles.errorCount}>
+                        <Chart
+                          height={140}
+                          data={[spanMetricsSeriesData?.[`http_error_count()`]]}
+                          loading={areSpanMetricsSeriesLoading}
+                          utc={false}
+                          chartColors={[ERRORS_COLOR]}
+                          isLineChart
+                          definedAxisTicks={4}
+                        />
+                      </ChartPanel>
+                    </Block>
+                  )}
+                </BlockContainer>
 
                 {span && (
                   <SpanTransactionsTable
@@ -347,14 +349,16 @@ type BlockProps = {
 export function Block({title, description, children}: BlockProps) {
   return (
     <BlockWrapper>
-      <BlockTitle>
-        {title}
-        {description && (
-          <BlockTooltipContainer>
-            <QuestionTooltip size="sm" position="right" title={description} />
-          </BlockTooltipContainer>
-        )}
-      </BlockTitle>
+      {title && (
+        <BlockTitle>
+          {title}
+          {description && (
+            <BlockTooltipContainer>
+              <QuestionTooltip size="sm" position="right" title={description} />
+            </BlockTooltipContainer>
+          )}
+        </BlockTitle>
+      )}
       <BlockContent>{children}</BlockContent>
     </BlockWrapper>
   );
