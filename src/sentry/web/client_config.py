@@ -14,8 +14,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.user import RpcUser, UserSerializeType
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user import UserSerializeType
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_dist_prefix
@@ -246,15 +246,12 @@ def get_client_config(request=None):
     user_details = None
     if user and user.is_authenticated:
         # Fetch the user, this could be an empty result as the user could be deleted.
-        serial_user = (
-            request.user if isinstance(request.user, RpcUser) else serialize_rpc_user(request.user)
-        )
         user_details = user_service.serialize_many(
             filter={"user_ids": [user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
                 auth=getattr(request, "auth", None),
-                user=serial_user,
+                user=serialize_generic_user(request.user),
             ),
         )
 

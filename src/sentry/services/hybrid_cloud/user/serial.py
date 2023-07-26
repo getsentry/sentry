@@ -1,11 +1,25 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Iterable, List
+from typing import Any, FrozenSet, Iterable, List, Optional
 
 from sentry.db.models import BaseQuerySet
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcAuthenticator, RpcAvatar, RpcUser, RpcUserEmail
+
+
+def serialize_generic_user(user: Any) -> Optional[RpcUser]:
+    """Serialize a user-representing object of unknown type to an RpcUser.
+
+    Return None if the user is anonymous (not logged in).
+    """
+    if user is None or user.id is None:
+        return None
+    if isinstance(user, RpcUser):
+        return user
+    if isinstance(user, User):
+        return serialize_rpc_user(user)
+    raise TypeError(f"Can't serialize {type(user)} to RpcUser")
 
 
 def serialize_rpc_user(user: User) -> RpcUser:
