@@ -35,6 +35,10 @@ type EnvironmentId = Environment['id'];
 
 type Options = {
   /**
+   * Starfish stores projects separately from the rest of the app
+   */
+  isStarfishPage?: boolean;
+  /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
   keepCursor?: boolean;
@@ -50,10 +54,6 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
-  /**
-   * Starfish stores projects separately from the rest of the app
-   */
-  isStarfishPage?: boolean;
 };
 
 /**
