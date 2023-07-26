@@ -64,6 +64,8 @@ import {
   useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
+import {FlamegraphChart} from '../../../utils/profiling/flamegraphChart';
+
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
@@ -227,6 +229,19 @@ function Flamegraph(): ReactElement {
 
     return new SpanChart(spanTree, {unit: profile.unit});
   }, [spanTree, profile]);
+
+  const CPUChart = useMemo(() => {
+    if (!profile) {
+      return null;
+    }
+
+    return new FlamegraphChart(
+      profileGroup.measurements?.cpu_usage_0 ?? {
+        unit: 'percentage',
+        values: [],
+      }
+    );
+  }, [profile, profileGroup.measurements?.cpu_usage_0]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -889,7 +904,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
-        cpuChart={hasCPUChart ? <FlamegraphCpuChart /> : null}
+        cpuChart={hasCPUChart ? <FlamegraphCpuChart chart={CPUChart} /> : null}
         spansTreeDepth={spanChart?.depth}
         spans={
           spanChart ? (
