@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import base64
 import logging
+import random
 import sys
 from copy import deepcopy
 from datetime import datetime
+from typing import Optional, Tuple
 
 import jsonschema
 import sentry_sdk
@@ -11,6 +15,7 @@ from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
 from sentry.models.project import Project
 from sentry.utils import json, redis, safe
 
@@ -200,6 +205,43 @@ def get_internal_artifact_lookup_source_url(project: Project):
             },
         ),
     )
+
+
+def get_bundle_index_urls(
+    project: Project, release: Optional[str], dist: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
+    if options.get("symbolicator.sourcemaps-bundle-index-sample-rate") <= random.random():
+        return (None, None)
+
+    base_url = get_internal_artifact_lookup_source_url(project)
+
+    def make_download_url(bundle: ArtifactBundleFlatFileIndex):
+        # TODO: do we want to also auto-expire and refresh the `ArtifactBundleFlatFileIndex`?
+
+        timestamp = int(bundle.date_added.timestamp() * 1000)
+        # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
+        # and it is also used as the the download key for the artifact-lookup API.
+        # The artifact-lookup API will ignore the additional timestamp on download.
+
+        return f"{base_url}?download=bundle_index/{bundle.id}/{timestamp}"
+
+    # We query the empty release/dist which is a marker for the debug-id index,
+    # as well as the normal release index if we have a release.
+    debug_id_index = ArtifactBundleFlatFileIndex.objects.filter(
+        project_id=project.id, release_name=NULL_STRING, dist_name=NULL_STRING
+    ).first()
+    if debug_id_index:
+        debug_id_index = make_download_url(debug_id_index)
+
+    url_index = None
+    if release:
+        url_index = ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=project.id, release_name=release, dist_name=dist or NULL_STRING
+        ).first()
+    if url_index:
+        url_index = make_download_url(url_index)
+
+    return debug_id_index, url_index
 
 
 def get_internal_artifact_lookup_source(project: Project):

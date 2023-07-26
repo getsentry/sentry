@@ -27,11 +27,7 @@ from sentry.dynamic_sampling.tasks.constants import (
     MAX_SECONDS,
     RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
-    extrapolate_monthly_volume,
-    get_sliding_window_org_sample_rate,
-    get_sliding_window_size,
-)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.sentry_metrics import indexer
@@ -349,8 +345,10 @@ class GetActiveOrgsVolumes:
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
+        orgs: Optional[List[int]] = None,
     ):
         self.include_keep = include_keep
+        self.orgs = orgs
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
@@ -395,6 +393,15 @@ class GetActiveOrgsVolumes:
             Column("org_id"),
         ]
 
+        where = [
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("metric_id"), Op.EQ, self.metric_id),
+        ]
+
+        if self.orgs:
+            where.append(Condition(Column("org_id"), Op.IN, self.orgs))
+
         if self.include_keep:
             select.append(self.keep_count_column)
 
@@ -407,17 +414,7 @@ class GetActiveOrgsVolumes:
                     groupby=[
                         Column("org_id"),
                     ],
-                    where=[
-                        Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
-                        ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
-                    ],
-                    granularity=self.granularity,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                    ],
+                    where=where,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
@@ -556,6 +553,25 @@ def fetch_orgs_with_total_root_transactions_count(
     return aggregated_projects
 
 
+def get_organization_volume(
+    org_id: int,
+    time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+    granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
+) -> Optional[OrganizationDataVolume]:
+    """
+    Specialized version of GetActiveOrgsVolumes that returns a single org
+    """
+    for org_volumes in GetActiveOrgsVolumes(
+        max_orgs=1,
+        time_interval=time_interval,
+        granularity=granularity,
+        orgs=[org_id],
+    ):
+        if org_volumes:
+            return org_volumes[0]
+    return None
+
+
 def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
     """
     Converts a sample rate to a float or returns None in case the conversion failed.
@@ -650,35 +666,3 @@ def compute_sliding_window_sample_rate(
 
     # We assume that the sample_rate is a float.
     return float(sample_rate)
-
-
-def get_adjusted_base_rate_from_cache_or_compute(
-    org_id: int, context: TaskContext
-) -> Optional[float]:
-    """
-    Gets the adjusted base sample rate from the sliding window directly from the Redis cache or tries to compute
-    it synchronously.
-    """
-    # We first try to get from cache the sliding window org sample rate.
-    sample_rate = get_sliding_window_org_sample_rate(org_id)
-    if sample_rate is not None:
-        return sample_rate
-
-    # In case we didn't find the value in cache, we want to compute it synchronously.
-    window_size = get_sliding_window_size()
-    # In case the size is None it means that we disabled the sliding window entirely.
-    if window_size is not None:
-        # We want to synchronously fetch the orgs and compute the sliding window org sample rate.
-        orgs_with_counts = fetch_orgs_with_total_root_transactions_count(
-            org_ids=[org_id], window_size=window_size
-        )
-        if (org_total_root_count := orgs_with_counts.get(org_id)) is not None:
-            return compute_guarded_sliding_window_sample_rate(
-                org_id,
-                None,
-                org_total_root_count,
-                window_size,
-                context,
-            )
-
-    return None

@@ -1,5 +1,6 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404, HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
@@ -42,7 +43,7 @@ class SlackUnlinkTeamView(BaseView):
     """
 
     @transaction_start("SlackUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)

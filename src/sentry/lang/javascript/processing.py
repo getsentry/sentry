@@ -2,7 +2,7 @@ import logging
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import unquote
 
-from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
+from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError, Project
@@ -114,18 +114,37 @@ def map_symbolicator_process_js_errors(errors):
         abs_path = error["abs_path"]
 
         if ty == "invalid_abs_path" and not should_skip_missing_source_error(abs_path):
-            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+            mapped_errors.append(
+                {
+                    "symbolicator_type": ty,
+                    "type": EventError.JS_MISSING_SOURCE,
+                    "url": abs_path,
+                }
+            )
         elif ty == "missing_source" and not should_skip_missing_source_error(abs_path):
-            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+            mapped_errors.append(
+                {"symbolicator_type": ty, "type": EventError.JS_MISSING_SOURCE, "url": abs_path}
+            )
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
-            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": abs_path})
+            mapped_errors.append(
+                {"symbolicator_type": ty, "type": EventError.JS_MISSING_SOURCE, "url": abs_path}
+            )
         elif ty == "scraping_disabled":
-            mapped_errors.append({"type": EventError.JS_SCRAPING_DISABLED, "url": abs_path})
+            mapped_errors.append(
+                {"symbolicator_type": ty, "type": EventError.JS_SCRAPING_DISABLED, "url": abs_path}
+            )
         elif ty == "malformed_sourcemap":
-            mapped_errors.append({"type": EventError.JS_INVALID_SOURCEMAP, "url": error["url"]})
+            mapped_errors.append(
+                {
+                    "symbolicator_type": ty,
+                    "type": EventError.JS_INVALID_SOURCEMAP,
+                    "url": error["url"],
+                }
+            )
         elif ty == "missing_source_content":
             mapped_errors.append(
                 {
+                    "symbolicator_type": ty,
                     "type": EventError.JS_MISSING_SOURCES_CONTENT,
                     "source": error["source"],
                     "sourcemap": error["sourcemap"],
@@ -134,6 +153,7 @@ def map_symbolicator_process_js_errors(errors):
         elif ty == "invalid_location":
             mapped_errors.append(
                 {
+                    "symbolicator_type": ty,
                     "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
                     "column": error["col"],
                     "row": error["line"],
@@ -247,6 +267,10 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return data
 
+    used_artifact_bundles = response.get("used_artifact_bundles", [])
+    if used_artifact_bundles:
+        maybe_renew_artifact_bundles_from_processing(project.id, used_artifact_bundles)
+
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
@@ -286,6 +310,4 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
 
 def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
-    if should_use_symbolicator_for_sourcemaps(data.get("project")):
-        return process_js_stacktraces
-    return None
+    return process_js_stacktraces

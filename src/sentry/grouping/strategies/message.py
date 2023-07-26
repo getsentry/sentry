@@ -102,6 +102,14 @@ _parameterization_regex = re.compile(
         # rather than all quoted strings
         ='([^']+)' |
         ="([^"]+)"
+    ) |
+    (?P<bool>
+        # The `=` here guarantees we'll only match the value half of key-value pairs,
+        # rather than all instances of the words 'true' and 'false'.
+        =True |
+        =true |
+        =False |
+        =false
     )
 """
 )
@@ -130,10 +138,10 @@ def normalize_message_for_grouping(message: str) -> str:
                 # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
                 # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
                 metrics.incr("grouping.value_trimmed_from_message", tags={"key": key})
-                # For `quoted_str` we want to preserve the `=` symbol, which we include in
-                # the match in order not to replace random quoted strings in contexts other
-                # than key-value pairs
-                return f"=<{key}>" if key == "quoted_str" else f"<{key}>"
+                # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
+                # the match in order not to replace random quoted strings and the words 'true' and 'false'
+                # in contexts other than key-value pairs
+                return f"=<{key}>" if key in ["quoted_str", "bool"] else f"<{key}>"
         return ""
 
     return _parameterization_regex.sub(_handle_match, trimmed)

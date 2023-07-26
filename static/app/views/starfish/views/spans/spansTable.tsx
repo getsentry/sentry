@@ -21,7 +21,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanMetricsFields,
+  StarfishFunctions,
+} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
@@ -33,7 +37,7 @@ type Row = {
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'sps()': number;
+  'spm()': number;
   'time_spent_percentage()': number;
   'time_spent_percentage(local)': number;
 };
@@ -56,13 +60,15 @@ type Props = {
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
   SpanMetricsFields;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
-  'sps()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
+  `${SPS}()`,
+  `${SPM}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
 export default function SpansTable({
@@ -145,6 +151,16 @@ function renderBodyCell(
       endpoint,
       endpointMethod,
     };
+    const sort: string | undefined = queryString?.[QueryParameterNames.SORT];
+
+    // the spans page uses time_spent_percentage(local), so to persist the sort upon navigation we need to replace
+    if (sort?.includes(`${TIME_SPENT_PERCENTAGE}()`)) {
+      queryString[QueryParameterNames.SORT] = sort.replace(
+        `${TIME_SPENT_PERCENTAGE}()`,
+        `${TIME_SPENT_PERCENTAGE}(local)`
+      );
+    }
+
     return (
       <OverflowEllipsisTextContainer>
         {row[SPAN_GROUP] ? (
@@ -245,7 +261,7 @@ function getColumns(
         ]
       : []),
     {
-      key: 'sps()',
+      key: 'spm()',
       name: getThroughputTitle(moduleName),
       width: COL_WIDTH_UNDEFINED,
     },
