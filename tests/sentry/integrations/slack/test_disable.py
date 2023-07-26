@@ -187,4 +187,4 @@ class SlackClientDisable(TestCase):
                 buffer.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
-        assert len(buffer._get()) == 30
+        assert buffer.client.llen(buffer.integrationkey) == 30
