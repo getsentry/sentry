@@ -134,15 +134,14 @@ class IntegrationRequestBuffer:
                         f"{other_count2}_count": 0,
                     }
                     pipe.lpush(buffer_key, json.dumps(data))
-
                 pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
+                pipe.expire(buffer_key, KEY_EXPIRY)
                 pipe.execute()
                 break
             except WatchError:
                 continue
             finally:
                 pipe.reset()
-                pipe.expire(buffer_key, KEY_EXPIRY)
 
     def record_error(self):
         self.add("error")
