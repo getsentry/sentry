@@ -1,6 +1,7 @@
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import pytest
 import responses
 
 from sentry import audit_log, options
@@ -8,6 +9,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 
 
@@ -196,3 +198,30 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         # Second provider.setup() should not update commands -> 1 call to API
         assert responses.assert_call_count(count=1, url=url)
+
+    @responses.activate
+    def test_get_discord_user_id(self):
+        provider = self.provider()
+        user_id = "user1234"
+
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": user_id}
+        )
+
+        result = provider._get_discord_user_id("auth_code")
+
+        assert result == user_id
+
+    @responses.activate
+    def test_get_discord_user_id_failure(self):
+        provider = self.provider()
+        responses.add(responses.POST, url="https://discord.com/api/v10/oauth2/token", status=500)
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code")

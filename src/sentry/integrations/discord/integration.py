@@ -180,7 +180,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             # with our bot's authorization
             response = requests.get(f"{self.client.base_url}/users/@me", headers=headers)
             return response.json()["id"]
-        except (ApiError, AttributeError):
+        except (ApiError, KeyError):
             logger.error("discord.install.failed_to_get_discord_user_id")
             raise IntegrationError("Could not retrieve Discord user information.")
 
