@@ -11,8 +11,10 @@ type Error = {
   type: ErrorType;
 };
 
+type JsonResponse = 'relayPiiConfig';
+
 type ResponseError = {
-  responseJSON?: Record<string, Array<string>>;
+  responseJSON?: Record<JsonResponse, Array<string>>;
 };
 
 function handleError(error: ResponseError): Error {
@@ -47,6 +49,13 @@ function handleError(error: ResponseError): Error {
         };
       }
     }
+  }
+
+  if (errorMessage.startsWith('Compiled regex exceeds size limit')) {
+    return {
+      type: ErrorType.REGEX_PARSE,
+      message: t('Compiled regex is too large, simplify your regex'),
+    };
   }
 
   return {
