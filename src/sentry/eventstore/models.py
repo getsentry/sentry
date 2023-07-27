@@ -4,11 +4,10 @@ import abc
 import logging
 import string
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
 
-import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -104,11 +103,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def datetime(self) -> datetime:
         column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
-            return parse_date(self._snuba_data[column]).replace(tzinfo=pytz.utc)
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         timestamp = self.data.get("timestamp")
         date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=pytz.utc)
+        date = date.replace(tzinfo=timezone.utc)
         return date
 
     @property

@@ -1,24 +1,29 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
+import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organizationAuthList';
 
 describe('OrganizationAuthList', function () {
   it('renders with no providers', function () {
-    const {container} = render(<OrganizationAuthList providerList={[]} />);
+    render(
+      <OrganizationAuthList organization={TestStubs.Organization()} providerList={[]} />
+    );
 
-    expect(container).toSnapshot();
+    expect(
+      screen.queryByText('No authentication providers are available.')
+    ).toBeInTheDocument();
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
+        organization={TestStubs.Organization()}
         providerList={TestStubs.AuthProviders()}
       />
     );
 
-    expect(container).toSnapshot();
+    expect(screen.getAllByLabelText('Configure').length).toBe(2);
+    expect(screen.queryByText('Dummy')).toBeInTheDocument();
+    expect(screen.queryByText('Dummy SAML')).toBeInTheDocument();
   });
 
   it('renders for members', function () {
@@ -28,8 +33,7 @@ describe('OrganizationAuthList', function () {
 
     render(
       <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
+        organization={TestStubs.Organization()}
         providerList={TestStubs.AuthProviders()}
         activeProvider={TestStubs.AuthProviders()[0]}
       />,
@@ -45,14 +49,12 @@ describe('OrganizationAuthList', function () {
     const withSAML = {features: ['sso-saml2']};
 
     it('renders', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSSO})},
-      ]);
+      const organization = TestStubs.Organization({...require2fa, ...withSSO});
+      const context = TestStubs.routerContext([{organization}]);
 
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
+          organization={organization}
           providerList={TestStubs.AuthProviders()}
         />,
         {context}
@@ -64,14 +66,12 @@ describe('OrganizationAuthList', function () {
     });
 
     it('renders with saml available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSAML})},
-      ]);
+      const organization = TestStubs.Organization({...require2fa, ...withSAML});
+      const context = TestStubs.routerContext([{organization}]);
 
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
+          organization={organization}
           providerList={TestStubs.AuthProviders()}
         />,
         {context}
@@ -83,14 +83,12 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render without sso available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa})},
-      ]);
+      const organization = TestStubs.Organization({...require2fa});
+      const context = TestStubs.routerContext([{organization}]);
 
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
+          organization={organization}
           providerList={TestStubs.AuthProviders()}
         />,
         {context}
@@ -102,14 +100,12 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with sso and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSSO})},
-      ]);
+      const organization = TestStubs.Organization({...withSSO});
+      const context = TestStubs.routerContext([{organization}]);
 
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
+          organization={organization}
           providerList={TestStubs.AuthProviders()}
         />,
         {context}
@@ -121,14 +117,12 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with saml and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSAML})},
-      ]);
+      const organization = TestStubs.Organization({...withSAML});
+      const context = TestStubs.routerContext([{organization}]);
 
       render(
         <OrganizationAuthList
-          orgId="org-slug"
-          onSendReminders={() => {}}
+          organization={organization}
           providerList={TestStubs.AuthProviders()}
         />,
         {context}
