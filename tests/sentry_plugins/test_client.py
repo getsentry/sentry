@@ -9,6 +9,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     UnsupportedResponseType,
 )
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.client import ApiClient, AuthApiClient
@@ -20,6 +21,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = ApiClient().get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -27,6 +29,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.POST, "http://example.com", json={})
 
         resp = ApiClient().post("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -34,6 +37,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.DELETE, "http://example.com", json={})
 
         resp = ApiClient().delete("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -41,6 +45,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PUT, "http://example.com", json={})
 
         resp = ApiClient().put("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
     @responses.activate
@@ -48,6 +53,7 @@ class ApiClientTest(TestCase):
         responses.add(responses.PATCH, "http://example.com", json={})
 
         resp = ApiClient().patch("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
 
@@ -58,6 +64,7 @@ class AuthApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         resp = AuthApiClient().get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
         request = responses.calls[-1].request
@@ -71,6 +78,7 @@ class AuthApiClientTest(TestCase):
         auth.tokens = {"access_token": "access-token"}
 
         resp = AuthApiClient(auth=auth).get("http://example.com")
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
         request = responses.calls[-1].request
@@ -84,6 +92,7 @@ class AuthApiClientTest(TestCase):
         auth.tokens = {"access_token": "access-token"}
 
         resp = AuthApiClient(auth=auth).get("http://example.com", auth=None)
+        assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
         request = responses.calls[-1].request

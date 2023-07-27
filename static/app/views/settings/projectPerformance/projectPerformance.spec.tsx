@@ -271,6 +271,14 @@ describe('projectPerformance', function () {
       newValue: 400,
       sliderIndex: 10,
     },
+    {
+      title: 'Consecutive HTTP',
+      threshold: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+      allowedValues: allowedDurationValues.slice(14),
+      defaultValue: 2000,
+      newValue: 4000,
+      sliderIndex: 11,
+    },
   ])(
     'renders detector thresholds settings for $title issue',
     async ({title, threshold, allowedValues, defaultValue, newValue, sliderIndex}) => {
@@ -286,6 +294,7 @@ describe('projectPerformance', function () {
         uncompressed_assets_detection_enabled: true,
         large_http_payload_detection_enabled: true,
         n_plus_one_api_calls_detection_enabled: true,
+        consecutive_http_spans_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',

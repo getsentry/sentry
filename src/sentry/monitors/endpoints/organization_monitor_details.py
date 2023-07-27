@@ -42,7 +42,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     public = {"GET", "PUT", "DELETE"}
 
     @extend_schema(
-        operation_id="Retrieve a monitor",
+        operation_id="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -70,7 +70,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update a monitor",
+        operation_id="Update a Monitor",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
@@ -149,7 +149,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a monitor or monitor environments",
+        operation_id="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,

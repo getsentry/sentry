@@ -26,7 +26,7 @@ type Return = {
 };
 
 const TYPE_TO_LABEL: Record<string, string> = {
-  'ui.slowClickDetected': 'Slow & Dead Click',
+  'ui.slowClickDetected': 'Rage & Dead Click',
   'largest-contentful-paint': 'LCP',
   'ui.click': 'Click',
   'ui.keyDown': 'KeyDown',
