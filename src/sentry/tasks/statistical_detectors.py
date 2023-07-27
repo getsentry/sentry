@@ -103,8 +103,9 @@ def _detect_regressed_functions(project: Project, start: datetime) -> None:
 
 
 def _get_regressed_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
-    # the functions dataset
-    start = start - timedelta(minutes=30)
+    # The functions dataset only supports 1 hour granularity.
+    # So we always look back at the last full hour that just elapsed.
+    start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
     return {
