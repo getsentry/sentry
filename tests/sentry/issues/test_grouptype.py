@@ -11,7 +11,7 @@ from sentry.issues.grouptype import (
     GroupTypeRegistry,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
-    PerformanceNPlusOneGroupType,
+    PerformanceHTTPOverheadGroupType,
     ProfileJSONDecodeType,
     get_group_type_by_slug,
     get_group_types_by_category,
@@ -166,14 +166,14 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 class GroupRegistryTest(BaseGroupTypeTest):
     def test_get_visible(self) -> None:
         registry = GroupTypeRegistry()
-        registry.add(PerformanceNPlusOneGroupType)
+        registry.add(PerformanceHTTPOverheadGroupType)
         registry.add(ProfileJSONDecodeType)
         assert registry.get_visible(self.organization) == []
-        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
-            assert registry.get_visible(self.organization) == [PerformanceNPlusOneGroupType]
+        with self.feature(PerformanceHTTPOverheadGroupType.build_visible_feature_name()):
+            assert registry.get_visible(self.organization) == [PerformanceHTTPOverheadGroupType]
         registry.add(ErrorGroupType)
-        with self.feature(PerformanceNPlusOneGroupType.build_visible_feature_name()):
+        with self.feature(PerformanceHTTPOverheadGroupType.build_visible_feature_name()):
             assert set(registry.get_visible(self.organization)) == {
-                PerformanceNPlusOneGroupType,
+                PerformanceHTTPOverheadGroupType,
                 ErrorGroupType,
             }
