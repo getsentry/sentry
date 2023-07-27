@@ -131,7 +131,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # TimeseriesQueryBuilder specific parameters
         if isinstance(self, TimeseriesMetricQueryBuilder):
-            limit = None
+            limit = Limit(1)
             alias = "count"
         else:
             limit = self.limit
