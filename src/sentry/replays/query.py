@@ -976,7 +976,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
     "device.name": Column("device_name"),
     "device.brand": Column("device_brand"),
     "device.family": Column("device_family"),
-    "device.model_id": Column("device_model"),
+    "device.model": Column("device_model"),
 }
 
 
