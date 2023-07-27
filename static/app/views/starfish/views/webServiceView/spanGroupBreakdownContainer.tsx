@@ -55,9 +55,9 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
-    {label: 'Average Duration', value: DataDisplayType.DURATION_AVG},
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
+    {label: t('Average Duration'), value: DataDisplayType.DURATION_AVG},
+    {label: t('Total Duration'), value: DataDisplayType.CUMULATIVE_DURATION},
   ];
 
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
