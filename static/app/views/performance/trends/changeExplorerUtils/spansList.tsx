@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {
   getQueryParams,
-  percentChange,
+  relativeChange,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {
   NormalizedTrendsTransaction,
@@ -53,7 +53,7 @@ type AveragedSuspectSpan = SuspectSpan & {
 };
 
 export type ChangedSuspectSpan = AveragedSuspectSpan & {
-  avgChange: number;
+  avgTimeDifference: number;
   changeType: string;
   percentChange: number;
 };
@@ -246,8 +246,10 @@ export function SpansList(props: SpansListProps) {
                 ?.concat(addedSpans ? addedSpans : [])
                 .concat(removedSpans ? removedSpans : []);
 
-              // sorts all spans in descending order of avgChange (change in avg total self time)
-              const spanList = allSpansUpdated?.sort((a, b) => b.avgChange - a.avgChange);
+              // sorts all spans in descending order of avgTimeDifference (change in avg total self time)
+              const spanList = allSpansUpdated?.sort(
+                (a, b) => b.avgTimeDifference - a.avgTimeDifference
+              );
               // reverse the span list when trendChangeType is improvement so most negative (improved) change is first
               return (
                 <NumberedList
@@ -336,12 +338,12 @@ function findSpansNotIn(
   comparingSpans: AveragedSuspectSpan[] | undefined
 ) {
   return initialSpans?.filter(initialValue => {
-    const spanInComparingSet = comparingSpans?.filter(
+    const spanInComparingSet = comparingSpans?.find(
       comparingValue =>
         comparingValue.op === initialValue.op &&
         comparingValue.group === initialValue.group
     );
-    return spanInComparingSet?.length === 0;
+    return spanInComparingSet === undefined;
   });
 }
 
@@ -350,12 +352,12 @@ function findSpansIn(
   comparingSpans: AveragedSuspectSpan[] | undefined
 ) {
   return initialSpans?.filter(initialValue => {
-    const spanInComparingSet = comparingSpans?.filter(
+    const spanInComparingSet = comparingSpans?.find(
       comparingValue =>
         comparingValue.op === initialValue.op &&
         comparingValue.group === initialValue.group
     );
-    return spanInComparingSet?.length !== 0;
+    return spanInComparingSet !== undefined;
   });
 }
 
@@ -387,14 +389,16 @@ function addPercentChange(
       beforeValue =>
         spanAfter.op === beforeValue.op && spanAfter.group === beforeValue.group
     );
-    const percentageChange = percentChange(
-      spanBefore?.avgSumExclusiveTime || 0,
-      spanAfter.avgSumExclusiveTime
-    );
+    const percentageChange =
+      relativeChange(
+        spanBefore?.avgSumExclusiveTime || 0,
+        spanAfter.avgSumExclusiveTime
+      ) * 100;
     return {
       ...spanAfter,
       percentChange: percentageChange,
-      avgChange: spanAfter.avgSumExclusiveTime - (spanBefore?.avgSumExclusiveTime || 0),
+      avgTimeDifference:
+        spanAfter.avgSumExclusiveTime - (spanBefore?.avgSumExclusiveTime || 0),
       changeType:
         percentageChange < 0 ? SpanChangeType.improved : SpanChangeType.regressed,
     };
@@ -405,19 +409,21 @@ function addChangeFields(
   spans: AveragedSuspectSpan[] | undefined,
   added: boolean
 ): ChangedSuspectSpan[] | undefined {
+  // percent change is hardcoded to pass the 1% change threshold,
+  // avoid infinite values and reflect correct change type
   return spans?.map(span => {
     if (added) {
       return {
         ...span,
         percentChange: 100,
-        avgChange: span.avgSumExclusiveTime,
+        avgTimeDifference: span.avgSumExclusiveTime,
         changeType: SpanChangeType.added,
       };
     }
     return {
       ...span,
       percentChange: -100,
-      avgChange: 0 - span.avgSumExclusiveTime,
+      avgTimeDifference: 0 - span.avgSumExclusiveTime,
       changeType: SpanChangeType.removed,
     };
   });
@@ -456,6 +462,7 @@ export function NumberedList(props: NumberedListProps) {
     );
   }
 
+  // percent change of a span must be more than 1%
   const formattedSpans = spans
     ?.filter(span => (spans.length > 10 ? Math.abs(span.percentChange) >= 1 : true))
     .slice(0, limit)
@@ -487,7 +494,7 @@ export function NumberedList(props: NumberedListProps) {
               {tct('[changeType] suspect span', {changeType: span.changeType})}
             </p>
             <SpanLink to={spanDetailsPage} onClick={handleClickAnalytics}>
-              {span.description ? span.description : t('(unnamed span)')}
+              {span.description ? `${span.op} - ${span.description}` : span.op}
             </SpanLink>
           </ListItemWrapper>
         </li>
