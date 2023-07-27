@@ -170,11 +170,6 @@ class FlatFileIdentifier(NamedTuple):
                 return None
 
             self.set_flat_file_meta_in_cache(meta)
-        else:
-            metrics.incr(
-                "artifact_bundle_flat_file_indexing.flat_file_meta.cache_hit",
-                tags={"meta_type": meta_type},
-            )
 
         return meta
 
