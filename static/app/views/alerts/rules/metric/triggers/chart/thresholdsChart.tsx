@@ -4,7 +4,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -323,21 +323,20 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       thresholdType,
     } = this.props;
 
-    const dataWithoutRecentBucket_temp = data?.map(
-      ({data: eventData, ...restOfData}) => ({
+    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
+      if (this.props.isExtrapolatedData) {
+        return {
+          ...restOfData,
+          data: eventData.slice(0, -1),
+          areaStyle: extrapolatedAreaStyle,
+        };
+      }
+
+      return {
         ...restOfData,
         data: eventData.slice(0, -1),
-      })
-    );
-
-    const dataWithoutRecentBucket: AreaChartSeries[] = dataWithoutRecentBucket_temp.map(
-      d => {
-        if (this.props.isExtrapolatedData) {
-          return {...d, areaStyle: extrapolatedAreaStyle};
-        }
-        return d;
-      }
-    );
+      };
+    });
 
     const comparisonDataWithoutRecentBucket = comparisonData?.map(
       ({data: eventData, ...restOfData}) => ({

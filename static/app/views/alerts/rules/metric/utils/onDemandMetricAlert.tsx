@@ -78,13 +78,13 @@ function getTokenKey(token): SearchFilterKey[] | SearchFilterKey {
   return null;
 }
 
-const STRIPE_IMG =
+const EXTRAPOLATED_AREA_STRIPE_IMG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==';
 
 export const extrapolatedAreaStyle = {
   color: {
     repeat: 'repeat',
-    image: STRIPE_IMG,
+    image: EXTRAPOLATED_AREA_STRIPE_IMG,
     rotation: 0.785,
     scaleX: 0.5,
   },
