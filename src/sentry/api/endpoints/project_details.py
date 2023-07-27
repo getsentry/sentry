@@ -335,10 +335,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     def validate_recapServerUrl(self, value):
         from sentry import features
 
-        project = self.context["project"]
-
-        # Adding recapServerUrl is only allowed if recap server polling is enabled.
-        has_recap_server_enabled = features.has("projects:recap-server", project)
+        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
+        has_recap_server_enabled = features.has(
+            "organizations:recap-server", self.context["project"].organization
+        )
 
         if not has_recap_server_enabled:
             raise serializers.ValidationError("Project is not allowed to set recap server url")
@@ -348,10 +348,10 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     def validate_recapServerToken(self, value):
         from sentry import features
 
-        project = self.context["project"]
-
-        # Adding recapServerToken is only allowed if recap server polling is enabled.
-        has_recap_server_enabled = features.has("projects:recap-server", project)
+        # Adding recapServerUrl is only allowed if recap server polling is enabled for given organization.
+        has_recap_server_enabled = features.has(
+            "organizations:recap-server", self.context["project"].organization
+        )
 
         if not has_recap_server_enabled:
             raise serializers.ValidationError("Project is not allowed to set recap server token")
