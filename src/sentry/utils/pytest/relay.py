@@ -144,12 +144,12 @@ def relay_server(relay_server_setup, settings):
 
     url = relay_server_setup["url"]
 
-    for i in range(5):
+    for i in range(8):
         try:
             requests.get(url)
             break
         except Exception as ex:
-            if i == 4:
+            if i == 7:
                 raise ValueError(f"relay did not start in time:\n{container.logs()}") from ex
             time.sleep(0.1 * 2**i)
     else:
