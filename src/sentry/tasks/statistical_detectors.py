@@ -95,7 +95,7 @@ def _detect_regressed_functions(project: Project, start: datetime) -> None:
         params=params,
         orderby=["-count()"],
         limit=100,
-        referrer=Referrer.API_PROFILING_FUNCTION_DETECTOR.value,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
