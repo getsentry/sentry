@@ -52,18 +52,13 @@ class FlatFileMeta:
 
     @staticmethod
     def build_none():
-        return FlatFileMeta(id=-1, date=datetime.min)
+        return FlatFileMeta(id=-1, date=datetime.utcfromtimestamp(0))
 
     def to_string(self) -> str:
-        if self.date != datetime.min:
-            timestamp = int(self.date.timestamp() * 1000)
-        else:
-            timestamp = 0
-
-        return f"bundle_index/{self.id}/{timestamp}"
+        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
 
     def is_none(self):
-        return self.id == -1 and self.date == datetime.min
+        return self.id == -1 and self.date == datetime.utcfromtimestamp(0)
 
 
 @sentry_sdk.tracing.trace
