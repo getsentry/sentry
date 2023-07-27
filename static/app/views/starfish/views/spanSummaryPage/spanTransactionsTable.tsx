@@ -19,6 +19,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
@@ -75,6 +76,7 @@ export function SpanTransactionsTable({
   const location = useLocation();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const router = useRouter();
 
   const {
     data: spanTransactionMetrics = [],
@@ -122,16 +124,29 @@ export function SpanTransactionsTable({
     });
 
     if (column.key === 'avg(span.self_time)') {
-      const link = `/starfish/${
+      const pathname = `/starfish/${
         extractRoute(location) ?? 'spans'
-      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}?${qs.stringify({
+      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+      const query = {
         ...location.query,
         endpoint,
         endpointMethod,
         transaction: row.transaction,
         transactionMethod: row.transactionMethod,
-      })}`;
-      return <Link to={link}>{rendered}</Link>;
+      };
+      return (
+        <Link
+          to={`${pathname}?${qs.stringify(query)}`}
+          onClick={() => {
+            router.replace({
+              pathname,
+              query,
+            });
+          }}
+        >
+          {rendered}
+        </Link>
+      );
     }
 
     return rendered;

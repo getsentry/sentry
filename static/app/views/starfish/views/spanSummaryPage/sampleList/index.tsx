@@ -41,7 +41,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.push({
+          router.replace({
             pathname: router.location.pathname,
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
