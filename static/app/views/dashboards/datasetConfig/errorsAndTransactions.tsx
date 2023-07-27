@@ -109,7 +109,6 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
-    DisplayType.WORLD_MAP,
   ],
   getTableRequest: (
     api: Client,
@@ -135,26 +134,6 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     );
   },
   getSeriesRequest: getEventsSeriesRequest,
-  getWorldMapRequest: (
-    api: Client,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string,
-    referrer?: string
-  ) => {
-    return getEventsRequest(
-      `/organizations/${organization.slug}/events-geo/`,
-      api,
-      query,
-      organization,
-      pageFilters,
-      limit,
-      cursor,
-      referrer
-    );
-  },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,

@@ -1,6 +1,4 @@
-from datetime import datetime
-
-import pytz
+from datetime import datetime, timezone
 
 from sentry.incidents.models import (
     AlertRuleTrigger,
@@ -53,8 +51,8 @@ class PreSaveIncidentTriggerTest(TestCase):
             status=IncidentStatus.WARNING.value,
             type=2,
             title="a custom incident title",
-            date_started=datetime.utcnow().replace(tzinfo=pytz.utc),
-            date_detected=datetime.utcnow().replace(tzinfo=pytz.utc),
+            date_started=datetime.utcnow().replace(tzinfo=timezone.utc),
+            date_detected=datetime.utcnow().replace(tzinfo=timezone.utc),
             alert_rule=alert_rule,
         )
         incident_trigger = IncidentTrigger.objects.create(

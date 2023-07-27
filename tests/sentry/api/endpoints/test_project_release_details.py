@@ -1,7 +1,6 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
 from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
@@ -277,7 +276,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

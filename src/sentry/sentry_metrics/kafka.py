@@ -89,7 +89,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "c",
         }
 
-        self.__produce(counter_metric)
+        self.__produce(counter_metric, use_case_id)
 
     def set(
         self,
@@ -120,7 +120,7 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "s",
         }
 
-        self.__produce(set_metric)
+        self.__produce(set_metric, use_case_id)
 
     def distribution(
         self,
@@ -150,11 +150,17 @@ class KafkaMetricsBackend(GenericMetricsBackend):
             "type": "d",
         }
 
-        self.__produce(dist_metric)
+        self.__produce(dist_metric, use_case_id)
 
-    def __produce(self, metric: Mapping[str, Any]):
+    def __produce(self, metric: Mapping[str, Any], use_case_id: UseCaseID):
         ingest_codec.validate(metric)
-        payload = KafkaPayload(None, json.dumps(metric).encode("utf-8"), [])
+        payload = KafkaPayload(
+            None,
+            json.dumps(metric).encode("utf-8"),
+            [
+                ("namespace", use_case_id.value.encode()),
+            ],
+        )
         self.producer.produce(self.kafka_topic, payload)
 
     def close(self):

@@ -45,7 +45,6 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.metrics-enhanced"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
-    API_DASHBOARDS_WORLDMAPWIDGET = "api.dashboards.worldmapwidget"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -99,7 +98,6 @@ class Referrer(Enum):
         "api.organization-events-facets-performance.top-tags.tag_values"
     )
     API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
-    API_ORGANIZATION_EVENTS_GEO = "api.organization-events-geo"
     API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-histogram-min-max.metrics-enhanced.primary"
     )
