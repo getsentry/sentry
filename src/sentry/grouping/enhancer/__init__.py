@@ -493,15 +493,15 @@ class EnhancementsVisitor(NodeVisitor):
 
 
 def _merge_cached_values(
-    frames: Sequence[dict[str, Any]],
+    frames: list[dict[str, Any]],
     cache_key: str,
     platform: str,
-) -> tuple[bool, Sequence[dict[str, Any]]]:
+) -> tuple[bool, list[dict[str, Any]]]:
     """
     This will merge the cached values if any are found for this stacktrace.
     Returns if the merged has correctly happened and the updated frames if so.
     """
-    merged_frames = []
+    merged_frames: list[dict[str, Any]] = []
     frames_merged = False
     changed_frames_values = cache.get(cache_key)
     # This helps tracking changes in the hit/miss ratio of the cache
