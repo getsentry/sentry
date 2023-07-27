@@ -2,11 +2,11 @@ import sys
 from typing import Any, Dict, List, Optional, Set
 
 import click
-import requests
 from yaml import safe_dump, safe_load
 
+from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
+from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 from sentry.runner.decorators import configuration, log_options
-from sentry.utils import json
 
 # These messages are produced more than once and referenced in tests.
 # This is the reason they are constants.
@@ -190,7 +190,7 @@ def patch(ctx) -> None:
             bool(ctx.obj["hide_drift"]),
         )
 
-    send_to_webhook(ctx.obj["json_data"])
+    # send_to_webhook(ctx.obj["json_data"])
 
 
 @configoptions.command()
@@ -233,15 +233,42 @@ def sync(ctx):
                     click.echo(DRIFT_MSG % opt.name)
                     ctx.obj["drifted_options"].append(DRIFT_MSG % opt.name)
 
-    send_to_webhook(ctx.obj["json_data"])
+    # send_to_webhook(ctx.obj["json_data"])
 
 
-def send_to_webhook(json_data):
-    headers = {"Content-Type": "application/json"}
-    try:
-        # todo: change webhook url (pass in as k8s secret? eng pipes is public)
-        #       send http post request to engpipes webhook
-        #       figure out how to add env var k8s secrets
-        requests.post("webhook_url", data=json.dumps(json_data), headers=headers)
-    except requests.exceptions.RequestException as e:
-        click.echo(f"{e}")
+class OptionsPresenterController:
+    def check_slack_webhook_config(self):
+        return True
+
+    consolepresenter = ConsolePresenter()
+    slackpresenter = SlackPresenter()
+    drifted_options = []
+    channel_updated_options = []
+    updated_options = []
+    set_options = []
+    unset_options = []
+
+    def update(self, key: str, db_value: Any, value: Any):
+        self.updated_options.append((key, db_value, value))
+
+    def channel_update(self, key: str):
+        self.channel_updated_options.append(key)
+
+    def drift(self, key: str):
+        self.drifted_options.append(key)
+
+    def set_options(self, key: str, value: Any):
+        self.set_options.append((key, value))
+
+    def unset(self, key: str):
+        self.unset_options.append(key)
+
+    def write(self):
+        if self.check_slack_webhook_config:
+            self.slackpresenter.write()
+        self.consolepresenter.write()
+
+    def error(self, key: str, not_writable_reason: str):
+        if self.check_slack_webhook_config:
+            self.slackpresenter.error()
+        self.consolepresenter.error(key, not_writable_reason)
