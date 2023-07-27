@@ -152,8 +152,8 @@ class Enhancements:
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         # We include the rules fingerprint to make sure that the set of rules are still the same
         cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
-        try_caching = stacktrace_fingerprint and rules_fingerprint
-        if try_caching:
+        use_cache = stacktrace_fingerprint and rules_fingerprint
+        if use_cache:
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
                 frames = merged_frames
@@ -167,7 +167,7 @@ class Enhancements:
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
-        if try_caching:
+        if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
