@@ -49,10 +49,6 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
   projectSlug: Project['slug'];
 };
 
-type State = {
-  activeThread?: Thread;
-};
-
 function getIntendedStackView(
   thread: Thread,
   exception: ReturnType<typeof getThreadException>
@@ -85,6 +81,22 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
       return <IconInfo />;
   }
 }
+// We want to track the active thread but that can change if the eventId changes, so if the eventID we set the state to be the new best thread
+const useActiveThreadState = (
+  event: Event,
+  threads: Thread[]
+): [Thread | undefined, (newState: Thread | undefined) => void] => {
+  const bestThread = threads.length ? findBestThread(threads) : undefined;
+
+  const [activeThread, setActiveThread] = useState<Thread | undefined>(() => bestThread);
+
+  useEffect(() => {
+    setActiveThread(bestThread);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id]);
+
+  return [activeThread, setActiveThread];
+};
 
 export function Threads({
   data,
@@ -96,13 +108,9 @@ export function Threads({
 }: Props) {
   const threads = data.values ?? [];
 
-  const [state, setState] = useState<State>(() => {
-    const thread = threads.length ? findBestThread(threads) : undefined;
-    return {activeThread: thread};
-  });
+  const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
   const stackTraceNotFound = !threads.length;
-  const {activeThread} = state;
 
   const hasMoreThanOneThread = threads.length > 1;
 
@@ -117,15 +125,6 @@ export function Threads({
   const stackView = activeThread
     ? getIntendedStackView(activeThread, exception)
     : undefined;
-
-  useEffect(() => {
-    const thread = threads.length ? findBestThread(threads) : undefined;
-    setState(s => ({
-      ...s,
-      activeThread: thread,
-    }));
-    // eslint-disable-next-line
-  }, [event.id]);
 
   function renderPills() {
     const {
@@ -248,10 +247,7 @@ export function Threads({
                     activeThread={activeThread}
                     event={event}
                     onChange={thread => {
-                      setState({
-                        ...state,
-                        activeThread: thread,
-                      });
+                      setActiveThread(thread);
                     }}
                     exception={exception}
                   />
@@ -299,10 +295,7 @@ export function Threads({
               activeThread={activeThread}
               event={event}
               onChange={thread => {
-                setState({
-                  ...state,
-                  activeThread: thread,
-                });
+                setActiveThread(thread);
               }}
               exception={exception}
               fullWidth
