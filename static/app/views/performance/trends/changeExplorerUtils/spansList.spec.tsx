@@ -38,7 +38,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 5,
-    avgChange: 20,
+    avgTimeDifference: 20,
     changeType: SpanChangeType.regressed,
   },
   {
@@ -56,7 +56,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 2,
-    avgChange: 19,
+    avgTimeDifference: 19,
     changeType: SpanChangeType.regressed,
   },
   {
@@ -74,7 +74,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 100,
-    avgChange: 18,
+    avgTimeDifference: 18,
     changeType: SpanChangeType.added,
   },
   {
@@ -92,7 +92,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 0.5,
-    avgChange: 17,
+    avgTimeDifference: 17,
     changeType: SpanChangeType.regressed,
   },
   {
@@ -110,7 +110,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 0.5,
-    avgChange: 16,
+    avgTimeDifference: 16,
     changeType: SpanChangeType.regressed,
   },
   {
@@ -128,7 +128,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -5,
-    avgChange: -1,
+    avgTimeDifference: -1,
     changeType: SpanChangeType.improved,
   },
   {
@@ -146,7 +146,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -0.5,
-    avgChange: -2,
+    avgTimeDifference: -2,
     changeType: SpanChangeType.improved,
   },
   {
@@ -164,7 +164,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -100,
-    avgChange: -3,
+    avgTimeDifference: -3,
     changeType: SpanChangeType.removed,
   },
   {
@@ -182,7 +182,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -100,
-    avgChange: -4,
+    avgTimeDifference: -4,
     changeType: SpanChangeType.removed,
   },
   {
@@ -200,7 +200,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -3,
-    avgChange: -5,
+    avgTimeDifference: -5,
     changeType: SpanChangeType.improved,
   },
   {
@@ -218,7 +218,7 @@ const longSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -0.5,
-    avgChange: -6,
+    avgTimeDifference: -6,
     changeType: SpanChangeType.improved,
   },
 ];
@@ -239,7 +239,7 @@ const shortSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 5,
-    avgChange: 20,
+    avgTimeDifference: 20,
     changeType: SpanChangeType.regressed,
   },
   {
@@ -257,7 +257,7 @@ const shortSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: 100,
-    avgChange: 19,
+    avgTimeDifference: 19,
     changeType: SpanChangeType.added,
   },
   {
@@ -275,7 +275,7 @@ const shortSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -0.5,
-    avgChange: -3,
+    avgTimeDifference: -3,
     changeType: SpanChangeType.improved,
   },
   {
@@ -293,7 +293,7 @@ const shortSpanList: ChangedSuspectSpan[] = [
     examples: [],
     avgSumExclusiveTime: 34,
     percentChange: -100,
-    avgChange: -17,
+    avgTimeDifference: -17,
     changeType: SpanChangeType.removed,
   },
 ];
