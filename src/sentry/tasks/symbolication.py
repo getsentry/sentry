@@ -10,6 +10,7 @@ from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
 from sentry.models import Organization, Project
 from sentry.processing import realtime_metrics
@@ -80,26 +81,21 @@ def should_demote_symbolication(project_id: int) -> bool:
             return False
 
 
+# This is f*** joke:
+# The `mock.patch` in `test_symbolication.py` will not work with a static import,
+# so we gotta import the function dynamically here. Great! Hooray!
+def get_native_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
+    from sentry.lang.native.processing import get_native_symbolication_function
+
+    return get_native_symbolication_function(data)
+
+
 def get_symbolication_function(
-    data: Any, is_in_symbolicate_event: bool = False
+    data: Any,
 ) -> Tuple[bool, Optional[Callable[[Symbolicator, Any], Any]]]:
-    # for JS events that have *not* been processed yet:
-    if data["platform"] in ("javascript", "node") and not data.get(
-        "processed_by_symbolicator", False
-    ):
-        from sentry.lang.javascript.processing import (
-            get_js_symbolication_function,
-            process_js_stacktraces,
-        )
-
-        # if we are already in `symbolicate_event`, we do *not* want to sample events
-        if is_in_symbolicate_event:
-            return True, process_js_stacktraces
-        else:
-            return True, get_js_symbolication_function(data)
+    if data["platform"] in ("javascript", "node"):
+        return True, process_js_stacktraces
     else:
-        from sentry.lang.native.processing import get_native_symbolication_function
-
         return False, get_native_symbolication_function(data)
 
 
@@ -151,11 +147,11 @@ def _do_symbolicate_event(
             return
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
-        # for JS events, we check `get_symbolication_function` again *after*
-        # symbolication, because maybe we need to feed it to another round of
+        # After JS processing, we check `get_native_symbolication_function`,
+        # because maybe we need to feed it to another round of
         # `symbolicate_event`, but for *native* that time.
         if not was_killswitched and task_kind.is_js:
-            _, symbolication_function = get_symbolication_function(data, True)
+            symbolication_function = get_native_symbolication_function(data)
             if symbolication_function:
                 submit_symbolicate(
                     task_kind=task_kind.with_js(False),
@@ -176,7 +172,11 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    _, symbolication_function = get_symbolication_function(data, True)
+    if not task_kind.is_js:
+        symbolication_function = get_native_symbolication_function(data)
+    else:
+        symbolication_function = process_js_stacktraces
+
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
     if symbolication_function is None or killswitch_matches_context(

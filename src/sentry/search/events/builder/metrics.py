@@ -131,10 +131,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # TimeseriesQueryBuilder specific parameters
         if isinstance(self, TimeseriesMetricQueryBuilder):
-            limit = None
+            limit = Limit(1)
             alias = "count"
         else:
-            limit = self.limit
+            limit = self.limit or Limit(1)
             alias = spec.mri
 
         granularity = snuba_query.granularity or self.resolve_granularity()
