@@ -1501,7 +1501,6 @@ export const DISPLAY_TYPE_CHOICES = [
   {label: t('Bar Chart'), value: 'bar'},
   {label: t('Line Chart'), value: 'line'},
   {label: t('Table'), value: 'table'},
-  {label: t('World Map'), value: 'world_map'},
   {label: t('Big Number'), value: 'big_number'},
   {label: t('Top 5 Events'), value: 'top_n'},
 ];

@@ -35,15 +35,6 @@ export function DataSetStep({
       DataSet.ISSUES,
       t('This dataset is restricted to tabular visualization.'),
     ]);
-
-    if (displayType === DisplayType.WORLD_MAP) {
-      disabledChoices.push([
-        DataSet.RELEASES,
-        t(
-          'This dataset is restricted to big number, tabular and time series visualizations.'
-        ),
-      ]);
-    }
   }
 
   return (

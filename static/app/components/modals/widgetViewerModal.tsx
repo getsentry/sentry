@@ -115,7 +115,6 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
-const GEO_COUNTRY_CODE = 'geo.country_code';
 const HALF_CONTAINER_HEIGHT = 300;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
@@ -323,14 +322,6 @@ function WidgetViewerModal(props: Props) {
     }]`;
   }
 
-  // World Map view should always have geo.country in the table chart
-  if (
-    widget.displayType === DisplayType.WORLD_MAP &&
-    !columns.includes(GEO_COUNTRY_CODE)
-  ) {
-    fields.unshift(GEO_COUNTRY_CODE);
-    columns.unshift(GEO_COUNTRY_CODE);
-  }
   // Default table columns for visualizations that don't have a column setting
   const shouldReplaceTableColumns =
     [
@@ -385,8 +376,7 @@ function WidgetViewerModal(props: Props) {
   const eventView = eventViewFromWidget(
     tableWidget.title,
     tableWidget.queries[0],
-    modalTableSelection,
-    tableWidget.displayType
+    modalTableSelection
   );
 
   let columnOrder = decodeColumnOrder(

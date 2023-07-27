@@ -78,10 +78,6 @@ describe('Dashboards > WidgetCard', function () {
       url: '/organizations/org-slug/events-stats/',
       body: {meta: {isMetricsData: false}},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {meta: {isMetricsData: false}},
-    });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -288,7 +284,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -316,7 +312,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -344,7 +340,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -372,7 +368,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{
           ...multipleQueryWidget,
-          displayType: DisplayType.WORLD_MAP,
+          displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}

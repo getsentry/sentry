@@ -15,7 +15,6 @@ export enum DisplayType {
   BAR = 'bar',
   LINE = 'line',
   TABLE = 'table',
-  WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
   TOP_N = 'top_n',
 }
