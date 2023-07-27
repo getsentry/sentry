@@ -658,18 +658,12 @@ class GroupSerializerBase(Serializer, ABC):
         integrations = integration_service.get_integrations(organization_id=org_id)
         for integration in integrations:
             if not (
-                integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-                )
-                or integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-                )
+                integration.has_feature(feature=IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
             ):
                 continue
 
-            install = integration_service.get_installation(
-                integration=integration, organization_id=org_id
-            )
+            install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,

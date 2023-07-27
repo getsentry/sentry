@@ -33,9 +33,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> Optional[bool
         return None
 
     integration = integration_service.get_integration(integration_id=external_issue.integration_id)
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=external_issue.organization_id
-    )
+    installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_status"):
         installation.sync_status_outbound(
             external_issue, group.status == GroupStatus.RESOLVED, group.project_id

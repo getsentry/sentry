@@ -112,8 +112,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             raise Http404
         integration = self.get_integration(organization_context.organization.id, integration_id)
         # do any integration specific deleting steps
-        integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+        integration.get_installation(
+            organization_id=organization_context.organization.id
         ).uninstall()
 
         with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
@@ -143,8 +143,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         **kwds: Any,
     ) -> Response:
         integration = self.get_integration(organization_context.organization.id, integration_id)
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+        installation = integration.get_installation(
+            organization_id=organization_context.organization.id
         )
         try:
             installation.update_organization_config(request.data)
