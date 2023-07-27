@@ -121,7 +121,7 @@ class DiscordInteractionsEndpoint(Endpoint):
     def unlink_user(self) -> Response:
         if not self.discord_request.has_identity():
             message = DiscordMessageBuilder(
-                content=ALREADY_LINKED_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
+                content=NOT_LINKED_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
             )
             return self.reply(message)
 
