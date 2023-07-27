@@ -602,6 +602,10 @@ def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
+        # we still need to decode signatures
+        for m in profile["profile"]["methods"]:
+            if m.get("signature"):
+                m["signature"] = deobfuscate_signature(m["signature"])
         return
 
     with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
@@ -625,8 +629,8 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"], method["name"], method["source_line"] or 0
             )
 
-            if "signature" in method and method["signature"]:
-                method["signature"] = deobfuscate_signature(mapper, method["signature"])
+            if method.get("signature"):
+                method["signature"] = deobfuscate_signature(method["signature"], mapper)
 
             if len(mapped) >= 1:
                 new_frame = mapped[-1]

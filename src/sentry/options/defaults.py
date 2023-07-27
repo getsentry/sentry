@@ -567,6 +567,16 @@ register(
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+# Query and supply Bundle Indexes to Symbolicator SourceMap processing
+register(
+    "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+# Refresh Bundle Indexes reported as used by symbolicator
+register(
+    "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused

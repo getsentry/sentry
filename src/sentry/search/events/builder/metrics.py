@@ -131,7 +131,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # TimeseriesQueryBuilder specific parameters
         if isinstance(self, TimeseriesMetricQueryBuilder):
-            limit = None
+            limit = Limit(1)
             alias = "count"
         else:
             limit = self.limit
@@ -223,6 +223,8 @@ class MetricsQueryBuilder(QueryBuilder):
             # TODO: update resolve params so this isn't needed
             if col == "organization_id":
                 return "org_id"
+            if col == "transaction":
+                self.has_transaction = True
             return f"tags[{col}]"
 
         if col in DATASETS[self.dataset]:
