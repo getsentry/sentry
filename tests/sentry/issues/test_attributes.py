@@ -57,7 +57,7 @@ class GroupAttributesTest(TestCase):
                 "group_id": group.id,
                 "status": group.status,
                 "substatus": group.substatus,
-                "first_seen": group.first_seen,
+                "first_seen": group.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "num_comments": group.num_comments,
                 "assignee_user_id": self.user.id,
                 "assignee_team_id": None,
