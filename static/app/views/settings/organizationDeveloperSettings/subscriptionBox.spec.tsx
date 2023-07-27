@@ -24,12 +24,12 @@ describe('SubscriptionBox', () => {
   }
 
   it('renders resource checkbox', () => {
-    const {container} = renderComponent();
+    const {container} = renderComponent({});
     expect(container).toSnapshot();
   });
 
   it('calls onChange prop when checking checkbox', async () => {
-    renderComponent();
+    renderComponent({});
 
     await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith('issue', true);
