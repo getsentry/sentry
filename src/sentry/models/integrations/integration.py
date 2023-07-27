@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List, Protocol, Type
+from typing import TYPE_CHECKING, Any, List
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -25,8 +25,32 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 logger = logging.getLogger(__name__)
+
+
+def get_integration_provider(integration: Integration | RpcIntegration) -> IntegrationProvider:
+    from sentry import integrations
+
+    return integrations.get(integration.provider)
+
+
+def get_integration_installation(
+    integration: Integration | RpcIntegration, organization_id: int, **kwargs: Any
+) -> IntegrationInstallation:
+    installation = integration.get_provider().get_installation(
+        model=integration,
+        organization_id=organization_id,
+        **kwargs,
+    )
+    return installation
+
+
+def has_integration_feature(
+    integration: Integration | RpcIntegration, feature: IntegrationFeatures
+) -> bool:
+    return feature in integration.get_provider().features
 
 
 class IntegrationManager(BaseManager):
@@ -38,37 +62,8 @@ class IntegrationManager(BaseManager):
         )
 
 
-class IntegrationProtocol(Protocol):
-    provider: str
-
-
-class IntegrationMemoryMixin:
-    """
-    A collection of shared methods for accessing in-memory structures from
-    an Integration or RpcIntegration
-    """
-
-    def get_provider(self: IntegrationProtocol) -> Type[IntegrationProvider]:
-        from sentry import integrations
-
-        return integrations.get(self.provider)
-
-    def get_installation(
-        self: IntegrationProtocol, organization_id: int, **kwargs: Any
-    ) -> Type[IntegrationInstallation]:
-        installation = self.get_provider().get_installation(
-            model=self,
-            organization_id=organization_id,
-            **kwargs,
-        )
-        return installation
-
-    def has_feature(self: IntegrationProtocol, feature: IntegrationFeatures) -> bool:
-        return feature in self.get_provider().features
-
-
 @control_silo_only_model
-class Integration(DefaultFieldsModel, IntegrationMemoryMixin):
+class Integration(DefaultFieldsModel):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
@@ -93,6 +88,17 @@ class Integration(DefaultFieldsModel, IntegrationMemoryMixin):
         app_label = "sentry"
         db_table = "sentry_integration"
         unique_together = (("provider", "external_id"),)
+
+    def get_provider(self) -> IntegrationProvider:
+        return get_integration_provider(integration=self)
+
+    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
+        return get_integration_installation(
+            integration=self, organization_id=organization_id, **kwargs
+        )
+
+    def has_feature(self, feature: IntegrationFeatures) -> bool:
+        return has_integration_feature(integration=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(
