@@ -1048,7 +1048,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1066,7 +1066,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_feature(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": False}):
+        with Feature({"organizations:recap-server": False}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1084,7 +1084,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1104,7 +1104,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
 
             assert resp.status_code == 200

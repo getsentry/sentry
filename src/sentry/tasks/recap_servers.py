@@ -58,10 +58,10 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         logger.warning("Polled project do not exist", extra={"project_id": project_id})
         return
 
-    if not features.has("projects:recap-server", project):
+    if not features.has("organizations:recap-server", project.organization):
         logger.info(
-            "Recap server polling feature is not enabled for a given project",
-            extra={"project_id": project_id},
+            "Recap server polling feature is not enabled for a given organization",
+            extra={"organization": project.organization},
         )
         return
 
