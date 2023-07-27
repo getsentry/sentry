@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
 from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response

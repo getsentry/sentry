@@ -3,6 +3,7 @@ from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.testutils import TestCase
 
@@ -24,7 +25,8 @@ class MigratorTest(TestCase):
         self.integration = Integration.objects.create(provider=ExampleIntegrationProvider.key)
 
         self.migrator = Migrator(
-            integration=self.integration, organization=serialize_rpc_organization(self.organization)
+            integration=serialize_integration(self.integration),
+            organization=serialize_rpc_organization(self.organization),
         )
 
     def test_all_repos_migrated(self):
@@ -62,5 +64,6 @@ class MigratorTest(TestCase):
 
     def test_logs(self):
         Migrator.run(
-            integration=self.integration, organization=serialize_rpc_organization(self.organization)
+            integration=serialize_integration(self.integration),
+            organization=serialize_rpc_organization(self.organization),
         )

@@ -160,6 +160,7 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: List[ExternalActorResponse]
     organization: OrganizationSerializerResponse
     projects: List[ProjectSerializerResponse]
+    orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
 class BaseTeamSerializerResponse(TypedDict):
@@ -175,7 +176,6 @@ class BaseTeamSerializerResponse(TypedDict):
     isPending: bool
     memberCount: int
     avatar: SerializedAvatarFields
-    orgRole: Optional[str]  # TODO(cathy): Change to new key
 
 
 # We require a third Team Response TypedDict that inherits like so:
@@ -335,8 +335,9 @@ class BaseTeamSerializer(Serializer):
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
             "avatar": avatar,
-            "orgRole": obj.org_role,
         }
+        if obj.org_role:
+            result["orgRole"] = obj.org_role
 
 
 # See TeamSerializerResponse for explanation as to why this is needed

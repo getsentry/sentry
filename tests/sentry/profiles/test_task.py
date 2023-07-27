@@ -127,16 +127,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 67,
                         },
                         {
-                            "name": "a",
                             "abs_path": None,
                             "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 69,
                         },
@@ -178,16 +180,18 @@ class ProfilesProcessTaskTest(TestCase):
                 "profile": {
                     "methods": [
                         {
-                            "name": "onClick",
                             "abs_path": None,
                             "class_name": "e.a.c.a",
+                            "name": "onClick",
+                            "signature": "()V",
                             "source_file": None,
                             "source_line": 2,
                         },
                         {
-                            "name": "t",
                             "abs_path": None,
                             "class_name": "io.sentry.sample.MainActivity",
+                            "name": "t",
+                            "signature": "()V",
                             "source_file": "MainActivity.java",
                             "source_line": 1,
                         },
@@ -200,21 +204,24 @@ class ProfilesProcessTaskTest(TestCase):
         _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
-        assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
+        assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
 
         assert frames[0]["name"] == "onClick"
         assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
 
+        assert frames[1]["inline_frames"][0]["name"] == "onClickHandler"
+        assert frames[1]["inline_frames"][0]["source_line"] == 40
         assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
         assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-        assert frames[1]["inline_frames"][0]["name"] == "bar"
-        assert frames[1]["inline_frames"][0]["source_line"] == 54
+        assert frames[1]["inline_frames"][0]["signature"] == "()"
+
         assert frames[1]["inline_frames"][1]["name"] == "foo"
         assert frames[1]["inline_frames"][1]["source_line"] == 44
-        assert frames[1]["inline_frames"][2]["name"] == "onClickHandler"
-        assert frames[1]["inline_frames"][2]["source_line"] == 40
+
         assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
         assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
+        assert frames[1]["inline_frames"][2]["name"] == "bar"
+        assert frames[1]["inline_frames"][2]["source_line"] == 54
 
     def test_error_on_resolving(self):
         out = BytesIO()
@@ -419,3 +426,37 @@ class ProfilesProcessTaskTest(TestCase):
         _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
 
         assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
+
+    def test_decode_signature(self):
+        profile = dict(self.android_profile)
+        profile.update(
+            {
+                "project_id": self.project.id,
+                "profile": {
+                    "methods": [
+                        {
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
+                            "source_file": None,
+                            "source_line": 67,
+                        },
+                        {
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()Z",
+                            "source_file": None,
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        _deobfuscate(profile, project)
+        frames = profile["profile"]["methods"]
+
+        assert frames[0]["signature"] == "()"
+        assert frames[1]["signature"] == "(): boolean"
