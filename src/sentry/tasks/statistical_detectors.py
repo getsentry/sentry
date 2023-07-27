@@ -2,10 +2,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
+from sentry.profiles.statistical_detector import FunctionData, detect_function_regression
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
@@ -64,7 +66,7 @@ def run_detection() -> None:
 )
 def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
     for project_id in project_ids:
-        _detect_regressed_transactions(project_id)
+        _query_transactions(project_id)
 
 
 @instrumented_task(
@@ -75,18 +77,23 @@ def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
 def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs) -> None:
 
     for project in Project.objects.filter(id__in=project_ids):
-        _detect_regressed_functions(project, start)
+        try:
+            data = _query_functions(project, start)
+            detect_function_regression(project, data)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
-def _detect_regressed_transactions(project_id: int) -> None:
+def _query_transactions(project_id: int) -> None:
     pass
 
 
-def _detect_regressed_functions(project: Project, start: datetime) -> None:
-    params = _get_regressed_function_query_params(project, start)
+def _query_functions(project: Project, start: datetime) -> List[FunctionData]:
+    params = _get_function_query_params(project, start)
 
-    functions.query(
+    results = functions.query(
         selected_columns=[
+            "timestamp",
             "fingerprint",
             "count()",
             "p95()",
@@ -101,8 +108,18 @@ def _detect_regressed_functions(project: Project, start: datetime) -> None:
         transform_alias_to_input_format=True,
     )
 
+    return [
+        FunctionData(
+            timestamp=datetime.fromisoformat(result["timestamp"]),
+            fingerprint=result["fingerprint"],
+            count=result["count()"],
+            p95=result["p95()"],
+        )
+        for result in results["data"]
+    ]
 
-def _get_regressed_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
+
+def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:
     # The functions dataset only supports 1 hour granularity.
     # So we always look back at the last full hour that just elapsed.
     start = start - timedelta(hours=1)
