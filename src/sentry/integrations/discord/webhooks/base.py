@@ -18,7 +18,7 @@ from sentry.web.decorators import transaction_start
 from ..utils import logger
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
-ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`"
+ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
 UNLINK_USER_MESSAGE = "[Click here]({url}) to unlink your Discord account from your Sentry Account."
 NOT_LINKED_MESSAGE = (
     "Your Discord account is not linked to a Sentry account. Use `/link` to link your accounts."

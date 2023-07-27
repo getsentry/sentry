@@ -25,7 +25,7 @@ class DiscordCommandManager:
         },
         {
             "name": "help",
-            "description": "View a list of Sentry bot commands and what they do",
+            "description": "View a list of Sentry bot commands and what they do.",
             "type": 1,
         },
     ]
