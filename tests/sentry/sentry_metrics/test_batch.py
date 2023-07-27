@@ -14,6 +14,7 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
@@ -40,6 +41,7 @@ counter_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+counter_headers = [("namespace", b"sessions")]
 
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
@@ -54,6 +56,7 @@ distribution_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+distribution_headers = [("namespace", b"sessions")]
 
 set_payload = {
     "name": SessionMRI.ERROR.value,
@@ -68,6 +71,7 @@ set_payload = {
     "retention_days": 90,
     "project_id": 3,
 }
+set_headers = [("namespace", b"sessions")]
 
 extracted_string_output = {
     MockUseCaseID.SESSIONS: {
@@ -229,9 +233,9 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
     """
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
     batch = IndexerBatch(
@@ -294,9 +298,9 @@ def test_extract_strings_with_multiple_use_case_ids():
 
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
         ]
     )
     batch = IndexerBatch(
@@ -327,6 +331,152 @@ def test_extract_strings_with_multiple_use_case_ids():
                 "production",
                 "session.status",
                 "errored",
+            }
+        },
+    }
+
+
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_2"]})
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_single_use_case_ids_blocked():
+    """
+    Verify that the extract string method will work normally when a single use case ID is blocked
+    """
+    counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    distribution_payload = {
+        "name": "d:use_case_2/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.USE_CASE_1: {
+            1: {
+                "c:use_case_1/session@none",
+                "environment",
+                "production",
+                "session.status",
+                "init",
+            }
+        }
+    }
+
+
+@override_options({"sentry-metrics.indexer.disabled-namespaces": ["use_case_1", "use_case_2"]})
+@patch("sentry.sentry_metrics.consumers.indexer.batch.UseCaseID", MockUseCaseID)
+def test_extract_strings_with_multiple_use_case_ids_blocked():
+    """
+    Verify that the extract string method will work normally when multiple use case IDs are blocked
+    """
+    custom_uc_counter_payload = {
+        "name": "c:use_case_1/session@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "init",
+        },
+        "timestamp": ts,
+        "type": "c",
+        "value": 1,
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    perf_distribution_payload = {
+        "name": TransactionMRI.MEASUREMENTS_FCP.value,
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+        },
+        "timestamp": ts,
+        "type": "d",
+        "value": [4, 5, 6],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    custom_uc_set_payload = {
+        "name": "s:use_case_2/error@none",
+        "tags": {
+            "environment": "production",
+            "session.status": "errored",
+        },
+        "timestamp": ts,
+        "type": "s",
+        "value": [3],
+        "org_id": 2,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+
+    outer_message = _construct_outer_message(
+        [
+            (custom_uc_counter_payload, [("namespace", b"use_case_1")]),
+            (perf_distribution_payload, [("namespace", b"transactions")]),
+            (custom_uc_set_payload, [("namespace", b"use_case_2")]),
+        ]
+    )
+    batch = IndexerBatch(
+        outer_message,
+        True,
+        False,
+        input_codec=_INGEST_CODEC,
+    )
+    assert batch.extract_strings() == {
+        MockUseCaseID.TRANSACTIONS: {
+            1: {
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                "environment",
+                "production",
+                "session.status",
+                "healthy",
             }
         },
     }
@@ -394,10 +544,10 @@ def test_extract_strings_with_invalid_mri():
 
     outer_message = _construct_outer_message(
         [
-            (bad_counter_payload, []),
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (bad_counter_payload, [("namespace", b"")]),
+            (counter_payload, [("namespace", b"use_case_1")]),
+            (distribution_payload, [("namespace", b"use_case_2")]),
+            (set_payload, [("namespace", b"use_case_2")]),
         ]
     )
     batch = IndexerBatch(
@@ -439,6 +589,7 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases and from different orgs
     """
+
     custom_uc_counter_payload = {
         "name": "c:use_case_1/session@none",
         "tags": {
@@ -481,9 +632,9 @@ def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
 
     outer_message = _construct_outer_message(
         [
-            (custom_uc_counter_payload, []),
-            (perf_distribution_payload, []),
-            (custom_uc_set_payload, []),
+            (custom_uc_counter_payload, [("namespace", b"use_case_1")]),
+            (perf_distribution_payload, [("namespace", b"transactions")]),
+            (custom_uc_set_payload, [("namespace", b"use_case_1")]),
         ]
     )
     batch = IndexerBatch(
@@ -669,9 +820,9 @@ def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -758,7 +909,7 @@ def test_all_resolved(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {
@@ -782,7 +933,7 @@ def test_all_resolved(caplog, settings):
                 "value": [4, 5, 6],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [*distribution_headers, ("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
         (
             {
@@ -806,7 +957,7 @@ def test_all_resolved(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
@@ -816,9 +967,9 @@ def test_all_resolved_with_routing_information(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -905,7 +1056,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {"org_id": 1},
@@ -931,6 +1082,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -958,7 +1110,7 @@ def test_all_resolved_with_routing_information(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
@@ -976,9 +1128,9 @@ def test_all_resolved_retention_days_honored(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload_modified, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload_modified, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1064,7 +1216,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
         ),
         (
             {
@@ -1088,7 +1240,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": [4, 5, 6],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"ch"), ("metric_type", "d")],
+            [*distribution_headers, ("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
         (
             {
@@ -1112,7 +1264,7 @@ def test_all_resolved_retention_days_honored(caplog, settings):
                 "value": [3],
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"cd"), ("metric_type", "s")],
+            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
         ),
     ]
 
@@ -1131,9 +1283,9 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1206,7 +1358,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "value": 1.0,
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
-            [("mapping_sources", b"c"), ("metric_type", "c")],
+            [*counter_headers, ("mapping_sources", b"c"), ("metric_type", "c")],
         ),
         (
             {
@@ -1230,6 +1382,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "d"),
             ],
@@ -1256,6 +1409,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "s"),
             ],
@@ -1268,9 +1422,9 @@ def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1352,6 +1506,7 @@ def test_metric_id_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"cd"),
                 ("metric_type", "s"),
             ],
@@ -1375,9 +1530,9 @@ def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1460,9 +1615,9 @@ def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1553,6 +1708,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *counter_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "c"),
             ],
@@ -1580,6 +1736,7 @@ def test_tag_value_rate_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -1592,8 +1749,8 @@ def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            ({**distribution_payload, "org_id": 2}, []),
+            (counter_payload, counter_headers),
+            ({**distribution_payload, "org_id": 2}, distribution_headers),
         ]
     )
 
@@ -1699,6 +1856,7 @@ def test_one_org_limited(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *distribution_headers,
                 ("mapping_sources", b"ch"),
                 ("metric_type", "d"),
             ],
@@ -1720,9 +1878,9 @@ def test_cardinality_limiter(caplog, settings):
 
     outer_message = _construct_outer_message(
         [
-            (counter_payload, []),
-            (distribution_payload, []),
-            (set_payload, []),
+            (counter_payload, counter_headers),
+            (distribution_payload, distribution_headers),
+            (set_payload, set_headers),
         ]
     )
 
@@ -1803,6 +1961,7 @@ def test_cardinality_limiter(caplog, settings):
                 "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
             },
             [
+                *set_headers,
                 ("mapping_sources", b"c"),
                 ("metric_type", "s"),
             ],
