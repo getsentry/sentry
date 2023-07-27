@@ -11,11 +11,11 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
 
 import {Monitor} from '../../types';
 
+import {ResolutionSelector} from './resolutionSelector';
+import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
 import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
