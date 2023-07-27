@@ -11,10 +11,10 @@ type Error = {
   type: ErrorType;
 };
 
-type JsonResponse = 'relayPiiConfig';
+type ResponseFields = 'relayPiiConfig';
 
 type ResponseError = {
-  responseJSON?: Record<JsonResponse, Array<string>>;
+  responseJSON?: Record<ResponseFields, Array<string>>;
 };
 
 function handleError(error: ResponseError): Error {
