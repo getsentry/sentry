@@ -114,7 +114,8 @@ describe('OrganizationMemberDetail', function () {
     role: 'manager',
   });
 
-  beforeAll(() => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
     TeamStore.loadInitialData(teams);
   });
 
@@ -126,9 +127,6 @@ describe('OrganizationMemberDetail', function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
 
-      jest.resetAllMocks();
-
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
         body: member,
@@ -344,8 +342,6 @@ describe('OrganizationMemberDetail', function () {
       routerContext = TestStubs.routerContext([{organization}]);
       TeamStore.init();
       TeamStore.loadInitialData(teams);
-      jest.resetAllMocks();
-      MockApiClient.clearMockResponses();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
@@ -388,9 +384,6 @@ describe('OrganizationMemberDetail', function () {
       routerContext = TestStubs.routerContext([{organization}]);
       TeamStore.init();
       TeamStore.loadInitialData(teams);
-      jest.resetAllMocks();
-      MockApiClient.clearMockResponses();
-
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
         body: member,
@@ -475,7 +468,6 @@ describe('OrganizationMemberDetail', function () {
       organization = TestStubs.Organization({teams});
       routerContext = TestStubs.routerContext([{organization}]);
 
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
         body: pendingMember,
@@ -620,7 +612,6 @@ describe('OrganizationMemberDetail', function () {
     });
 
     beforeEach(() => {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
         body: member,
@@ -721,38 +712,38 @@ describe('OrganizationMemberDetail', function () {
       selectEvent.openMenu(teamRoleSelect);
       expect(screen.queryAllByText('...').length).toBe(0);
     });
-  });
 
-  it('overwrites when member joins a manager team', async () => {
-    render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-      context: routerContext,
+    it('overwrites when member joins a manager team', async () => {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      // Role info box is hidden
+      expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
+
+      // Dropdown has correct value set
+      const teamRow = screen.getByTestId('team-row-for-member');
+      const teamRoleSelect = within(teamRow).getByText('Contributor');
+
+      // Join manager team
+      await userEvent.click(screen.getByText('Add Team'));
+      // Click the first item
+      await userEvent.click(screen.getByText('#manager-team'));
+
+      // Role info box is shown
+      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+
+      // Dropdowns have correct value set
+      const teamRows = screen.getAllByTestId('team-row-for-member');
+      within(teamRows[0]).getByText('Team Admin');
+      within(teamRows[1]).getByText('Team Admin');
+
+      // Dropdown options are not visible
+      expect(screen.queryAllByText('...').length).toBe(0);
+
+      // Dropdown cannot be opened
+      selectEvent.openMenu(teamRoleSelect);
+      expect(screen.queryAllByText('...').length).toBe(0);
     });
-
-    // Role info box is hidden
-    expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
-
-    // Dropdown has correct value set
-    const teamRow = screen.getByTestId('team-row-for-member');
-    const teamRoleSelect = within(teamRow).getByText('Contributor');
-
-    // Join manager team
-    await userEvent.click(screen.getByText('Add Team'));
-    // Click the first item
-    await userEvent.click(screen.getByText('#manager-team'));
-
-    // Role info box is shown
-    expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
-
-    // Dropdowns have correct value set
-    const teamRows = screen.getAllByTestId('team-row-for-member');
-    within(teamRows[0]).getByText('Team Admin');
-    within(teamRows[1]).getByText('Team Admin');
-
-    // Dropdown options are not visible
-    expect(screen.queryAllByText('...').length).toBe(0);
-
-    // Dropdown cannot be opened
-    selectEvent.openMenu(teamRoleSelect);
-    expect(screen.queryAllByText('...').length).toBe(0);
   });
 });
