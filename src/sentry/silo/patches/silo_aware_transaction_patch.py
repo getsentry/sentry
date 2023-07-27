@@ -80,6 +80,6 @@ def patch_silo_aware_atomic():
     _default_on_commit = transaction.on_commit
     _default_get_connection = transaction.get_connection
 
-    transaction.atomic = siloed_atomic  # type:ignore
-    transaction.on_commit = siloed_on_commit
+    transaction.atomic = siloed_atomic  # type: ignore[assignment]
+    transaction.on_commit = siloed_on_commit  # type: ignore[assignment]
     transaction.get_connection = siloed_get_connection
