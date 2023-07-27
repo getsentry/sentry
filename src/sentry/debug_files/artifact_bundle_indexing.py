@@ -42,9 +42,6 @@ class FlatFileMeta:
     id: int
     date: datetime
 
-    def to_string(self) -> str:
-        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
-
     @staticmethod
     def from_str(bundle_meta: str) -> "FlatFileMeta":
         parsed = bundle_meta.split("/")
@@ -52,6 +49,16 @@ class FlatFileMeta:
             raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
 
         return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(int(parsed[2]) / 1000))
+
+    @staticmethod
+    def build_none():
+        return FlatFileMeta(id=-1, date=datetime.min)
+
+    def to_string(self) -> str:
+        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
+
+    def is_none(self):
+        return self.id == -1 and self.date == datetime.min
 
 
 @sentry_sdk.tracing.trace
@@ -167,9 +174,24 @@ class FlatFileIdentifier(NamedTuple):
                     "artifact_bundle_flat_file_indexing.flat_file_meta.db_miss",
                     tags={"meta_type": meta_type},
                 )
-                return None
+                meta = FlatFileMeta.build_none()
+            else:
+                metrics.incr(
+                    "artifact_bundle_flat_file_indexing.flat_file_meta.db_hit",
+                    tags={"meta_type": meta_type},
+                )
 
+            # We want to cache in both cases, either a value is found or a value was not found.
             self.set_flat_file_meta_in_cache(meta)
+        else:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.flat_file_meta.cache_hit",
+                tags={"meta_type": meta_type},
+            )
+
+        # In case the meta that we found was none, we want to return None.
+        if meta.is_none():
+            return None
 
         return meta
 
