@@ -3,6 +3,10 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 describe('SQLishFormatter', function () {
   const formatter = new SQLishFormatter();
 
+  it('Falls back to original string if unable to parse', () => {
+    expect(formatter.toString('😤')).toEqual('😤');
+  });
+
   it('Formats basic SQL', () => {
     expect(formatter.toString('SELECT hello;')).toEqual('SELECT hello;');
   });
@@ -31,6 +35,16 @@ describe('SQLishFormatter', function () {
 
   it('Formats lists of bare column names', () => {
     expect(formatter.toString('SELECT id, name;')).toEqual('SELECT id, name;');
+  });
+
+  it('Formats backtick columns', () => {
+    expect(formatter.toString('SELECT columns AS `tags[column]`)')).toEqual(
+      'SELECT columns AS `tags[column]`)'
+    );
+  });
+
+  it('Formats truncated queries', () => {
+    expect(formatter.toString('SELECT id, nam*')).toEqual('SELECT id, nam*');
   });
 
   it('Format PHP-style parameters', () => {
