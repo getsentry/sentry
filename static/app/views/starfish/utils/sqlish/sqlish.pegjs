@@ -21,7 +21,7 @@ JoinType
 = "OUTER"i / "INNER"i
 
 Parameter
-  = "%s" { return { type: 'Parameter', content: "%s" } }
+  = Parameter:("%s" / ":c" [0-9]) { return { type: 'Parameter', content: Parameter.join('') } }
 
 CollapsedColumns
   = ".." { return { type: 'CollapsedColumns' } }
