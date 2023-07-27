@@ -64,7 +64,7 @@ def test_produce_all() -> None:
     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
     assert produced_message is not None
     assert produced_message.payload.value == set_value
-    # assert that there's no other remaining message in the topic
+    # check that there's no other remaining message in the topic
     assert broker_storage.consume(Partition(my_topic, 0), 1) is None
 
     # produce a counter metric onto the second offset
@@ -94,6 +94,7 @@ def test_produce_all() -> None:
     produced_message = broker_storage.consume(Partition(my_topic, 0), 1)
     assert produced_message is not None
     assert produced_message.payload.value == counter_value
+    # check that there's no other remaining message in the topic
     assert broker_storage.consume(Partition(my_topic, 0), 2) is None
 
     # produce a distribution metric onto the third offset
@@ -123,82 +124,5 @@ def test_produce_all() -> None:
     produced_message = broker_storage.consume(Partition(my_topic, 0), 2)
     assert produced_message is not None
     assert produced_message.payload.value == distribution_value
+    # check that there's no other remaining message in the topic
     assert broker_storage.consume(Partition(my_topic, 0), 3) is None
-
-
-# def test_produce_counter() -> None:
-#     my_topic = Topic("my-topic")
-#     clock = Clock()
-#     broker_storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
-#     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
-#     broker.create_topic(my_topic, partitions=1)
-
-#     metrics_backend.producer = LocalProducer(broker)
-#     metrics_backend.kafka_topic = my_topic
-
-#     metrics_backend.counter(
-#         use_case_id,
-#         org_id,
-#         project_id,
-#         metric_name,
-#         5,
-#         tags,
-#         unit=None,
-#     )
-
-#     counter_metric = {
-#         "org_id": org_id,
-#         "project_id": project_id,
-#         "name": build_mri(metric_name, "c", use_case_id, None),
-#         "value": 5,
-#         "timestamp": int(datetime.now().timestamp()),
-#         "tags": tags,
-#         "retention_days": 90,
-#         "type": "c",
-#     }
-
-#     value = json.dumps(counter_metric).encode("utf-8")
-
-#     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
-#     assert produced_message is not None
-#     assert produced_message.payload.value == value
-#     assert broker_storage.consume(Partition(my_topic, 0), 1) is None
-
-
-# def test_produce_distribution() -> None:
-#     my_topic = Topic("my-topic")
-#     clock = Clock()
-#     broker_storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
-#     broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
-#     broker.create_topic(my_topic, partitions=1)
-
-#     metrics_backend.producer = LocalProducer(broker)
-#     metrics_backend.kafka_topic = my_topic
-
-#     metrics_backend.distribution(
-#         use_case_id,
-#         org_id,
-#         project_id,
-#         metric_name,
-#         values,
-#         tags,
-#         unit=None,
-#     )
-
-#     distribution_metric = {
-#         "org_id": org_id,
-#         "project_id": project_id,
-#         "name": build_mri(metric_name, "d", use_case_id, None),
-#         "value": values,
-#         "timestamp": int(datetime.now().timestamp()),
-#         "tags": tags,
-#         "retention_days": 90,
-#         "type": "d",
-#     }
-
-#     value = json.dumps(distribution_metric).encode("utf-8")
-
-#     produced_message = broker_storage.consume(Partition(my_topic, 0), 0)
-#     assert produced_message is not None
-#     assert produced_message.payload.value == value
-#     assert broker_storage.consume(Partition(my_topic, 0), 1) is None
