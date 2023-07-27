@@ -359,7 +359,9 @@ class ReleaseBundlePostAssembler(PostAssembler):
         min_artifact_count = options.get("processing.release-archive-min-files")
         saved_as_archive = False
 
-        if self.archive.artifact_count >= min_artifact_count:
+        artifact_count = self.archive.artifact_count
+
+        if artifact_count >= min_artifact_count:
             try:
                 update_artifact_index(
                     release,
@@ -372,17 +374,17 @@ class ReleaseBundlePostAssembler(PostAssembler):
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
 
-        if not saved_as_archive:
+        if not saved_as_archive and artifact_count > 0:
             meta = {
                 "organization_id": self.organization.id,
                 "release_id": release.id,
                 "dist_id": dist.id if dist else dist,
             }
             metrics.incr("sourcemaps.upload.release_file")
-            self._store_single_files(meta, True)
+            self._store_single_files(meta)
 
     @sentry_sdk.tracing.trace
-    def _store_single_files(self, meta: dict, count_as_artifacts: bool):
+    def _store_single_files(self, meta: dict):
         try:
             temp_dir = self.archive.extract()
         except Exception:
@@ -403,7 +405,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
                     file.putfile(fp, logger=logger)
 
                 kwargs = dict(meta, name=artifact_url)
-                extra_fields = {"artifact_count": 1 if count_as_artifacts else 0}
+                extra_fields = {"artifact_count": 1}
                 self._upsert_release_file(file, self._simple_update, kwargs, extra_fields)
 
     @staticmethod
@@ -585,6 +587,11 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 ).update(date_added=date_snapshot)
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
+
+        # When uploading a zero-artifact bundle, there is no need to index anything
+        # FIXME: we might even want to early-return *a lot* earlier in this case?
+        if self.archive.artifact_count == 0:
+            return
 
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
