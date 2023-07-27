@@ -12,11 +12,9 @@ function numOfEvents(timeseriesData) {
   }, 0);
 }
 
-function applyCompensationFactor(timeseriesData, sampleRate = 1) {
-  const compensationFactor = Number((1 / sampleRate).toFixed(2));
-
+function applySampleRate(timeseriesData, sampleRate = 1) {
   const scaledData = timeseriesData.data.map(([timestamp, value]) => {
-    return [timestamp, value.map(item => ({count: item.count * compensationFactor}))];
+    return [timestamp, value.map(item => ({count: Math.round(item.count / sampleRate)}))];
   });
 
   return {
@@ -56,7 +54,7 @@ class OnDemandMetricRequest extends EventsRequest {
       queryExtras: {dataset: DiscoverDatasets.DISCOVER},
     });
 
-    return applyCompensationFactor(timeseriesData, sampleRate);
+    return applySampleRate(timeseriesData, sampleRate);
   };
 
   fetchData = async () => {
