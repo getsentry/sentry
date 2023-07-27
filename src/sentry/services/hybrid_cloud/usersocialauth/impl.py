@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, List, Optional
 
 from django.db.models import QuerySet
@@ -38,7 +40,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
             return query
 
         def base_query(self, ids_only: bool = False) -> QuerySet:
-            return UserSocialAuth.objects
+            return UserSocialAuth.objects  # type: ignore
 
         def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], Optional[str]]:
             return self._filter_has_any_key_validator(
