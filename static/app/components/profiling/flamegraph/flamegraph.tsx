@@ -187,6 +187,9 @@ function Flamegraph(): ReactElement {
   const [uiFramesCanvasRef, setUIFramesCanvasRef] = useState<HTMLCanvasElement | null>(
     null
   );
+  const [cpuChartCanvasRef, setCpuChartCanvasRef] = useState<HTMLCanvasElement | null>(
+    null
+  );
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -335,6 +338,13 @@ function Flamegraph(): ReactElement {
     return new FlamegraphCanvas(uiFramesCanvasRef, vec2.fromValues(0, 0));
   }, [uiFramesCanvasRef]);
 
+  const cpuChartCanvas = useMemo(() => {
+    if (!cpuChartCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(cpuChartCanvasRef, vec2.fromValues(0, 0));
+  }, [cpuChartCanvasRef]);
+
   const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
     previousView => {
       if (!flamegraphCanvas) {
@@ -472,6 +482,35 @@ function Flamegraph(): ReactElement {
       return newView;
     },
     [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
+  );
+
+  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChart> | null>(
+    _previousView => {
+      if (!flamegraphView || !flamegraphCanvas || !CPUChart) {
+        return null;
+      }
+
+      const newView = new CanvasView({
+        canvas: flamegraphCanvas,
+        model: CPUChart,
+        mode: 'stretchToFit',
+        options: {
+          inverted: flamegraph.inverted,
+          minWidth: uiFrames.minFrameDuration,
+          barHeight: 10,
+          depthOffset: 0,
+        },
+      });
+
+      // Initialize configView to whatever the flamegraph configView is
+      newView.setConfigView(
+        flamegraphView.configView.withHeight(newView.configView.height),
+        {width: {min: 0}}
+      );
+
+      return newView;
+    },
+    [flamegraphView, flamegraphCanvas, flamegraph, CPUChart, uiFrames.minFrameDuration]
   );
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
@@ -904,7 +943,18 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
-        cpuChart={hasCPUChart ? <FlamegraphCpuChart chart={CPUChart} /> : null}
+        cpuChart={
+          hasCPUChart ? (
+            <FlamegraphCpuChart
+              cpuChartCanvasRef={cpuChartCanvasRef}
+              cpuChartCanvas={cpuChartCanvas}
+              setCpuChartCanvasRef={setCpuChartCanvasRef}
+              cpuChartView={cpuChartView}
+              canvasPoolManager={canvasPoolManager}
+              chart={CPUChart}
+            />
+          ) : null
+        }
         spansTreeDepth={spanChart?.depth}
         spans={
           spanChart ? (

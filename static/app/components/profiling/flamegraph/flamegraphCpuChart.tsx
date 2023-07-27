@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
@@ -14,6 +16,10 @@ import {
 interface FlamegraphChartProps {
   canvasPoolManager: CanvasPoolManager;
   chart: FlamegraphChart | null;
+  cpuChartCanvas: FlamegraphCanvas | null;
+  cpuChartCanvasRef: HTMLCanvasElement | null;
+  cpuChartView: CanvasView<FlamegraphChart> | null;
+  setCpuChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
 export function FlamegraphCpuChart(props: FlamegraphChartProps) {
