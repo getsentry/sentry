@@ -17,6 +17,12 @@ describe('SQLishFormatter', function () {
     );
   });
 
+  it('Formats inequality', () => {
+    expect(formatter.toString('SELECT * FROM users WHERE age != 10;')).toEqual(
+      'SELECT * \nFROM users \nWHERE age != 10;'
+    );
+  });
+
   it('Formats comparisons', () => {
     expect(
       formatter.toString('SELECT * FROM users WHERE age > 10 AND age < 20;')
