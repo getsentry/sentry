@@ -6,7 +6,9 @@ import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
+import {IconList} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -228,6 +230,20 @@ function ReplayTable({
           </Fragment>
         );
       })}
+      {visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS) ||
+      visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ? (
+        <Fragment>
+          <TableFooter>
+            <IconList size="xs" />
+            {t('Show all replays with xyz')}
+          </TableFooter>
+          <EmptyCell />
+          <EmptyCell />
+          {visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS) ? (
+            <EmptyCell />
+          ) : undefined}
+        </Fragment>
+      ) : undefined}
     </StyledPanelTable>
   );
 }
@@ -262,6 +278,17 @@ const StyledAlert = styled(Alert)<{showBottomBorder?: boolean}>`
   margin-bottom: 0;
   ${props =>
     props.showBottomBorder ? `border-width: 1px 0 1px 0;` : `border-width: 1px 0 0 0;`}
+`;
+
+const TableFooter = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: 10px 5px 10px 20px;
+`;
+
+const EmptyCell = styled('div')`
+  display: flex;
 `;
 
 export default ReplayTable;

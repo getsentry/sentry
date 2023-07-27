@@ -149,7 +149,7 @@ function CardTable({
     perPage: 3,
   });
 
-  const gridRows = new Array(replays ? (replays.length > 0 ? 3 : 1) : 1)
+  const gridRows = new Array(replays ? (replays.length > 0 ? 4 : 1) : 1)
     .fill(' ')
     .map(_ => '1fr')
     .join(' ');
