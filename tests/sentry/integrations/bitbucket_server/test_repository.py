@@ -1,9 +1,9 @@
 import datetime
+from datetime import timezone
 from functools import cached_property
 
 import pytest
 import responses
-from django.utils import timezone
 
 from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,

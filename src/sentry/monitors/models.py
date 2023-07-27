@@ -405,7 +405,7 @@ class MonitorCheckIn(Model):
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            models.Index(fields=["timeout_at", "status"]),
+            models.Index(fields=["status", "timeout_at"]),
             models.Index(fields=["trace_id"]),
         ]
 
@@ -650,12 +650,12 @@ def get_occurrence_data(reason: str, **kwargs):
             "subtitle": f"No check-in reported on {expected_time}.",
         }
     elif reason == MonitorFailure.DURATION:
-        timeout = kwargs.get("timeout", 30)
+        duration = kwargs.get("duration", 30)
         return {
             "group_type": MonitorCheckInTimeout,
             "level": "error",
             "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
+            "subtitle": f"Check-in exceeded maximum duration of {duration} minutes.",
         }
 
     return {

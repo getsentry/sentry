@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest import mock
 
-import pytz
 from django.db import router
 from django.urls import reverse
 
@@ -1048,7 +1047,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1066,7 +1065,7 @@ class ProjectUpdateTest(APITestCase):
     @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_feature(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
-        with Feature({"projects:recap-server": False}):
+        with Feature({"organizations:recap-server": False}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1084,7 +1083,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(
                 self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
             )
@@ -1104,7 +1103,7 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
         project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"projects:recap-server": True}):
+        with Feature({"organizations:recap-server": True}):
             resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
 
             assert resp.status_code == 200
@@ -1373,7 +1372,9 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     def _apply_old_date_to_project_and_org(self):
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
-        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        old_date = datetime.now(tz=timezone.utc) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1
+        )
         # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
         # copy is mutated.
         self.project.organization.update(date_added=old_date)

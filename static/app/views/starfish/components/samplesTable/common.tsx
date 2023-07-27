@@ -5,18 +5,22 @@ import {getDuration} from 'sentry/utils/formatters';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 type Props = {
+  compareToDuration: number;
   duration: number;
-  p95: number;
   containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLSpanElement>,
     HTMLSpanElement
   >;
 };
 
-export function DurationComparisonCell({duration, p95, containerProps}: Props) {
-  const diff = duration - p95;
+export function DurationComparisonCell({
+  duration,
+  compareToDuration,
+  containerProps,
+}: Props) {
+  const diff = duration - compareToDuration;
 
-  if (isNearBaseline(duration, p95)) {
+  if (isNearBaseline(duration, compareToDuration)) {
     return <TextAlignRight {...containerProps}>{t('Near baseline')}</TextAlignRight>;
   }
 
@@ -30,9 +34,9 @@ export function DurationComparisonCell({duration, p95, containerProps}: Props) {
   );
 }
 
-export const isNearBaseline = (duration: number, p95: number) => {
-  const maxDiff = 0.03 * p95;
-  const diff = Math.abs(duration - p95);
+export const isNearBaseline = (duration: number, compareToDuration: number) => {
+  const maxDiff = 0.03 * compareToDuration;
+  const diff = Math.abs(duration - compareToDuration);
   return diff < maxDiff;
 };
 

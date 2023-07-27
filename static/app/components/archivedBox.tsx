@@ -27,7 +27,7 @@ function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps)
       return t(
         "This issue has been archived. It'll return to your inbox if it escalates. To learn more, %s",
         <ExternalLink
-          href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/"
+          href="https://docs.sentry.io/product/accounts/early-adopter-features/issue-archiving/"
           onClick={trackDocsClick}
         >
           {t('read the docs')}
