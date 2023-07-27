@@ -1,10 +1,9 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
@@ -16,6 +15,7 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 import {
   MonitorBucketData,
   TimeWindow,
@@ -31,22 +31,17 @@ interface Props {
 const DEFAULT_ENVIRONMENT = 'production';
 
 export function CronTimelineSection({event, organization}: Props) {
-  const {replace, location} = useRouter();
+  const {location} = useRouter();
+  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
-  const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
+
   const nowRef = useRef<Date>(new Date());
   const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
   const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
+
   const elapsedMinutes = timeWindowConfig[timeWindow].elapsedMinutes;
   const rollup = Math.floor((elapsedMinutes * 60) / timelineWidth);
-
-  const handleResolutionChange = useCallback(
-    (value: TimeWindow) => {
-      replace({...location, query: {...location.query, timeWindow: value}});
-    },
-    [location, replace]
-  );
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -77,19 +72,7 @@ export function CronTimelineSection({event, organization}: Props) {
       type="check-ins"
       help={t('A timeline of check-ins that happened before and after this event')}
     >
-      <ListFilters>
-        <SegmentedControl<TimeWindow>
-          value={timeWindow}
-          onChange={handleResolutionChange}
-          size="xs"
-          aria-label={t('Time Scale')}
-        >
-          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </ListFilters>
+      <StyledResolutionSelector />
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels
@@ -120,9 +103,7 @@ export function CronTimelineSection({event, organization}: Props) {
   );
 }
 
-const ListFilters = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+const StyledResolutionSelector = styled(ResolutionSelector)`
   margin-bottom: ${space(1)};
 `;
 
