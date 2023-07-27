@@ -291,7 +291,6 @@ export const GRID_TEMPLATE = `
 const TeamPanelItem = styled(PanelItem)`
   ${GRID_TEMPLATE}
   align-items: center;
-  display: flex;
 
   > div:last-child {
     margin-left: auto;

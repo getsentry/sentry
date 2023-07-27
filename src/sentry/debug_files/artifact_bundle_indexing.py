@@ -8,6 +8,7 @@ import sentry_sdk
 from django.db import router
 from django.utils import timezone
 
+from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.locks import locks
 from sentry.models.artifactbundle import (
     NULL_STRING,
@@ -24,10 +25,40 @@ from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
+# The TTL of the cache containing information about a specific flat file index. The TTL is set to 1 hour, since
+# we know that the cache will be invalidated in case of flat file index updates, thus it is mostly to keep the
+# size of the caches under control in case of no uploads from the user end.
+FLAT_FILE_IDENTIFIER_CACHE_TTL = 3600
 
-# We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
-# optimize it based on the time taken to perform the indexing (on average).
-FLAT_FILE_INDEXING_CACHE_TIMEOUT = 600
+
+@dataclass(frozen=True)
+class BundleMeta:
+    id: int
+    timestamp: datetime
+
+
+@dataclass(frozen=True)
+class FlatFileMeta:
+    id: int
+    date: datetime
+
+    @staticmethod
+    def from_str(bundle_meta: str) -> "FlatFileMeta":
+        parsed = bundle_meta.split("/")
+        if len(parsed) != 3:
+            raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
+
+        return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(int(parsed[2]) / 1000))
+
+    @staticmethod
+    def build_none():
+        return FlatFileMeta(id=-1, date=datetime.min)
+
+    def to_string(self) -> str:
+        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
+
+    def is_none(self):
+        return self.id == -1 and self.date == datetime.min
 
 
 @sentry_sdk.tracing.trace
@@ -48,26 +79,55 @@ def mark_bundle_for_flat_file_indexing(
         identifiers.append(FlatFileIdentifier.for_debug_id(project_id))
 
     # Create / Update the indexing state in the database
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundleFlatFileIndex),
-            router.db_for_write(FlatFileIndexState),
-        )
-    ):
-        for identifier in identifiers:
-            flat_file_index, _created = ArtifactBundleFlatFileIndex.objects.get_or_create(
-                project_id=identifier.project_id,
-                release_name=identifier.release,
-                dist_name=identifier.dist,
+    for identifier in identifiers:
+        # It turns out our DB integrity, and usage of `get_or_create` is not safe
+        # in the sense that it can end up with duplicates in the database, yay!
+        # So just wrap all of this in a lock so we are definitely not creating
+        # duplicated index entries concurrently.
+        lock = identifier.get_lock()
+        with TimedRetryPolicy(60)(lock.acquire), atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundleFlatFileIndex),
+                router.db_for_write(FlatFileIndexState),
             )
-            FlatFileIndexState.objects.update_or_create(
+        ):
+            # This used to be `get_or_create`, but that is completely broken
+            # when you end up with duplicates, so now we gotta clean that mess up:
+            flat_file_indexes = list(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=identifier.project_id,
+                    release_name=identifier.release,
+                    dist_name=identifier.dist,
+                )
+            )
+            if len(flat_file_indexes) > 0:
+                flat_file_index = flat_file_indexes.pop(0)
+                # remove duplicates from the DB:
+                if len(flat_file_indexes) > 0:
+                    ids = [index.id for index in flat_file_indexes]
+                    ArtifactBundleFlatFileIndex.objects.filter(id__in=ids).delete()
+            else:
+                flat_file_index = ArtifactBundleFlatFileIndex.objects.create(
+                    project_id=identifier.project_id,
+                    release_name=identifier.release,
+                    dist_name=identifier.dist,
+                )
+
+            # Lol, turns out that `update_or_create` will also do a `get` under the hood,
+            # which is equally broken if you end up with duplicates.
+            rows_updated = FlatFileIndexState.objects.filter(
                 flat_file_index=flat_file_index,
                 artifact_bundle=artifact_bundle,
-                defaults={
-                    "indexing_state": ArtifactBundleIndexingState.NOT_INDEXED.value,
-                    "date_added": timezone.now(),
-                },
+            ).update(
+                indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                date_added=timezone.now(),
             )
+            if rows_updated == 0:
+                FlatFileIndexState.objects.create(
+                    flat_file_index=flat_file_index,
+                    artifact_bundle=artifact_bundle,
+                    indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                )
 
     return identifiers
 
@@ -85,13 +145,91 @@ class FlatFileIdentifier(NamedTuple):
         # An identifier is indexing by release if release is set.
         return bool(self.release)
 
-    def _key_hash(self) -> str:
+    def _hashed(self):
         key = f"{self.project_id}|{self.release}|{self.dist}"
         return hashlib.sha1(key.encode()).hexdigest()
 
+    def _flat_file_meta_cache_key(self):
+        return f"flat_file_index:{self._hashed()}"
+
+    def delete_flat_file_meta_from_cache(self):
+        cache_key = self._flat_file_meta_cache_key()
+        redis_client = get_redis_cluster_for_artifact_bundles()
+
+        redis_client.delete(cache_key)
+
+    def set_flat_file_meta_in_cache(self, flat_file_meta: FlatFileMeta):
+        cache_key = self._flat_file_meta_cache_key()
+        redis_client = get_redis_cluster_for_artifact_bundles()
+
+        redis_client.set(cache_key, flat_file_meta.to_string(), ex=FLAT_FILE_IDENTIFIER_CACHE_TTL)
+
+    def get_flat_file_meta_from_cache(self) -> Optional[FlatFileMeta]:
+        cache_key = self._flat_file_meta_cache_key()
+        redis_client = get_redis_cluster_for_artifact_bundles()
+
+        flat_file_meta = redis_client.get(cache_key)
+        if flat_file_meta is None:
+            return None
+
+        try:
+            return FlatFileMeta.from_str(flat_file_meta)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
+
+    def get_flat_file_meta_from_db(self) -> Optional[FlatFileMeta]:
+        result = ArtifactBundleFlatFileIndex.objects.filter(
+            project_id=self.project_id, release_name=self.release, dist_name=self.dist
+        ).first()
+        if result is None or result.flat_file_index is None:
+            return None
+
+        return FlatFileMeta(id=result.id, date=result.date_added)
+
+    def get_flat_file_meta(self) -> Optional[FlatFileMeta]:
+        meta_type = "release" if self.is_indexing_by_release() else "debug_id"
+
+        meta = self.get_flat_file_meta_from_cache()
+        if meta is None:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.flat_file_meta.cache_miss",
+                tags={"meta_type": meta_type},
+            )
+
+            meta = self.get_flat_file_meta_from_db()
+            if meta is None:
+                metrics.incr(
+                    "artifact_bundle_flat_file_indexing.flat_file_meta.db_miss",
+                    tags={"meta_type": meta_type},
+                )
+                meta = FlatFileMeta.build_none()
+            else:
+                metrics.incr(
+                    "artifact_bundle_flat_file_indexing.flat_file_meta.db_hit",
+                    tags={"meta_type": meta_type},
+                )
+
+            # We want to cache in both cases, either a value is found or a value was not found.
+            self.set_flat_file_meta_in_cache(meta)
+        else:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.flat_file_meta.cache_hit",
+                tags={"meta_type": meta_type},
+            )
+
+        # In case the meta that we found was none, we want to return None.
+        if meta.is_none():
+            return None
+
+        return meta
+
+    def _locking_key(self):
+        return f"bundle_index:write:{self._hashed()}"
+
     def get_lock(self) -> Lock:
-        key_hash = self._key_hash()
-        locking_key = f"bundle_index:write:{key_hash}"
+        locking_key = self._locking_key()
+
         return locks.get(locking_key, duration=60 * 10, name="bundle_index")
 
 
@@ -109,10 +247,14 @@ def update_artifact_bundle_index(
 
     lock = identifier.get_lock()
     with TimedRetryPolicy(60)(lock.acquire):
-        flat_file_index = ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index").get(
-            project_id=identifier.project_id,
-            release_name=identifier.release,
-            dist_name=identifier.dist,
+        flat_file_index = (
+            ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index")
+            .filter(
+                project_id=identifier.project_id,
+                release_name=identifier.release,
+                dist_name=identifier.dist,
+            )
+            .first()
         )
 
         index = FlatFileIndex()
@@ -147,11 +289,9 @@ def update_artifact_bundle_index(
             metrics.incr("artifact_bundle_flat_file_indexing.duplicated_indexing")
             logger.error("`ArtifactBundle` %r was already indexed into %r", bundle_meta, identifier)
 
-
-@dataclass(frozen=True)
-class BundleMeta:
-    id: int
-    timestamp: datetime
+        # We invalidate the cache which is holding the FlatFileMeta for this specific identifier. This is done
+        # so that any upcoming event will load the new meta from the db and store it in cache.
+        identifier.delete_flat_file_meta_from_cache()
 
 
 Bundles = List[BundleMeta]

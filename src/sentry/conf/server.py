@@ -1380,12 +1380,14 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
-    # Enable profiling GA messaging (update paths from AM1 to AM2)
-    "organizations:profiling-ga": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
+    # Enable profiling CPU chart
+    "organizations:profiling-cpu-chart": False,
+    # Enable profiling Memory chart
+    "organizations:profiling-memory-chart": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1453,8 +1455,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Allow orgs to install a custom source code management integration
-    "organizations:integrations-custom-scm": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
     # Enable Discord integration notifications
@@ -1669,6 +1669,8 @@ SENTRY_FEATURES = {
     "organizations:pr-comment-bot": False,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
+    # Enable functionality for recap server polling.
+    "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1688,8 +1690,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for recap server polling.
-    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
@@ -2712,7 +2712,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
-    "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )

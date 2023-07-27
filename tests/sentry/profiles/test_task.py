@@ -421,3 +421,37 @@ def test_process_symbolicator_results_for_sample_js():
     _process_symbolicator_results_for_sample(profile, stacktraces, set(frames_sent))
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
+
+
+@django_db_all
+def test_decode_signature(project, android_profile):
+    android_profile.update(
+        {
+            "project_id": project.id,
+            "profile": {
+                "methods": [
+                    {
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()V",
+                        "source_file": None,
+                        "source_line": 67,
+                    },
+                    {
+                        "abs_path": None,
+                        "class_name": "org.a.b.g$a",
+                        "name": "a",
+                        "signature": "()Z",
+                        "source_file": None,
+                        "source_line": 69,
+                    },
+                ],
+            },
+        }
+    )
+    _deobfuscate(android_profile, project)
+    frames = android_profile["profile"]["methods"]
+
+    assert frames[0]["signature"] == "()"
+    assert frames[1]["signature"] == "(): boolean"
