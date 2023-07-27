@@ -117,6 +117,7 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
+  isExtrapolatedChartData?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -796,6 +797,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    const {isExtrapolatedData} = data ?? {};
+    if (isExtrapolatedData) {
+      this.setState({isExtrapolatedChartData: true});
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -821,6 +829,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
     } = this.state;
 
+    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
+
     const chartProps = {
       organization,
       projects: [project],
@@ -830,7 +840,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
-      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -838,7 +847,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, query),
+      isOnDemandMetricAlert: onDemandMetricsAlert,
+      onDataLoaded: onDemandMetricsAlert
+        ? this.handleTimeSeriesDataFetched
+        : this.handleMEPAlertDataset,
     };
 
     const wizardBuilderChart = (
@@ -888,6 +900,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       eventTypes,
       dataset,
       alertType,
+      isExtrapolatedChartData,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1001,6 +1014,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               }
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
+              isExtrapolatedChartData={isExtrapolatedChartData}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}

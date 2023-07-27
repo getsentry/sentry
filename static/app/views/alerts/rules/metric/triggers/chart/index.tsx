@@ -11,7 +11,7 @@ import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import OnDemandMetricRequest from 'sentry/components/charts/onDemandMetricsRequest';
+import OnDemandMetricRequest from 'sentry/components/charts/onDemandMetricRequest';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {
@@ -64,7 +64,6 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: MetricRule['dataset'];
   environment: string | null;
-  handleMEPAlertDataset: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   isQueryValid: boolean;
   location: Location;
   newAlertOrQuery: boolean;
@@ -76,9 +75,9 @@ type Props = {
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
   comparisonDelta?: number;
-  handleOnDemandMetricAlert?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   header?: React.ReactNode;
   isOnDemandMetricAlert?: boolean;
+  onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -307,7 +306,7 @@ class TriggersChart extends PureComponent<Props, State> {
       ? errored || errorMessage
       : errored || errorMessage || !isQueryValid;
 
-    const newTSD = timeseriesData.map(series => {
+    const seriesData = timeseriesData.map(series => {
       if (seriesAdditionalInfo && seriesAdditionalInfo[series.seriesName]) {
         return {
           ...series,
@@ -332,9 +331,9 @@ class TriggersChart extends PureComponent<Props, State> {
         ) : (
           <ThresholdsChart
             period={statsPeriod}
-            minValue={minBy(newTSD[0]?.data, ({value}) => value)?.value}
-            maxValue={maxBy(newTSD[0]?.data, ({value}) => value)?.value}
-            data={newTSD}
+            minValue={minBy(seriesData[0]?.data, ({value}) => value)?.value}
+            maxValue={maxBy(seriesData[0]?.data, ({value}) => value)?.value}
+            data={seriesData}
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
@@ -386,7 +385,7 @@ class TriggersChart extends PureComponent<Props, State> {
       aggregate,
       dataset,
       newAlertOrQuery,
-      handleMEPAlertDataset,
+      onDataLoaded,
       environment,
       comparisonDelta,
       triggers,
@@ -518,7 +517,7 @@ class TriggersChart extends PureComponent<Props, State> {
         currentSeriesNames={[aggregate]}
         partial={false}
         queryExtras={queryExtras}
-        dataLoadedCallback={handleMEPAlertDataset}
+        dataLoadedCallback={onDataLoaded}
       >
         {({
           loading,
