@@ -17,7 +17,7 @@ MAX_VALS_PROVIDED = {
     "replay_id": 100,
 }
 
-FILTER_HAS_A_REPLAY = " AND !replayId:''"
+FILTER_HAS_A_REPLAY = " AND !replay_id:''"
 
 
 def get_replay_counts(
@@ -56,7 +56,7 @@ def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
         dataset=Dataset.Discover,
         params=params,
         snuba_params=snuba_params,
-        selected_columns=["group_uniq_array(100,replayId)", select_column],
+        selected_columns=["group_uniq_array(100,replay_id)", select_column],
         query=query,
         limit=25,
         offset=0,
