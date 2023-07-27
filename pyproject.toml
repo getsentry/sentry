@@ -1121,7 +1121,6 @@ module = [
     "tests.sentry.notifications.notifications.organization_request.test_integration_request",
     "tests.sentry.notifications.notifications.test_digests",
     "tests.sentry.notifications.test_utils",
-    "tests.sentry.notifications.utils.test_participants",
     "tests.sentry.notifications.utils.test_tasks",
     "tests.sentry.options.test_store",
     "tests.sentry.ownership.test_grammar",
