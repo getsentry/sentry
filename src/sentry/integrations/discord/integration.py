@@ -174,15 +174,24 @@ class DiscordIntegrationProvider(IntegrationProvider):
             )
             token = response["access_token"]  # type: ignore
 
-            headers = {"Authorization": f"Bearer {token}"}
+        except ApiError as e:
+            logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"code": e.code})
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+        except KeyError:
+            logger.error("discord.install.failed_to_extract_oauth2_access_token")
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
-            # Can't use self.client.get because that will overwrite our headers
-            # with our bot's authorization
-            response = requests.get(f"{self.client.base_url}/users/@me", headers=headers)
+        headers = {"Authorization": f"Bearer {token}"}
+        # Can't use self.client.get because that will overwrite our header
+        # with our bot's authorization
+        response = requests.get(f"{self.client.base_url}/users/@me", headers=headers)
+        if response.status_code == 200:
             return response.json()["id"]
-        except (ApiError, KeyError):
-            logger.error("discord.install.failed_to_get_discord_user_id")
-            raise IntegrationError("Could not retrieve Discord user information.")
+
+        logger.error(
+            "discord.install.failed_to_get_discord_user_id", extra={"code": response.status_code}
+        )
+        raise IntegrationError("Could not retrieve Discord user information.")
 
     def _get_bot_install_url(self):
         return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"

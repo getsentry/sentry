@@ -220,8 +220,37 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert result == user_id
 
     @responses.activate
-    def test_get_discord_user_id_failure(self):
+    def test_get_discord_user_id_oauth_failure(self):
         provider = self.provider()
         responses.add(responses.POST, url="https://discord.com/api/v10/oauth2/token", status=500)
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code")
+
+    @responses.activate
+    def test_get_discord_user_id_oauth_no_token(self):
+        provider = self.provider()
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={},
+        )
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code")
+
+    @responses.activate
+    def test_get_discord_user_id_request_fail(self):
+        provider = self.provider()
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me",
+            status=401,
+        )
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
