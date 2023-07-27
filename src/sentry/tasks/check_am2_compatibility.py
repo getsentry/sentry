@@ -1,9 +1,8 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Set, Tuple
 
-import pytz
 import sentry_sdk
 from django.db.models import Q
 
@@ -330,8 +329,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -355,8 +354,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization_id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         try:
@@ -413,8 +412,8 @@ class CheckAM2Compatibility:
         params = {
             "organization_id": organization.id,
             "project_objects": project_objects,
-            "start": datetime.now(tz=pytz.UTC) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
-            "end": datetime.now(tz=pytz.UTC),
+            "start": datetime.now(tz=timezone.utc) - timedelta(days=QUERY_TIME_RANGE_IN_DAYS),
+            "end": datetime.now(tz=timezone.utc),
         }
 
         projects = {project.id: project for project in project_objects}

@@ -4,7 +4,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
@@ -546,11 +545,11 @@ class GroupSerializerBase(Serializer, ABC):
                     last_seen = item["last_seen"]
 
         if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
+            return datetime.now(timezone.utc) - timedelta(days=30)
 
         return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
+            min(last_seen - timedelta(days=1), datetime.now(timezone.utc) - timedelta(days=14)),
+            datetime.now(timezone.utc) - timedelta(days=90),
         )
 
     @staticmethod

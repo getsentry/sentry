@@ -1,10 +1,9 @@
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, patch
 
 import pytest
-import pytz
 from freezegun import freeze_time
 from sentry_relay import validate_project_config
 
@@ -259,7 +258,7 @@ def test_project_config_with_all_biases_enabled(
     default_project.add_team(default_team)
     # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
     # automatically.
-    old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
     default_project.organization.date_added = old_date
     default_project.date_added = old_date
 

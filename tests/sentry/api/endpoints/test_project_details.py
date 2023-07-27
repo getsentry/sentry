@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest import mock
 
-import pytz
 from django.db import router
 from django.urls import reverse
 
@@ -1373,7 +1372,9 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     def _apply_old_date_to_project_and_org(self):
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
-        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        old_date = datetime.now(tz=timezone.utc) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1
+        )
         # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
         # copy is mutated.
         self.project.organization.update(date_added=old_date)

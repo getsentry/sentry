@@ -1,8 +1,7 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
-import pytz
 from django.http import QueryDict
 from freezegun import freeze_time
 
@@ -39,12 +38,12 @@ def result_sorted(result):
 @freeze_time("2018-12-11 03:21:00")
 def test_round_range():
     start, end, interval = get_constrained_date_range({"statsPeriod": "2d"})
-    assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 9, 4, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=timezone.utc)
 
     start, end, interval = get_constrained_date_range({"statsPeriod": "2d", "interval": "1d"})
-    assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 10, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 11, 3, 22, tzinfo=timezone.utc)
 
 
 def test_invalid_interval():
@@ -56,16 +55,16 @@ def test_round_exact():
     start, end, interval = get_constrained_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
-    assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
-    assert end == datetime(2021, 1, 18, tzinfo=pytz.utc)
+    assert start == datetime(2021, 1, 12, tzinfo=timezone.utc)
+    assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
 def test_inclusive_end():
     start, end, interval = get_constrained_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
-    assert start == datetime(2021, 2, 24, tzinfo=pytz.utc)
-    assert end == datetime(2021, 2, 25, 1, tzinfo=pytz.utc)
+    assert start == datetime(2021, 2, 24, tzinfo=timezone.utc)
+    assert end == datetime(2021, 2, 25, 1, tzinfo=timezone.utc)
 
 
 @freeze_time("2021-03-05T11:00:00.000Z")
@@ -73,8 +72,8 @@ def test_future_request():
     start, end, interval = get_constrained_date_range(
         {"start": "2021-03-05T12:00:00", "end": "2021-03-05T13:00:00", "interval": "1h"},
     )
-    assert start == datetime(2021, 3, 5, 11, tzinfo=pytz.utc)
-    assert end == datetime(2021, 3, 5, 11, 1, tzinfo=pytz.utc)
+    assert start == datetime(2021, 3, 5, 11, tzinfo=timezone.utc)
+    assert end == datetime(2021, 3, 5, 11, 1, tzinfo=timezone.utc)
 
 
 @freeze_time("2021-03-05T11:14:17.105Z")

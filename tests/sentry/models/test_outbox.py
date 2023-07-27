@@ -1,12 +1,11 @@
 import dataclasses
 import functools
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, ContextManager
 from unittest.mock import call, patch
 
 import pytest
-import pytz
 import responses
 from django.conf import settings
 from django.db import connections
@@ -522,7 +521,7 @@ class RegionOutboxTest(TestCase):
         with outbox_runner():
             pass
 
-        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
         with freeze_time(start_time):
             future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
             future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)
@@ -543,7 +542,7 @@ class RegionOutboxTest(TestCase):
         with outbox_runner():
             pass
 
-        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=pytz.UTC)
+        start_time = datetime(year=2022, month=10, day=1, second=0, tzinfo=timezone.utc)
         with freeze_time(start_time):
             future_scheduled_outbox = Organization.outbox_for_update(org_id=10001)
             future_scheduled_outbox.scheduled_for = start_time + timedelta(hours=1)

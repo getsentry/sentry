@@ -1,9 +1,8 @@
 import datetime
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
@@ -572,7 +571,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
         replay3_id = uuid.uuid4().hex
-        date_now = datetime.datetime.now(tz=pytz.utc).replace(
+        date_now = datetime.datetime.now(tz=timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
         self.r1_seq1_timestamp = date_now - datetime.timedelta(seconds=22)

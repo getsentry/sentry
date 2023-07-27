@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, List, Sequence, TypedDict, cast
 
-import pytz
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
@@ -82,8 +81,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
-        start = start.replace(tzinfo=pytz.utc)
-        end = end.replace(tzinfo=pytz.utc)
+        start = start.replace(tzinfo=timezone.utc)
+        end = end.replace(tzinfo=timezone.utc)
         qs = (
             RuleFireHistory.objects.filter(
                 rule=rule,
