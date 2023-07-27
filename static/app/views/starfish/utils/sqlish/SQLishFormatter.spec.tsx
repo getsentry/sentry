@@ -12,4 +12,10 @@ describe('SQLishFormatter', function () {
   it('Formats wildcards', () => {
     expect(formatter.toString('SELECT * FROM users;')).toEqual('SELECT * \nFROM users;');
   });
+
+  it('Formats lists of bare column names', () => {
+    expect(formatter.toString('SELECT id, name FROM sentry_organization;')).toEqual(
+      'SELECT id, name \nFROM sentry_organization;'
+    );
+  });
 });
