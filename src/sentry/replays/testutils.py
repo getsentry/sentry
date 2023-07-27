@@ -98,6 +98,7 @@ def mock_expected_response(
             "name": kwargs.pop("device_name", "iPhone 13 Pro"),
             "brand": kwargs.pop("device_brand", "Apple"),
             "family": kwargs.pop("device_family", "iPhone"),
+            "model": kwargs.pop("device_model", "13 Pro"),  # TODO: remove fallback behavior
             "model_id": kwargs.pop("device_model", "13 Pro"),
         },
         "sdk": {

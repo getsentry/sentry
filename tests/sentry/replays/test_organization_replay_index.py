@@ -574,6 +574,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "device.name:Macbook",
                 "device.brand:Apple",
                 "device.family:Macintosh",
+                "device.model:10",  # TODO: remove fallback behavior
                 "device.model_id:10",
                 # Contains operator.
                 f"id:[{replay1_id},{uuid.uuid4().hex},{uuid.uuid4().hex}]",

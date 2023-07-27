@@ -12,6 +12,7 @@ from sentry.replays.validators import VALID_FIELD_SET
 class DeviceResponseType(TypedDict, total=False):
     name: Optional[str]
     brand: Optional[str]
+    model: Optional[str]  # TODO: remove fallback behavior
     model_id: Optional[str]
     family: Optional[str]
 
@@ -146,6 +147,9 @@ def generate_normalized_output(
             "model_id": item.pop("device_model", None),
             "family": item.pop("device_family", None),
         }
+
+        # TODO: remove fallback behavior
+        ret_item["device"]["model"] = ret_item["device"]["model_id"]
 
         item.pop("agg_urls", None)
         ret_item["urls"] = item.pop("urls_sorted", None)
