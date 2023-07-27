@@ -131,5 +131,6 @@ class DiscordRequestTest(TestCase):
 
         discord_request = self.mock_request()
         discord_request._validate_identity()
-        assert discord_request.user is not None
-        assert discord_request.user.id == self.user.id
+        user = discord_request.get_identity_user()
+        assert user is not None
+        assert user.id == self.user.id
