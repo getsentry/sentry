@@ -710,7 +710,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
 
         # check firstSeen/lastSeen for some of the tags
         self.run_test_and_check_seen(
-            "device.model_id",
+            "device.model",
             expected=[
                 ("123", 1, self.r4_seq1_timestamp, self.r4_seq1_timestamp),
                 ("13 Pro", 3, self.r1_seq1_timestamp, self.r3_seq1_timestamp),
