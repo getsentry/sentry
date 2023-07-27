@@ -89,6 +89,7 @@ type TestStubFixtures = {
   JiraIntegration: OverridableStub;
   JiraIntegrationProvider: OverridableStub;
   MOCK_RESP_INCONSISTENT_INTERVALS: MockRuleCondition;
+  MOCK_RESP_INCONSISTENT_PLACEHOLDERS: MockRuleCondition;
   MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID: MockRuleCondition;
   MOCK_RESP_PLACEHOLDERS: MockRuleCondition;
   MOCK_RESP_VERBOSE: MockRuleCondition;
