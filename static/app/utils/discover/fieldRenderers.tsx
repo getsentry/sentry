@@ -52,8 +52,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -767,22 +765,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
-    );
-  },
-  // N.B. Do not colorize any throughput percent change renderers, since a
-  // change in throughput is not inherently good or bad
-  tps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
-  sps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
-  time_spent_percentage: fieldName => data => {
-    return (
-      <TimeSpentCell
-        percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
-      />
     );
   },
 };
