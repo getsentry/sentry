@@ -11,20 +11,24 @@ export class SQLishFormatter {
     this.parser = new SQLishParser();
   }
 
-  toString(sql) {
-    let tokens: Token[] | undefined;
-
-    try {
-      tokens = this.parser.parse(sql);
-    } catch (error) {
-      Sentry.captureException(error);
-      // If we fail to parse the SQL, return the original string, so there is always output
-      return sql;
+  toString(sql: string): string;
+  toString(tokens: Token[]): string;
+  toString(input: string | Token[]): string {
+    if (typeof input === 'string') {
+      try {
+        const tokens = this.parser.parse(input);
+        return this.toString(tokens);
+      } catch (error) {
+        Sentry.captureException(error);
+        // If we fail to parse the SQL, return the original string, so there is always output
+        return input;
+      }
     }
 
+    const tokens = input;
     let ret = '';
 
-    function contentize(content: Token) {
+    function contentize(content: Token): void {
       if (content.type === 'Keyword') {
         ret += '\n';
       }
