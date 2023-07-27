@@ -211,7 +211,7 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "sdk": {"name": None, "version": None},
         "os": {"name": None, "version": None},
         "browser": {"name": None, "version": None},
-        "device": {"name": None, "brand": None, "model_id": None, "family": None},
+        "device": {"name": None, "brand": None, "model": None, "model_id": None, "family": None},
         "urls": None,
         "activity": None,
         "count_dead_clicks": None,
