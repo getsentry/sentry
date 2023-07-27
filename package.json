@@ -267,7 +267,7 @@
   },
   "fork-ts-checker": {
     "typescript": {
-      "memoryLimit": 6000
+      "memoryLimit": 4096
     }
   }
 }
