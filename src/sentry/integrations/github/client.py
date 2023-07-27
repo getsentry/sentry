@@ -594,7 +594,7 @@ class GitHubClientMixin(GithubProxyClient):
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int
     ) -> Sequence[Mapping[str, Any]]:
-        if len(repo.name.split("/")) != 2:
+        if len(repo.name.split("/", maxsplit=1)) != 2:
             raise ValueError("Invalid repo name")
         [owner, name] = repo.name.split("/")
         query = f"""query {{
