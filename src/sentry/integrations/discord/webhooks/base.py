@@ -125,9 +125,6 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.reply(message)
 
-        if not self.discord_request.integration or not self.discord_request.user_id:
-            raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
-
         unlink_url = build_unlinking_url(
             integration=self.discord_request.integration,
             discord_id=self.discord_request.user_id,
