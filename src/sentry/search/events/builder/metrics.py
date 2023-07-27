@@ -135,7 +135,7 @@ class MetricsQueryBuilder(QueryBuilder):
             alias = "count"
             include_series = True
         else:
-            limit = self.limit
+            limit = self.limit or Limit(1)
             alias = spec.mri
             include_series = False
 
