@@ -26,6 +26,29 @@ class Operation(Enum):
     DELETED = "deleted"
 
 
+@dataclasses.dataclass
+class GroupValues:
+    id: int
+    project_id: int
+    status: int
+    substatus: Optional[int]
+    first_seen: datetime
+    num_comments: int
+
+
+def _get_attribute_snapshot_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(settings.KAFKA_GROUP_ATTRIBUTES)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_attribute_snapshot_producer = SingletonProducer(
+    _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
+)
+
+
 def _log_group_attributes_changed(
     operation: Operation,
     model_inducing_snapshot: str,
@@ -41,14 +64,27 @@ def _log_group_attributes_changed(
     )
 
 
-@dataclasses.dataclass
-class GroupValues:
-    id: int
-    project_id: int
-    status: int
-    substatus: Optional[int]
-    first_seen: datetime
-    num_comments: int
+def send_snapshot_values(
+    group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
+) -> None:
+    if not settings.SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA:
+        return
+
+    if group_id is None and group is None:
+        raise ValueError("cannot send snapshot values when group_id and group are None")
+
+    if group is not None:
+        return produce_snapshot_to_kafka(_retrieve_snapshot_values(group, group_deleted))
+
+    if group_id is not None:
+        return produce_snapshot_to_kafka(
+            _retrieve_snapshot_values(_retrieve_group_values(group_id), group_deleted)
+        )
+
+
+def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
+    payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
+    _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:
@@ -132,42 +168,6 @@ def _retrieve_snapshot_values(
         else None,
         "timestamp": datetime.now().isoformat(),
     }
-
-
-def send_snapshot_values(
-    group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
-) -> None:
-    if not settings.SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA:
-        return
-
-    if group_id is None and group is None:
-        raise ValueError("cannot send snapshot values when group_id and group are None")
-
-    if group is not None:
-        return produce_snapshot_to_kafka(_retrieve_snapshot_values(group, group_deleted))
-
-    if group_id is not None:
-        return produce_snapshot_to_kafka(
-            _retrieve_snapshot_values(_retrieve_group_values(group_id), group_deleted)
-        )
-
-
-def _get_attribute_snapshot_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(settings.KAFKA_GROUP_ATTRIBUTES)["cluster"]
-    producer_config = get_kafka_producer_cluster_options(cluster_name)
-    producer_config.pop("compression.type", None)
-    producer_config.pop("message.max.bytes", None)
-    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
-
-
-_attribute_snapshot_producer = SingletonProducer(
-    _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
-)
-
-
-def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
-    payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-    _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 @receiver(
