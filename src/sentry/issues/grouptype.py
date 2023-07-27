@@ -205,6 +205,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -213,6 +214,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -221,6 +223,7 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -230,6 +233,7 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=15)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -238,6 +242,7 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -247,6 +252,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=5)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -255,6 +261,7 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -263,6 +270,7 @@ class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, Group
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -272,6 +280,7 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
     noise_config = NoiseConfig(ignore_limit=100)
+    released = True
 
 
 @dataclass(frozen=True)
@@ -280,6 +289,7 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -288,6 +298,7 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_large_http_payload"
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
+    released = True
 
 
 @dataclass(frozen=True)
@@ -348,7 +359,7 @@ class ProfileRegexType(GroupType):
     slug = "profile_regex_main_thread"
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
-    release = True
+    released = True
 
 
 @dataclass(frozen=True)
