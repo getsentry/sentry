@@ -134,7 +134,7 @@ class MetricsQueryBuilder(QueryBuilder):
             limit = Limit(1)
             alias = "count"
         else:
-            limit = self.limit
+            limit = self.limit or Limit(1)
             alias = spec.mri
 
         granularity = snuba_query.granularity or self.resolve_granularity()
