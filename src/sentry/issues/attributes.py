@@ -133,7 +133,7 @@ def _retrieve_snapshot_values(
         "group_id": group_values.id,
         "status": group_values.status,
         "substatus": group_values.substatus,
-        "first_seen": group_values.first_seen,
+        "first_seen": group_values.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "num_comments": group_values.num_comments,
         "assignee_user_id": group_assignee_values[0]["user_id"]
         if len(group_assignee_values) > 0
