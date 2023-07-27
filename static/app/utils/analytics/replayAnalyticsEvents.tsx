@@ -1,5 +1,6 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.details-data-loaded': {
@@ -50,6 +51,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
+    referrer_table: ReferrerTableType;
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from typing import Any, Sequence
 from uuid import uuid4
@@ -21,7 +23,7 @@ COMBINED_EXPRESSION_CALLBACKS = {
 
 
 def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseExpression:
-    def _resolve(instance: Model, node: BaseExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
         if isinstance(node, Value):
             return node.value
         if isinstance(node, F):

@@ -742,7 +742,6 @@ module = [
     "sentry.rules.history.preview",
     "sentry.rules.processor",
     "sentry.rules.registry",
-    "sentry.runner.commands.backup",
     "sentry.runner.commands.migrations",
     "sentry.runner.importer",
     "sentry.runner.initializer",

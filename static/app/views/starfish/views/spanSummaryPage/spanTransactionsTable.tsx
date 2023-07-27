@@ -18,6 +18,7 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
@@ -38,10 +39,12 @@ import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/
 const {SPAN_OP} = SpanMetricsFields;
 
 type Row = {
-  metrics: SpanTransactionMetrics;
+  'avg(span.self_time)': number;
+  'spm()': number;
+  'time_spent_percentage(local)': number;
   transaction: string;
   transactionMethod: string;
-};
+} & SpanTransactionMetrics;
 
 type Props = {
   sort: ValidSort;
@@ -59,7 +62,7 @@ type ValidSort = Sort & {
   field: keyof Row;
 };
 
-export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
+export type TableColumnHeader = GridColumnHeader<keyof Row>;
 
 export function SpanTransactionsTable({
   span,
@@ -71,6 +74,7 @@ export function SpanTransactionsTable({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
 
   const {
     data: spanTransactionMetrics = [],
@@ -84,9 +88,8 @@ export function SpanTransactionsTable({
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
-      transaction: row.transaction,
+      ...row,
       transactionMethod: row['transaction.method'],
-      metrics: row,
     };
   });
 
@@ -94,6 +97,7 @@ export function SpanTransactionsTable({
     if (column.key === 'transaction') {
       return (
         <TransactionCell
+          project={pageFilters.selection.projects[0]}
           endpoint={endpoint}
           endpointMethod={endpointMethod}
           span={span}
@@ -111,11 +115,24 @@ export function SpanTransactionsTable({
     }
 
     const renderer = getFieldRenderer(column.key, meta.fields, false);
-    const rendered = renderer(row.metrics, {
+    const rendered = renderer(row, {
       location,
       organization,
       unit: meta.units?.[column.key],
     });
+
+    if (column.key === 'avg(span.self_time)') {
+      const link = `/starfish/${
+        extractRoute(location) ?? 'spans'
+      }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}?${qs.stringify({
+        ...location.query,
+        endpoint,
+        endpointMethod,
+        transaction: row.transaction,
+        transactionMethod: row.transactionMethod,
+      })}`;
+      return <Link to={link}>{rendered}</Link>;
+    }
 
     return rendered;
   };
@@ -167,25 +184,22 @@ type CellProps = {
   endpointMethod?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
+  project?: number;
 };
 
-function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
+function TransactionCell({row, project}: CellProps) {
   const label = row.transactionMethod
     ? `${row.transactionMethod} ${row.transaction}`
     : row.transaction;
+
+  const link = `/performance/summary/?${qs.stringify({
+    project,
+    transaction: row.transaction,
+  })}`;
+
   return (
     <Fragment>
-      <Link
-        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span[SpanMetricsFields.SPAN_GROUP]
-        )}?${qs.stringify({
-          ...location.query,
-          endpoint,
-          endpointMethod,
-          transaction: row.transaction,
-          transactionMethod: row.transactionMethod,
-        })}`}
-      >
+      <Link to={link}>
         <Truncate value={label} maxLength={75} />
       </Link>
     </Fragment>
