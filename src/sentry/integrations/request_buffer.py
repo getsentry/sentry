@@ -105,11 +105,12 @@ class IntegrationRequestBuffer:
         buffer_key = self.integrationkey
         pipe = self.client.pipeline()
 
-        # get first element from array
         while True:
             try:
                 pipe.watch(buffer_key)
-                recent_item_array = self.client.lrange(buffer_key, 0, 1)
+                recent_item_array = self.client.lrange(
+                    buffer_key, 0, 1
+                )  # get first element from array
                 pipe.multi()
                 if len(recent_item_array):
                     recent_item = json.loads(recent_item_array[0])
