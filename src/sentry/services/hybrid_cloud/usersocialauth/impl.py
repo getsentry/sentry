@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from typing import Callable, List, Optional
 
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.usersocialauth.model import (
     RpcUserSocialAuth,
     UserSocialAuthFilterArgs,
@@ -13,6 +16,8 @@ from sentry.services.hybrid_cloud.usersocialauth.model import (
 from sentry.services.hybrid_cloud.usersocialauth.serial import serialize_usersocialauth
 from sentry.services.hybrid_cloud.usersocialauth.service import UserSocialAuthService
 from social_auth.models import UserSocialAuth
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
@@ -24,6 +29,17 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
         if len(auths) == 0:
             return None
         return auths[0]
+
+    def link_auth(self, *, usa: RpcUserSocialAuth, organization: RpcOrganization) -> bool:
+        try:
+            integration, _created = Integration.objects.get_or_create(
+                provider=usa.provider, external_id=usa.uid
+            )
+            integration.add_organization(organization, None, default_auth_id=usa.id)
+        except Exception as e:
+            logger.error("link_auth.failure", extra={"error": str(e)})
+            return False
+        return True
 
     class _UserSocialAuthFilterQuery(
         FilterQueryDatabaseImpl[UserSocialAuth, UserSocialAuthFilterArgs, RpcUserSocialAuth, None]
