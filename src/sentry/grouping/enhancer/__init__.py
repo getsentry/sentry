@@ -155,10 +155,8 @@ class Enhancements:
         if stacktrace_fingerprint and rules_fingerprint:
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
-                # XXX: Once we're ready, we will update the frames and return from the function
-                # frames = merged_frames
-                # return
-                pass
+                frames = merged_frames
+                return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
