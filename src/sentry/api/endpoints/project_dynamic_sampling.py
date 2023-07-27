@@ -36,13 +36,17 @@ class QueryTimeRange:
     end_time: datetime
 
 
+class DynamicSamplingReadPermission(ProjectPermission):
+    scope_map = {"GET": ["project:read"]}
+
+
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
 @region_silo_endpoint
 class ProjectDynamicSamplingRateEndpoint(ProjectEndpoint):
-    permission_classes = (DynamicSamplingPermission,)
+    permission_classes = (DynamicSamplingReadPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         try:

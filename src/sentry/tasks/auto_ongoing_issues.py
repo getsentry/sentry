@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import List, Optional
 
-import pytz
 from django.db import OperationalError
 from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
@@ -85,7 +84,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     We distribute all the orgs evenly in 144 buckets. For a given cron-tick's
      10min interval, we fetch the orgs from that bucket and transition eligible Groups to ongoing
     """
-    now = datetime.now(tz=pytz.UTC)
+    now = datetime.now(tz=timezone.utc)
 
     bucket = get_daily_10min_bucket(now)
 
@@ -140,7 +139,7 @@ def auto_transition_issues_new_to_ongoing(
     """
     most_recent_group_first_seen_seven_days_ago = (
         Group.objects.filter(
-            first_seen__lte=datetime.fromtimestamp(first_seen_lte, pytz.UTC),
+            first_seen__lte=datetime.fromtimestamp(first_seen_lte, timezone.utc),
         )
         .order_by("-id")
         .first()
@@ -197,7 +196,9 @@ def auto_transition_issues_regressed_to_ongoing(
                 grouphistory__status=GroupHistoryStatus.REGRESSED,
             )
             .annotate(recent_regressed_history=Max("grouphistory__date_added"))
-            .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC)),
+            .filter(
+                recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
+            ),
             step=ITERATOR_CHUNK,
         ),
         ITERATOR_CHUNK,
@@ -242,7 +243,7 @@ def auto_transition_issues_escalating_to_ongoing(
             )
             .annotate(recent_escalating_history=Max("grouphistory__date_added"))
             .filter(
-                recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC)
+                recent_escalating_history__lte=datetime.fromtimestamp(date_added_lte, timezone.utc)
             ),
             step=ITERATOR_CHUNK,
         ),

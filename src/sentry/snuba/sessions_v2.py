@@ -1,10 +1,9 @@
 import itertools
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-import pytz
 from snuba_sdk import Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
@@ -385,7 +384,7 @@ class NonPreflightOrderByException(InvalidParams):
 
 def get_now():
     """Wrapper function to make it mockable in unit tests"""
-    return datetime.now(tz=pytz.utc)
+    return datetime.now(tz=timezone.utc)
 
 
 def get_constrained_date_range(
