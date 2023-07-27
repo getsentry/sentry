@@ -17,7 +17,7 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
     device: {
       name: '',
       brand: '',
-      model_id: '',
+      model: '',
       family: 'Other',
     },
     dist: '',

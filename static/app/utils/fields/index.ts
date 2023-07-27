@@ -31,7 +31,7 @@ export enum FieldKey {
   DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
-  DEVICE_MODEL_ID = 'device.model_id',
+  DEVICE_MODEL = 'device.model',
   DEVICE_NAME = 'device.name',
   DEVICE_ONLINE = 'device.online',
   DEVICE_ORIENTATION = 'device.orientation',
@@ -545,7 +545,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DEVICE_MODEL_ID]: {
+  [FieldKey.DEVICE_MODEL]: {
     desc: t('Internal hardware revision'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1007,7 +1007,7 @@ export const ISSUE_FIELDS = [
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_LOCALE,
   FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_MODEL,
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
@@ -1223,7 +1223,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.COUNT_URLS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_MODEL,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
 

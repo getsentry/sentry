@@ -30,7 +30,7 @@ export type ReplayRecord = {
   device: {
     brand: null | string;
     family: null | string;
-    model_id: null | string;
+    model: null | string;
     name: null | string;
   };
   dist: null | string;

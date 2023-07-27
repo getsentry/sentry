@@ -18,7 +18,7 @@ const notTags = [
   'browser.version',
   'device.brand',
   'device.family',
-  'device.model_id',
+  'device.model',
   'device.name',
   'platform',
   'releases',
