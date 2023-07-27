@@ -475,7 +475,7 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
     return;
   }
 
-  const isStarfishPage = router.location.pathname.startsWith('/starfish');
+  const isStarfishPage = router?.location?.pathname?.startsWith('/starfish');
   const storedPageFilters = getPageFilterStorage(organization.slug, isStarfishPage);
 
   // If we don't have any stored page filters then we do not check desynced state
