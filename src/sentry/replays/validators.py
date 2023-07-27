@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-VALID_FIELD_SET = {
+VALID_FIELD_SET = [
     "activity",
     "browser",
     "count_dead_clicks",
@@ -27,7 +27,7 @@ VALID_FIELD_SET = {
     "urls",
     "user",
     "clicks",
-}
+]
 
 
 class ReplayValidator(serializers.Serializer):
