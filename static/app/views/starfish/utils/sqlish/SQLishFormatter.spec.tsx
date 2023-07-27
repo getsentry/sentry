@@ -37,6 +37,16 @@ describe('SQLishFormatter', function () {
     );
   });
 
+  it('Format Python-style parameters', () => {
+    expect(
+      formatter.toString(
+        'SELECT * FROM messages WHERE (receiver_user_id = Users.id AND created >= %s))'
+      )
+    ).toEqual(
+      'SELECT * \nFROM messages \nWHERE (receiver_user_id = Users.id \nAND created >= %s))'
+    );
+  });
+
   it('Adds newlines for keywords', () => {
     expect(
       formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
