@@ -2111,8 +2111,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         meta = result["meta"]
 
-        assert len(meta) == 2
-        assert meta[0]["name"] == "bucketed_time"
+        assert len(meta) == 1
         assert meta[1]["name"] == "d:transactions/on_demand@none"
 
     def test_get_snql_query(self):
