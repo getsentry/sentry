@@ -28,11 +28,6 @@ const defaultOrgFeatures = [
   'dashboards-rh-widget',
 ];
 
-// Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart', () => ({
-  WorldMapChart: () => null,
-}));
-
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
     id: '1',
@@ -200,11 +195,6 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
     });
 
     MockApiClient.addMockResponse({
@@ -586,32 +576,6 @@ describe('WidgetBuilder', function () {
       await waitFor(() =>
         expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
       );
-    });
-
-    it('render release dataset disabled when the display type is world map', async function () {
-      renderTestComponent({
-        query: {
-          source: DashboardWidgetSource.DISCOVERV2,
-        },
-      });
-
-      await userEvent.click(await screen.findByText('Table'));
-      await userEvent.click(screen.getByText('World Map'));
-
-      await waitFor(() =>
-        expect(screen.getByRole('radio', {name: /Releases/i})).toBeDisabled()
-      );
-
-      expect(
-        screen.getByRole('radio', {
-          name: 'Errors and Transactions',
-        })
-      ).toBeEnabled();
-      expect(
-        screen.getByRole('radio', {
-          name: 'Issues (States, Assignment, Time, etc.)',
-        })
-      ).toBeDisabled();
     });
 
     it('renders with a release search bar', async function () {

@@ -77,6 +77,8 @@ def mock_expected_response(
         "started_at": datetime.datetime.strftime(started_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "finished_at": datetime.datetime.strftime(finished_at, "%Y-%m-%dT%H:%M:%S+00:00"),
         "duration": (finished_at - started_at).seconds,
+        "count_dead_clicks": kwargs.pop("count_dead_clicks", 0),
+        "count_rage_clicks": kwargs.pop("count_rage_clicks", 0),
         "count_errors": kwargs.pop("count_errors", 1),
         "count_segments": kwargs.pop("count_segments", 1),
         "count_urls": len(urls),
@@ -343,6 +345,51 @@ def mock_segment_nagivation(
             "type": "default",
             "category": "navigation",
             "data": {"from": hrefFrom, "to": hrefTo},
+        },
+    )
+
+
+def mock_segment_click(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),
+            "type": "default",
+            "category": "ui.click",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                }
+            },
+        },
+    )
+
+
+def mock_segment_rageclick(
+    timestamp: datetime.datetime, message: str, id: str, tagName: str, clickCount: int
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
+            "type": "default",
+            "category": "ui.multiClick",
+            "message": message,
+            "data": {
+                "node": {
+                    "tagName": tagName,
+                    "attributes": {
+                        "id": id,
+                    },
+                },
+                "clickCount": clickCount,
+            },
         },
     )
 

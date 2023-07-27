@@ -1,3 +1,4 @@
+from django.db import router
 from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
@@ -17,6 +18,7 @@ class Updater(Mediator):
     conditions = Param(list, required=False)
     frequency = Param(int, required=False)
     request = Param(Request, required=False)
+    using = router.db_for_write(Project)
 
     def call(self):
         self._update_name()

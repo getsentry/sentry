@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
@@ -9,7 +10,7 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
@@ -43,6 +44,18 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
+
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+    },
+)
+
 
 INVITE_DAYS_VALID = 30
 
@@ -85,7 +98,7 @@ class OrganizationMemberManager(BaseManager):
             user_id__isnull=False,
         )
 
-    def delete_expired(self, threshold: int) -> None:
+    def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
         from sentry.services.hybrid_cloud.auth import auth_service
 
@@ -194,19 +207,7 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
 
-    flags = typed_dict_bitfield(
-        TypedDict(
-            "flags",
-            {
-                "sso:linked": bool,
-                "sso:invalid": bool,
-                "member-limit:restricted": bool,
-                "idp:provisioned": bool,
-                "idp:role-restricted": bool,
-            },
-        ),
-        default=0,
-    )
+    flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
 
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -251,7 +252,7 @@ class OrganizationMember(Model):
     __org_roles_from_teams = None
 
     def delete(self, *args, **kwds):
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
@@ -260,7 +261,7 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        with outbox_context(transaction.atomic()):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
@@ -587,7 +588,7 @@ class OrganizationMember(Model):
         from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
             self.approve_invite()
             self.save()
 

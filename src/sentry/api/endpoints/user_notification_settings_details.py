@@ -6,9 +6,6 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
-from sentry.api.serializers.models.notification_setting2 import (
-    NotificationSettingsSerializer as NotificationSettingsSerializerV2,
-)
 from sentry.api.validators.notifications import validate, validate_type_option
 from sentry.models import NotificationSetting, User
 
@@ -34,14 +31,11 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         """
 
         type_option = validate_type_option(request.GET.get("type"))
-        v2_serializer = request.GET.get("v2") == "serializer"
 
         notification_preferences = serialize(
             user,
             request.user,
-            NotificationSettingsSerializerV2()
-            if v2_serializer
-            else NotificationSettingsSerializer(),
+            NotificationSettingsSerializer(),
             type=type_option,
         )
 

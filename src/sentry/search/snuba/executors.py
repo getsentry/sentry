@@ -76,7 +76,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 
 
 @dataclass
-class BetterPriorityParams:
+class PriorityParams:
     # (event or issue age_hours) / (event or issue halflife hours)
     # any event or issue age that is greater than max_pow times the half-life hours will get clipped
     max_pow: int
@@ -238,7 +238,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
-        replace_better_priority_aggregation: Optional[bool] = False,
+        replace_priority_aggregation: Optional[bool] = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -249,8 +249,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_better_priority_aggregation and alias in ["priority", "better_priority"]:
-                aggregation = self.aggregation_defs["better_priority_issue_platform"]
+            if replace_priority_aggregation and alias == "priority":
+                aggregation = self.aggregation_defs["priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -302,10 +302,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if (
-            sort_field in ["priority", "better_priority"]
-            and group_category is not GroupCategory.ERROR.value
-        ):
+        if sort_field == "priority" and group_category is not GroupCategory.ERROR.value:
             aggregations = self._prepare_aggregations(
                 sort_field, start, end, having, aggregate_kwargs, True
             )
@@ -503,13 +500,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def better_priority_aggregation(
+def priority_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    return better_priority_aggregation_impl(
-        BetterPriorityParams(
+    return priority_aggregation_impl(
+        PriorityParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -529,13 +526,13 @@ def better_priority_aggregation(
     )
 
 
-def better_priority_issue_platform_aggregation(
+def priority_issue_platform_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: PrioritySortWeights,
 ) -> Sequence[str]:
-    return better_priority_aggregation_impl(
-        BetterPriorityParams(
+    return priority_aggregation_impl(
+        PriorityParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -555,8 +552,8 @@ def better_priority_issue_platform_aggregation(
     )
 
 
-def better_priority_aggregation_impl(
-    params: BetterPriorityParams,
+def priority_aggregation_impl(
+    params: PriorityParams,
     timestamp_column: str,
     use_stacktrace: bool,
     start: datetime,
@@ -695,24 +692,22 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
-        "priority": "better_priority",
+        "priority": "priority",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
-        "betterPriority": "better_priority",
     }
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-        "priority": better_priority_aggregation,
+        "priority": priority_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "better_priority": better_priority_aggregation,
-        "better_priority_issue_platform": better_priority_issue_platform_aggregation,
+        "priority_issue_platform": priority_issue_platform_aggregation,
     }
 
     @property
@@ -825,14 +820,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     )
 
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
-            metrics.incr("snuba.search.postgres_only")
-            # When it's a simple django-only search, we count_hits like normal
 
-            # TODO: Add types to paginators and remove this
-            return cast(
-                CursorResult[Group],
-                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+            # When it's a simple django-only search, we count_hits like normal
+            results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+            metrics.timing(
+                "snuba.search.query",
+                (timezone.now() - now).total_seconds(),
+                tags={"postgres_only": True},
             )
+            return results
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
@@ -1005,6 +1001,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
 
+        metrics.timing(
+            "snuba.search.query",
+            (timezone.now() - now).total_seconds(),
+            tags={"postgres_only": False},
+        )
         return paginator_results
 
     def calculate_hits(

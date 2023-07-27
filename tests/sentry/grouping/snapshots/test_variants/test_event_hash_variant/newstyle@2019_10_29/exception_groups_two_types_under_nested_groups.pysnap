@@ -11,12 +11,12 @@ app:
         exception*
           type*
             "MyApp.CoolException"
-          value* (stripped common values)
+          value* (stripped event-specific values)
             "Test <int>"
         exception*
           type*
             "MyApp.BeansException"
-          value* (stripped common values)
+          value* (stripped event-specific values)
             "Test <int>"
         exception*
           type*

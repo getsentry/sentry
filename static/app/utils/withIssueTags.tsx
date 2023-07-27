@@ -60,9 +60,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeams = props.organization.features.includes('assign-to-me')
-        ? ['my_teams', '[me, my_teams, none]']
-        : ['[me, none]'];
+      const meAndMyTeams = ['my_teams', '[me, my_teams, none]'];
       const suggestedAssignees: string[] = ['me', ...meAndMyTeams, ...userTeams];
       const assigndValues: SearchGroup[] | string[] =
         props.organization.features.includes('issue-search-shortcuts')

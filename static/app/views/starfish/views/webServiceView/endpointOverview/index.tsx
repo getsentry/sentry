@@ -9,9 +9,9 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +21,9 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,12 +31,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
+import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
-import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
@@ -57,7 +59,7 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
@@ -89,7 +91,7 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
+    fields: ['tps()', 'avg(transaction.duration)', 'http_error_count()'],
     dataset: DiscoverDatasets.METRICS,
     start: pageFilter.selection.datetime.start ?? undefined,
     end: pageFilter.selection.datetime.end ?? undefined,
@@ -120,11 +122,11 @@ export default function EndpointOverview() {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-endpoint-overview"
+        referrer="api.starfish-web-service.starfish-endpoint-overview"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
+        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -140,7 +142,12 @@ export default function EndpointOverview() {
           return (
             <Fragment>
               <Header>
-                <ChartLabel>{DataTitles.p95}</ChartLabel>
+                <ChartLabel>{DataTitles.avg}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t('The average duration of requests in the selected period')}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -148,17 +155,14 @@ export default function EndpointOverview() {
                   defined(totals)
                     ? t(
                         '%sms',
-                        (totals.data[0]['p95(transaction.duration)'] as number).toFixed(2)
+                        (totals.data[0]['avg(transaction.duration)'] as number).toFixed(2)
                       )
                     : undefined
                 }
               />
               <Chart
-                statsPeriod={eventView.statsPeriod}
                 height={80}
                 data={[percentileData]}
-                start={eventView.start as string}
-                end={eventView.end as string}
                 loading={loading}
                 utc={false}
                 grid={{
@@ -170,7 +174,7 @@ export default function EndpointOverview() {
                 disableXAxis
                 definedAxisTicks={2}
                 isLineChart
-                chartColors={[P95_COLOR]}
+                chartColors={[AVG_COLOR]}
                 tooltipFormatterOptions={{
                   valueFormatter: value =>
                     tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -178,6 +182,13 @@ export default function EndpointOverview() {
               />
               <Header>
                 <ChartLabel>{DataTitles.throughput}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the number of requests made to this endpoint per second in the selected period'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -188,11 +199,8 @@ export default function EndpointOverview() {
                 }
               />
               <Chart
-                statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
                 data={[throughputResults]}
-                start=""
-                end=""
                 loading={loading}
                 utc={false}
                 isLineChart
@@ -200,6 +208,7 @@ export default function EndpointOverview() {
                 disableXAxis
                 chartColors={[THROUGHPUT_COLOR]}
                 aggregateOutputFormat="rate"
+                rateUnit={RateUnits.PER_SECOND}
                 grid={{
                   left: '8px',
                   right: '0',
@@ -207,12 +216,19 @@ export default function EndpointOverview() {
                   bottom: '0',
                 }}
                 tooltipFormatterOptions={{
-                  valueFormatter: value => formatThroughput(value),
+                  valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
                 }}
               />
               <SidebarSpacer />
               <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
+                <QuestionTooltip
+                  size="sm"
+                  position="right"
+                  title={t(
+                    'the total number of requests that resulted in 5XX response codes over a given time range'
+                  )}
+                />
               </Header>
               <ChartSummaryValue
                 isLoading={isTotalsLoading}
@@ -226,11 +242,8 @@ export default function EndpointOverview() {
                 }
               />
               <Chart
-                statsPeriod={eventView.statsPeriod}
                 height={80}
                 data={[results[1]]}
-                start={eventView.start as string}
-                end={eventView.end as string}
                 loading={loading}
                 utc={false}
                 grid={{
@@ -268,7 +281,7 @@ export default function EndpointOverview() {
   useSynchronizeCharts();
 
   return (
-    <PageFiltersContainer>
+    <StarfishPageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -368,7 +381,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </PageFiltersContainer>
+    </StarfishPageFiltersContainer>
   );
 }
 
@@ -450,5 +463,5 @@ const Header = styled('div')`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: ${space(1)};
 `;

@@ -258,6 +258,10 @@ const mockGroupApis = (
     url: '/organizations/org-slug/users/',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
+    body: [project],
+  });
 
   MockApiClient.addMockResponse({
     url: `/customers/org-slug/policies/`,

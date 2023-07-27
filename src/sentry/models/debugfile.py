@@ -16,6 +16,7 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
+    Container,
     Dict,
     FrozenSet,
     Iterable,
@@ -85,7 +86,7 @@ class ProjectDebugFileManager(BaseManager):
         return sorted(missing)
 
     def find_by_debug_ids(
-        self, project: Project, debug_ids: List[str], features: Iterable[str] | None = None
+        self, project: Project, debug_ids: Container[str], features: Iterable[str] | None = None
     ) -> Dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 
@@ -598,6 +599,8 @@ def create_files_from_dif_zip(
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
+    from sentry.lang.native.sources import record_last_upload
+
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
@@ -615,6 +618,7 @@ def create_files_from_dif_zip(
         rv = create_debug_file_from_dif(to_create, project)
 
         # Uploading new dsysm changes the reprocessing revision
+        record_last_upload(project)
         bump_reprocessing_revision(project)
 
         return rv

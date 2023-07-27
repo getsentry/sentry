@@ -13,8 +13,12 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {ReleaseSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
+import {StarfishType} from 'sentry/views/starfish/types';
+import {MobileStarfishView} from 'sentry/views/starfish/views/mobileServiceView';
 
 import {StarfishView} from './starfishView';
 
@@ -27,20 +31,59 @@ type Props = {
   withStaticFilters: boolean;
 };
 
+export type BaseStarfishViewProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
 export function StarfishLanding(props: Props) {
+  const project = props.selection.projects[0];
+  const starfishType = STARFISH_TYPE_FOR_PROJECT[project] || StarfishType.BACKEND;
+
   const pageFilters: React.ReactNode = (
-    <PageFilterBar condensed>
-      <StarfishProjectSelector />
-      <StarfishDatePicker />
-    </PageFilterBar>
+    <Fragment>
+      <PageFilterBar condensed>
+        <StarfishProjectSelector />
+        <StarfishDatePicker />
+      </PageFilterBar>
+      {starfishType === StarfishType.MOBILE && (
+        <PageFilterBar condensed>
+          <ReleaseSelector selectorKey="release1" selectorName={t('Release 1')} />
+          <ReleaseSelector selectorKey="release2" selectorName={t('Release 2')} />
+        </PageFilterBar>
+      )}
+    </Fragment>
   );
+
+  const getStarfishView = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return MobileStarfishView;
+      case StarfishType.BACKEND:
+      default:
+        return StarfishView;
+    }
+  };
+
+  const getStarfishPageTitle = () => {
+    switch (starfishType) {
+      case StarfishType.MOBILE:
+        return t('Mobile Application');
+      case StarfishType.BACKEND:
+      default:
+        return t('Web Service');
+    }
+  };
+
+  const StarfishComponent = getStarfishView();
 
   return (
     <Layout.Page>
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Web Service')}</Layout.Title>
+            <Layout.Title>{getStarfishPageTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -52,7 +95,7 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              <StarfishView {...props} />
+              <StarfishComponent {...props} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

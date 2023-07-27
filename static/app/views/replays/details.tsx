@@ -192,7 +192,7 @@ function DetailsInsideContext({
   return (
     <Page
       orgSlug={orgSlug}
-      crumbs={replay?.getNavCrumbs()}
+      frames={replay?.getNavigationFrames()}
       replayRecord={replayRecord}
       projectSlug={projectSlug}
       replayErrors={replayErrors}

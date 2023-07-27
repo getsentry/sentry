@@ -5,8 +5,8 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@override_settings(ROOT_URLCONF="sentry.conf.urls")
 @control_silo_test(stable=True)
+@override_settings(ROOT_URLCONF="sentry.conf.urls")
 class CsrfFailureTest(TestCase):
     def test_simple(self):
         path = reverse("error-403-csrf-failure")

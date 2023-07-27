@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -138,72 +137,6 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.status == ObjectStatus.ACTIVE
         assert repo.integration_id == integration.id
 
-    @with_feature("organizations:integrations-custom-scm")
-    def test_put_custom_scm_repo(self):
-        """
-        Allow repositories that are tied to Custom SCM integrations
-        to be able to update `name` and `url`.
-        """
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        integration = Integration.objects.create(
-            provider="integrations:custom_scm", name="some-org"
-        )
-        integration.add_organization(org)
-
-        repo = Repository.objects.create(
-            name="some-org/example",
-            organization_id=org.id,
-            integration_id=integration.id,
-            provider="integrations:custom_scm",
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(
-            url, data={"url": "https://example.com/some-org/repo", "name": "some-org/new-name"}
-        )
-
-        assert response.status_code == 200
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.url == "https://example.com/some-org/repo"
-        assert repo.name == "some-org/new-name"
-
-        # test that empty url sets it back to None
-        response = self.client.put(url, data={"url": ""})
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.url is None
-        assert repo.name == "some-org/new-name"
-
-    @with_feature("organizations:integrations-custom-scm")
-    def test_no_name_or_url_updates(self):
-        """
-        Repositories that are not tied to Custom SCM integrations
-        *cannot* update their `name` or `url`.
-
-        This is true for repos in the following categories:
-         * 'Unknown provider'
-         * Plugins
-         * First Party Integrations (non Custom SCM)
-        """
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(
-            name="example", organization_id=org.id, url="https:/example.com/"
-        )
-
-        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(
-            url, data={"url": "https://example.com/some-org/repo", "name": "some-org/new-name"}
-        )
-
-        assert response.status_code == 200
-        repo = Repository.objects.get(id=repo.id)
-        # no changes were made
-        assert repo.url == "https:/example.com/"
-        assert repo.name == "example"
-
     def test_put_cancel_deletion(self):
         self.login_as(user=self.user)
 
@@ -267,50 +200,24 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.HIDDEN
 
-    def test_put_cancel_deletion_duplicate_exists(self):
+    def test_put_hide_repo_with_commits(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = Integration.objects.create(provider="example", name="example")
-        integration.add_organization(org)
-
         repo = Repository.objects.create(
-            name="uuid-name",
-            external_id="uuid-external-id",
-            organization_id=org.id,
-            status=ObjectStatus.PENDING_DELETION,
-            config={"pending_deletion_name": "example-name"},
+            name="example", organization_id=org.id, external_id="abc123"
         )
-
-        repo2 = Repository.objects.create(
-            name="example_name",
-            external_id="uuid-external-id",
-            organization_id=org.id,
-            status=ObjectStatus.ACTIVE,
-        )
-
-        OrganizationOption.objects.create(
-            organization_id=org.id,
-            key=repo.build_pending_deletion_key(),
-            value={
-                "name": "example_name",
-                "external_id": "example-external-id",
-                "id": repo.id,
-                "model": Repository.__name__,
-            },
-        )
+        Commit.objects.create(repository_id=repo.id, key="a" * 40, organization_id=org.id)
 
         url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
-        response = self.client.put(url, data={"status": "visible", "integrationId": integration.id})
-        assert response.status_code == 500
+
+        with self.tasks():
+            response = self.client.put(url, data={"status": "hidden"})
+            assert response.status_code == 200
 
         repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.PENDING_DELETION
-        assert repo.name == "uuid-name"
-
-        repo2 = Repository.objects.get(id=repo2.id)
-        assert repo2.status == ObjectStatus.ACTIVE
-        assert repo2.name == "example_name"
+        assert repo.status == ObjectStatus.HIDDEN
+        assert len(Commit.objects.filter(repository_id=repo.id)) == 0
 
     def test_put_bad_integration_org(self):
         self.login_as(user=self.user)

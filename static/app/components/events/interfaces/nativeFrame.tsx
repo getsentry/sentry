@@ -23,12 +23,13 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -45,15 +46,23 @@ type Props = {
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
+  hiddenFrameCount?: number;
   image?: React.ComponentProps<typeof DebugImage>['image'];
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
   isHoverPreviewed?: boolean;
   isOnlyFrame?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Frames that are hidden under the most recent non-InApp frame
+   */
+  isSubFrame?: boolean;
   maxLengthOfRelativeAddress?: number;
   nextFrame?: Frame;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   prevFrame?: Frame;
   registersMeta?: Record<any, any>;
+  showStackedFrames?: boolean;
 };
 
 function NativeFrame({
@@ -68,6 +77,10 @@ function NativeFrame({
   isOnlyFrame,
   event,
   components,
+  hiddenFrameCount,
+  isShowFramesToggleExpanded,
+  isSubFrame,
+  onShowFramesToggle,
   isExpanded,
   platform,
   registersMeta,
@@ -215,11 +228,20 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const organization = useOrganization();
+  const stacktraceChangesEnabled = !!organization?.features.includes(
+    'issue-details-stacktrace-improvements'
+  );
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <RowHeader expandable={expandable} expanded={expanded}>
+        <RowHeader
+          expandable={expandable}
+          expanded={expanded}
+          stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
+          isSubFrame={!!isSubFrame}
+        >
           <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
@@ -297,11 +319,32 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
+          {stacktraceChangesEnabled && hiddenFrameCount ? (
+            <ShowHideButton
+              analyticsEventName="Stacktrace Frames: toggled"
+              analyticsEventKey="stacktrace_frames.toggled"
+              analyticsParams={{
+                frame_count: hiddenFrameCount,
+                is_frame_expanded: isShowFramesToggleExpanded,
+              }}
+              size="xs"
+              borderless
+              onClick={e => {
+                onShowFramesToggle?.(e);
+              }}
+            >
+              {isShowFramesToggleExpanded
+                ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+            </ShowHideButton>
+          ) : null}
           <TypeCell>
-            {frame.inApp ? (
-              <Tag type="info">{t('In App')}</Tag>
+            {!frame.inApp ? (
+              stacktraceChangesEnabled ? null : (
+                <Tag>{t('System')}</Tag>
+              )
             ) : (
-              <Tag>{t('System')}</Tag>
+              <Tag type="info">{t('In App')}</Tag>
             )}
           </TypeCell>
           <ExpandCell>
@@ -401,6 +444,7 @@ const Package = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  padding-right: 2px; /* Needed to prevent text cropping with italic font */
 `;
 
 const FileName = styled('span')`
@@ -408,23 +452,30 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
+const RowHeader = styled('span')<{
+  expandable: boolean;
+  expanded: boolean;
+  isSubFrame: boolean;
+  stacktraceChangesEnabled: boolean;
+}>`
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
-  background-color: ${p => p.theme.bodyBackground};
+  background-color: ${p =>
+    p.stacktraceChangesEnabled && p.isSubFrame
+      ? `${p.theme.surface100}`
+      : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
+  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
+  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
-  ${p =>
-    p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr auto auto;
-    ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
+    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
@@ -440,4 +491,14 @@ const StackTraceFrame = styled('li')`
 
 const SymbolicatorIcon = styled('div')`
   width: ${p => p.theme.iconSizes.sm};
+`;
+
+const ShowHideButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-style: italic;
+  font-weight: normal;
+  padding: ${space(0.25)} ${space(0.5)};
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;

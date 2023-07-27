@@ -4,7 +4,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -21,12 +21,11 @@ from typing import (
     Union,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import analytics, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -172,8 +171,8 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
 
 class SeenStats(TypedDict):
     times_seen: int
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: datetime | None
+    last_seen: datetime | None
     user_count: int
 
 
@@ -424,18 +423,9 @@ class GroupSerializerBase(Serializer, ABC):
             else:
                 status = GroupStatus.UNRESOLVED
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            # When an issue is over the auto-resolve age but the task has not yet run
             status = GroupStatus.RESOLVED
             status_details["autoResolved"] = True
-            analytics.record(
-                "issue.resolved",
-                default_user_id=obj.project.organization.get_default_owner().id,
-                project_id=obj.project.id,
-                organization_id=obj.project.organization_id,
-                group_id=obj.id,
-                resolution_type="automatic",
-                issue_type=obj.issue_type.slug,
-                issue_category=obj.issue_category.name.lower(),
-            )
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
@@ -555,11 +545,11 @@ class GroupSerializerBase(Serializer, ABC):
                     last_seen = item["last_seen"]
 
         if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
+            return datetime.now(timezone.utc) - timedelta(days=30)
 
         return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
+            min(last_seen - timedelta(days=1), datetime.now(timezone.utc) - timedelta(days=14)),
+            datetime.now(timezone.utc) - timedelta(days=90),
         )
 
     @staticmethod

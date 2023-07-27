@@ -37,11 +37,11 @@ from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
 from sentry.tasks.relay import schedule_invalidate_project_config

@@ -107,6 +107,7 @@ from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
+from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
@@ -269,7 +270,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -412,7 +413,10 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
+from .endpoints.project_dynamic_sampling import (
+    ProjectDynamicSamplingDistributionEndpoint,
+    ProjectDynamicSamplingRateEndpoint,
+)
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -1169,11 +1173,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-geo/$",
-        OrganizationEventsGeoEndpoint.as_view(),
-        name="sentry-api-0-organization-events-geo",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
@@ -2366,6 +2365,11 @@ PROJECT_URLS = [
         name="sentry-api-0-project-profiling-transactions",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
+        ProjectDynamicSamplingRateEndpoint.as_view(),
+        name="sentry-api-0-project-dynamic-sampling-rate",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",
         ProjectDynamicSamplingDistributionEndpoint.as_view(),
         name="sentry-api-0-project-dynamic-sampling-distribution",
@@ -2597,7 +2601,7 @@ INTERNAL_URLS = [
     ),
     re_path(
         # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy/\S+$",
+        r"^integration-proxy/\S*$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
     ),
@@ -2686,6 +2690,11 @@ urlpatterns = [
         r"^api-applications/(?P<app_id>[^\/]+)/$",
         ApiApplicationDetailsEndpoint.as_view(),
         name="sentry-api-0-api-application-details",
+    ),
+    re_path(
+        r"^api-applications/(?P<app_id>[^\/]+)/rotate-secret/$",
+        ApiApplicationRotateSecretEndpoint.as_view(),
+        name="sentry-api-0-api-application-rotate-secret",
     ),
     re_path(
         r"^api-authorizations/$",

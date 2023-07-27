@@ -5,7 +5,7 @@ import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {GettingStartedWithNode, steps} from './node';
 
 describe('GettingStartedWithNode', function () {
-  it('all products are selected', function () {
+  it('renders doc correctly', function () {
     const {container} = render(<GettingStartedWithNode dsn="test-dsn" />);
 
     // Steps

@@ -1,6 +1,7 @@
 import sortedIndexBy from 'lodash/sortedIndexBy';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
@@ -27,25 +28,23 @@ export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
   return undefined;
 }
 
-export function getNextReplayEvent<T extends ReplaySpan | Crumb>({
-  items,
-  targetTimestampMs,
+export function getNextReplayFrame({
+  frames,
+  targetOffsetMs,
   allowExact = false,
 }: {
-  items: T[];
-  targetTimestampMs: number;
+  frames: ReplayFrame[];
+  targetOffsetMs: number;
   allowExact?: boolean;
 }) {
-  return items.reduce<T | undefined>((found, item) => {
-    const itemTimestampMS = +new Date(item.timestamp || '');
-
+  return frames.reduce<ReplayFrame | undefined>((found, item) => {
     if (
-      itemTimestampMS < targetTimestampMs ||
-      (!allowExact && itemTimestampMS === targetTimestampMs)
+      item.offsetMs < targetOffsetMs ||
+      (!allowExact && item.offsetMs === targetOffsetMs)
     ) {
       return found;
     }
-    if (!found || itemTimestampMS < +new Date(found.timestamp || '')) {
+    if (!found || item.timestampMs < found.timestampMs) {
       return item;
     }
     return found;

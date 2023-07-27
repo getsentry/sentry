@@ -1,6 +1,7 @@
 from rest_framework import status
 
-from sentry.models import ProjectTeam, Rule
+from sentry.models import Rule
+from sentry.models.projectteam import ProjectTeam
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -14,7 +15,7 @@ class ProjectTeamDetailsTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
@@ -34,12 +35,14 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     def test_add_team_not_found(self):
         project = self.create_project()
 
-        self.get_error_response(
+        response = self.get_error_response(
             project.organization.slug,
             project.slug,
             "not-a-team",
             status_code=status.HTTP_404_NOT_FOUND,
         )
+
+        assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
     def test_add_team_with_team_role(self):
@@ -72,7 +75,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 
@@ -131,12 +134,14 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     def test_remove_team_not_found(self):
         project = self.create_project()
 
-        self.get_error_response(
+        response = self.get_error_response(
             project.organization.slug,
             project.slug,
             "not-a-team",
             status_code=status.HTTP_404_NOT_FOUND,
         )
+
+        assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
     def test_remove_team_with_team_role(self):

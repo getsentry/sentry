@@ -544,7 +544,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
 
                           <ReleaseIssues
                             organization={organization}
-                            selection={selection}
                             version={version}
                             location={location}
                             releaseBounds={releaseBounds}
@@ -600,7 +599,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                           <ProjectReleaseDetails
                             release={release}
                             releaseMeta={releaseMeta}
-                            orgSlug={organization.slug}
                             projectSlug={project.slug}
                           />
                           {commitCount > 0 && (

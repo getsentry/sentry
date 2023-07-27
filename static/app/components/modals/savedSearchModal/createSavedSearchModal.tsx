@@ -22,7 +22,7 @@ function validateSortOption({sort}: {sort?: string}) {
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.BETTER_PRIORITY,
+    IssueSortOptions.PRIORITY,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

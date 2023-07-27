@@ -5,7 +5,7 @@ from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -86,7 +86,7 @@ class SentryAppUpdater:
     features: List[str] | None = None
 
     def run(self, user: User) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(User)):
             self._update_name()
             self._update_author()
             self._update_features(user=user)
@@ -274,7 +274,7 @@ class SentryAppCreator:
             ), "Internal apps should not require installation verification"
 
     def run(self, *, user: User, request: Request | None = None) -> SentryApp:
-        with transaction.atomic(), in_test_hide_transaction_boundary():
+        with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
             api_app = self._create_api_application(proxy=proxy)
@@ -355,7 +355,7 @@ class SentryAppCreator:
         # sentry apps must have at least one feature
         # defaults to 'integrations-api'
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(IntegrationFeature)):
                 IntegrationFeature.objects.create(
                     target_id=sentry_app.id,
                     target_type=IntegrationTypes.SENTRY_APP.value,

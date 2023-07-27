@@ -46,7 +46,6 @@ SORT_OPTIONS = {
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
-    "better_priority": _("Better Priority"),
 }
 
 SEARCH_SORT_OPTIONS = {
@@ -135,6 +134,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "guide",
         "help",
         "ingest",
+        "ingest-beta",
         "integration-platform",
         "integrations",
         "invoice",

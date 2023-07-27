@@ -10,7 +10,13 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import NativeFrame from '../../nativeFrame';
-import {getImageRange, parseAddress} from '../../utils';
+import {
+  findImageForAddress,
+  getHiddenFrameIndices,
+  getLastFrameIndex,
+  isRepeatedFrame,
+  parseAddress,
+} from '../../utils';
 
 type Props = {
   data: StacktraceType;
@@ -18,9 +24,12 @@ type Props = {
   platform: PlatformType;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  hiddenFrameCount?: number;
   includeSystemFrames?: boolean;
   inlined?: boolean;
   isHoverPreviewed?: boolean;
+  isShowFramesToggleExpanded?: boolean;
+  isSubFrame?: boolean;
   maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -41,29 +50,49 @@ export function NativeContent({
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
+  const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   const {frames = [], framesOmitted, registers} = data;
 
-  function findImageForAddress(
-    address: Frame['instructionAddr'],
-    addrMode: Frame['addrMode']
-  ) {
-    const images = event.entries.find(entry => entry.type === 'debugmeta')?.data?.images;
+  function frameIsVisible(frame: Frame, nextFrame: Frame) {
+    return (
+      includeSystemFrames ||
+      frame.inApp ||
+      (nextFrame && nextFrame.inApp) ||
+      // the last non-app frame
+      (!frame.inApp && !nextFrame) ||
+      isFrameUsedForGrouping(frame)
+    );
+  }
 
-    if (!images || !address) {
-      return null;
-    }
-
-    const image = images.find((img, idx) => {
-      if (!addrMode || addrMode === 'abs') {
-        const [startAddress, endAddress] = getImageRange(img);
-        return address >= (startAddress as any) && address < (endAddress as any);
+  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+    const indexMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        indexMap[frameIdx] = false;
       }
-
-      return addrMode === `rel:${idx}`;
     });
+    return indexMap;
+  }
 
-    return image;
+  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+    let count = 0;
+    const countMap = {};
+    (data.frames ?? []).forEach((frame, frameIdx) => {
+      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      if (frameIsVisible(frame, nextFrame) && !repeatedFrame && !frame.inApp) {
+        countMap[frameIdx] = count;
+        count = 0;
+      } else {
+        if (!repeatedFrame && !frame.inApp) {
+          count += 1;
+        }
+      }
+    });
+    return countMap;
   }
 
   function isFrameUsedForGrouping(frame: Frame) {
@@ -86,20 +115,17 @@ export function NativeContent({
     setShowCompleteFunctionName(!showCompleteFunctionName);
   }
 
-  function getLastFrameIndex() {
-    const inAppFrameIndexes = frames
-      .map((frame, frameIndex) => {
-        if (frame.inApp) {
-          return frameIndex;
-        }
-        return undefined;
-      })
-      .filter(frame => frame !== undefined);
+  const handleToggleFrames = (
+    mouseEvent: React.MouseEvent<HTMLElement>,
+    frameIndex: number
+  ) => {
+    mouseEvent.stopPropagation(); // to prevent toggling frame context
 
-    return !inAppFrameIndexes.length
-      ? frames.length - 1
-      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
-  }
+    setToggleFrameMap(prevState => ({
+      ...prevState,
+      [frameIndex]: !prevState[frameIndex],
+    }));
+  };
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
     return t(
@@ -111,16 +137,23 @@ export function NativeContent({
 
   const firstFrameOmitted = framesOmitted?.[0] ?? null;
   const lastFrameOmitted = framesOmitted?.[1] ?? null;
-  const lastFrameIndex = getLastFrameIndex();
+  const lastFrameIndex = getLastFrameIndex(frames);
+  const frameCountMap = getInitialFrameCounts();
+  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+    data,
+    toggleFrameMap,
+    frameCountMap,
+  });
 
   let nRepeats = 0;
 
   const maxLengthOfAllRelativeAddresses = frames.reduce(
     (maxLengthUntilThisPoint, frame) => {
-      const correspondingImage = findImageForAddress(
-        frame.instructionAddr,
-        frame.addrMode
-      );
+      const correspondingImage = findImageForAddress({
+        event,
+        addrMode: frame.addrMode,
+        address: frame.instructionAddr,
+      });
 
       try {
         const relativeAddress = (
@@ -142,14 +175,7 @@ export function NativeContent({
     .map((frame, frameIndex) => {
       const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1];
-
-      const repeatedFrame =
-        nextFrame &&
-        frame.lineNo === nextFrame.lineNo &&
-        frame.instructionAddr === nextFrame.instructionAddr &&
-        frame.package === nextFrame.package &&
-        frame.module === nextFrame.module &&
-        frame.function === nextFrame.function;
+      const repeatedFrame = isRepeatedFrame(frame, nextFrame);
 
       if (repeatedFrame) {
         nRepeats++;
@@ -157,15 +183,10 @@ export function NativeContent({
 
       const isUsedForGrouping = isFrameUsedForGrouping(frame);
 
-      const isVisible =
-        includeSystemFrames ||
-        frame.inApp ||
-        (nextFrame && nextFrame.inApp) ||
-        // the last non-app frame
-        (!frame.inApp && !nextFrame) ||
-        isUsedForGrouping;
-
-      if (isVisible && !repeatedFrame) {
+      if (
+        (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
+        hiddenFrameIndices.includes(frameIndex)
+      ) {
         const frameProps = {
           event,
           frame,
@@ -179,13 +200,23 @@ export function NativeContent({
           timesRepeated: nRepeats,
           showingAbsoluteAddress: showingAbsoluteAddresses,
           onAddressToggle: handleToggleAddresses,
-          image: findImageForAddress(frame.instructionAddr, frame.addrMode),
+          onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
+            handleToggleFrames(e, frameIndex);
+          },
+          image: findImageForAddress({
+            event,
+            addrMode: frame.addrMode,
+            address: frame.instructionAddr,
+          }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: {},
           includeSystemFrames,
           onFunctionNameToggle: handleToggleFunctionName,
           showCompleteFunctionName,
+          hiddenFrameCount: frameCountMap[frameIndex],
           isHoverPreviewed,
+          isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
+          isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isUsedForGrouping,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,

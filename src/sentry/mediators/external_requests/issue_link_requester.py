@@ -5,6 +5,8 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
+from django.db import router
+
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
@@ -55,6 +57,7 @@ class IssueLinkRequester(Mediator):
     fields = Param(dict)
     user = Param(RpcUser)
     action = Param(str)
+    using = router.db_for_write(Group)
 
     def call(self):
         return self._make_request()

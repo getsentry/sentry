@@ -1,7 +1,8 @@
 from collections import defaultdict
 from typing import Any, Mapping, MutableMapping, Sequence, cast
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, TeamStatus, User
+from sentry.models import OrganizationMember, OrganizationMemberTeam, TeamStatus, User
+from sentry.models.projectteam import ProjectTeam
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithProjectsResponse

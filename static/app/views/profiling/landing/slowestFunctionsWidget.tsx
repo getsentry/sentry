@@ -17,6 +17,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -276,7 +277,19 @@ function SlowestFunctionEntry({
                       framePackage: func.package as string,
                     },
                   });
-                  transactionCol = <Link to={target}>{transactionCol}</Link>;
+                  transactionCol = (
+                    <Link
+                      to={target}
+                      onClick={() => {
+                        trackAnalytics('profiling_views.go_to_flamegraph', {
+                          organization,
+                          source: 'profiling.global_suspect_functions',
+                        });
+                      }}
+                    >
+                      {transactionCol}
+                    </Link>
+                  );
                 }
 
                 return (

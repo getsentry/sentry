@@ -1,7 +1,9 @@
 import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -15,9 +17,11 @@ import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
 import {
   ActivityCell,
   BrowserCell,
+  DeadClickCountCell,
   DurationCell,
   ErrorCountCell,
   OSCell,
+  RageClickCountCell,
   ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
@@ -31,6 +35,8 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  gridRows?: string;
+  saveLocation?: boolean;
 };
 
 function ReplayTable({
@@ -40,10 +46,24 @@ function ReplayTable({
   sort,
   visibleColumns,
   emptyMessage,
+  saveLocation,
+  gridRows,
 }: Props) {
   const routes = useRoutes();
-  const location = useLocation();
+  const newLocation = useLocation();
   const organization = useOrganization();
+
+  const location: Location = saveLocation
+    ? {
+        pathname: '',
+        search: '',
+        query: {},
+        hash: '',
+        state: '',
+        action: 'PUSH',
+        key: '',
+      }
+    : newLocation;
 
   const tableHeaders = visibleColumns
     .filter(Boolean)
@@ -56,6 +76,7 @@ function ReplayTable({
         isLoading={false}
         visibleColumns={visibleColumns}
         data-test-id="replay-table"
+        gridRows={undefined}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -80,6 +101,8 @@ function ReplayTable({
       disablePadding
       data-test-id="replay-table"
       emptyMessage={emptyMessage}
+      gridRows={isFetching ? undefined : gridRows}
+      loader={<LoadingIndicator style={{margin: '54px auto'}} />}
     >
       {replays?.map(replay => {
         return (
@@ -92,8 +115,14 @@ function ReplayTable({
                 case ReplayColumn.BROWSER:
                   return <BrowserCell key="browser" replay={replay} />;
 
+                case ReplayColumn.COUNT_DEAD_CLICKS:
+                  return <DeadClickCountCell key="countDeadClicks" replay={replay} />;
+
                 case ReplayColumn.COUNT_ERRORS:
                   return <ErrorCountCell key="countErrors" replay={replay} />;
+
+                case ReplayColumn.COUNT_RAGE_CLICKS:
+                  return <RageClickCountCell key="countRageClicks" replay={replay} />;
 
                 case ReplayColumn.DURATION:
                   return <DurationCell key="duration" replay={replay} />;
@@ -109,6 +138,8 @@ function ReplayTable({
                       eventView={eventView}
                       organization={organization}
                       referrer={referrer}
+                      showUrl
+                      referrer_table="main"
                     />
                   );
 
@@ -118,6 +149,32 @@ function ReplayTable({
                       key="slowestTransaction"
                       replay={replay}
                       organization={organization}
+                    />
+                  );
+
+                case ReplayColumn.MOST_RAGE_CLICKS:
+                  return (
+                    <ReplayCell
+                      key="mostRageClicks"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="dead-rage-table"
+                    />
+                  );
+
+                case ReplayColumn.MOST_ERRONEOUS_REPLAYS:
+                  return (
+                    <ReplayCell
+                      key="mostErroneousReplays"
+                      replay={replay}
+                      organization={organization}
+                      referrer={referrer}
+                      showUrl={false}
+                      eventView={eventView}
+                      referrer_table="errors-table"
                     />
                   );
 
@@ -132,14 +189,25 @@ function ReplayTable({
   );
 }
 
+const flexibleColumns = [
+  ReplayColumn.REPLAY,
+  ReplayColumn.MOST_RAGE_CLICKS,
+  ReplayColumn.MOST_ERRONEOUS_REPLAYS,
+];
+
 const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
+  gridRows?: string;
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
-      .map(column => (column === 'replay' ? 'minmax(100px, 1fr)' : 'max-content'))
+      .map(column =>
+        flexibleColumns.includes(column) ? 'minmax(100px, 1fr)' : 'max-content'
+      )
       .join(' ')};
+
+  ${props => (props.gridRows ? `grid-template-rows: ${props.gridRows};` : '')}
 `;
 
 const StyledAlert = styled(Alert)`

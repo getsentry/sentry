@@ -25,7 +25,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.http import absolute_uri
 
 
@@ -36,37 +36,38 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
-        self.model = Integration.objects.create(
-            provider="vsts",
-            external_id=self.account_id,
-            name="vsts_name",
-            metadata={
-                "domain_name": self.instance,
-                "subscription": {"id": 1234, "secret": self.shared_secret},
-            },
-        )
-        self.identity_provider = IdentityProvider.objects.create(type="vsts")
-        self.identity = Identity.objects.create(
-            idp=self.identity_provider,
-            user=self.user,
-            external_id="vsts_id",
-            data={
-                "access_token": self.access_token,
-                "refresh_token": "qwertyuiop",
-                "expires": int(time()) + int(1234567890),
-            },
-        )
-        self.org_integration = self.model.add_organization(
-            self.organization, self.user, self.identity.id
-        )
-        self.org_integration.config = {
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-        }
-        self.org_integration.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.model = Integration.objects.create(
+                provider="vsts",
+                external_id=self.account_id,
+                name="vsts_name",
+                metadata={
+                    "domain_name": self.instance,
+                    "subscription": {"id": 1234, "secret": self.shared_secret},
+                },
+            )
+            self.identity_provider = IdentityProvider.objects.create(type="vsts")
+            self.identity = Identity.objects.create(
+                idp=self.identity_provider,
+                user=self.user,
+                external_id="vsts_id",
+                data={
+                    "access_token": self.access_token,
+                    "refresh_token": "qwertyuiop",
+                    "expires": int(time()) + int(1234567890),
+                },
+            )
+            self.org_integration = self.model.add_organization(
+                self.organization, self.user, self.identity.id
+            )
+            self.org_integration.config = {
+                "sync_status_reverse": True,
+                "sync_status_forward": True,
+                "sync_comments": True,
+                "sync_forward_assignment": True,
+                "sync_reverse_assignment": True,
+            }
+            self.org_integration.save()
         self.integration = VstsIntegration(self.model, self.organization.id)
 
         self.user_to_assign = self.create_user("sentryuseremail@email.com")

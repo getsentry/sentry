@@ -21,7 +21,7 @@ import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPan
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import {getReplayListFields} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
@@ -36,14 +36,14 @@ function ReplaysList() {
         id: '',
         name: '',
         version: 2,
-        fields: REPLAY_LIST_FIELDS,
+        fields: getReplayListFields(organization),
         projects: [],
         query: conditions.formatString(),
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location]);
+  }, [location, organization]);
 
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -92,6 +92,29 @@ function ReplaysListTable({
 
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
+  const hasDeadRageCols = organization.features.includes(
+    'replay-rage-click-dead-click-columns'
+  );
+  const visibleCols = hasDeadRageCols
+    ? [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_DEAD_CLICKS,
+        ReplayColumn.COUNT_RAGE_CLICKS,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ]
+    : [
+        ReplayColumn.REPLAY,
+        ReplayColumn.OS,
+        ReplayColumn.BROWSER,
+        ReplayColumn.DURATION,
+        ReplayColumn.COUNT_ERRORS,
+        ReplayColumn.ACTIVITY,
+      ];
+
   return (
     <Fragment>
       <ReplayTable
@@ -99,14 +122,7 @@ function ReplaysListTable({
         isFetching={isFetching}
         replays={replays}
         sort={eventView.sorts[0]}
-        visibleColumns={[
-          ReplayColumn.REPLAY,
-          ReplayColumn.OS,
-          ReplayColumn.BROWSER,
-          ReplayColumn.DURATION,
-          ReplayColumn.COUNT_ERRORS,
-          ReplayColumn.ACTIVITY,
-        ]}
+        visibleColumns={visibleCols}
         emptyMessage={
           allSelectedProjectsNeedUpdates && hasReplayClick ? (
             <Fragment>

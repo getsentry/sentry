@@ -79,6 +79,10 @@ class MonitorEnvironmentLimitsExceeded(Exception):
     pass
 
 
+class MonitorEnvironmentValidationFailed(Exception):
+    pass
+
+
 def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
         itr = croniter(schedule, last_checkin)
@@ -401,7 +405,7 @@ class MonitorCheckIn(Model):
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            models.Index(fields=["timeout_at", "status"]),
+            models.Index(fields=["status", "timeout_at"]),
             models.Index(fields=["trace_id"]),
         ]
 
@@ -446,6 +450,9 @@ class MonitorEnvironmentManager(BaseManager):
     ) -> MonitorEnvironment:
         if not environment_name:
             environment_name = "production"
+
+        if not Environment.is_valid_name(environment_name):
+            raise MonitorEnvironmentValidationFailed("Environment name too long")
 
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
@@ -643,12 +650,12 @@ def get_occurrence_data(reason: str, **kwargs):
             "subtitle": f"No check-in reported on {expected_time}.",
         }
     elif reason == MonitorFailure.DURATION:
-        timeout = kwargs.get("timeout", 30)
+        duration = kwargs.get("duration", 30)
         return {
             "group_type": MonitorCheckInTimeout,
             "level": "error",
             "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
+            "subtitle": f"Check-in exceeded maximum duration of {duration} minutes.",
         }
 
     return {

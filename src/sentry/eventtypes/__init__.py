@@ -1,3 +1,5 @@
+from typing import Union
+
 from .base import DefaultEvent
 from .error import ErrorEvent
 from .generic import GenericEvent
@@ -17,3 +19,13 @@ default_manager.register(GenericEvent)
 
 get = default_manager.get
 register = default_manager.register
+
+EventType = Union[
+    DefaultEvent,
+    ErrorEvent,
+    CspEvent,
+    HpkpEvent,
+    ExpectCTEvent,
+    ExpectStapleEvent,
+    TransactionEvent,
+]

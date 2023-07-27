@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.db.models import (
@@ -32,6 +32,7 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
     )
@@ -77,7 +78,7 @@ def process_resource_change(instance, **kwargs):
         except (Organization.DoesNotExist, Project.DoesNotExist):
             pass
 
-    transaction.on_commit(_spawn_task)
+    transaction.on_commit(_spawn_task, router.db_for_write(Project))
 
 
 post_save.connect(

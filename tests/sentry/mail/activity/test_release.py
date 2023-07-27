@@ -53,29 +53,30 @@ class ReleaseTestCase(ActivityTestCase):
         self.commit2 = self.another_commit(1, "b", self.user2, repository)
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user3.id,
-            organization=self.org,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user3.id,
+                organization=self.org,
+            )
 
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.NEVER,
-            user_id=self.user4.id,
-            organization=self.org,
-        )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.NEVER,
+                user_id=self.user4.id,
+                organization=self.org,
+            )
 
-        # added to make sure org default above takes precedent
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user4.id,
-        )
+            # added to make sure org default above takes precedent
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.EMAIL,
+                NotificationSettingTypes.DEPLOY,
+                NotificationSettingOptionValues.ALWAYS,
+                user_id=self.user4.id,
+            )
 
     def test_simple(self):
         email = ReleaseActivityNotification(

@@ -13,15 +13,16 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupStatusResolution,
-  Release,
+  GroupSubstatus,
+  Project,
   ResolutionStatus,
   ResolutionStatusDetails,
 } from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion} from 'sentry/utils/formatters';
+import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface ResolveActionsProps {
+export interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -30,7 +31,7 @@ interface ResolveActionsProps {
   disabled?: boolean;
   isAutoResolved?: boolean;
   isResolved?: boolean;
-  latestRelease?: Release;
+  latestRelease?: Project['latestRelease'];
   priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
@@ -60,6 +61,7 @@ function ResolveActions({
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
   }
 
@@ -69,6 +71,7 @@ function ResolveActions({
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
+      substatus: null,
     });
     trackAnalytics('resolve_issue', {
       organization,
@@ -83,6 +86,7 @@ function ResolveActions({
         statusDetails: {
           inRelease: latestRelease ? latestRelease.version : 'latest',
         },
+        substatus: null,
       });
     }
 
@@ -99,6 +103,7 @@ function ResolveActions({
         statusDetails: {
           inNextRelease: true,
         },
+        substatus: null,
       });
     }
 
@@ -125,7 +130,11 @@ function ResolveActions({
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
         />
       </Tooltip>
@@ -150,6 +159,8 @@ function ResolveActions({
       });
     };
 
+    const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
+    const hasIssueReleaseSemver = organization.features.includes('issue-release-semver');
     const items: MenuItemProps[] = [
       {
         key: 'next-release',
@@ -159,10 +170,17 @@ function ResolveActions({
       },
       {
         key: 'current-release',
-        label: latestRelease
-          ? t('The current release (%s)', formatVersion(latestRelease.version))
-          : t('The current release'),
-        details: actionTitle,
+        label:
+          hasIssueReleaseSemver || !latestRelease
+            ? t('The current release')
+            : t('The current release (%s)', formatVersion(latestRelease.version)),
+        details: actionTitle
+          ? actionTitle
+          : hasIssueReleaseSemver && latestRelease
+          ? `${formatVersion(latestRelease.version)} (${
+              isSemver ? t('semver') : t('non-semver')
+            })`
+          : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -223,7 +241,7 @@ function ResolveActions({
         onSelected={(statusDetails: ResolutionStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={projectSlug}
       />
     ));
@@ -245,7 +263,11 @@ function ResolveActions({
             openConfirmModal({
               bypass: !shouldConfirm,
               onConfirm: () =>
-                onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                }),
               message: confirmMessage,
               confirmText: confirmLabel,
             })

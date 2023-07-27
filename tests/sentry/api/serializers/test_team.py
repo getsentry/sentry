@@ -33,7 +33,6 @@ class TeamSerializerTest(TestCase):
             "teamRole": None,
             "flags": {"idp:provisioned": False},
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
         }
 
@@ -344,7 +343,6 @@ class TeamWithProjectsSerializerTest(TestCase):
             "flags": {"idp:provisioned": False},
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-            "orgRole": None,
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],

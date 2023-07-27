@@ -71,8 +71,10 @@ class TwilioConfigurationFormTest(TestCase):
         )
 
         self.assertTrue(form.is_valid())
+        cleaned = form.clean()
+        assert cleaned is not None
         self.assertDictEqual(
-            form.clean(),
+            cleaned,
             {
                 "auth_token": "foo",
                 "sms_to": "+13305093095,+14045550144",
@@ -86,13 +88,10 @@ class TwilioConfigurationFormTest(TestCase):
         self.assertFalse(form.is_valid())
         errors = form.errors.as_data()
 
-        # extracting the message from django.forms.ValidationError
-        # is the easiest and simplest way I've found to assert as_data
-        for e in errors:
-            errors[e] = list(map(lambda x: x.message, errors[e]))
+        error_msgs = {k: [e.message for e in v] for k, v in errors.items()}
 
         self.assertDictEqual(
-            errors,
+            error_msgs,
             {
                 "auth_token": ["This field is required."],
                 "account_sid": ["This field is required."],

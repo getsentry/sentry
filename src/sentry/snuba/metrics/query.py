@@ -1,4 +1,6 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -35,7 +37,9 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
+    params: Optional[
+        Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
+    ] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:

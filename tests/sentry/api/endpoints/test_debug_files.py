@@ -262,12 +262,8 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        first_uuid = None
-        last_uuid = None
         for i in range(25):
             last_uuid = str(uuid4())
-            if first_uuid is None:
-                first_uuid = last_uuid
             self._upload_proguard(url, last_uuid)
 
         # Test max 20 per page

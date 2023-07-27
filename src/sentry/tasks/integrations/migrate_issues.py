@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.models import (
     ExternalIssue,
@@ -49,7 +49,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                 key=plugin_issue.value,
             )
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(GroupLink)):
                     GroupLink.objects.create(
                         group_id=plugin_issue.group_id,
                         project_id=project.id,

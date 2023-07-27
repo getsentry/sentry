@@ -19,7 +19,8 @@ from sentry.debug_files.artifact_bundles import (
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
 from sentry.models import ArtifactBundle, Distribution, Project, Release, ReleaseFile
-from sentry.models.artifactbundle import NULL_STRING
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
 
@@ -37,7 +38,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         split = download_id.split("/")
         if len(split) < 2:
             raise Http404
-        ty, ty_id = split
+        ty, ty_id, *_rest = split
 
         rate_limited = ratelimits.is_limited(
             project=project,
@@ -61,6 +62,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .select_related("file")
                 .first()
             )
+            metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
             # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
             # be always empty, so using the `organization_id` instead.
@@ -69,10 +71,23 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .select_related("file")
                 .first()
             )
+            metrics.incr("sourcemaps.download.release_file")
+        elif ty == "bundle_index":
+            file = (
+                ArtifactBundleFlatFileIndex.objects.filter(id=ty_id, project_id=project.id)
+                .select_related("flat_file_index")
+                .first()
+            )
+            metrics.incr("sourcemaps.download.flat_file_index")
 
         if file is None:
             raise Http404
-        file = file.file
+        if isinstance(file, ArtifactBundleFlatFileIndex):
+            file = file.flat_file_index
+        else:
+            file = file.file
+        if file is None:
+            raise Http404
 
         try:
             fp = file.getfile()
@@ -134,6 +149,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         if not artifact_bundles:
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
+                metrics.incr("sourcemaps.lookup.release_file")
                 for releasefile_id in get_legacy_release_bundles(release, dist):
                     all_bundles[f"release_file/{releasefile_id}"] = "release-old"
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
