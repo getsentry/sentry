@@ -280,6 +280,11 @@ describe('Performance > Trends', function () {
         },
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
+    });
   });
 
   afterEach(function () {

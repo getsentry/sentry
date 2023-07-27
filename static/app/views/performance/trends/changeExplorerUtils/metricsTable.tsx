@@ -250,7 +250,7 @@ function getEventsRowData(
         ? toFormattedNumber(afterData.data[0][field].toString(), 1) + ' ' + suffix
         : afterData.data[0][field],
       change: formatPercentage(
-        percentChange(
+        relativeChange(
           beforeData.data[0][field] as number,
           afterData.data[0][field] as number
         ),
@@ -316,7 +316,7 @@ function toFormattedNumber(numberString: string, decimal: number) {
   return parseFloat(numberString).toFixed(decimal);
 }
 
-function percentChange(before: number, after: number) {
+export function relativeChange(before: number, after: number) {
   return (after - before) / before;
 }
 
@@ -370,7 +370,7 @@ export function renderBodyCell(
   );
 }
 
-function getQueryParams(
+export function getQueryParams(
   startTime: string,
   endTime: string,
   fields: AggregationKeyWithAlias[],
