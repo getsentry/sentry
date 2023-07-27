@@ -3,14 +3,17 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import HeaderCell from 'sentry/views/replays/replayTable/headerCell';
@@ -68,6 +71,40 @@ function ReplayTable({
   const tableHeaders = visibleColumns
     .filter(Boolean)
     .map(column => <HeaderCell key={column} column={column} sort={sort} />);
+
+  const {
+    selection: {projects},
+  } = usePageFilters();
+
+  const MIN_DEAD_RAGE_CLICK_SDK = '7.60.1';
+
+  const needSDKUpgrade = useProjectSdkNeedsUpdate({
+    minVersion: MIN_DEAD_RAGE_CLICK_SDK,
+    organization,
+    projectId: projects.map(String),
+  });
+
+  if (needSDKUpgrade.needsUpdate) {
+    return (
+      <StyledPanelTable
+        headers={tableHeaders}
+        isLoading={false}
+        visibleColumns={visibleColumns}
+        data-test-id="replay-table"
+        gridRows={undefined}
+      >
+        <StyledAlert type="info" showIcon>
+          {tct('[data] require an [sdkPrompt]. [link:Learn how to upgrade.]', {
+            data: <strong>Rage and dead clicks</strong>,
+            sdkPrompt: <strong>{t('SDK version >= 7.60.1')}</strong>,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/npm/" />
+            ),
+          })}
+        </StyledAlert>
+      </StyledPanelTable>
+    );
+  }
 
   if (fetchError && !isFetching) {
     return (
@@ -207,12 +244,15 @@ const StyledPanelTable = styled(PanelTable)<{
       )
       .join(' ')};
 
-  ${props => (props.gridRows ? `grid-template-rows: ${props.gridRows};` : '')}
+  ${props =>
+    props.gridRows
+      ? `grid-template-rows: ${props.gridRows};`
+      : 'grid-template-rows: 44px max-content'}
 `;
 
 const StyledAlert = styled(Alert)`
-  border-radius: 0;
-  border-width: 1px 0 0 0;
+  border-radius: 0px;
+  border-width: 1px 0 1px 0;
   grid-column: 1/-1;
   margin-bottom: 0;
 `;
