@@ -2277,7 +2277,7 @@ def _calculate_event_grouping(
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
+        # event. If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
             hashes = event.get_hashes(grouping_config)
