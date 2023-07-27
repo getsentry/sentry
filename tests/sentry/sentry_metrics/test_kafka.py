@@ -19,15 +19,14 @@ values = [2, 3]
 tags = {"a": "b"}
 
 
-# For testing, we are calling close() here because we
-# are swapping out the KafkaProducer
-# with a LocalProducer, but regardless,
-# close() must always be called in order to close
-# the backend's KafkaProducer
-generic_metrics_backend.close()
-
-
 def test_produce_all() -> None:
+    # For testing, we are calling close() here because we
+    # are swapping out the KafkaProducer
+    # with a LocalProducer, but regardless,
+    # close() must always be called in order to close
+    # the backend's KafkaProducer
+    generic_metrics_backend.close()
+
     my_topic = Topic("my-topic")
     clock = Clock()
     broker_storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
