@@ -551,6 +551,7 @@ const OnDemandMetricInfoAlert = styled(Alert)`
   border-radius: ${space(0.5)} ${space(0.5)} 0 0;
   border: none;
   border-bottom: 1px solid ${p => p.theme.blue400};
+  margin-bottom: 0;
 
   & > span {
     display: flex;
