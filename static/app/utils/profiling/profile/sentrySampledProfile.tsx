@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {defined, lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
@@ -146,6 +148,8 @@ export class SentrySampledProfile extends Profile {
     const {threadId, threadName} = getThreadData(sampledProfile);
 
     const profile = new SentrySampledProfile({
+      // .unix() only has second resolution
+      timestamp: moment(sampledProfile.timestamp).valueOf() / 1000,
       duration: endedAt - startedAt,
       startedAt,
       endedAt,

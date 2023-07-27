@@ -426,3 +426,37 @@ class ProfilesProcessTaskTest(TestCase):
         _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent)
 
         assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
+
+    def test_decode_signature(self):
+        profile = dict(self.android_profile)
+        profile.update(
+            {
+                "project_id": self.project.id,
+                "profile": {
+                    "methods": [
+                        {
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()V",
+                            "source_file": None,
+                            "source_line": 67,
+                        },
+                        {
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "name": "a",
+                            "signature": "()Z",
+                            "source_file": None,
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        _deobfuscate(profile, project)
+        frames = profile["profile"]["methods"]
+
+        assert frames[0]["signature"] == "()"
+        assert frames[1]["signature"] == "(): boolean"
