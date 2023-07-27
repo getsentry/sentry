@@ -1,4 +1,4 @@
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sql/formatter';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/formatter';
 
 describe('SQLishFormatter', function () {
   it('Formats basic SQL', () => {
