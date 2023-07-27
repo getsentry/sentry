@@ -7,7 +7,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types';
+import {Environment, Group, IssueCategory} from 'sentry/types';
 import GroupDetails from 'sentry/views/issueDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -21,19 +21,13 @@ describe('groupDetails', () => {
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
 
   const routes = [
-    {path: '/', childRoutes: [], component: null},
-    {childRoutes: [], component: null},
+    {path: '/', childRoutes: []},
+    {childRoutes: []},
     {
       path: '/organizations/:orgId/issues/:groupId/',
-      indexRoute: null,
       childRoutes: [],
-      componentPromise: () => {},
-      component: null,
     },
-    {
-      componentPromise: null,
-      component: null,
-    },
+    {},
   ];
 
   const initRouter = {
@@ -49,17 +43,25 @@ describe('groupDetails', () => {
     routes,
   };
 
-  const defaultInit = initializeOrg({
+  const defaultInit = initializeOrg<{groupId: string}>({
     project,
     router: initRouter,
   });
 
-  function MockComponent({group: groupProp, environments, eventError}) {
+  function MockComponent({
+    group: groupProp,
+    environments,
+    eventError,
+  }: {
+    environments?: Environment[];
+    eventError?: boolean;
+    group?: Group;
+  }) {
     return (
       <div>
         Group Details Mock
-        <div>title: {groupProp.title}</div>
-        <div>environment: {environments.join(' ')}</div>
+        <div>title: {groupProp?.title}</div>
+        <div>environment: {environments?.join(' ')}</div>
         {eventError && <div>eventError</div>}
       </div>
     );
@@ -67,11 +69,7 @@ describe('groupDetails', () => {
 
   const createWrapper = (init = defaultInit) => {
     return render(
-      <GroupDetails
-        {...init.router}
-        router={init.router}
-        organization={init.organization}
-      >
+      <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
       {context: init.routerContext, organization: init.organization, router: init.router}
@@ -205,7 +203,7 @@ describe('groupDetails', () => {
         }),
       },
     });
-    createWrapper({router: init.router});
+    createWrapper(init);
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
