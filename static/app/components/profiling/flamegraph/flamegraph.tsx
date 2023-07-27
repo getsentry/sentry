@@ -1021,7 +1021,10 @@ function Flamegraph(): ReactElement {
               cpuChartCanvasRef={cpuChartCanvasRef}
               cpuChartCanvas={cpuChartCanvas}
               setCpuChartCanvasRef={setCpuChartCanvasRef}
+<<<<<<< HEAD
               canvasBounds={cpuChartCanvasBounds}
+=======
+>>>>>>> f42ea5ce35 (feat(profiling): initialize canvases)
               cpuChartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
