@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   cleanup,
   render,
@@ -18,9 +19,6 @@ jest.mock('sentry/actionCreators/members', () => ({
 }));
 
 describe('OrganizationMemberDetail', function () {
-  let organization;
-  let routerContext;
-
   const team = TestStubs.Team();
   const idpTeam = TestStubs.Team({
     id: '3',
@@ -119,10 +117,9 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    beforeEach(function () {
-      organization = TestStubs.Organization({teams, features: ['team-roles']});
-      routerContext = TestStubs.routerContext([{organization}]);
+    const organization = TestStubs.Organization({teams, features: ['team-roles']});
 
+    beforeEach(function () {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
 
@@ -160,16 +157,21 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('changes org role to owner', async function () {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Should have 4 roles
       const radios = screen.getAllByRole('radio');
       expect(radios).toHaveLength(4);
 
       // Click last radio
-      await userEvent.click(radios.at(-1));
+      await userEvent.click(radios.at(-1) as Element);
       expect(radios.at(-1)).toBeChecked();
 
       // Save Member
@@ -186,9 +188,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('leaves a team', async function () {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Remove our one team
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
@@ -207,40 +214,63 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      render(<OrganizationMemberDetail params={{memberId: idpTeamMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: idpTeamMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
     it('cannot leave org role team if missing org:admin', function () {
-      organization = TestStubs.Organization({
-        teams,
-        features: ['team-roles'],
-        access: [],
+      const {routerContext, routerProps} = initializeOrg({
+        organization: TestStubs.Organization({
+          teams,
+          features: ['team-roles'],
+          access: [],
+        }),
       });
-      routerContext = TestStubs.routerContext([{organization}]);
-      render(<OrganizationMemberDetail params={{memberId: managerTeamMember.id}} />, {
-        context: routerContext,
-      });
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: managerTeamMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
       expect(screen.getByText('Manager Team')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
     it('cannot join org role team if missing org:admin', async function () {
-      organization = TestStubs.Organization({
-        teams,
-        features: ['team-roles'],
-        access: ['org:write'],
+      const {routerContext, routerProps} = initializeOrg({
+        organization: TestStubs.Organization({
+          teams,
+          features: ['team-roles'],
+          access: ['org:write'],
+        }),
       });
-      routerContext = TestStubs.routerContext([{organization}]);
-      render(<OrganizationMemberDetail params={{memberId: managerMember.id}} />, {
-        context: routerContext,
-      });
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: managerMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       await userEvent.click(screen.getByText('Add Team'));
-      await userEvent.hover(screen.queryByText('#org-role-team'));
+      await userEvent.hover(screen.getByText('#org-role-team'));
       expect(
         await screen.findByText(
           'Membership to a team with an organization role is managed by org owners.'
@@ -249,9 +279,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('joins a team and assign a team-role', async function () {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Should have one team enabled
       expect(screen.getByTestId('team-row-for-member')).toBeInTheDocument();
@@ -283,12 +318,17 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot join idp-provisioned team', async function () {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       await userEvent.click(screen.getByText('Add Team'));
-      await userEvent.hover(screen.queryByText('#idp-member-team'));
+      await userEvent.hover(screen.getByText('#idp-member-team'));
       expect(
         await screen.findByText(
           "Membership to this team is managed through your organization's identity provider."
@@ -298,9 +338,9 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
+    const organization = TestStubs.Organization({teams, access: ['org:read']});
+
     beforeEach(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -325,9 +365,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('can not change roles, teams, or save', function () {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Should have 4 roles
       const radios = screen.getAllByRole('radio');
@@ -339,9 +384,9 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
+    const organization = TestStubs.Organization({teams, access: ['org:read']});
+
     beforeEach(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -366,26 +411,42 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('display pending status', function () {
-      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: pendingMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Pending');
     });
 
     it('display expired status', function () {
-      render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: expiredMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Expired');
     });
   });
 
   describe('Show resend button', function () {
+    const organization = TestStubs.Organization({teams, access: ['org:read']});
+
     beforeEach(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -410,17 +471,33 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows for pending', function () {
-      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: pendingMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       expect(screen.getByRole('button', {name: 'Resend Invite'})).toBeInTheDocument();
     });
 
     it('does not show for expired', function () {
-      render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: expiredMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
 
       expect(
         screen.queryByRole('button', {name: 'Resend Invite'})
@@ -471,10 +548,9 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    beforeEach(function () {
-      organization = TestStubs.Organization({teams});
-      routerContext = TestStubs.routerContext([{organization}]);
+    const organization = TestStubs.Organization({teams});
 
+    beforeEach(function () {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
@@ -517,32 +593,52 @@ describe('OrganizationMemberDetail', function () {
       expect(button()).toHaveTextContent('Reset two-factor authentication');
       expect(button()).toBeDisabled();
 
-      await userEvent.hover(button());
+      await userEvent.hover(button() as Element);
       expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
     it('does not show for pending member', function () {
-      render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: pendingMember.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
       expect(button()).not.toBeInTheDocument();
     });
 
     it('shows tooltip for joined member without permission to edit', async function () {
-      render(<OrganizationMemberDetail params={{memberId: noAccess.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: noAccess.id}} />,
+        {
+          context: routerContext,
+        }
+      );
       await expectButtonDisabled('You do not have permission to perform this action');
     });
 
     it('shows tooltip for member without 2fa', async function () {
-      render(<OrganizationMemberDetail params={{memberId: no2fa.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: no2fa.id}} />,
+        {
+          context: routerContext,
+        }
+      );
       await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
     it('can reset member 2FA', async function () {
+      const {routerContext, routerProps} = initializeOrg({organization});
+
       const deleteMocks = has2fa.user.authenticators.map(auth =>
         MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
@@ -550,13 +646,16 @@ describe('OrganizationMemberDetail', function () {
         })
       );
 
-      render(<OrganizationMemberDetail params={{memberId: has2fa.id}} />, {
-        context: routerContext,
-      });
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
+        {
+          context: routerContext,
+        }
+      );
       renderGlobalModal();
 
       expectButtonEnabled();
-      await userEvent.click(button());
+      await userEvent.click(button() as Element);
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -566,9 +665,17 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member in multiple orgs', async function () {
-      render(<OrganizationMemberDetail params={{memberId: multipleOrgs.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail
+          {...routerProps}
+          params={{memberId: multipleOrgs.id}}
+        />,
+        {
+          context: routerContext,
+        }
+      );
       await expectButtonDisabled(
         'Cannot be reset since user is in more than one organization'
       );
@@ -576,14 +683,18 @@ describe('OrganizationMemberDetail', function () {
 
     it('shows tooltip for member in 2FA required org', async function () {
       organization.require2FA = true;
+      const {routerContext, routerProps} = initializeOrg({organization});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
       });
 
-      render(<OrganizationMemberDetail params={{memberId: has2fa.id}} />, {
-        context: routerContext,
-      });
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
+        {
+          context: routerContext,
+        }
+      );
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
       );
@@ -614,10 +725,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    beforeAll(() => {
-      organization = TestStubs.Organization({teams, features: ['team-roles']});
-      routerContext = TestStubs.routerContext([{organization}]);
-    });
+    const organization = TestStubs.Organization({teams, features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
@@ -640,9 +748,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not overwrite team-roles for org members', async () => {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Role info box is hidden
       expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
@@ -664,11 +777,19 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrite team-roles for org admin/manager/owner', () => {
+      const {routerContext, routerProps} = initializeOrg({organization});
+
       function testForOrgRole(testMember) {
         cleanup();
-        render(<OrganizationMemberDetail params={{memberId: testMember.id}} />, {
-          context: routerContext,
-        });
+        render(
+          <OrganizationMemberDetail
+            {...routerProps}
+            params={{memberId: testMember.id}}
+          />,
+          {
+            context: routerContext,
+          }
+        );
 
         // Role info box is showed
         expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
@@ -691,9 +812,14 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrites when changing from member to manager', async () => {
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
-        context: routerContext,
-      });
+      const {routerContext, routerProps} = initializeOrg({organization});
+
+      render(
+        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
+        {
+          context: routerContext,
+        }
+      );
 
       // Role info box is hidden
       expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
@@ -705,7 +831,7 @@ describe('OrganizationMemberDetail', function () {
       // Change member to owner
       const orgRoleRadio = screen.getAllByRole('radio');
       expect(orgRoleRadio).toHaveLength(4);
-      await userEvent.click(orgRoleRadio.at(-1));
+      await userEvent.click(orgRoleRadio.at(-1) as Element);
       expect(orgRoleRadio.at(-1)).toBeChecked();
 
       // Role info box is shown
@@ -724,7 +850,8 @@ describe('OrganizationMemberDetail', function () {
   });
 
   it('overwrites when member joins a manager team', async () => {
-    render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+    const {routerContext, routerProps} = initializeOrg({});
+    render(<OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />, {
       context: routerContext,
     });
 
