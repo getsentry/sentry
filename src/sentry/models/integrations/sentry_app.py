@@ -25,7 +25,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.apiscopes import HasApiScopes
-from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.utils import metrics
 
 # When a developer selects to receive "<Resource> Webhooks" it really means
@@ -220,8 +219,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def _get_redis_key(self):
         return f"sentry-app-error:{self.id}"
 
-    def _disable(self, request: Request):
-        SentryAppUpdater(
-            sentry_app=self,
-            events=[],  # remove all events
-        ).run(user=request.user)
+    def _disable(self):
+        self.events = set()
+        self.is_alertable = False
