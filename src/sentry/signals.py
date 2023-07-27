@@ -88,7 +88,7 @@ class BetterSignal(Signal):
 
         # Call each receiver with whatever arguments it can accept.
         # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):  # type: ignore[attr-defined]
+        for receiver in self._live_receivers(sender):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
