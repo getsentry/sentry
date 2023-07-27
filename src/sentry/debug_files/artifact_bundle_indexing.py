@@ -43,7 +43,7 @@ class FlatFileMeta:
     date: datetime
 
     def to_string(self) -> str:
-        return f"bundle_index/{self.id}/{self.date.timestamp() * 1000}"
+        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
 
     @staticmethod
     def from_str(bundle_meta: str) -> "FlatFileMeta":
@@ -51,7 +51,7 @@ class FlatFileMeta:
         if len(parsed) != 3:
             raise Exception(f"Can't build FlatFileMeta from str {bundle_meta}")
 
-        return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(float(parsed[2]) / 1000))
+        return FlatFileMeta(id=int(parsed[1]), date=datetime.fromtimestamp(int(parsed[2]) / 1000))
 
 
 @sentry_sdk.tracing.trace
@@ -109,28 +109,27 @@ class FlatFileIdentifier(NamedTuple):
         # An identifier is indexing by release if release is set.
         return bool(self.release)
 
-    def _identifier_lock_key_hash(self) -> str:
+    def _hashed(self):
         key = f"{self.project_id}|{self.release}|{self.dist}"
         return hashlib.sha1(key.encode()).hexdigest()
 
-    def _identifier_cache_key(self):
-        key = f"{self.project_id}|{self.release}|{self.dist}"
-        return f"flat_file_index:{hashlib.sha1(key.encode()).hexdigest()}"
+    def _flat_file_meta_cache_key(self):
+        return f"flat_file_index:{self._hashed()}"
 
-    def _delete_flat_file_meta_from_cache(self):
-        cache_key = self._identifier_cache_key()
+    def delete_flat_file_meta_from_cache(self):
+        cache_key = self._flat_file_meta_cache_key()
         redis_client = get_redis_cluster_for_artifact_bundles()
 
         redis_client.delete(cache_key)
 
-    def _set_flat_file_meta_in_cache(self, flat_file_meta: FlatFileMeta):
-        cache_key = self._identifier_cache_key()
+    def set_flat_file_meta_in_cache(self, flat_file_meta: FlatFileMeta):
+        cache_key = self._flat_file_meta_cache_key()
         redis_client = get_redis_cluster_for_artifact_bundles()
 
         redis_client.set(cache_key, flat_file_meta.to_string(), ex=FLAT_FILE_IDENTIFIER_CACHE_TTL)
 
-    def _get_flat_file_meta_from_cache(self) -> Optional[FlatFileMeta]:
-        cache_key = self._identifier_cache_key()
+    def get_flat_file_meta_from_cache(self) -> Optional[FlatFileMeta]:
+        cache_key = self._flat_file_meta_cache_key()
         redis_client = get_redis_cluster_for_artifact_bundles()
 
         flat_file_meta = redis_client.get(cache_key)
@@ -142,15 +141,6 @@ class FlatFileIdentifier(NamedTuple):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
-
-    def delete_flat_file_meta_from_cache(self):
-        self._delete_flat_file_meta_from_cache()
-
-    def set_flat_file_meta_in_cache(self, flat_file_meta: FlatFileMeta):
-        self._set_flat_file_meta_in_cache(flat_file_meta)
-
-    def get_flat_file_meta_from_cache(self) -> Optional[FlatFileMeta]:
-        return self._get_flat_file_meta_from_cache()
 
     def get_flat_file_meta_from_db(self) -> Optional[FlatFileMeta]:
         result = ArtifactBundleFlatFileIndex.objects.filter(
@@ -172,9 +162,13 @@ class FlatFileIdentifier(NamedTuple):
 
         return meta
 
+    def _locking_key(self):
+        identifier_hash = self._hashed()
+        return f"bundle_index:write:{identifier_hash}"
+
     def get_lock(self) -> Lock:
-        key_hash = self._identifier_lock_key_hash()
-        locking_key = f"bundle_index:write:{key_hash}"
+        locking_key = self._locking_key()
+
         return locks.get(locking_key, duration=60 * 10, name="bundle_index")
 
 

@@ -74,7 +74,7 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
     assert debug_id_index is None
     assert (
         url_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_1.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_1.id}/1690365600000"
     )
     assert (
         FlatFileIdentifier(
@@ -92,7 +92,7 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
 
     assert (
         debug_id_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_2.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_2.id}/1690365600000"
     )
     assert url_index is None
     assert (
@@ -109,11 +109,11 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
 
     assert (
         debug_id_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_2.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_2.id}/1690365600000"
     )
     assert (
         url_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_1.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{index_1.id}/1690365600000"
     )
     assert (
         FlatFileIdentifier(
@@ -153,9 +153,9 @@ def test_get_bundle_index_urls_with_cached_values(default_project):
     )
     assert (
         debug_id_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{meta_debug_id.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{meta_debug_id.id}/1690365600000"
     )
     assert (
         url_index
-        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{meta_release.id}/1690365600000.0"
+        == f"http://testserver/api/0/projects/baz/bar/artifact-lookup/?download=bundle_index/{meta_release.id}/1690365600000"
     )
