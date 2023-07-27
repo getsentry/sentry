@@ -3,9 +3,10 @@ Utilities for transforming expressions and queries.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import Generic, TypeVar, Union
 
-from sentry.sentry_metrics.query_experimental.types import (
+from .types import (
     FILTER,
     Column,
     Condition,
@@ -13,6 +14,7 @@ from sentry.sentry_metrics.query_experimental.types import (
     Function,
     InvalidMetricsQuery,
     SeriesQuery,
+    SeriesResult,
 )
 
 QueryNode = Union[SeriesQuery, Expression]
@@ -90,13 +92,11 @@ class QueryTransform(QueryVisitor[QueryNode]):
     """
 
     def _visit_query(self, query: SeriesQuery) -> SeriesQuery:
-        return SeriesQuery(
+        return replace(
+            query,
             expressions=[self.visit(exp) for exp in query.expressions],
             filters=[self.visit(filt) for filt in query.filters],
             groups=[self.visit(group) for group in query.groups],
-            start=query.start,
-            end=query.end,
-            interval=query.interval,
         )
 
     def _visit_filter(self, filt: Function) -> Function:
@@ -125,14 +125,28 @@ class QueryTransform(QueryVisitor[QueryNode]):
             parameters=[self.visit(param) for param in function.parameters],
         )
 
-    def _visit_column(self, column: Column) -> Column:
+    def _visit_column(self, column: Column) -> QueryNode:
         return column
 
-    def _visit_str(self, string: str) -> str:
+    def _visit_str(self, string: str) -> Union[str, float, int]:
         return string
 
-    def _visit_int(self, value: int) -> int:
+    def _visit_int(self, value: int) -> Union[int, float]:
         return value
 
-    def _visit_float(self, value: float) -> float:
+    def _visit_float(self, value: float) -> Union[int, float]:
         return value
+
+
+class QueryLayer:
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        """
+        Transform a query. Default implementation is an identity transform.
+        """
+        return query
+
+    def transform_result(self, result: SeriesResult) -> SeriesResult:
+        """
+        Transform a result. Default implementation is an identity transform.
+        """
+        return result

@@ -1,4 +1,4 @@
-from typing import Any, List, Sequence, Set, Union
+from typing import Any, List, Sequence, Set, Tuple, Type, Union
 
 from snuba_sdk import Column, Condition, Entity, Mapping, Op
 from snuba_sdk import Query as SnubaQuery
@@ -6,44 +6,51 @@ from snuba_sdk import Request as SnubaRequest
 from snuba_sdk import SelectableExpression
 
 from sentry.sentry_metrics.query_experimental.types import SeriesQuery, SeriesResult
-from sentry.snuba.dataset import EntityKey
+from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_config
 from sentry.snuba.metrics.naming_layer import parse_mri
-from sentry.snuba.metrics.utils import TS_COL_QUERY
+from sentry.snuba.metrics.utils import TS_COL_GROUP, TS_COL_QUERY
 from sentry.utils.snuba import raw_snql_query
 
 from .base import MetricsBackend
+from .timeframe import resolve_granularity
 from .transform import QueryVisitor
 from .types import FILTER, AggregationFn, ArithmeticFn, Expression, Function, InvalidMetricsQuery
-from .use_case import UseCaseID, get_use_case
+from .use_case import get_use_case
 
+# General snuba configuration
+APP_ID = "sentry_metrics"
+REFERRER = "sentry_metrics.query"
+
+# Snuba column names
 COLUMN_PROJECT_ID = Column("project_id")
 COLUMN_ORG_ID = Column("org_id")
-COLUMN_TIMESTAMP = Column(TS_COL_QUERY)
+COLUMN_TIMESTAMP_FILTER = Column(TS_COL_QUERY)  # Used in filters
+COLUMN_TIMESTAMP_GROUP = Column(TS_COL_GROUP)  # Used in groupby
 COLUMN_VALUE = Column("value")
 COLUMN_METRIC_ID = Column("metric_id")
 
-
-TYPE_TO_ENTITY: Mapping[str, Entity] = {
-    "c": Entity(EntityKey.MetricsCounters),
-    "d": Entity(EntityKey.MetricsDistributions),
-    "s": Entity(EntityKey.MetricsSets),
-}
-LEGACY_TYPE_TO_ENTITY: Mapping[str, Entity] = {
-    "c": Entity(EntityKey.GenericMetricsCounters),
-    "d": Entity(EntityKey.GenericMetricsDistributions),
-    "s": Entity(EntityKey.GenericMetricsSets),
-}
-
-SNQL_AGGREGATES: Mapping[str, str] = {
-    AggregationFn.SUM: "sumIf",
-    AggregationFn.COUNT: "countIf",
-    AggregationFn.AVG: "avgIf",
-    AggregationFn.MAX: "maxIf",
-    AggregationFn.MIN: "minIf",
-    AggregationFn.P50: "quantilesIf(0.5)",
-    AggregationFn.P75: "quantilesIf(0.75)",
-    AggregationFn.P95: "quantilesIf(0.95)",
-    AggregationFn.P99: "quantilesIf(0.99)",
+# Functions and operators.
+#
+# Note that all functions are conditional since there's at least one filter on
+# the metric ID. Additional tag filters are applied as needed. Functions are
+# grouped by metric type obtained from ``parse_mri``.
+SNQL_AGGREGATES: Mapping[str, Mapping[str, str]] = {
+    "c": {
+        AggregationFn.SUM: "sumIf",
+    },
+    "d": {
+        AggregationFn.COUNT: "countIf",
+        AggregationFn.AVG: "avgIf",
+        AggregationFn.MAX: "maxIf",
+        AggregationFn.MIN: "minIf",
+        AggregationFn.P50: "quantilesIf(0.5)",
+        AggregationFn.P75: "quantilesIf(0.75)",
+        AggregationFn.P95: "quantilesIf(0.95)",
+        AggregationFn.P99: "quantilesIf(0.99)",
+    },
+    "s": {
+        "count_unique": "uniqIf",
+    },
 }
 CONDITION_TO_FUNCTION = {
     Op.EQ: "equals",
@@ -55,115 +62,172 @@ CONDITION_TO_FUNCTION = {
 }
 
 
-def _is_legacy_use_case(use_case: UseCaseID) -> bool:
-    return use_case == UseCaseID.SESSIONS
-
-
 class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
+    """
+    Metrics backend that uses Snuba datasets as a data source.
+
+    The dataset and entities used by this backend are determined by the
+    ``QueryConfig`` of the use case specified through metrics in the query.
+    """
+
     def create_request(self, query: SeriesQuery) -> SnubaRequest:
         """
         Generate a SnQL query from a metric series query.
         """
-
-        snuba_query = SnubaQuery(
-            match=get_entity(query),
-            select=self._get_select(query),
-            groupby=None,  # TODO
-            where=self._get_where(query),
-            granularity=None,  # TODO
-        )
-
-        return SnubaRequest(
-            dataset="metrics",  # TODO: resolve dataset
-            app_id="default",
-            query=snuba_query,
-            tenant_ids={"organization_id": query.scope.org_id},
-        )
+        return SnqlBuilder(query).build()
 
     def query(self, query: SeriesQuery) -> SeriesResult:
-        request = self.create_request(query)
-        snuba_results = raw_snql_query(request, use_cache=False, referrer="sentry_metrics.query")
+        """
+        Convert and run a series query against Snuba.
+        """
+        snuba_results = raw_snql_query(
+            self.create_request(query),
+            use_cache=False,
+            referrer=REFERRER,
+        )
+
         assert snuba_results, "silence flake8"
         # TODO: Get necessary subset of SnubaResultConverter
         raise NotImplementedError()
 
-    def _get_select(self, query: SeriesQuery) -> Sequence[SelectableExpression]:
-        return [self._convert_expression(e) for e in query.expressions]
 
-    def _get_where(self, query: SeriesQuery) -> Sequence[Condition]:
+class SnqlBuilder:
+    def __init__(self, query: SeriesQuery):
+        self.query = query
+        self.use_case = get_use_case(query)
+        self.config = get_query_config(self.use_case)
+
+    def build(self) -> SnubaRequest:
+        """
+        Generate a SnQL query from a metric series query.
+        """
+        snuba_query = SnubaQuery(
+            match=self._resolve_entity(),
+            select=self._build_select(),
+            groupby=self._build_groupby(),
+            where=self._build_where(),
+            granularity=resolve_granularity(self.query.interval),
+        )
+
+        return SnubaRequest(
+            dataset=self.config.dataset,
+            app_id=APP_ID,
+            query=snuba_query,
+            tenant_ids={"organization_id": self.query.scope.org_id},
+        )
+
+    def _resolve_entity(self) -> Entity:
+        """
+        Get the single use case referenced by a query. Raises a ``ValueError``
+        if the query references multiple use cases.
+        """
+
+        entities = EntityExtractor(self.config).visit(self.query)
+        if len(entities) != 1:
+            raise ValueError("Snuba query must reference a single entity")
+
+        return entities.pop().value
+
+    def _build_select(self) -> Sequence[SelectableExpression]:
+        return [self._convert_expression(e) for e in self.query.expressions]
+
+    def _convert_expression(self, node: Expression) -> SelectableExpression:
+        if isinstance(node, Function):
+            return self._convert_function(node)
+        elif isinstance(node, (str, int, float)):
+            return node
+        else:
+            raise InvalidMetricsQuery(f"Expected selectable expression, received {type(node)}")
+
+    def _convert_function(self, function: Function) -> SelectableExpression:
+        if function.function in ArithmeticFn:
+            return Function(
+                function=function.function,
+                parameters=[self._convert_expression(p) for p in function.parameters],
+            )
+
+        if function.function in AggregationFn:
+            return self._convert_aggregate(function)
+
+        if function.function == FILTER:
+            # Query transforms should previously have pushed filters inside
+            # aggregate calls. If this hasn't happened, there's likely a bug in
+            # the execution pipeline.
+            raise ValueError("Unexpected filter function in SnQL generation")
+
+        raise InvalidMetricsQuery(f"Unknown function {function.function}")
+
+    def _convert_aggregate(self, function: Function) -> SelectableExpression:
+        if len(function.parameters) != 1:
+            raise InvalidMetricsQuery("Aggregate functions must have exactly one parameter")
+
+        (metric_type, filters) = self._collect_aggregate(function.parameters[0])
+        aggregate = self._map_aggregation_fn(metric_type, function.function)
+        parameter = filters[0] if len(filters) == 1 else Function("and", filters)
+
+        return Function(
+            function=aggregate,
+            parameters=[COLUMN_VALUE, parameter],
+        )
+
+    def _map_aggregation_fn(self, metric_type: str, function: str) -> str:
+        if metric_type not in SNQL_AGGREGATES:
+            raise InvalidMetricsQuery(f"Unsupported metric type {metric_type}")
+
+        if function not in SNQL_AGGREGATES[metric_type]:
+            raise InvalidMetricsQuery(f"Unsupported function {function} on {metric_type}")
+
+        return SNQL_AGGREGATES[metric_type][function]
+
+    def _collect_aggregate(self, node: Expression) -> Tuple[str, List[Function]]:
+        """
+        Collects the metric type and all recursively applied filters that need
+        to be applied to the metric to compute an aggregate.
+        """
+
+        if isinstance(node, Column):
+            if not node.key.isnumeric():
+                raise InvalidMetricsQuery("Metric name must be a resolved index")
+            mri = parse_mri(node.name)
+            if mri is None:
+                raise InvalidMetricsQuery(f"Expected MRI, got `{node.name}`")
+            return (mri.entity, [Function("equals", [COLUMN_METRIC_ID, node.key])])
+
+        if isinstance(node, Function) and node.function == FILTER:
+            if not node.parameters:
+                raise InvalidMetricsQuery("Missing filter parameters")
+
+            (inner, *filters) = node.parameters
+            (metric_type, conditions) = self._collect_aggregate(inner)
+
+            for filt in filters:
+                if filt.op not in CONDITION_TO_FUNCTION:
+                    raise InvalidMetricsQuery(f"Unsupported filter condition {filt.op}")
+
+                lhs = self._convert_tag_key(filt.lhs)
+                rhs = self._convert_condition_value(filt.op, filt.rhs)
+                conditions.append(Function(CONDITION_TO_FUNCTION[filt.op], [lhs, rhs]))
+
+            return (metric_type, conditions)
+
+        raise InvalidMetricsQuery("Unexpected expression in aggregate")
+
+    def _build_where(self) -> Sequence[Condition]:
         where = [
-            Condition(COLUMN_ORG_ID, Op.EQ, query.scope.org_id),
-            Condition(COLUMN_TIMESTAMP, Op.GTE, query.start),
-            Condition(COLUMN_TIMESTAMP, Op.LT, query.end),
+            Condition(COLUMN_ORG_ID, Op.EQ, self.query.scope.org_id),
+            Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.start),
+            Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.end),
         ]
 
-        if query.scope.project_ids:
-            where.append(Condition(COLUMN_PROJECT_ID, Op.IN, query.scope.project_ids))
+        if self.query.scope.project_ids:
+            where.append(Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids))
 
-        for filt in query.filters:
+        for filt in self.query.filters:
             where.append(self._convert_condition(filt))
 
         return where
 
-    def _convert_expression(self, expression: Expression) -> SelectableExpression:
-        if isinstance(expression, Function):
-            if expression.function in ArithmeticFn:
-                return Function(
-                    function=expression.function,
-                    parameters=[self._convert_expression(p) for p in expression.parameters],
-                )
-            elif expression.function in AggregationFn:
-                return self._convert_aggregate(expression)
-        raise NotImplementedError()
-
-    def _convert_aggregate(self, function: Function) -> SelectableExpression:
-        if function.function not in SNQL_AGGREGATES:
-            raise InvalidMetricsQuery(f"Unsupported aggregate function {function.function}")
-
-        if len(function.parameters) != 1:
-            raise InvalidMetricsQuery("Aggregate functions must have exactly one parameter")
-
-        filters = self._collect_aggregate(function.parameters[0])
-        if len(filters) == 1:
-            parameter = filters[0]
-        else:
-            parameter = Function("and", filters)
-
-        return Function(
-            function=SNQL_AGGREGATES[function.function],
-            parameters=[COLUMN_VALUE, parameter],
-        )
-
-    def _collect_aggregate(self, expression: Expression) -> List[Function]:
-        if isinstance(expression, Column):
-            if not expression.name.isnumeric():
-                raise InvalidMetricsQuery("Metric name must be a resolved index")
-            return [Function("equals", [COLUMN_METRIC_ID, expression.name])]
-
-        if isinstance(expression, Function) and expression.function == FILTER:
-            if not expression.parameters:
-                raise InvalidMetricsQuery("Missing filter parameters")
-
-            (inner, *conditions) = expression.parameters
-            filters = self._collect_aggregate(inner)
-
-            for condition in conditions:
-                if condition.op not in CONDITION_TO_FUNCTION:
-                    raise InvalidMetricsQuery(f"Unsupported filter condition {condition.op}")
-
-                lhs = self._convert_tag_key(condition.lhs)
-                rhs = self._convert_condition_value(condition.op, condition.rhs)
-                filters.append(Function(CONDITION_TO_FUNCTION[condition.op], [lhs, rhs]))
-
-            return filters
-
-        raise InvalidMetricsQuery("Unexpected expression in aggregate")
-
     def _convert_condition(self, condition: Condition) -> Condition:
-        """
-        Convert a filter function to a SnQL condition.
-        """
-
         # Conditions have a rigid structure at this moment. LHS must be a column,
         # operator must be a comparison operator, and RHS must be a scalar.
 
@@ -174,12 +238,14 @@ class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
     def _convert_tag_key(self, column: Any) -> str:
         if not isinstance(column, Column):
             raise InvalidMetricsQuery("LHS of filter condition must be a column")
-        if not column.name.isnumeric():
-            raise InvalidMetricsQuery("LHS of filter condition must be a resolved index")
 
-        return Column(name=f"tags_raw[{column.name}]")
+        if column.name == "project":
+            return COLUMN_PROJECT_ID
+        if not column.key.isnumeric():
+            raise InvalidMetricsQuery("Tag key must be a resolved index")
+        return Column(name=f"tags_raw[{column.key}]")
 
-    def _convert_condition_value(self, op: Op, value: Any) -> Union[str, int]:
+    def _convert_condition_value(self, op: Op, value: Any) -> Union[str, int, List]:
         if op in (Op.EQ, Op.NEQ, Op.LIKE, Op.NOT_LIKE):
             return self._convert_primitive(value)
 
@@ -191,32 +257,19 @@ class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
         raise InvalidMetricsQuery(f"Unsupported filter condition {op}")
 
     def _convert_primitive(self, value: Any) -> Union[str, int]:
-        # TODO: Use-case aware check of value type
-        if isinstance(value, (str, int)):
-            return value
+        tag_type: Type = str
+        if self.config.index_values:
+            tag_type = int
 
-        if isinstance(value, Column):
-            if self._is_variable(value):
-                raise InvalidMetricsQuery(f"Unbound variable {value.name}")
+        if not isinstance(value, tag_type):
+            raise InvalidMetricsQuery("Filters must compare with a scalar value")
 
-        raise InvalidMetricsQuery("Filters must compare with a scalar value")
+        return value
 
-    def _is_variable(self, column: Column) -> bool:
-        return column.name.startswith("$")
-
-
-def get_entity(query: SeriesQuery) -> Entity:
-    """
-    Get the single use case referenced by a query. Raises a ``ValueError`` if
-    the query references multiple use cases.
-    """
-
-    use_case = get_use_case(query)
-    entities = EntityExtractor(_is_legacy_use_case(use_case)).visit(query)
-    if len(entities) != 1:
-        raise ValueError("Snuba query must reference a single entity")
-
-    return entities.pop()
+    def _build_groupby(self):
+        groupby = [self._convert_tag_key(c) for c in self.query.groups]
+        groupby.append(COLUMN_TIMESTAMP_GROUP)
+        return groupby
 
 
 class EntityExtractor(QueryVisitor[Set[Entity]]):
@@ -224,8 +277,8 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
     Extracts all use cases referenced by MRIs in a query.
     """
 
-    def __init__(self, legacy: bool):
-        self.legacy = legacy
+    def __init__(self, config: QueryConfig):
+        self.config = config
 
     def _visit_query(self, query: SeriesQuery) -> Set[Entity]:
         entities = set()
@@ -253,15 +306,7 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
         if mri is None:
             raise InvalidMetricsQuery(f"Expected MRI, got `{column.name}`")
 
-        if self.legacy:
-            entity = LEGACY_TYPE_TO_ENTITY.get(mri.entity)
-        else:
-            entity = TYPE_TO_ENTITY.get(mri.entity)
-
-        if entity is None:
-            raise InvalidMetricsQuery(f"Unknown metric type: `{mri.entity}`")
-
-        return entity
+        return {self.config.entity(mri.entity)}
 
     def _visit_str(self, string: str) -> Set[Entity]:
         return set()

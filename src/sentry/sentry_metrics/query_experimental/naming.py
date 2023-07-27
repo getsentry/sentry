@@ -2,10 +2,13 @@
 Name translations between public API names and MRIs.
 """
 
+from dataclasses import replace
 from typing import Dict, Optional
 
-from sentry.sentry_metrics.query_experimental.transform import QueryTransform
-from sentry.sentry_metrics.query_experimental.types import Column, SeriesQuery, SeriesResult
+from sentry.snuba.metrics.naming_layer import parse_mri
+
+from .transform import QueryLayer, QueryTransform
+from .types import Column, SeriesQuery, SeriesResult
 
 # TODO: Support dynamic lookup for measurements
 
@@ -30,7 +33,8 @@ class NameRegistry:
         if public in self._public_to_internal or internal in self._internal_to_public:
             raise ValueError(f"Name {public} or MRI {internal} already registered")
 
-        # TODO: Validate MRI
+        if parse_mri(internal) is None:
+            raise ValueError(f"Invalid MRI: `{internal}`")
 
         self._public_to_internal[public] = internal
         self._internal_to_public[internal] = public
@@ -58,6 +62,17 @@ def register_public_name(internal: str, public: str):
     _REGISTRY.register(internal, public)
 
 
+class NamingLayer(QueryLayer):
+    def __init__(self, registry: Optional[NameRegistry] = None):
+        self.registry = registry
+
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        return map_query_names(query, registry=self.registry)
+
+    def transform_result(self, result: SeriesResult) -> SeriesResult:
+        return map_result_names(result, registry=self.registry)
+
+
 def map_query_names(query: SeriesQuery, registry: Optional[NameRegistry] = None) -> SeriesQuery:
     """
     Map public metric names in a series query to MRIs and map tag names.
@@ -83,4 +98,4 @@ class NameTransform(QueryTransform):
         self.registry = registry
 
     def _visit_column(self, column: Column) -> Column:
-        return Column(self.registry.get_internal(column.name))
+        return replace(column, name=self.registry.get_public(column.name))

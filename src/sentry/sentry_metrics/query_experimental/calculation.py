@@ -3,12 +3,9 @@ In-memory evaluation of calculations on top of results from multiple metrics
 queries.
 """
 
-# TODO: Evaluator function or class
-# TODO: Calculation dataclass
-
 from typing import Dict, Sequence
 
-from sentry.sentry_metrics.query_experimental.types import SeriesQuery, SeriesResult
+from .types import SeriesQuery, SeriesResult
 
 
 class Calculation:
@@ -44,4 +41,7 @@ def generate_calculation(query: SeriesQuery) -> Calculation:
     """
     Generate a calculation from a query.
     """
+
+    # TODO: For now, validate that there's only a single metric type in the
+    # entire query.
     return Calculation([query])

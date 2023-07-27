@@ -4,14 +4,10 @@ Expansion for derived metrics in query expressions.
 
 from typing import Dict, Optional, Union
 
-from sentry.sentry_metrics.query_experimental.transform import QueryTransform
-from sentry.sentry_metrics.query_experimental.types import (
-    Column,
-    Condition,
-    Expression,
-    InvalidMetricsQuery,
-    SeriesQuery,
-)
+from sentry.snuba.metrics.naming_layer import parse_mri
+
+from .transform import QueryLayer, QueryTransform
+from .types import Column, Condition, Expression, InvalidMetricsQuery, SeriesQuery
 
 # TODO: Support dynamic lookup for measurements
 
@@ -35,9 +31,10 @@ class ExpressionRegistry:
         if mri in self._metrics:
             raise ValueError(f"Derived metric `{mri}` already registered")
 
-        # TODO: Validate MRI
-        # TODO: Validate expression
+        if parse_mri(mri) is None:
+            raise ValueError(f"Invalid MRI: `{mri}`")
 
+        # TODO: Validate expression?
         self._metrics[mri] = expression
 
     def resolve(self, mri: str) -> Expression:
@@ -58,6 +55,14 @@ def register_derived_metric(mri: str, expression: Expression):
     Register a derived metric that will be expanded in queries.
     """
     _REGISTRY.register(mri, expression)
+
+
+class ExpansionLayer(QueryLayer):
+    def __init__(self, registry: Optional[ExpressionRegistry] = None):
+        self.registry = registry
+
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        return expand_derived_metrics(query, registry=self.registry)
 
 
 def expand_derived_metrics(
@@ -84,8 +89,6 @@ class ExpandTransform(QueryTransform):
     def _visit_column(self, column: Column) -> Union[Column, Expression]:
         # Do not try to expand variables
         if column.name.startswith("$"):
-            # TODO: Should we error here? These should probably be replaced
-            # before, or else we could cause bugs in the execution pipeline.
             return column
 
         expression = self.registry.resolve(column.name)

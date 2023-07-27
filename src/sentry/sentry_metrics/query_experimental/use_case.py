@@ -5,16 +5,11 @@ queries.
 
 from typing import Set
 
-from sentry.sentry_metrics.query_experimental.transform import QueryVisitor
-from sentry.sentry_metrics.query_experimental.types import (
-    Column,
-    Condition,
-    Function,
-    InvalidMetricsQuery,
-    SeriesQuery,
-)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import parse_mri
+
+from .transform import QueryVisitor
+from .types import Column, Condition, Function, InvalidMetricsQuery, SeriesQuery
 
 
 def get_use_case(query: SeriesQuery) -> UseCaseID:
