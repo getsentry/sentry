@@ -5,6 +5,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
+from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.lang.native.sources import get_bundle_index_urls
 from sentry.models import ArtifactBundleFlatFileIndex
 from sentry.testutils.helpers import override_options
@@ -22,6 +23,11 @@ def _mock_flat_file_index(
     index.update_flat_file_index(file_contents="{}")
 
     return index
+
+
+def _clear_cache():
+    redis_client = get_redis_cluster_for_artifact_bundles()
+    redis_client.flushall()
 
 
 @pytest.mark.django_db
@@ -61,8 +67,10 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
         FlatFileIdentifier(
             project_id=default_project.id, release=release, dist=dist
         ).get_flat_file_meta_from_cache()
-        is None
+        == FlatFileMeta.build_none()
     )
+
+    _clear_cache()
 
     index_1 = _mock_flat_file_index(project_id=default_project.id, release=release, dist=dist)
 
@@ -83,6 +91,8 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
         is not None
     )
 
+    _clear_cache()
+
     index_2 = _mock_flat_file_index(project_id=default_project.id, release=None, dist=None)
 
     # We test the generation with debug id only.
@@ -101,6 +111,8 @@ def test_get_bundle_index_urls_with_no_cached_values(default_project):
         ).get_flat_file_meta_from_cache()
         is not None
     )
+
+    _clear_cache()
 
     # We test the generation with release and debug id.
     debug_id_index, url_index = get_bundle_index_urls(
