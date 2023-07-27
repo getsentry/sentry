@@ -27,7 +27,7 @@ CollapsedColumns
   = ".." { return { type: 'CollapsedColumns' } }
 
 Semicolon
-  = ";" { return { type: 'Semicolon' } }
+  = ";" { return { type: 'Semicolon', content: ";" } }
 
 Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }

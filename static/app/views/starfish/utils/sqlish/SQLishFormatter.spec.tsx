@@ -5,7 +5,7 @@ describe('SQLishFormatter', function () {
 
   it('Formats basic SQL', () => {
     expect(formatter.toString('SELECT hello FROM users;')).toEqual(
-      'SELECT hello \nFROM users'
+      'SELECT hello \nFROM users;'
     );
   });
 });
