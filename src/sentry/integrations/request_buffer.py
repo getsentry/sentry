@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from redis.exceptions import WatchError
 
 from sentry.utils import json, redis
 
@@ -19,7 +20,6 @@ class IntegrationRequestBuffer:
 
     def __init__(self, key):
         self.integrationkey = key
-
         logger = logging.getLogger(__name__)
 
         try:
@@ -42,9 +42,9 @@ class IntegrationRequestBuffer:
 
         return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
-    def _get_brokenrange_from_buffer(self, buffer_key):
+    def _get_broken_range_from_buffer(self, buffer_key):
         """
-        Get the list at the buffer key ib the broken range.
+        Get the list at the buffer key in the broken range.
         """
 
         return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
@@ -55,7 +55,7 @@ class IntegrationRequestBuffer:
         """
         return [
             self._convert_obj_to_dict(obj)
-            for obj in self._get_brokenrange_from_buffer(self.integrationkey)
+            for obj in self._get_broken_range_from_buffer(self.integrationkey)
         ]
 
     def is_integration_broken(self):
@@ -106,33 +106,42 @@ class IntegrationRequestBuffer:
         pipe = self.client.pipeline()
 
         # get first element from array
-        recent_item_array = self.client.lrange(buffer_key, 0, 1)
-        if len(recent_item_array):
-            recent_item = json.loads(recent_item_array[0])
-            if recent_item.get("date") == now:
-                recent_item[f"{count}_count"] += 1
-                pipe.lset(buffer_key, 0, json.dumps(recent_item))
-            else:
-                data = {
-                    "date": now,
-                    f"{count}_count": 1,
-                    f"{other_count1}_count": 0,
-                    f"{other_count2}_count": 0,
-                }
-                pipe.lpush(buffer_key, json.dumps(data))
+        while True:
+            try:
+                pipe.watch(buffer_key)
+                recent_item_array = self.client.lrange(buffer_key, 0, 1)
+                pipe.multi()
+                if len(recent_item_array):
+                    recent_item = json.loads(recent_item_array[0])
+                    if recent_item.get("date") == now:
+                        recent_item[f"{count}_count"] += 1
+                        pipe.lset(buffer_key, 0, json.dumps(recent_item))
+                    else:
+                        data = {
+                            "date": now,
+                            f"{count}_count": 1,
+                            f"{other_count1}_count": 0,
+                            f"{other_count2}_count": 0,
+                        }
+                        pipe.lpush(buffer_key, json.dumps(data))
 
-        else:
-            data = {
-                "date": now,
-                f"{count}_count": 1,
-                f"{other_count1}_count": 0,
-                f"{other_count2}_count": 0,
-            }
-            pipe.lpush(buffer_key, json.dumps(data))
+                else:
+                    data = {
+                        "date": now,
+                        f"{count}_count": 1,
+                        f"{other_count1}_count": 0,
+                        f"{other_count2}_count": 0,
+                    }
+                    pipe.lpush(buffer_key, json.dumps(data))
 
-        pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
-        pipe.expire(buffer_key, KEY_EXPIRY)
-        pipe.execute()
+                pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
+                pipe.expire(buffer_key, KEY_EXPIRY)
+                pipe.execute()
+                break
+            except WatchError:
+                continue
+            finally:
+                pipe.reset()
 
     def record_error(self):
         self.add("error")
