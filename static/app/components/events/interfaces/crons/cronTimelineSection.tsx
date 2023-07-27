@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -66,6 +67,10 @@ export function CronTimelineSection({event, organization}: Props) {
     return null;
   }
 
+  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
+  const eventTickLeft =
+    (new Date(event.dateReceived).valueOf() - start.valueOf()) / msPerPixel;
+
   return (
     <EventDataSection
       title={t('Check-ins')}
@@ -86,6 +91,10 @@ export function CronTimelineSection({event, organization}: Props) {
           end={end}
           width={timelineWidth}
         />
+        <EventLineTick left={eventTickLeft} />
+        <EventLineLabel left={eventTickLeft} timelineWidth={timelineWidth}>
+          {t('Event Created')}
+        </EventLineLabel>
         {monitorStats && !isLoading ? (
           <CheckInTimeline
             width={timelineWidth}
@@ -110,7 +119,7 @@ const StyledResolutionSelector = styled(ResolutionSelector)`
 const TimelineContainer = styled(Panel)`
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: 40px 75px;
+  grid-template-rows: 40px 100px;
   align-items: center;
 `;
 
@@ -127,4 +136,26 @@ const TimelineWidthTracker = styled('div')`
   width: 100%;
   grid-row: 1;
   grid-column: 0;
+`;
+
+const EventLineTick = styled('div')<{left: number}>`
+  background: ${p => p.theme.translucentBorder};
+  width: 2px;
+  height: 100%;
+  grid-row: 2 / 3;
+  position: absolute;
+  top: 0;
+  left: ${p => p.left}px;
+  transform: translateX(-2px);
+`;
+
+const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
+  width: max-content;
+  padding: ${space(0.75)} ${space(1)};
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  position: absolute;
+  bottom: ${space(1)};
+  left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));
+  transform: translateX(-50%);
 `;
