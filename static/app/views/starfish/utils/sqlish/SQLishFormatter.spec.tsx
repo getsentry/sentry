@@ -47,7 +47,7 @@ describe('SQLishFormatter', function () {
     expect(formatter.toString('SELECT id, nam*')).toEqual('SELECT id, nam*');
   });
 
-  it('Format PHP-style parameters', () => {
+  it('Formats PHP-style parameters', () => {
     expect(
       formatter.toString(
         'SELECT * FROM messages WHERE (receiver_user_id = Users.id AND created >= :c1))'
@@ -57,7 +57,7 @@ describe('SQLishFormatter', function () {
     );
   });
 
-  it('Format Python-style parameters', () => {
+  it('Formats Python-style parameters', () => {
     expect(
       formatter.toString(
         'SELECT * FROM messages WHERE (receiver_user_id = Users.id AND created >= %s))'
