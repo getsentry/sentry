@@ -10,6 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const PANEL_WIDTH = '50vw';
 
 type SlideOverPanelProps = {
+  analytics: boolean;
   children: React.ReactNode;
   collapsed: boolean;
 };
@@ -17,16 +18,16 @@ type SlideOverPanelProps = {
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children}: SlideOverPanelProps,
+  {collapsed, children, analytics}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   const {query} = useLocation();
   const organization = useOrganization();
   useEffect(() => {
-    if (!collapsed) {
+    if (!collapsed && analytics) {
       trackAnalytics('starfish.panel.open', {organization});
     }
-  }, [query, collapsed, organization]);
+  }, [query, collapsed, organization, analytics]);
   return (
     <_SlideOverPanel
       ref={ref}

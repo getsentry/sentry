@@ -11,6 +11,7 @@ import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
 type DetailProps = {
   children: React.ReactNode;
+  analytics?: boolean;
   detailKey?: string;
   onClose?: () => void;
 };
@@ -19,7 +20,12 @@ type DetailState = {
   collapsed: boolean;
 };
 
-export default function Detail({children, detailKey, onClose}: DetailProps) {
+export default function Detail({
+  children,
+  detailKey,
+  onClose,
+  analytics = true,
+}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
   const escapeKeyPressed = useKeyPress('Escape');
 
@@ -51,7 +57,7 @@ export default function Detail({children, detailKey, onClose}: DetailProps) {
   }, [escapeKeyPressed]);
 
   return (
-    <SlideOverPanel collapsed={state.collapsed} ref={panelRef}>
+    <SlideOverPanel collapsed={state.collapsed} ref={panelRef} analytics={analytics}>
       <CloseButtonWrapper>
         <CloseButton
           priority="link"
