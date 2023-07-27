@@ -15,7 +15,8 @@ from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
+from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
+from sentry.models.artifactbundle import NULL_STRING
 from sentry.models.project import Project
 from sentry.utils import json, redis, safe
 
@@ -211,35 +212,33 @@ def get_bundle_index_urls(
     project: Project, release: Optional[str], dist: Optional[str]
 ) -> Tuple[Optional[str], Optional[str]]:
     if options.get("symbolicator.sourcemaps-bundle-index-sample-rate") <= random.random():
-        return (None, None)
+        return None, None
 
     base_url = get_internal_artifact_lookup_source_url(project)
 
-    def make_download_url(bundle: ArtifactBundleFlatFileIndex):
-        # TODO: do we want to also auto-expire and refresh the `ArtifactBundleFlatFileIndex`?
-
-        timestamp = int(bundle.date_added.timestamp() * 1000)
+    def make_download_url(flat_file_meta: FlatFileMeta):
         # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
-        # and it is also used as the the download key for the artifact-lookup API.
+        # and it is also used as the download key for the artifact-lookup API.
         # The artifact-lookup API will ignore the additional timestamp on download.
+        return f"{base_url}?download={flat_file_meta.to_string()}"
 
-        return f"{base_url}?download=bundle_index/{bundle.id}/{timestamp}"
+    url_index = None
+    identifier = FlatFileIdentifier(
+        project_id=project.id, release=release or NULL_STRING, dist=dist or NULL_STRING
+    )
+    if identifier.is_indexing_by_release():
+        url_meta = identifier.get_flat_file_meta()
+        if url_meta is not None:
+            url_index = make_download_url(url_meta)
 
     # We query the empty release/dist which is a marker for the debug-id index,
     # as well as the normal release index if we have a release.
-    debug_id_index = ArtifactBundleFlatFileIndex.objects.filter(
-        project_id=project.id, release_name=NULL_STRING, dist_name=NULL_STRING
-    ).first()
-    if debug_id_index:
-        debug_id_index = make_download_url(debug_id_index)
-
-    url_index = None
-    if release:
-        url_index = ArtifactBundleFlatFileIndex.objects.filter(
-            project_id=project.id, release_name=release, dist_name=dist or NULL_STRING
-        ).first()
-    if url_index:
-        url_index = make_download_url(url_index)
+    debug_id_index = None
+    debug_id_meta = FlatFileIdentifier.for_debug_id(
+        project_id=identifier.project_id
+    ).get_flat_file_meta()
+    if debug_id_meta is not None:
+        debug_id_index = make_download_url(debug_id_meta)
 
     return debug_id_index, url_index
 
