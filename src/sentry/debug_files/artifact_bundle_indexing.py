@@ -72,13 +72,18 @@ def mark_bundle_for_flat_file_indexing(
         identifiers.append(FlatFileIdentifier.for_debug_id(project_id))
 
     # Create / Update the indexing state in the database
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundleFlatFileIndex),
-            router.db_for_write(FlatFileIndexState),
-        )
-    ):
-        for identifier in identifiers:
+    for identifier in identifiers:
+        # It turns out our DB integrity, and usage of `get_or_create` is not safe
+        # in the sense that it can end up with duplicates in the database, yay!
+        # So just wrap all of this in a lock so we are definitely not creating
+        # duplicated index entries concurrently.
+        lock = identifier.get_lock()
+        with TimedRetryPolicy(60)(lock.acquire), atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundleFlatFileIndex),
+                router.db_for_write(FlatFileIndexState),
+            )
+        ):
             flat_file_index, _created = ArtifactBundleFlatFileIndex.objects.get_or_create(
                 project_id=identifier.project_id,
                 release_name=identifier.release,
@@ -185,10 +190,14 @@ def update_artifact_bundle_index(
 
     lock = identifier.get_lock()
     with TimedRetryPolicy(60)(lock.acquire):
-        flat_file_index = ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index").get(
-            project_id=identifier.project_id,
-            release_name=identifier.release,
-            dist_name=identifier.dist,
+        flat_file_index = (
+            ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index")
+            .filter(
+                project_id=identifier.project_id,
+                release_name=identifier.release,
+                dist_name=identifier.dist,
+            )
+            .first()
         )
 
         index = FlatFileIndex()
