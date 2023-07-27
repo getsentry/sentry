@@ -83,7 +83,7 @@ function ReplaysListTable({
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projects.map(p => String(p)),
+    projectId: projects.map(String),
   });
 
   const conditions = useMemo(() => {
