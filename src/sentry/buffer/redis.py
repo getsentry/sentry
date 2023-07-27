@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import pickle
 import threading
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
-_last_validation_log = None
+_last_validation_log: float | None = None
 
 
 def _validate_json_roundtrip(value, model):
@@ -333,7 +335,7 @@ class RedisBuffer(Buffer):
         # tasks
         if not client.set(lock_key, "1", nx=True, ex=10):
             metrics.incr("buffer.revoked", tags={"reason": "locked"}, skip_internal=False)
-            self.logger.debug("buffer.revoked.locked", extra={"redis_key": key})
+            logger.debug("buffer.revoked.locked", extra={"redis_key": key})
             return
 
         pending_key = self._make_pending_key_from_key(key)
@@ -357,7 +359,7 @@ class RedisBuffer(Buffer):
 
             if not values:
                 metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
-                self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
+                logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
             model = import_string(force_str(values.pop("m")))

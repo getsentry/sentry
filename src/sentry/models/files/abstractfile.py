@@ -224,6 +224,7 @@ class AbstractFile(Model):
             delete=delete,
         )
 
+    @sentry_sdk.tracing.trace
     def getfile(self, mode=None, prefetch=False):
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
@@ -360,6 +361,7 @@ class AbstractFile(Model):
         tf.seek(0)
         return tf
 
+    @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
         super().delete(*args, **kwargs)
