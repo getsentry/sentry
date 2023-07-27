@@ -59,14 +59,14 @@ function getMockContext(mockOrg: Organization) {
   return TestStubs.routerContext([{organization: mockOrg}]);
 }
 
-MockApiClient.addMockResponse({
-  url: '/organizations/org-slug/sdk-updates/',
-  body: [],
-});
-
 describe('ReplayList', () => {
   beforeEach(() => {
     mockUseReplayList.mockClear();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {

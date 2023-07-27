@@ -44,10 +44,13 @@ describe('InviteMembersModal', function () {
     },
   ];
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${org.slug}/members/me/`,
-    method: 'GET',
-    body: {roles},
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/me/`,
+      method: 'GET',
+      body: {roles},
+    });
   });
 
   it('renders', async function () {

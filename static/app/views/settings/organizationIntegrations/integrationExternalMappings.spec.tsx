@@ -151,6 +151,7 @@ describe('IntegrationExternalMappings', function () {
   });
 
   it('uses the methods passed down from props appropriately', async function () {
+    createMockSuggestions();
     render(
       <IntegrationExternalMappings
         organization={organization}

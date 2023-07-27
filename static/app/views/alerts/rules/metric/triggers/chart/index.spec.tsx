@@ -9,14 +9,21 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
-  const eventStatsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
-    body: TestStubs.EventsStats(),
-  });
+  let eventStatsMock: jest.Func;
+  let eventCountsMock: jest.Func;
+  beforeEach(() => {
+    eventStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
 
-  const eventCountsMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-meta/',
-    body: {count: 5},
+    eventCountsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+  });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   const api = new MockApiClient();

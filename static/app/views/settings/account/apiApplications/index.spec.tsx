@@ -4,6 +4,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 describe('ApiApplications', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders empty', function () {
     const {router} = initializeOrg();
 
@@ -55,6 +59,10 @@ describe('ApiApplications', function () {
   it('creates application', async function () {
     const {router} = initializeOrg();
 
+    MockApiClient.addMockResponse({
+      url: '/api-applications/',
+      body: [],
+    });
     const createApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: TestStubs.ApiApplication({
@@ -89,6 +97,10 @@ describe('ApiApplications', function () {
   });
 
   it('deletes application', async function () {
+    MockApiClient.addMockResponse({
+      url: '/api-applications/',
+      body: [TestStubs.ApiApplication({id: '123'})],
+    });
     const deleteApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/123/',
       method: 'DELETE',
