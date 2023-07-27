@@ -507,8 +507,8 @@ def _merge_cached_values(
     changed_frames_values = cache.get(cache_key)
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
-        "save_event.stacktrace.cache.fetch",
-        tags={"hit": changed_frames_values, "platform": platform},
+        "save_event.stacktrace.cache.get",
+        tags={"success": changed_frames_values is True, "platform": platform},
     )
     if changed_frames_values:
         # We duplicate the stacktrace and only return if everything has been applied correctly
