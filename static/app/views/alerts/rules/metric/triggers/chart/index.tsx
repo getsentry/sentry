@@ -423,6 +423,7 @@ class TriggersChart extends PureComponent<Props, State> {
           partial={false}
           queryExtras={queryExtras}
           sampleRate={this.state.sampleRate}
+          dataLoadedCallback={onDataLoaded}
         >
           {({
             loading,

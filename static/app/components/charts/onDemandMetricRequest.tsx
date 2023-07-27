@@ -117,9 +117,10 @@ class OnDemandMetricRequest extends EventsRequest {
         timeseriesData,
         fetchedWithPrevious: props.includePrevious,
       });
-      if (props.dataLoadedCallback) {
-        props.dataLoadedCallback(timeseriesData);
-      }
+    }
+
+    if (props.dataLoadedCallback) {
+      props.dataLoadedCallback(timeseriesData);
     }
   };
 }

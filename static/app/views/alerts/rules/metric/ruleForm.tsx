@@ -799,8 +799,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
-    if (isExtrapolatedData) {
-      this.setState({isExtrapolatedChartData: true});
+
+    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+      this.handleMEPAlertDataset(data);
     }
   };
 
@@ -848,9 +850,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonType,
       isQueryValid,
       isOnDemandMetricAlert: onDemandMetricsAlert,
-      onDataLoaded: onDemandMetricsAlert
-        ? this.handleTimeSeriesDataFetched
-        : this.handleMEPAlertDataset,
+      onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
     const wizardBuilderChart = (
