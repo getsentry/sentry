@@ -152,7 +152,8 @@ class Enhancements:
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         # We include the rules fingerprint to make sure that the set of rules are still the same
         cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
-        if stacktrace_fingerprint and rules_fingerprint:
+        try_caching = stacktrace_fingerprint and rules_fingerprint
+        if try_caching:
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
                 frames = merged_frames
@@ -166,8 +167,8 @@ class Enhancements:
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
-        if stacktrace_fingerprint and not cache.get(cache_key):
-            _cache_changed_frame_values(frames, cache_key)
+        if try_caching:
+            _cache_changed_frame_values(frames, cache_key, platform)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -493,20 +494,20 @@ class EnhancementsVisitor(NodeVisitor):
 
 
 def _merge_cached_values(
-    frames: list[dict[str, Any]],
+    frames: Sequence[dict[str, Any]],
     cache_key: str,
     platform: str,
-) -> tuple[bool, list[dict[str, Any]]]:
+) -> tuple[bool, Sequence[dict[str, Any]]]:
     """
     This will merge the cached values if any are found for this stacktrace.
     Returns if the merged has correctly happened and the updated frames if so.
     """
-    merged_frames: list[dict[str, Any]] = []
+    merged_frames: Sequence[dict[str, Any]] = []
     frames_merged = False
     changed_frames_values = cache.get(cache_key)
     # This helps tracking changes in the hit/miss ratio of the cache
     metrics.incr(
-        "save_event.stacktrace.cache",
+        "save_event.stacktrace.cache.fetch",
         tags={"hit": changed_frames_values, "platform": platform},
     )
     if changed_frames_values:
@@ -530,17 +531,34 @@ def _merge_cached_values(
     return frames_merged, merged_frames
 
 
-def _cache_changed_frame_values(frames: Sequence[dict[str, Any]], cache_key: str) -> None:
-    # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
-    # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
-    changed_frames_values = [
-        {
-            "in_app": frame.get("in_app"),  # Based on FlagAction
-            "category": get_path(frame, "data", "category"),  # Based on VarAction's
-        }
-        for frame in frames
-    ]
-    cache.set(cache_key, changed_frames_values)
+def _cache_changed_frame_values(
+    frames: Sequence[dict[str, Any]], cache_key: str, platform: str
+) -> None:
+    """Store in the cache the values which have been modified for each frame."""
+    caching_succeeded = False
+    # Check that some other event has not already populated the cache
+    if cache.get(cache_key):
+        return
+
+    try:
+        # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
+        # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
+        changed_frames_values = [
+            {
+                "in_app": frame.get("in_app"),  # Based on FlagAction
+                "category": get_path(frame, "data", "category"),  # Based on VarAction's
+            }
+            for frame in frames
+        ]
+        cache.set(cache_key, changed_frames_values)
+        caching_succeeded = True
+    except Exception:
+        logger.exception("Failed to store changed frames in cache", extra={"platform": platform})
+
+    metrics.incr(
+        "save_event.stacktrace.cache.set",
+        tags={"success": caching_succeeded, "platform": platform},
+    )
 
 
 def _matching_frames_and_fingerprint(
