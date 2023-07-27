@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SpanMetricsFields, SpanMetricsFieldTypes} from 'sentry/views/starfish/types';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/formatter';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 type Props = {
   span: Pick<
@@ -20,9 +20,13 @@ export function SpanDescription({span}: Props) {
 }
 
 function DatabaseSpanDescription({span}: Props) {
-  const formatter = new SQLishFormatter(span[SpanMetricsFields.SPAN_DESCRIPTION]);
+  const formatter = new SQLishFormatter();
 
-  return <CodeSnippet language="sql">{formatter.toString()}</CodeSnippet>;
+  return (
+    <CodeSnippet language="sql">
+      {formatter.toString(span[SpanMetricsFields.SPAN_DESCRIPTION])}
+    </CodeSnippet>
+  );
 }
 
 const WordBreak = styled('div')`
