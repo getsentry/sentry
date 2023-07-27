@@ -45,9 +45,7 @@ def get_replay_counts(
 def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
 
     select_column, value = get_select_column(query)
-    # query = query + FILTER_HAS_A_REPLAY
-    # XXX(jferge): TODO: the above line didn't actually do anything in the previous code.
-    # will re-enable this line after the refactor is merged.
+    query = query + FILTER_HAS_A_REPLAY
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
