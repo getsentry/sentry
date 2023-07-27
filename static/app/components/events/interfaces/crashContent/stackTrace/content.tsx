@@ -16,6 +16,7 @@ import {
   findImageForAddress,
   getHiddenFrameIndices,
   getLastFrameIndex,
+  isRepeatedFrame,
   parseAddress,
   stackTracePlatformIcon,
 } from '../../utils';
@@ -43,19 +44,6 @@ type Props = {
   organization?: Organization;
   threadId?: number;
 } & Partial<DefaultProps>;
-
-function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
-  if (!nextFrame) {
-    return false;
-  }
-  return (
-    frame.lineNo === nextFrame.lineNo &&
-    frame.instructionAddr === nextFrame.instructionAddr &&
-    frame.package === nextFrame.package &&
-    frame.module === nextFrame.module &&
-    frame.function === nextFrame.function
-  );
-}
 
 function Content({
   data,
