@@ -11,6 +11,18 @@ describe('SQLishFormatter', function () {
     expect(formatter.toString('SELECT *;')).toEqual('SELECT *;');
   });
 
+  it('Formats equality', () => {
+    expect(formatter.toString('SELECT * FROM users WHERE age = 10;')).toEqual(
+      'SELECT * \nFROM users \nWHERE age = 10;'
+    );
+  });
+
+  it('Formats comparisons', () => {
+    expect(
+      formatter.toString('SELECT * FROM users WHERE age > 10 AND age < 20;')
+    ).toEqual('SELECT * \nFROM users \nWHERE age > 10 \nAND age < 20;');
+  });
+
   it('Formats lists of bare column names', () => {
     expect(formatter.toString('SELECT id, name;')).toEqual('SELECT id, name;');
   });
