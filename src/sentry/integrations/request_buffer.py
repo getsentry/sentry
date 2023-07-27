@@ -107,7 +107,7 @@ class IntegrationRequestBuffer:
                 recent_item_array = pipe.lrange(buffer_key, 0, 1)  # get first element from array
                 pipe.multi()
                 if len(recent_item_array):
-                    recent_item = json.loads(recent_item_array[0])
+                    recent_item = self._convert_obj_to_dict(recent_item_array[0])
                     if recent_item.get("date") == now:
                         recent_item[f"{count}_count"] += 1
                         pipe.lset(buffer_key, 0, json.dumps(recent_item))
