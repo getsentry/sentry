@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from difflib import unified_diff
 from io import StringIO
-from typing import Dict, List, NamedTuple, NewType
+from typing import Dict, List, NamedTuple
 
 import click
 from dateutil import parser
@@ -14,6 +14,7 @@ from django.core import management, serializers
 from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, connection, transaction
+from django.db.models.fields.related import ManyToManyField
 
 from sentry.runner.decorators import configuration
 from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
@@ -22,8 +23,6 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 JSON_PRETTY_PRINTER = JSONEncoder(
     default=better_default_encoder, indent=2, ignore_nan=True, sort_keys=True
 )
-
-ComparatorKind = NewType("ComparatorKind", str)
 
 
 # TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
@@ -41,7 +40,7 @@ class InstanceID(NamedTuple):
 class ComparatorFinding(NamedTuple):
     """Store all information about a single failed matching between expected and actual output."""
 
-    kind: ComparatorKind
+    kind: str
     on: InstanceID
     reason: str = ""
 
@@ -121,7 +120,7 @@ class JSONScrubbingComparator(ABC):
             del right["fields"][field]
             right["scrubbed"][f"{self.get_kind()}::{field}"] = True
 
-    def get_kind(self) -> ComparatorKind:
+    def get_kind(self) -> str:
         """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
         be bubbled up in ComparatorFindings when they are generated."""
 
@@ -146,6 +145,7 @@ class DateUpdatedComparator(JSONScrubbingComparator):
                 reason=f"""the left date_updated value on `{on}` ({left_date_updated}) was not less
                 than or equal to the right ({right_date_updated})""",
             )
+        return None
 
 
 ComparatorList = List[JSONScrubbingComparator]
@@ -219,7 +219,7 @@ def validate(
             for cmp in comparators[id.model]:
                 res = cmp.compare(id, exp, act)
                 if res:
-                    findings.append(ComparatorFinding(cmp.get_kind(), id, res))
+                    findings.append(res)
             for cmp in comparators[id.model]:
                 cmp.scrub(id, exp, act)
 
@@ -284,9 +284,9 @@ def sort_dependencies():
         if app_config.label in EXCLUDED_APPS:
             continue
 
-        model_list = app_config.get_models()
+        model_iterator = app_config.get_models()
 
-        for model in model_list:
+        for model in model_iterator:
             models.add(model)
             # Add any explicitly defined dependencies
             if hasattr(model, "natural_key"):
@@ -299,23 +299,25 @@ def sort_dependencies():
             # Now add a dependency for any FK relation with a model that
             # defines a natural key
             for field in model._meta.fields:
-                if hasattr(field.remote_field, "model"):
-                    rel_model = field.remote_field.model
-                    if rel_model != model:
-                        # TODO(hybrid-cloud): actor refactor.
-                        # Add cludgy conditional preventing walking actor.team_id, actor.user_id
-                        # Which avoids circular imports
-                        if model == Actor and (rel_model == Team or rel_model == User):
-                            continue
+                rel_model = getattr(field.remote_field, "model", None)
+                if rel_model is not None and rel_model != model:
+                    # TODO(hybrid-cloud): actor refactor.
+                    # Add cludgy conditional preventing walking actor.team_id, actor.user_id
+                    # Which avoids circular imports
+                    if model == Actor and (rel_model == Team or rel_model == User):
+                        continue
 
-                        deps.append(rel_model)
+                    deps.append(rel_model)
 
             # Also add a dependency for any simple M2M relation with a model
             # that defines a natural key.  M2M relations with explicit through
             # models don't count as dependencies.
-            for field in model._meta.many_to_many:
-                rel_model = field.remote_field.model
-                if rel_model != model:
+            many_to_many_fields = [
+                field for field in model._meta.get_fields() if isinstance(field, ManyToManyField)
+            ]
+            for field in many_to_many_fields:
+                rel_model = getattr(field.remote_field, "model", None)
+                if rel_model is not None and rel_model != model:
                     deps.append(rel_model)
             model_dependencies.append((model, deps))
 

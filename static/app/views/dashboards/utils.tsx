@@ -12,7 +12,6 @@ import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
 import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {
@@ -64,23 +63,14 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: PageFilters,
-  widgetDisplayType?: DisplayType
+  selection: PageFilters
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
-  const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.columns.includes('geo.country_code')
-      ? ['geo.country_code', ...query.columns, ...query.aggregates]
-      : [...query.columns, ...query.aggregates];
-  const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.conditions.includes('has:geo.country_code')
-      ? `${query.conditions} has:geo.country_code`.trim()
-      : query.conditions;
+  const fields = [...query.columns, ...query.aggregates];
+  const conditions = query.conditions;
 
   const {orderby} = query;
   // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
@@ -157,8 +147,6 @@ export function miniWidget(displayType: DisplayType): string {
       return WidgetBigNumber;
     case DisplayType.TABLE:
       return WidgetTable;
-    case DisplayType.WORLD_MAP:
-      return WidgetWorldMap;
     case DisplayType.LINE:
     default:
       return WidgetLine;
@@ -224,12 +212,7 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[index],
-    selection,
-    widget.displayType
-  );
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
 
   // Pull a max of 3 valid Y-Axis from the widget

@@ -14,7 +14,7 @@ from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
-from tests.sentry.backup import ValidationError, tmp_export_to_file
+from tests.sentry.backup import ValidationError, export_to_file
 
 EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}
 
@@ -36,7 +36,7 @@ def import_export_then_validate(
         rv = CliRunner().invoke(import_, [str(fixture_file_path)])
         assert rv.exit_code == 0, rv.output
 
-    res = validate(expect, tmp_export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
+    res = validate(expect, export_to_file(tmp_path.joinpath("tmp_test_file.json")), map)
     if res.findings:
         raise ValidationError(res)
 

@@ -12,6 +12,8 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Dashboard} from 'sentry/views/projectsDashboard';
 
+jest.mock('sentry/api');
+
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
@@ -33,6 +35,7 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('ProjectsDashboard', function () {
+  const api = new MockApiClient();
   const org = TestStubs.Organization();
   const team = TestStubs.Team();
   const teams = [team];
@@ -55,7 +58,14 @@ describe('ProjectsDashboard', function () {
       const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
 
       render(
-        <Dashboard teams={noProjectTeams} organization={org} params={{orgId: org.slug}} />
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          teams={noProjectTeams}
+          organization={org}
+          {...TestStubs.routeComponentProps()}
+        />
       );
 
       expect(screen.getByRole('button', {name: 'Join a Team'})).toBeInTheDocument();
@@ -69,9 +79,12 @@ describe('ProjectsDashboard', function () {
 
       render(
         <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
           teams={teamsWithOneProject}
           organization={org}
-          params={{orgId: org.slug}}
+          {...TestStubs.routeComponentProps()}
         />
       );
 
@@ -110,9 +123,12 @@ describe('ProjectsDashboard', function () {
 
       render(
         <Dashboard
-          teams={teamsWithTwoProjects}
+          api={api}
+          error={null}
+          loadingTeams={false}
           organization={org}
-          params={{orgId: org.slug}}
+          teams={teamsWithTwoProjects}
+          {...TestStubs.routeComponentProps()}
         />
       );
       expect(screen.getByText('My Teams')).toBeInTheDocument();
@@ -187,13 +203,22 @@ describe('ProjectsDashboard', function () {
 
       render(
         <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
           teams={teamsWithSpecificProjects}
           organization={org}
-          params={{orgId: org.slug}}
-          location={{
-            query: {team: '2'},
-            search: '?team=2`',
-          }}
+          {...TestStubs.routeComponentProps({
+            location: {
+              pathname: '',
+              hash: '',
+              state: '',
+              action: 'PUSH',
+              key: '',
+              query: {team: '2'},
+              search: '?team=2`',
+            },
+          })}
         />
       );
 
@@ -228,15 +253,17 @@ describe('ProjectsDashboard', function () {
 
       render(
         <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
           teams={teamsWithTwoProjects}
           organization={org}
-          params={{orgId: org.slug}}
+          {...TestStubs.routeComponentProps()}
         />
       );
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
-        'project2',
-        '{enter}'
+        'project2{enter}'
       );
       expect(screen.getByText('project2')).toBeInTheDocument();
       await waitFor(() => {
@@ -310,9 +337,12 @@ describe('ProjectsDashboard', function () {
       jest.useFakeTimers();
       render(
         <Dashboard
-          teams={teamsWithFavProjects}
+          api={api}
+          error={null}
+          loadingTeams={false}
           organization={org}
-          params={{orgId: org.slug}}
+          teams={teamsWithFavProjects}
+          {...TestStubs.routeComponentProps()}
         />
       );
 
@@ -394,9 +424,12 @@ describe('ProjectsDashboard', function () {
 
       const {unmount} = render(
         <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
           teams={teamsWithStatTestProjects}
           organization={org}
-          params={{orgId: org.slug}}
+          {...TestStubs.routeComponentProps()}
         />
       );
 
@@ -456,7 +489,14 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
 
       render(
-        <Dashboard error={Error('uhoh')} organization={org} params={{orgId: org.slug}} />
+        <Dashboard
+          api={api}
+          loadingTeams={false}
+          error={Error('uhoh')}
+          organization={org}
+          teams={[]}
+          {...TestStubs.routeComponentProps()}
+        />
       );
 
       expect(
