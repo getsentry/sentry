@@ -4,6 +4,7 @@ from time import time
 
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.models import (
     Activity,
     Group,
@@ -100,6 +101,15 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
+
+            analytics.record(
+                "issue.auto_resolved",
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
             )
 
     if might_have_more:
