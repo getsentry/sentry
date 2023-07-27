@@ -88,7 +88,7 @@ class BaseApiClient(TrackResponseMixin):
 
     def _get_redis_key(self):
         """
-        Returns the redis key for the integration or False if cannot make key
+        Returns the redis key for the integration or empty str if cannot make key
         """
         if not hasattr(self, "integration_id"):
             return ""
@@ -96,27 +96,22 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         return f"sentry-integration-error:{self.integration_id}"
 
-    def is_error(self, e: Exception) -> bool:
-        if type(e) is ConnectionError:
-            return True
-        if type(e) is Timeout:
-            return True
-        if type(e) is HTTPError:
-            return True
+    def is_considered_error(self, e: Exception) -> bool:
+        return True
 
-        return False
-
-    def is_response_fatal(self, resp: BaseApiResponse) -> bool:
+    def is_response_fatal(self, resp: Response) -> bool:
         return False
 
     def is_response_error(self, resp: Response) -> bool:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
+        if resp.status_code:
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                return True
         return False
 
     def is_response_success(self, resp: Response) -> bool:
-        if resp.status_code < 300:
-            return True
+        if resp.status_code:
+            if resp.status_code < 300:
+                return True
         return False
 
     @overload
@@ -305,11 +300,8 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
-            self.record_response(
-                BaseApiResponse.from_response(
-                    resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
-                )
-            )
+
+            self.record_response(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -394,52 +386,105 @@ class BaseApiClient(TrackResponseMixin):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_error(error):
-            return False
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_error()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        if not self.is_considered_error(error):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
 
     def record_request_error(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_error()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
 
     def record_request_success(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_success()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_success()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
 
     def record_request_fatal(self, resp: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_fatal()
-        if buffer.is_integration_broken():
-            self.disable_integration()
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_fatal()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
 
     def disable_integration(self) -> None:
-
         rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
+        if (
+            integration_service.get_integration(integration_id=rpc_integration.id).status
+            == ObjectStatus.DISABLED
+        ):
+            return
         oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
         org = Organization.objects.get(id=oi.organization_id)
-        if features.has("organizations:disable-on-broken", org):
+        if (
+            features.has("organizations:slack-disable-on-broken", org)
+            and rpc_integration.provider == "slack"
+        ):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
-            integration = integration_service.get_integration(integration_id=self.integration_id)
-            notify_disable(org, integration, self._get_redis_key())
-
+        if len(rpc_org_integration) == 0 and rpc_integration is None:
+            self.logger.info(
+                "integration.disabled",
+                extra={
+                    "integration_id": self.integration_id,
+                    "provider": "provider is None",
+                    "organization_id": "rpc_org_integration is empty",
+                },
+            )
+            return
+        if len(rpc_org_integration) == 0:
+            self.logger.info(
+                "integration.disabled",
+                extra={
+                    "integration_id": self.integration_id,
+                    "provider": rpc_integration.provider,
+                    "organization_id": "rpc_org_integration is empty",
+                },
+            )
+            return
+        if rpc_integration is None:
+            self.logger.info(
+                "integration.disabled",
+                extra={
+                    "integration_id": self.integration_id,
+                    "provider": "provider is None",
+                    "organization_id": rpc_org_integration[0].organization_id,
+                },
+            )
+            return
         self.logger.info(
             "integration.disabled",
             extra={

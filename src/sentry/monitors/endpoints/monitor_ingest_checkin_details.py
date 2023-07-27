@@ -32,7 +32,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
     public = {"PUT"}
 
     @extend_schema(
-        operation_id="Update a check-in",
+        operation_id="Update a Check-In",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,

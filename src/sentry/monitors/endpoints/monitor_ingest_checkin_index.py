@@ -65,7 +65,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     """
 
     @extend_schema(
-        operation_id="Create a new check-in",
+        operation_id="Create a New Check-In",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,

@@ -114,7 +114,7 @@ describe('Incident Rules Form', () => {
     let createRule;
     beforeEach(() => {
       createRule = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/alert-rules/',
+        url: '/organizations/org-slug/alert-rules/',
         method: 'POST',
       });
     });

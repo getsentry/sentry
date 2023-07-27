@@ -23,15 +23,13 @@ describe('Issues -> Merged View', function () {
     ],
   };
 
-  beforeAll(function () {
+  beforeEach(function () {
+    GroupingStore.init();
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
-  });
-
-  beforeEach(() => {
-    GroupingStore.init();
   });
 
   it('renders initially with loading component', function () {

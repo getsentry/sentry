@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -53,6 +53,8 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     ObjectStatus,
 )
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -541,6 +543,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             and sample_rate is not None
             and sample_rate < 1.0
         )
+        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
+        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
+            context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
+        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        if desired_sample_rate is not None:
+            context["desiredSampleRate"] = desired_sample_rate
 
         return context
 
