@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
+import {extrapolatedAreaStyle} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -44,6 +45,7 @@ type Props = DefaultProps & {
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
   comparisonSeriesName?: string;
+  isExtrapolatedData?: boolean;
   maxValue?: number;
   minValue?: number;
   minutesThresholdToDisplaySeconds?: number;
@@ -321,27 +323,20 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       thresholdType,
     } = this.props;
 
-    const extrapolatedAreaStyle = {
-      color: {
-        repeat: 'repeat',
-        image:
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==',
-        rotation: 0.785,
-        scaleX: 0.5,
-      },
-      opacity: 1.0,
-    };
-
-    const dataWithoutRecentBucket_temp: AreaChartSeries[] = data?.map(
+    const dataWithoutRecentBucket_temp = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
         data: eventData.slice(0, -1),
       })
     );
 
-    const dataWithoutRecentBucket = dataWithoutRecentBucket_temp.map(d =>
-      // @ts-expect-error adsa
-      d.isExtrapolatedData ? {...d, areaStyle: extrapolatedAreaStyle} : d
+    const dataWithoutRecentBucket: AreaChartSeries[] = dataWithoutRecentBucket_temp.map(
+      d => {
+        if (this.props.isExtrapolatedData) {
+          return {...d, areaStyle: extrapolatedAreaStyle};
+        }
+        return d;
+      }
     );
 
     const comparisonDataWithoutRecentBucket = comparisonData?.map(

@@ -306,15 +306,8 @@ class TriggersChart extends PureComponent<Props, State> {
       ? errored || errorMessage
       : errored || errorMessage || !isQueryValid;
 
-    const seriesData = timeseriesData.map(series => {
-      if (seriesAdditionalInfo && seriesAdditionalInfo[series.seriesName]) {
-        return {
-          ...series,
-          isExtrapolatedData: seriesAdditionalInfo[series.seriesName].isExtrapolatedData,
-        };
-      }
-      return series;
-    });
+    const isExtrapolatedChartData =
+      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
 
     return (
       <Fragment>
@@ -331,9 +324,9 @@ class TriggersChart extends PureComponent<Props, State> {
         ) : (
           <ThresholdsChart
             period={statsPeriod}
-            minValue={minBy(seriesData[0]?.data, ({value}) => value)?.value}
-            maxValue={maxBy(seriesData[0]?.data, ({value}) => value)?.value}
-            data={seriesData}
+            minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
+            maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
+            data={timeseriesData}
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
@@ -343,6 +336,7 @@ class TriggersChart extends PureComponent<Props, State> {
             thresholdType={thresholdType}
             aggregate={aggregate}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+            isExtrapolatedData={isExtrapolatedChartData}
           />
         )}
 
