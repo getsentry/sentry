@@ -106,14 +106,21 @@ def mark_bundle_for_flat_file_indexing(
                     dist_name=identifier.dist,
                 )
 
-            FlatFileIndexState.objects.update_or_create(
+            # Lol, turns out that `update_or_create` will also do a `get` under the hood,
+            # which is equally broken if you end up with duplicates.
+            rows_updated = FlatFileIndexState.objects.filter(
                 flat_file_index=flat_file_index,
                 artifact_bundle=artifact_bundle,
-                defaults={
-                    "indexing_state": ArtifactBundleIndexingState.NOT_INDEXED.value,
-                    "date_added": timezone.now(),
-                },
+            ).update(
+                indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                date_added=timezone.now(),
             )
+            if rows_updated == 0:
+                FlatFileIndexState.objects.create(
+                    flat_file_index=flat_file_index,
+                    artifact_bundle=artifact_bundle,
+                    indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                )
 
     return identifiers
 
