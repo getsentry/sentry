@@ -270,7 +270,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -1173,11 +1173,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-geo/$",
-        OrganizationEventsGeoEndpoint.as_view(),
-        name="sentry-api-0-organization-events-geo",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
