@@ -44,6 +44,7 @@ export enum DataDisplayType {
   DURATION_P95 = 'duration_p95',
   CUMULATIVE_DURATION = 'cumulative_duration',
   PERCENTAGE = 'percentage',
+  DURATION_AVG = 'duration_avg',
 }
 
 export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Props) {
@@ -54,9 +55,9 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
-    {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
+    {label: t('Average Duration'), value: DataDisplayType.DURATION_AVG},
+    {label: t('Total Duration'), value: DataDisplayType.CUMULATIVE_DURATION},
   ];
 
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
@@ -207,12 +208,14 @@ const getEventView = (
   const yAxis =
     dataDisplayType === DataDisplayType.DURATION_P95
       ? `p95(${SPAN_SELF_TIME})`
+      : dataDisplayType === DataDisplayType.DURATION_AVG
+      ? `avg(${SPAN_SELF_TIME})`
       : `sum(${SPAN_SELF_TIME})`;
 
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+      fields: [`sum(${SPAN_SELF_TIME})`, `avg(${SPAN_SELF_TIME})`, ...groups],
       yAxis: getTimeseries ? [yAxis] : [],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,

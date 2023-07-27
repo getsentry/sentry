@@ -21,7 +21,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
-import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -62,7 +62,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
+        yAxis={['tps()', 'http_error_count()', 'avg(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -90,7 +90,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
 
           return (
             <Fragment>
-              <MiniChartPanel title={DataTitles.p95}>
+              <MiniChartPanel title={DataTitles.avg}>
                 <Chart
                   height={71}
                   data={[percentileData]}
@@ -104,7 +104,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
                   }}
                   definedAxisTicks={2}
                   isLineChart
-                  chartColors={[P95_COLOR]}
+                  chartColors={[AVG_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value =>
                       tooltipFormatterUsingAggregateOutputType(value, 'duration'),
