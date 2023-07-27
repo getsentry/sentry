@@ -1,4 +1,5 @@
-import pytz
+from datetime import timezone
+
 import responses
 
 from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
@@ -10,7 +11,7 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
-event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"
 SERVICES = [
