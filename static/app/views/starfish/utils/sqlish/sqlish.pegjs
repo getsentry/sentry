@@ -2,7 +2,7 @@ Expression
    = tokens:Token*
 
 Token
-   = Keyword / Parameter / CollapsedColumns / Semicolon / Whitespace / GenericToken
+   = Keyword / Wildcard / Parameter / CollapsedColumns / Semicolon / Whitespace / GenericToken
 
 Keyword
   = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / JoinKeyword) {
@@ -19,6 +19,9 @@ JoinDirection
 
 JoinType
 = "OUTER"i / "INNER"i
+
+Wildcard
+= "*" { return { type: 'Wildcard', content: "*" } }
 
 Parameter
   = "%s" { return { type: 'Parameter', content: "%s" } }

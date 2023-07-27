@@ -8,4 +8,8 @@ describe('SQLishFormatter', function () {
       'SELECT hello \nFROM users;'
     );
   });
+
+  it('Formats wildcards', () => {
+    expect(formatter.toString('SELECT * FROM users;')).toEqual('SELECT * \nFROM users;');
+  });
 });
