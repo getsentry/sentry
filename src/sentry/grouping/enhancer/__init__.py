@@ -147,21 +147,20 @@ class Enhancements:
         """
         # XXX: We need to fingerprint self._modifier_rules, if it changes, we need to invalidate the cache
         match_frames, stacktrace_fingerprint = _generate_matching_frames(frames, platform)
+        rules_fingerprint = _generate_rules_fingerprint(self._modifier_rules, platform)
         # The most expensive part of creating groups is applying the rules to frames (next code block)
-        if stacktrace_fingerprint:
-            merged, merged_frames = _merge_cached_values(frames, stacktrace_fingerprint, platform)
+        if stacktrace_fingerprint and rules_fingerprint:
+            cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
+            merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
                 # XXX: Once we're ready, we will update the frames and return from the function
-                pass
                 # frames = merged_frames
                 # return
+                pass
 
         in_memory_cache: dict[str, str] = {}
 
-        with sentry_sdk.start_span(
-            op="stacktrace_processing",
-            description="apply_rules_to_frames",
-        ):
+        with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
                     match_frames, platform, exception_data, in_memory_cache
@@ -566,7 +565,8 @@ def _generate_matching_frames(
                 extra={"frame": frame, "platform": platform},
             )
 
-    stacktrace_fingerprint = f"stacktrace_fing:v1:{stacktrace_hash.hexdigest()}"
+    if not hashing_failure:
+        stacktrace_fingerprint = stacktrace_hash.hexdigest()
     # This will help us calculate the ratio of success to failure stacktrace fingerprint calculation
     # This will also track how many stacktraces are processed (rather than number of groups)
     metrics.incr(
@@ -575,6 +575,32 @@ def _generate_matching_frames(
     )
 
     return (matched_frames, stacktrace_fingerprint)
+
+
+def _generate_rules_fingerprint(rules: Sequence[Rule], platform: str) -> str:
+    """Return empty string or fingerprint representing this list of rules."""
+    hashing_failure = False
+    rules_hash = md5()
+    rules_fingerprint = ""
+    for rule in rules:
+        try:
+            hash_value(rules_hash, rule)
+        except TypeError:
+            hashing_failure = True
+            # This will create an error in Sentry and help us evaluate why it failed
+            logger.exception(
+                "Rules hashing failure. Investigate and fix.",
+                extra={"rule": rule, "platform": platform},
+            )
+
+    if not hashing_failure:
+        rules_fingerprint = rules_hash.hexdigest()
+    # This will help us calculate the ratio of success to rules fingerprint calculation
+    metrics.incr(
+        "save_event.rules.fingerprint",
+        tags={"hashing_failure": hashing_failure, "platform": platform},
+    )
+    return rules_fingerprint
 
 
 def _load_configs():
