@@ -55,7 +55,12 @@ class FlatFileMeta:
         return FlatFileMeta(id=-1, date=datetime.min)
 
     def to_string(self) -> str:
-        return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
+        if self.date != datetime.min:
+            timestamp = int(self.date.timestamp() * 1000)
+        else:
+            timestamp = 0
+
+        return f"bundle_index/{self.id}/{timestamp}"
 
     def is_none(self):
         return self.id == -1 and self.date == datetime.min
