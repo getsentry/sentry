@@ -317,9 +317,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_hashes(self, force_config: str | Mapping[str, Any] | None = None) -> CalculatedHashes:
         """
         Returns _all_ information that is necessary to group an event into
-        issues. It returns two lists of hashes, `(flat_hashes,
-
-        hierarchical_hashes)`:
+        issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
 
         1. First, `hierarchical_hashes` is walked
            *backwards* (end to start) until one hash has been found that matches
