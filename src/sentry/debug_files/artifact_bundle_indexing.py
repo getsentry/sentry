@@ -84,11 +84,28 @@ def mark_bundle_for_flat_file_indexing(
                 router.db_for_write(FlatFileIndexState),
             )
         ):
-            flat_file_index, _created = ArtifactBundleFlatFileIndex.objects.get_or_create(
-                project_id=identifier.project_id,
-                release_name=identifier.release,
-                dist_name=identifier.dist,
+            # This used to be `get_or_create`, but that is completely broken
+            # when you end up with duplicates, so now we gotta clean that mess up:
+            flat_file_indexes = list(
+                ArtifactBundleFlatFileIndex.objects.filter(
+                    project_id=identifier.project_id,
+                    release_name=identifier.release,
+                    dist_name=identifier.dist,
+                )
             )
+            if len(flat_file_indexes) > 0:
+                flat_file_index = flat_file_indexes.pop(0)
+                # remove duplicates from the DB:
+                if len(flat_file_indexes) > 0:
+                    ids = [index.id for index in flat_file_indexes]
+                    ArtifactBundleFlatFileIndex.objects.filter(id__in=ids).delete()
+            else:
+                flat_file_index = ArtifactBundleFlatFileIndex.objects.create(
+                    project_id=identifier.project_id,
+                    release_name=identifier.release,
+                    dist_name=identifier.dist,
+                )
+
             FlatFileIndexState.objects.update_or_create(
                 flat_file_index=flat_file_index,
                 artifact_bundle=artifact_bundle,
