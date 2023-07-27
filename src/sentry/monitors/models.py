@@ -471,8 +471,10 @@ class MonitorEnvironment(Model):
     status = BoundedPositiveIntegerField(
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
-    next_checkin = models.DateTimeField(null=True)
-    next_checkin_latest = models.DateTimeField(null=True)
+    next_checkin = models.DateTimeField(null=True)  # the expected time of the next check-in
+    next_checkin_latest = models.DateTimeField(
+        null=True
+    )  # the latest expected time of the next check-in (includes check-in margin)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
