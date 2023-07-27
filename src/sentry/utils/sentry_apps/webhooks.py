@@ -8,6 +8,7 @@ from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
 from sentry.http import safe_urlopen
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.sentry_app import track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -35,13 +36,16 @@ def ignore_unpublished_app_errors(func):
 
     return wrapper
 
+
 def is_considered_error(error: Exception) -> bool:
     return True
 
+
 def is_timeout(e: Exception) -> bool:
-    if e is Timeout:
+    if e is Timeout or e is ConnectionError:
         return True
     return False
+
 
 def is_response_error(resp: Response) -> bool:
     if resp.status_code:
@@ -49,11 +53,13 @@ def is_response_error(resp: Response) -> bool:
             return True
     return False
 
+
 def is_response_success(resp: Response) -> bool:
     if resp.status_code:
         if resp.status_code < 300:
             return True
     return False
+
 
 def record_error(sentryapp: SentryApp, error: Exception):
     redis_key = sentryapp._get_redis_key()
@@ -69,6 +75,7 @@ def record_error(sentryapp: SentryApp, error: Exception):
     if buffer.is_integration_broken():
         disable_app(error)
 
+
 def record_request_error(sentryapp: SentryApp, resp: Response):
     redis_key = sentryapp._get_redis_key()
     if not len(redis_key):
@@ -78,12 +85,14 @@ def record_request_error(sentryapp: SentryApp, resp: Response):
     if buffer.is_integration_broken():
         disable_app(resp)
 
+
 def record_request_success(sentryapp: SentryApp, resp: Response):
     redis_key = sentryapp._get_redis_key()
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_success()
+
 
 def record_request_timeout(sentryapp: SentryApp, resp: Response):
     redis_key = sentryapp._get_redis_key()
@@ -94,14 +103,17 @@ def record_request_timeout(sentryapp: SentryApp, resp: Response):
     if buffer.is_integration_broken():
         disable_app(resp)
 
+
 def record_response(sentryapp: SentryApp, response: Response):
     if is_response_error(response):
         record_request_error(sentryapp, response)
     elif is_response_success(response):
         record_request_success(sentryapp, response)
 
+
 def disable_app(sentryapp: SentryApp):
-    #sentryapp.update(status=ObjectStatus.DISABLED)
+    sentryapp._disable()
+
 
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
