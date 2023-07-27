@@ -149,9 +149,12 @@ class Enhancements:
         match_frames, stacktrace_fingerprint = _generate_matching_frames(frames, platform)
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         if stacktrace_fingerprint:
-            # XXX: For now, do the merge on a copy and continue. Once we're ready,
-            # we will return from the function
-            _merge_values(deepcopy(frames), stacktrace_fingerprint)
+            merged, merged_frames = _merge_cached_values(frames, stacktrace_fingerprint, platform)
+            if merged:
+                # XXX: Once we're ready, we will update the frames and return from the function
+                pass
+                # frames = merged_frames
+                # return
 
         in_memory_cache: dict[str, str] = {}
 
@@ -492,24 +495,43 @@ class EnhancementsVisitor(NodeVisitor):
         return node.match.groups()[0].lstrip("!")
 
 
-def _merge_values(frames: Sequence[dict[str, Any]], cache_key: str) -> None:
-    """This will merge the cached values if any is found for this stacktrace."""
+def _merge_cached_values(
+    frames: Sequence[dict[str, Any]],
+    cache_key: str,
+    platform: str,
+) -> tuple[bool, Sequence[dict[str, Any]]]:
+    """This will merge the cached values if any are found for this stacktrace.
+    Returns if the merged has happened and the updated frames."""
+    merged_frames = deepcopy(frames)
+    frames_merged = False
     changed_frames_values = cache.get(cache_key)
-    if not changed_frames_values:
-        return
+    # This helps tracking changes in the hit/miss ratio of the cache
+    metrics.incr(
+        "save_event.stacktrace.cache",
+        tags={"hit": changed_frames_values, "platform": platform},
+    )
+    if changed_frames_values:
+        try:
+            for frame, changed_frame_values in zip(merged_frames, changed_frames_values):
+                frame["in_app"] = changed_frame_values["in_app"]
+                set_path(frame, "data", "category", value=changed_frame_values["category"])
 
-    try:
-        for frame, changed_frame_values in zip(frames, changed_frames_values):
-            frame["in_app"] = changed_frame_values["in_app"]
-            set_path(frame, "data", "category", value=changed_frame_values["category"])
+            logger.info("We have merged the cached stacktrace to the incoming one.")
 
-        logger.info("We have merged the cached stacktrace to the incoming one.")
-    except Exception:
-        logger.exception("We have failed to update the stacktrace from the cache.")
+            frames_merged = True
+        except Exception:
+            logger.exception("We have failed to update the stacktrace from the cache.")
+
+    metrics.incr(
+        "save_event.stacktrace.merged_cached_values",
+        tags={"success": frames_merged, "platform": platform},
+    )
+    return frames_merged, merged_frames
 
 
 def _cache_changed_frame_values(frames: Sequence[dict[str, Any]], cache_key: str) -> None:
-    # XXX: How do we make sure that we stay in sync with actions's apply_modifications_to_frame?
+    # XXX: A follow up PR will be required to make sure that only a whitelisted set of parameters
+    # are allowed to be modified in apply_modifications_to_frame, thus, not falling out of date with this
     changed_frames_values = [
         {
             "in_app": frame.get("in_app"),  # Based on FlagAction
@@ -525,29 +547,32 @@ def _generate_matching_frames(
 ) -> tuple[list[dict[str, Any]], str]:
     """Return mock frames which are used for matching rules and a fingerprint representing the stacktrace."""
     matched_frames = []
-    failed_to_hash = False
+    hashing_failure = False
     stacktrace_hash = md5()
     stacktrace_fingerprint = ""
     for frame in frames:
         match_frame = create_match_frame(frame, platform)
         matched_frames.append(match_frame)
 
-        if not failed_to_hash:
-            try:
-                # We create the hash based on the match_frame since it does not
-                # contain values like the `vars` which is not necessary for grouping
-                hash_value(stacktrace_hash, match_frame)
-            except TypeError:
-                failed_to_hash = True
-                # This will create an error in Sentry and help us evaluate why it failed
-                logger.exception(
-                    "We failed to hash a frame.", extra={"frame": frame, "platform": platform}
-                )
+        try:
+            # We create the hash based on the match_frame since it does not
+            # contain values like the `vars` which is not necessary for grouping
+            hash_value(stacktrace_hash, match_frame)
+        except TypeError:
+            hashing_failure = True
+            # This will create an error in Sentry and help us evaluate why it failed
+            logger.exception(
+                "Frame hashing failure. Investigate and fix.",
+                extra={"frame": frame, "platform": platform},
+            )
 
-    if not failed_to_hash:
-        stacktrace_fingerprint = f"stacktrace_fing:v1:{stacktrace_hash.hexdigest()}"
+    stacktrace_fingerprint = f"stacktrace_fing:v1:{stacktrace_hash.hexdigest()}"
     # This will help us calculate the ratio of success to failure stacktrace fingerprint calculation
-    metrics.incr("save_event.stacktrace_fingerprint", tags={"created": failed_to_hash})
+    # This will also track how many stacktraces are processed (rather than number of groups)
+    metrics.incr(
+        "save_event.stacktrace.fingerprint",
+        tags={"hashing_failure": hashing_failure, "platform": platform},
+    )
 
     return (matched_frames, stacktrace_fingerprint)
 
