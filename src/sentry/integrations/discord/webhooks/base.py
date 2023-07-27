@@ -125,7 +125,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.reply(message)
 
-        # if self.has_identity() then these must not be None
+        # if self.discord_request.has_identity() then these must not be None
         assert self.discord_request.integration is not None
         assert self.discord_request.user_id is not None
 
