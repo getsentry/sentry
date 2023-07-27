@@ -603,6 +603,12 @@ class MetricsQueryBuilder(QueryBuilder):
         self.validate_having_clause()
         self.validate_orderby_clause()
 
+        # TODO(bool-conditions): Currently Boolean Condition is not supported by the metrics layer
+        # Uncomment this when they are
+        # granularity_condition, new_granularity = self.resolve_split_granularity()
+        # self.granularity = new_granularity
+        # self.where += granularity_condition
+
         prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
         return Request(
             dataset=self.dataset.value,

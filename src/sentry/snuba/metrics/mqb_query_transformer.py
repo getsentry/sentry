@@ -1,7 +1,7 @@
 import inspect
 from typing import Set
 
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularity, Op
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
@@ -447,7 +447,7 @@ def transform_mqb_query_to_metrics_query(
         "offset": query.offset,
         "include_totals": True,
         "include_series": include_series,
-        "granularity": query.granularity if query.granularity is not None else Granularity(3600),
+        "granularity": query.granularity,
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
         "is_alerts_query": is_alerts_query,

@@ -2188,6 +2188,31 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
+    def test_implicitly_split_granularity_condition(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                "dataset": "metrics",
+                "statsPeriod": "14d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2219,3 +2244,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not supported")
     def test_http_error_rate(self):
         super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Boolean conditions aren't supported")
+    def test_implicitly_split_granularity_condition(self):
+        # Uncomment the TODO(bool-conditions) in the Metrics Query Builder to test this
+        super().test_implicitly_split_granularity_condition()
