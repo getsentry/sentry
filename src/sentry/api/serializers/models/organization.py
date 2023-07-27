@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -543,7 +543,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             and sample_rate is not None
             and sample_rate < 1.0
         )
-        org_volume = get_organization_volume(obj.id)
+        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
         desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
