@@ -145,20 +145,20 @@ class Enhancements:
         """This applies the frame modifications to the frames itself. This
         does not affect grouping.
         """
-        # XXX: We need to fingerprint self._modifier_rules, if it changes, we need to invalidate the cache
-        match_frames, stacktrace_fingerprint = _generate_matching_frames(frames, platform)
+        in_memory_cache: dict[str, str] = {}
+
+        match_frames, stacktrace_fingerprint = _matching_frames_and_fingerprint(frames, platform)
         rules_fingerprint = _generate_rules_fingerprint(self._modifier_rules, platform)
         # The most expensive part of creating groups is applying the rules to frames (next code block)
+        # We include the rules fingerprint to make sure that the set of rules are still the same
+        cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
         if stacktrace_fingerprint and rules_fingerprint:
-            cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
                 # XXX: Once we're ready, we will update the frames and return from the function
                 # frames = merged_frames
                 # return
                 pass
-
-        in_memory_cache: dict[str, str] = {}
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
@@ -168,8 +168,8 @@ class Enhancements:
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
-        if stacktrace_fingerprint and not cache.get(stacktrace_fingerprint):
-            _cache_changed_frame_values(frames, stacktrace_fingerprint)
+        if stacktrace_fingerprint and not cache.get(cache_key):
+            _cache_changed_frame_values(frames, cache_key)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -499,9 +499,11 @@ def _merge_cached_values(
     cache_key: str,
     platform: str,
 ) -> tuple[bool, Sequence[dict[str, Any]]]:
-    """This will merge the cached values if any are found for this stacktrace.
-    Returns if the merged has happened and the updated frames."""
-    merged_frames = deepcopy(frames)
+    """
+    This will merge the cached values if any are found for this stacktrace.
+    Returns if the merged has correctly happened and the updated frames if so.
+    """
+    merged_frames = []
     frames_merged = False
     changed_frames_values = cache.get(cache_key)
     # This helps tracking changes in the hit/miss ratio of the cache
@@ -510,6 +512,8 @@ def _merge_cached_values(
         tags={"hit": changed_frames_values, "platform": platform},
     )
     if changed_frames_values:
+        # We duplicate the stacktrace and only return if everything has been applied correctly
+        merged_frames = deepcopy(frames)
         try:
             for frame, changed_frame_values in zip(merged_frames, changed_frames_values):
                 frame["in_app"] = changed_frame_values["in_app"]
@@ -541,7 +545,7 @@ def _cache_changed_frame_values(frames: Sequence[dict[str, Any]], cache_key: str
     cache.set(cache_key, changed_frames_values)
 
 
-def _generate_matching_frames(
+def _matching_frames_and_fingerprint(
     frames: Sequence[dict[str, Any]], platform: str
 ) -> tuple[list[dict[str, Any]], str]:
     """Return mock frames which are used for matching rules and a fingerprint representing the stacktrace."""
