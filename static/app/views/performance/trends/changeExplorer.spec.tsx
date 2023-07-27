@@ -5,12 +5,14 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import {
   COLUMNS,
   MetricsTable,
   renderBodyCell,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
+import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -36,8 +38,166 @@ const transaction: NormalizedTrendsTransaction = {
   received_at: moment(1601251200000),
 };
 
+const spanResults: SuspectSpans = [
+  {
+    op: 'db',
+    group: '1',
+    description: 'span1',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '2',
+    description: 'span2',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '3',
+    description: 'span3',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '4',
+    description: 'span4',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '5',
+    description: 'span5',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '6',
+    description: 'span6',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '7',
+    description: 'span7',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '8',
+    description: 'span8',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '9',
+    description: 'span9',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '10',
+    description: 'span10',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+  {
+    op: 'db',
+    group: '11',
+    description: 'span11',
+    frequency: 4,
+    count: 4,
+    avgOccurrences: undefined,
+    sumExclusiveTime: 345345,
+    p50ExclusiveTime: undefined,
+    p75ExclusiveTime: 25,
+    p95ExclusiveTime: undefined,
+    p99ExclusiveTime: undefined,
+    examples: [],
+  },
+];
+
 describe('Performance > Trends > Performance Change Explorer', function () {
   let eventsMockBefore;
+  let spansMock;
   beforeEach(function () {
     eventsMockBefore = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -68,6 +228,11 @@ describe('Performance > Trends > Performance Change Explorer', function () {
           dataset: 'metrics',
         },
       },
+    });
+
+    spansMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [],
     });
   });
 
@@ -107,6 +272,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(eventsMockBefore);
+    await waitForMockCall(spansMock);
 
     await waitFor(() => {
       expect(screen.getByTestId('pce-header')).toBeInTheDocument();
@@ -116,6 +282,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
       expect(screen.getAllByTestId('pce-metrics-chart-row-before')).toHaveLength(4);
       expect(screen.getAllByTestId('pce-metrics-chart-row-after')).toHaveLength(4);
       expect(screen.getAllByTestId('pce-metrics-chart-row-change')).toHaveLength(4);
+      expect(screen.getByTestId('spans-no-results')).toBeInTheDocument();
     });
   });
 
@@ -296,5 +463,73 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     expect(screen.getByText('+40.3%')).toBeInTheDocument();
+  });
+
+  it('renders spans list with no results', async () => {
+    const data = initializeData();
+
+    render(
+      <SpansList
+        location={data.location}
+        organization={data.organization}
+        trendView={data.eventView}
+        breakpoint={transaction.breakpoint!}
+        transaction={transaction}
+        trendChangeType={TrendChangeType.REGRESSION}
+      />
+    );
+
+    await waitForMockCall(spansMock);
+    await waitFor(() => {
+      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      expect(screen.getByTestId('spans-no-results')).toBeInTheDocument();
+    });
+  });
+
+  it('renders spans list with error message', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      statusCode: 504,
+    });
+    const data = initializeData();
+
+    render(
+      <SpansList
+        location={data.location}
+        organization={data.organization}
+        trendView={data.eventView}
+        breakpoint={transaction.breakpoint!}
+        transaction={transaction}
+        trendChangeType={TrendChangeType.REGRESSION}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    });
+  });
+
+  it('renders spans list with no changes message', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: spanResults,
+    });
+    const data = initializeData();
+
+    render(
+      <SpansList
+        location={data.location}
+        organization={data.organization}
+        trendView={data.eventView}
+        breakpoint={transaction.breakpoint!}
+        transaction={transaction}
+        trendChangeType={TrendChangeType.REGRESSION}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      expect(screen.getByTestId('spans-no-changes')).toBeInTheDocument();
+    });
   });
 });
