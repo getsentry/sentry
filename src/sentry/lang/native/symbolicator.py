@@ -187,8 +187,8 @@ class Symbolicator:
                 json["debug_id_index"] = debug_id_index
             if url_index:
                 json["url_index"] = url_index
-        except Exception:
-            pass
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if release is not None:
             json["release"] = release
