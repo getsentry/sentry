@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+from sentry.runner import configure
+
+configure()
+
+
+import os
+import re
+from pathlib import Path
+from string import Template
+
+import click
+from django.test.utils import setup_databases, teardown_databases
+
+from sentry.db.models import BaseModel
+from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.backups import (
+    ReleaseFixtureGenerator,
+    export_to_file,
+    get_exportable_final_derivations_of,
+)
+
+ALL_EXPORTABLE_MODELS = sorted([c.__name__ for c in get_exportable_final_derivations_of(BaseModel)])
+RELEASE_TEST_CASE_TEMPLATE = Template(
+    """
+    @targets(
+        mark(
+            $models
+        )
+    )
+    def test_at_$test_name(self):
+        with tempfile.TemporaryDirectory() as tmpfile:
+            return import_export_from_fixture_then_validate(
+                Path(tmpfile), "$release.json", DEFAULT_COMPARATORS
+            )
+
+"""
+)
+RELEASE_VERSION = re.compile("^\\d+\\.\\d+.\\d+$")
+
+
+def validate_release_arg(ctx, param, value):
+    if not RELEASE_VERSION.match(value):
+        raise TypeError("release argument must be a version number like `X.Y.Z`")
+    return value
+
+
+def to_snake_case(release):
+    """Convert ex "23.7.1" to "23_7_1", for use in method names in Python files where dots are
+    invalid."""
+    return release.replace(".", "_")
+
+
+@click.command()
+@click.argument("release", required=True, type=str, callback=validate_release_arg)
+def main(release):
+    """Used for generating backup test cases pinned to certain release versions."""
+
+    click.echo("\nThis script can take up to 60 seconds, please be patient...\n")
+
+    # Setup a test database.
+    db = setup_databases(verbosity=0, interactive=False)
+
+    try:
+        # Make a test fixture for this release using the generator.
+        fixture_path = get_fixture_path("backup", release + ".json")
+        ReleaseFixtureGenerator()("generate-backup-test-for-release")
+        export_to_file(fixture_path)
+
+        # Add a test case in the appropriate file, if one does not already exist.
+        root_path = Path(os.path.realpath(__file__)).parent.parent
+        test_file_path = root_path / "tests/sentry/backup/test_releases.py"
+        with open(test_file_path) as test_file:
+            needle = f"def test_at_{to_snake_case(release)}"
+            for line in test_file:
+                if needle in line:
+                    click.echo(f"\nDone! {release} already has a test case, so none was added!\n")
+                    return
+        with open(test_file_path, "a") as test_file:
+            model_list = ",\n            ".join(ALL_EXPORTABLE_MODELS)
+            test_file.write(
+                RELEASE_TEST_CASE_TEMPLATE.substitute(
+                    models=model_list,
+                    release=release,
+                    test_name=to_snake_case(release),
+                )
+            )
+
+        click.echo(f"\nSuccess! Added a new test case for release {release}.\n")
+    except Exception as e:
+        raise e
+    finally:
+        teardown_databases(db, verbosity=0)
+
+
+if __name__ == "__main__":
+    main()

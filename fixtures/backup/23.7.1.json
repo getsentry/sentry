@@ -1,0 +1,1749 @@
+[
+{
+  "model": "sites.site",
+  "pk": 1,
+  "fields": {
+    "domain": "example.com",
+    "name": "example.com"
+  }
+},
+{
+  "model": "sentry.option",
+  "pk": 1,
+  "fields": {
+    "key": "foo",
+    "last_updated": "2023-07-27T16:30:53.330Z",
+    "last_updated_by": "unknown",
+    "value": "\"a\""
+  }
+},
+{
+  "model": "sentry.controloption",
+  "pk": 1,
+  "fields": {
+    "key": "bar",
+    "last_updated": "2023-07-27T16:30:53.331Z",
+    "last_updated_by": "unknown",
+    "value": "\"b\""
+  }
+},
+{
+  "model": "sentry.actor",
+  "pk": 1,
+  "fields": {
+    "type": 0,
+    "user_id": null,
+    "team": 1
+  }
+},
+{
+  "model": "sentry.actor",
+  "pk": 2,
+  "fields": {
+    "type": 0,
+    "user_id": null,
+    "team": null
+  }
+},
+{
+  "model": "sentry.actor",
+  "pk": 3,
+  "fields": {
+    "type": 0,
+    "user_id": null,
+    "team": 2
+  }
+},
+{
+  "model": "sentry.apikey",
+  "pk": 1,
+  "fields": {
+    "organization_id": 1,
+    "label": "Default",
+    "key": "e4a37ed587cc4976aa9fbe92e5094f2b",
+    "scopes": "0",
+    "scope_list": "[]",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.324Z",
+    "allowed_origins": null
+  }
+},
+{
+  "model": "sentry.authprovider",
+  "pk": 1,
+  "fields": {
+    "organization_id": 1,
+    "provider": "sentry",
+    "config": {},
+    "date_added": "2023-07-27T16:30:53.327Z",
+    "sync_time": null,
+    "last_sync": null,
+    "default_role": 50,
+    "default_global_access": true,
+    "flags": "0"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 1,
+  "fields": {
+    "email": "user@example.com",
+    "date_added": "2023-07-27T16:30:52.937Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 2,
+  "fields": {
+    "email": "admin@localhost",
+    "date_added": "2023-07-27T16:30:53.060Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 3,
+  "fields": {
+    "email": "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com",
+    "date_added": "2023-07-27T16:30:53.199Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 4,
+  "fields": {
+    "email": "",
+    "date_added": "2023-07-27T16:30:53.229Z"
+  }
+},
+{
+  "model": "sentry.email",
+  "pk": 5,
+  "fields": {
+    "email": "other@example.com",
+    "date_added": "2023-07-27T16:30:53.718Z"
+  }
+},
+{
+  "model": "sentry.organization",
+  "pk": 1,
+  "fields": {
+    "name": "test_org",
+    "slug": "test-org",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:52.957Z",
+    "default_role": "member",
+    "is_test": false,
+    "flags": "1"
+  }
+},
+{
+  "model": "sentry.organization",
+  "pk": 2,
+  "fields": {
+    "name": "Tender Monkey",
+    "slug": "tender-monkey",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.205Z",
+    "default_role": "member",
+    "is_test": false,
+    "flags": "1"
+  }
+},
+{
+  "model": "sentry.organization",
+  "pk": 3,
+  "fields": {
+    "name": "baz",
+    "slug": "baz",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.415Z",
+    "default_role": "member",
+    "is_test": false,
+    "flags": "1"
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$260000$0B845S4PhAYGVop1tVF3vx$GJXuZrcVB2AOtFMt1c6bAZ4BUcLBq70cwy8ymulArpU=",
+    "last_login": null,
+    "username": "user@example.com",
+    "name": "",
+    "email": "user@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": false,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "last_password_change": "2023-07-27T16:30:52.932Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-07-27T16:30:52.871Z",
+    "last_active": "2023-07-27T16:30:52.871Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$260000$3v4Cyy3TAhp14YCB8Zh7Gq$SjB35BELrwwfOCaiz8O/SdbvhXq+l02BRpKtwxOCTiw=",
+    "last_login": null,
+    "username": "admin@localhost",
+    "name": "",
+    "email": "admin@localhost",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": true,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "last_password_change": "2023-07-27T16:30:53.055Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-07-27T16:30:52.998Z",
+    "last_active": "2023-07-27T16:30:52.998Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$260000$HabqnqSUf1q5nKLC24gRMF$tEH6ZbeBSx21Pk8DJO2w5+/NiEI77N2MS3D6QF+Qayg=",
+    "last_login": null,
+    "username": "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com",
+    "name": "",
+    "email": "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com",
+    "is_staff": true,
+    "is_active": true,
+    "is_superuser": false,
+    "is_managed": false,
+    "is_sentry_app": null,
+    "is_password_expired": false,
+    "last_password_change": "2023-07-27T16:30:53.194Z",
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-07-27T16:30:53.134Z",
+    "last_active": "2023-07-27T16:30:53.134Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.user",
+  "pk": 4,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "username": "test_app-4d6ae6ac-c652-4de0-bca0-a379430c0151",
+    "name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "is_superuser": false,
+    "is_managed": false,
+    "is_sentry_app": true,
+    "is_password_expired": false,
+    "last_password_change": null,
+    "flags": "0",
+    "session_nonce": null,
+    "date_joined": "2023-07-27T16:30:53.225Z",
+    "last_active": "2023-07-27T16:30:53.225Z",
+    "avatar_type": 0,
+    "avatar_url": null
+  }
+},
+{
+  "model": "sentry.organizationmapping",
+  "pk": 1,
+  "fields": {
+    "organization_id": 1,
+    "slug": "test-org",
+    "name": "test_org",
+    "date_created": "2023-07-27T16:30:52.972Z",
+    "customer_id": null,
+    "verified": false,
+    "idempotency_key": "",
+    "region_name": "--monolith--",
+    "status": 0
+  }
+},
+{
+  "model": "sentry.organizationmapping",
+  "pk": 2,
+  "fields": {
+    "organization_id": 2,
+    "slug": "tender-monkey",
+    "name": "Tender Monkey",
+    "date_created": "2023-07-27T16:30:53.218Z",
+    "customer_id": null,
+    "verified": false,
+    "idempotency_key": "",
+    "region_name": "--monolith--",
+    "status": 0
+  }
+},
+{
+  "model": "sentry.organizationmapping",
+  "pk": 3,
+  "fields": {
+    "organization_id": 3,
+    "slug": "baz",
+    "name": "baz",
+    "date_created": "2023-07-27T16:30:53.428Z",
+    "customer_id": null,
+    "verified": false,
+    "idempotency_key": "",
+    "region_name": "--monolith--",
+    "status": 0
+  }
+},
+{
+  "model": "sentry.orgauthtoken",
+  "pk": 1,
+  "fields": {
+    "organization_id": 1,
+    "token_hashed": "ABCDEF",
+    "token_last_characters": "xyz1",
+    "name": "token 1",
+    "scope_list": "['org:ci']",
+    "created_by": null,
+    "date_added": "2023-07-27T16:30:53.131Z",
+    "date_last_used": null,
+    "project_last_used_id": null,
+    "date_deactivated": null
+  }
+},
+{
+  "model": "sentry.recentsearch",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "user_id": 1,
+    "type": 0,
+    "query": "some query",
+    "query_hash": "0dc8a17658b1c7cfa23657780742a353",
+    "last_seen": "2023-07-27T16:30:53.710Z",
+    "date_added": "2023-07-27T16:30:53.710Z"
+  }
+},
+{
+  "model": "sentry.relayusage",
+  "pk": 1,
+  "fields": {
+    "relay_id": "e01a222f-0a10-4da3-b931-f205f12acba8",
+    "version": "0.0.1",
+    "first_seen": "2023-07-27T16:30:53.703Z",
+    "last_seen": "2023-07-27T16:30:53.703Z",
+    "public_key": "YP8tBmDxFKj3kU_vvJKFCe7KHDk6j_vh6J40cVnYTL8"
+  }
+},
+{
+  "model": "sentry.relay",
+  "pk": 1,
+  "fields": {
+    "relay_id": "e01a222f-0a10-4da3-b931-f205f12acba8",
+    "public_key": "YP8tBmDxFKj3kU_vvJKFCe7KHDk6j_vh6J40cVnYTL8",
+    "first_seen": null,
+    "last_seen": null,
+    "is_internal": true
+  }
+},
+{
+  "model": "sentry.repository",
+  "pk": 1,
+  "fields": {
+    "organization_id": 1,
+    "name": "test_repo",
+    "url": null,
+    "provider": null,
+    "external_id": null,
+    "config": {},
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.734Z",
+    "integration_id": 1
+  }
+},
+{
+  "model": "sentry.savedsearch",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "type": 0,
+    "name": "Saved query",
+    "query": "saved query",
+    "sort": "date",
+    "date_added": "2023-07-27T16:30:53.712Z",
+    "is_global": false,
+    "owner_id": null,
+    "visibility": "organization"
+  }
+},
+{
+  "model": "sentry.servicehook",
+  "pk": 1,
+  "fields": {
+    "guid": "b4ca5c8b1de344de825f354c9cfc8fa0",
+    "application_id": 1,
+    "actor_id": 1,
+    "installation_id": 1,
+    "project_id": null,
+    "organization_id": 1,
+    "url": "https://example.com/webhook",
+    "secret": "889c32e1e50141dd9ce53a4250d57378a13d44bf496e48e9990be554ed3db200",
+    "events": "[]",
+    "status": 0,
+    "version": 0,
+    "date_added": "2023-07-27T16:30:53.289Z"
+  }
+},
+{
+  "model": "sentry.servicehook",
+  "pk": 2,
+  "fields": {
+    "guid": "87616a295e62408aa4bebf4b016cb296",
+    "application_id": 1,
+    "actor_id": 2,
+    "installation_id": 1,
+    "project_id": 3,
+    "organization_id": 1,
+    "url": "https://example.com",
+    "secret": "e846749a474a4954965bc4160601d69c3601c0b64be246f19c19ab9eb97c669e",
+    "events": "[]",
+    "status": 0,
+    "version": 0,
+    "date_added": "2023-07-27T16:30:53.587Z"
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "email": "user@example.com",
+    "validation_hash": "tL2YfWNxuhW4tXsja2jQwcjO9C4m1zG2",
+    "date_hash_added": "2023-07-27T16:30:52.935Z",
+    "is_verified": true
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "admin@localhost"
+    ],
+    "email": "admin@localhost",
+    "validation_hash": "KiqhA9WKFe3mBV4AZsOdKGlaBCjg2RRl",
+    "date_hash_added": "2023-07-27T16:30:53.058Z",
+    "is_verified": true
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com"
+    ],
+    "email": "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com",
+    "validation_hash": "33UGyDyrOhV0Vhc6adTPlnU14aFhBuRp",
+    "date_hash_added": "2023-07-27T16:30:53.197Z",
+    "is_verified": true
+  }
+},
+{
+  "model": "sentry.useremail",
+  "pk": 4,
+  "fields": {
+    "user": [
+      "test_app-4d6ae6ac-c652-4de0-bca0-a379430c0151"
+    ],
+    "email": "",
+    "validation_hash": "2I6ux2aj50uSbGKqrBv5kfshj7Q1n5yx",
+    "date_hash_added": "2023-07-27T16:30:53.228Z",
+    "is_verified": false
+  }
+},
+{
+  "model": "sentry.userip",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "ip_address": "127.0.0.2",
+    "country_code": null,
+    "region_code": null,
+    "first_seen": "2012-04-05T03:29:45.000Z",
+    "last_seen": "2012-04-05T03:29:45.000Z"
+  }
+},
+{
+  "model": "sentry.userpermission",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "permission": "users.admin"
+  }
+},
+{
+  "model": "sentry.userrole",
+  "pk": 1,
+  "fields": {
+    "date_updated": "2023-07-27T16:30:55.114Z",
+    "date_added": "2023-07-27T16:30:52.950Z",
+    "name": "test-role",
+    "permissions": "[]"
+  }
+},
+{
+  "model": "sentry.userroleuser",
+  "pk": 1,
+  "fields": {
+    "date_updated": "2023-07-27T16:30:55.116Z",
+    "date_added": "2023-07-27T16:30:52.951Z",
+    "user": [
+      "user@example.com"
+    ],
+    "role": 1
+  }
+},
+{
+  "model": "sentry.timeseriessnapshot",
+  "pk": 1,
+  "fields": {
+    "start": "2023-07-26T16:30:53.691Z",
+    "end": "2023-07-27T16:30:53.691Z",
+    "values": "[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]]",
+    "period": 1,
+    "date_added": "2023-07-27T16:30:53.691Z"
+  }
+},
+{
+  "model": "sentry.timeseriessnapshot",
+  "pk": 2,
+  "fields": {
+    "start": "2023-07-26T16:30:53.700Z",
+    "end": "2023-07-27T16:30:53.700Z",
+    "values": "[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]]",
+    "period": 1,
+    "date_added": "2023-07-27T16:30:53.700Z"
+  }
+},
+{
+  "model": "sentry.monitor",
+  "pk": 1,
+  "fields": {
+    "guid": "b5035317-11ff-4cf4-8985-fb612cd50c81",
+    "slug": "1905e6dedf9d",
+    "organization_id": 3,
+    "project_id": 3,
+    "name": "",
+    "status": 0,
+    "type": 3,
+    "config": {
+      "schedule": "* * * * *",
+      "schedule_type": 1
+    },
+    "date_added": "2023-07-27T16:30:53.648Z"
+  }
+},
+{
+  "model": "sentry.monitorlocation",
+  "pk": 1,
+  "fields": {
+    "guid": "7d9c6ab5-af5a-4c3e-ab6a-5626086a6b1a",
+    "name": "test_location",
+    "date_added": "2023-07-27T16:30:53.655Z"
+  }
+},
+{
+  "model": "sentry.team",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "slug": "test_team",
+    "name": "test_team",
+    "status": 0,
+    "actor": 1,
+    "idp_provisioned": false,
+    "date_added": "2023-07-27T16:30:53.333Z",
+    "org_role": null
+  }
+},
+{
+  "model": "sentry.team",
+  "pk": 2,
+  "fields": {
+    "organization": 3,
+    "slug": "foo",
+    "name": "foo",
+    "status": 0,
+    "actor": 3,
+    "idp_provisioned": false,
+    "date_added": "2023-07-27T16:30:53.455Z",
+    "org_role": null
+  }
+},
+{
+  "model": "sentry.dashboardtombstone",
+  "pk": 1,
+  "fields": {
+    "slug": "test-tombstone",
+    "organization": 1,
+    "date_added": "2023-07-27T16:30:53.708Z"
+  }
+},
+{
+  "model": "sentry.authidentity",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "auth_provider": 1,
+    "ident": "123456789",
+    "data": {
+      "key1": "value1",
+      "key2": 42,
+      "key3": [
+        1,
+        2,
+        3
+      ],
+      "key4": {
+        "nested_key": "nested_value"
+      }
+    },
+    "last_verified": "2023-07-27T16:30:53.328Z",
+    "last_synced": "2023-07-27T16:30:53.328Z",
+    "date_added": "2023-07-27T16:30:53.328Z"
+  }
+},
+{
+  "model": "sentry.authenticator",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "created_at": "2023-07-27T16:30:53.325Z",
+    "last_used_at": null,
+    "type": 1,
+    "config": "\"\""
+  }
+},
+{
+  "model": "sentry.apiapplication",
+  "pk": 1,
+  "fields": {
+    "client_id": "af4ec47c7afa4b819450d9c22f2be0644f9b0d88bf4845509597a123784e37c4",
+    "client_secret": "f1192fc29b0348b483849fb1c1ebf4046b3f0553a7254abd9ab9fba37c9a77de",
+    "owner": [
+      "test_app-4d6ae6ac-c652-4de0-bca0-a379430c0151"
+    ],
+    "name": "Relevant Bream",
+    "status": 0,
+    "allowed_origins": "",
+    "redirect_uris": "",
+    "homepage_url": null,
+    "privacy_url": null,
+    "terms_url": null,
+    "date_added": "2023-07-27T16:30:53.233Z"
+  }
+},
+{
+  "model": "sentry.apiapplication",
+  "pk": 2,
+  "fields": {
+    "client_id": "2436a3f1a2c043c48f3121195564f835cc642af201a643239c8949c02f411961",
+    "client_secret": "b6b173e017c8494ab20a3b79a3c1163db831aedbac6e430cb658d6111b866139",
+    "owner": [
+      "user@example.com"
+    ],
+    "name": "test",
+    "status": 0,
+    "allowed_origins": null,
+    "redirect_uris": "http://example.com\nhttp://sub.example.com/path",
+    "homepage_url": null,
+    "privacy_url": null,
+    "terms_url": null,
+    "date_added": "2023-07-27T16:30:53.321Z"
+  }
+},
+{
+  "model": "sentry.useroption",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "user@example.com"
+    ],
+    "project_id": null,
+    "organization_id": null,
+    "key": "timezone",
+    "value": "\"Europe/Vienna\""
+  }
+},
+{
+  "model": "sentry.organizationoption",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "key": "sentry:account-rate-limit",
+    "value": 0
+  }
+},
+{
+  "model": "sentry.apiauthorization",
+  "pk": 1,
+  "fields": {
+    "scopes": "0",
+    "scope_list": "[]",
+    "application": 2,
+    "user": [
+      "user@example.com"
+    ],
+    "date_added": "2023-07-27T16:30:53.322Z"
+  }
+},
+{
+  "model": "sentry.apitoken",
+  "pk": 1,
+  "fields": {
+    "scopes": "0",
+    "scope_list": "[]",
+    "application": 1,
+    "user": [
+      "test_app-4d6ae6ac-c652-4de0-bca0-a379430c0151"
+    ],
+    "token": "309029eb040747999d14e19599b27ad8d86b6b60cabe4fd1b100cf4a4fd4faa4",
+    "refresh_token": "798d7fac83f54f13b15dbc9c113cc317a900837480564db7b3056c6304e9257a",
+    "expires_at": "2023-07-28T00:30:53.305Z",
+    "date_added": "2023-07-27T16:30:53.305Z"
+  }
+},
+{
+  "model": "sentry.apitoken",
+  "pk": 2,
+  "fields": {
+    "scopes": "0",
+    "scope_list": "[]",
+    "application": 2,
+    "user": [
+      "user@example.com"
+    ],
+    "token": "376aaa5e68cb410e8716adb40d29ea53",
+    "refresh_token": "6e09077f6ed9499a92b4e4a3bde238c3fff36569552b4275a1ffbecce6227b47",
+    "expires_at": null,
+    "date_added": "2023-07-27T16:30:53.323Z"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "user_id": 1,
+    "email": null,
+    "role": "owner",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-07-27T16:30:52.979Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": null,
+    "invite_status": 0,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": "user@example.com"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 2,
+  "fields": {
+    "organization": 1,
+    "user_id": 2,
+    "email": null,
+    "role": "member",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-07-27T16:30:53.065Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": null,
+    "invite_status": 0,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": "admin@localhost"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 3,
+  "fields": {
+    "organization": 3,
+    "user_id": 2,
+    "email": null,
+    "role": "owner",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-07-27T16:30:53.436Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": null,
+    "invite_status": 0,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": "admin@localhost"
+  }
+},
+{
+  "model": "sentry.sentryapp",
+  "pk": 1,
+  "fields": {
+    "date_deleted": null,
+    "scopes": "0",
+    "scope_list": "[]",
+    "application": 1,
+    "proxy_user": [
+      "test_app-4d6ae6ac-c652-4de0-bca0-a379430c0151"
+    ],
+    "owner_id": 1,
+    "name": "test_app",
+    "slug": "test_app",
+    "author": "A Company",
+    "status": 0,
+    "uuid": "f71b2f6b-0f10-4d6f-b9c9-bf873c641ac7",
+    "redirect_url": null,
+    "webhook_url": "https://example.com/webhook",
+    "is_alertable": false,
+    "verify_install": true,
+    "events": "[]",
+    "overview": null,
+    "schema": {
+      "elements": [
+        {
+          "type": "alert-rule-action",
+          "title": "Create Task with App",
+          "settings": {
+            "type": "alert-rule-settings",
+            "uri": "/sentry/alert-rule",
+            "required_fields": [
+              {
+                "type": "text",
+                "name": "title",
+                "label": "Title"
+              },
+              {
+                "type": "text",
+                "name": "summary",
+                "label": "Summary"
+              }
+            ],
+            "optional_fields": [
+              {
+                "type": "select",
+                "name": "points",
+                "label": "Points",
+                "options": [
+                  [
+                    "1",
+                    "1"
+                  ],
+                  [
+                    "2",
+                    "2"
+                  ],
+                  [
+                    "3",
+                    "3"
+                  ],
+                  [
+                    "5",
+                    "5"
+                  ],
+                  [
+                    "8",
+                    "8"
+                  ]
+                ]
+              },
+              {
+                "type": "select",
+                "name": "assignee",
+                "label": "Assignee",
+                "uri": "/sentry/members"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "date_added": "2023-07-27T16:30:53.235Z",
+    "date_updated": "2023-07-27T16:30:53.316Z",
+    "date_published": null,
+    "creator_user": [
+      "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com"
+    ],
+    "creator_label": "0be2ff4bec0b4be3ba5ed94d38e79d85@example.com",
+    "popularity": 1
+  }
+},
+{
+  "model": "sentry.sentryappcomponent",
+  "pk": 1,
+  "fields": {
+    "uuid": "8382bd49-9eb9-430c-b307-b9ed8729f23f",
+    "sentry_app": 1,
+    "type": "alert-rule-action",
+    "schema": {
+      "type": "alert-rule-action",
+      "title": "Create Task with App",
+      "settings": {
+        "type": "alert-rule-settings",
+        "uri": "/sentry/alert-rule",
+        "required_fields": [
+          {
+            "type": "text",
+            "name": "title",
+            "label": "Title"
+          },
+          {
+            "type": "text",
+            "name": "summary",
+            "label": "Summary"
+          }
+        ],
+        "optional_fields": [
+          {
+            "type": "select",
+            "name": "points",
+            "label": "Points",
+            "options": [
+              [
+                "1",
+                "1"
+              ],
+              [
+                "2",
+                "2"
+              ],
+              [
+                "3",
+                "3"
+              ],
+              [
+                "5",
+                "5"
+              ],
+              [
+                "8",
+                "8"
+              ]
+            ]
+          },
+          {
+            "type": "select",
+            "name": "assignee",
+            "label": "Assignee",
+            "uri": "/sentry/members"
+          }
+        ]
+      }
+    }
+  }
+},
+{
+  "model": "sentry.sentryappinstallation",
+  "pk": 1,
+  "fields": {
+    "date_deleted": null,
+    "sentry_app": 1,
+    "organization_id": 1,
+    "api_grant": null,
+    "api_token": 1,
+    "uuid": "2cd84182-e489-43b1-b058-7abc56f45d0d",
+    "status": 1,
+    "date_added": "2023-07-27T16:30:53.285Z",
+    "date_updated": "2023-07-27T16:30:53.293Z"
+  }
+},
+{
+  "model": "sentry.organizationaccessrequest",
+  "pk": 1,
+  "fields": {
+    "team": 1,
+    "member": 2,
+    "requester_id": null
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 1,
+  "fields": {
+    "slug": "positive-rhino",
+    "name": "Positive Rhino",
+    "forced_color": null,
+    "organization": 1,
+    "public": false,
+    "date_added": "2023-07-27T16:30:53.240Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 2,
+  "fields": {
+    "slug": "vital-earwig",
+    "name": "Vital Earwig",
+    "forced_color": null,
+    "organization": 3,
+    "public": false,
+    "date_added": "2023-07-27T16:30:53.488Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 3,
+  "fields": {
+    "slug": "proper-mallard",
+    "name": "Proper Mallard",
+    "forced_color": null,
+    "organization": 3,
+    "public": false,
+    "date_added": "2023-07-27T16:30:53.533Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 4,
+  "fields": {
+    "slug": "bar",
+    "name": "Bar",
+    "forced_color": null,
+    "organization": 3,
+    "public": false,
+    "date_added": "2023-07-27T16:30:53.592Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+},
+{
+  "model": "sentry.projectbookmark",
+  "pk": 1,
+  "fields": {
+    "project": 2,
+    "user_id": 1,
+    "date_added": "2023-07-27T16:30:53.531Z"
+  }
+},
+{
+  "model": "sentry.projectkey",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "label": "Default",
+    "public_key": "9cc24c6d00324967b48360363cb2e4a7",
+    "secret_key": "1c339703667e42cf849ffd9e5264bb4d",
+    "roles": "1",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.257Z",
+    "rate_limit_count": null,
+    "rate_limit_window": null,
+    "data": {
+      "dynamicSdkLoaderOptions": {
+        "hasPerformance": true,
+        "hasReplay": true
+      }
+    }
+  }
+},
+{
+  "model": "sentry.projectkey",
+  "pk": 2,
+  "fields": {
+    "project": 2,
+    "label": "Default",
+    "public_key": "bcbfbd7db77e4b238a4d83135d532c76",
+    "secret_key": "20a8e9e30a2b4afeb8597646103bfab4",
+    "roles": "1",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.504Z",
+    "rate_limit_count": null,
+    "rate_limit_window": null,
+    "data": {
+      "dynamicSdkLoaderOptions": {
+        "hasPerformance": true,
+        "hasReplay": true
+      }
+    }
+  }
+},
+{
+  "model": "sentry.projectkey",
+  "pk": 3,
+  "fields": {
+    "project": 3,
+    "label": "Default",
+    "public_key": "887ad470a0e147dc9debf377e442ada4",
+    "secret_key": "2810490488474790a97a55a27c55330f",
+    "roles": "1",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.554Z",
+    "rate_limit_count": null,
+    "rate_limit_window": null,
+    "data": {
+      "dynamicSdkLoaderOptions": {
+        "hasPerformance": true,
+        "hasReplay": true
+      }
+    }
+  }
+},
+{
+  "model": "sentry.projectkey",
+  "pk": 4,
+  "fields": {
+    "project": 4,
+    "label": "Default",
+    "public_key": "52e30985a97d40e087a1fd5796572801",
+    "secret_key": "880cac5cd1c6439489c062882cca9bcd",
+    "roles": "1",
+    "status": 0,
+    "date_added": "2023-07-27T16:30:53.608Z",
+    "rate_limit_count": null,
+    "rate_limit_window": null,
+    "data": {
+      "dynamicSdkLoaderOptions": {
+        "hasPerformance": true,
+        "hasReplay": true
+      }
+    }
+  }
+},
+{
+  "model": "sentry.projectownership",
+  "pk": 1,
+  "fields": {
+    "project": 3,
+    "raw": "{\"hello\":\"hello\"}",
+    "schema": {
+      "hello": "hello"
+    },
+    "fallthrough": true,
+    "auto_assignment": true,
+    "date_created": "2023-07-27T16:30:53.579Z",
+    "last_updated": "2023-07-27T16:30:53.579Z",
+    "is_active": true,
+    "codeowners_auto_sync": true,
+    "suspect_committer_auto_assignment": false
+  }
+},
+{
+  "model": "sentry.projectredirect",
+  "pk": 1,
+  "fields": {
+    "redirect_slug": "old_slug",
+    "project": 3,
+    "organization": 3,
+    "date_added": "2023-07-27T16:30:53.585Z"
+  }
+},
+{
+  "model": "sentry.rule",
+  "pk": 1,
+  "fields": {
+    "project": 3,
+    "environment_id": null,
+    "label": "",
+    "data": "{\"conditions\":[{\"id\":\"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition\",\"name\":\"A new issue is created\"},{\"id\":\"sentry.rules.conditions.every_event.EveryEventCondition\",\"name\":\"The event occurs\"}],\"actions\":[{\"id\":\"sentry.rules.actions.notify_event.NotifyEventAction\",\"name\":\"Send a notification (for all legacy integrations)\"},{\"id\":\"sentry.rules.actions.notify_event_service.NotifyEventServiceAction\",\"service\":\"mail\",\"name\":\"Send a notification via mail\"}],\"action_match\":\"all\"}",
+    "status": 0,
+    "source": 0,
+    "owner": null,
+    "date_added": "2023-07-27T16:30:53.588Z"
+  }
+},
+{
+  "model": "sentry.rule",
+  "pk": 2,
+  "fields": {
+    "project": 4,
+    "environment_id": null,
+    "label": "Send a notification for new issues",
+    "data": "{\"match\":\"all\",\"conditions\":[{\"id\":\"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition\"}],\"actions\":[{\"id\":\"sentry.mail.actions.NotifyEmailAction\",\"targetType\":\"IssueOwners\",\"targetIdentifier\":null,\"fallthroughType\":\"ActiveMembers\"}]}",
+    "status": 0,
+    "source": 0,
+    "owner": null,
+    "date_added": "2023-07-27T16:30:53.614Z"
+  }
+},
+{
+  "model": "sentry.ruleactivity",
+  "pk": 1,
+  "fields": {
+    "rule": 1,
+    "user_id": null,
+    "type": 1,
+    "date_added": "2023-07-27T16:30:53.589Z"
+  }
+},
+{
+  "model": "sentry.notificationaction",
+  "pk": 1,
+  "fields": {
+    "integration_id": null,
+    "sentry_app_id": null,
+    "type": 5,
+    "target_type": 1,
+    "target_identifier": "1",
+    "target_display": "Sentry User",
+    "organization": 1,
+    "trigger_type": 0
+  }
+},
+{
+  "model": "sentry.notificationactionproject",
+  "pk": 1,
+  "fields": {
+    "project": 3,
+    "action": 1
+  }
+},
+{
+  "model": "sentry.projectteam",
+  "pk": 1,
+  "fields": {
+    "project": 2,
+    "team": 2
+  }
+},
+{
+  "model": "sentry.projectteam",
+  "pk": 2,
+  "fields": {
+    "project": 3,
+    "team": 2
+  }
+},
+{
+  "model": "sentry.projectteam",
+  "pk": 3,
+  "fields": {
+    "project": 4,
+    "team": 2
+  }
+},
+{
+  "model": "sentry.organizationmemberteam",
+  "pk": 1,
+  "fields": {
+    "team": 1,
+    "organizationmember": 1,
+    "is_active": true,
+    "role": null
+  }
+},
+{
+  "model": "sentry.organizationmemberteam",
+  "pk": 2,
+  "fields": {
+    "team": 2,
+    "organizationmember": 3,
+    "is_active": true,
+    "role": null
+  }
+},
+{
+  "model": "sentry.environment",
+  "pk": 1,
+  "fields": {
+    "organization_id": 3,
+    "name": "carefully adjusted gnat",
+    "date_added": "2023-07-27T16:30:53.643Z"
+  }
+},
+{
+  "model": "sentry.environmentproject",
+  "pk": 1,
+  "fields": {
+    "project": 4,
+    "environment": 1,
+    "is_hidden": null
+  }
+},
+{
+  "model": "sentry.environmentproject",
+  "pk": 2,
+  "fields": {
+    "project": 3,
+    "environment": 1,
+    "is_hidden": false
+  }
+},
+{
+  "model": "sentry.dashboard",
+  "pk": 1,
+  "fields": {
+    "title": "Dashboard 1",
+    "created_by_id": 1,
+    "organization": 1,
+    "date_added": "2023-07-27T16:30:53.704Z",
+    "visits": 1,
+    "last_visited": "2023-07-27T16:30:53.704Z",
+    "filters": null
+  }
+},
+{
+  "model": "sentry.counter",
+  "pk": 1,
+  "fields": {
+    "project": 3,
+    "value": 1
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "key": "sentry:relay-rev",
+    "value": "\"d725c073cef1434ea22e5cef0784e8f6\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 2,
+  "fields": {
+    "project": 1,
+    "key": "sentry:relay-rev-lastchange",
+    "value": "\"2023-07-27T16:30:53.261449Z\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 3,
+  "fields": {
+    "project": 1,
+    "key": "sentry:option-epoch",
+    "value": 11
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 4,
+  "fields": {
+    "project": 2,
+    "key": "sentry:relay-rev",
+    "value": "\"dcc6aec3c82a4b7084c58222cdadc263\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 5,
+  "fields": {
+    "project": 2,
+    "key": "sentry:relay-rev-lastchange",
+    "value": "\"2023-07-27T16:30:53.507203Z\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 6,
+  "fields": {
+    "project": 2,
+    "key": "sentry:option-epoch",
+    "value": 11
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 7,
+  "fields": {
+    "project": 3,
+    "key": "sentry:relay-rev",
+    "value": "\"a15aa77d15184bc3a3f07a94b734a8f3\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 8,
+  "fields": {
+    "project": 3,
+    "key": "sentry:relay-rev-lastchange",
+    "value": "\"2023-07-27T16:30:53.558126Z\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 9,
+  "fields": {
+    "project": 3,
+    "key": "sentry:option-epoch",
+    "value": 11
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 10,
+  "fields": {
+    "project": 4,
+    "key": "sentry:relay-rev",
+    "value": "\"139d40075dc2431ab3e32ce9e4bb155e\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 11,
+  "fields": {
+    "project": 4,
+    "key": "sentry:relay-rev-lastchange",
+    "value": "\"2023-07-27T16:30:53.611463Z\""
+  }
+},
+{
+  "model": "sentry.projectoption",
+  "pk": 12,
+  "fields": {
+    "project": 4,
+    "key": "sentry:option-epoch",
+    "value": 11
+  }
+},
+{
+  "model": "sentry.dashboardwidget",
+  "pk": 1,
+  "fields": {
+    "dashboard": 1,
+    "order": 1,
+    "title": "Test Widget",
+    "description": null,
+    "interval": null,
+    "display_type": 0,
+    "date_added": "2023-07-27T16:30:53.705Z",
+    "widget_type": 0,
+    "limit": null,
+    "detail": null
+  }
+},
+{
+  "model": "sentry.snubaquery",
+  "pk": 1,
+  "fields": {
+    "environment": null,
+    "type": 0,
+    "dataset": "events",
+    "query": "level:error",
+    "aggregate": "count()",
+    "time_window": 600,
+    "resolution": 60,
+    "date_added": "2023-07-27T16:30:53.658Z"
+  }
+},
+{
+  "model": "sentry.snubaquery",
+  "pk": 2,
+  "fields": {
+    "environment": null,
+    "type": 0,
+    "dataset": "events",
+    "query": "test query",
+    "aggregate": "count()",
+    "time_window": 60,
+    "resolution": 60,
+    "date_added": "2023-07-27T16:30:53.678Z"
+  }
+},
+{
+  "model": "sentry.snubaqueryeventtype",
+  "pk": 1,
+  "fields": {
+    "snuba_query": 1,
+    "type": 0
+  }
+},
+{
+  "model": "sentry.snubaqueryeventtype",
+  "pk": 2,
+  "fields": {
+    "snuba_query": 2,
+    "type": 0
+  }
+},
+{
+  "model": "sentry.querysubscription",
+  "pk": 1,
+  "fields": {
+    "project": 2,
+    "snuba_query": 1,
+    "type": "incidents",
+    "status": 1,
+    "subscription_id": null,
+    "date_added": "2023-07-27T16:30:53.664Z",
+    "date_updated": "2023-07-27T16:30:55.352Z"
+  }
+},
+{
+  "model": "sentry.querysubscription",
+  "pk": 2,
+  "fields": {
+    "project": 4,
+    "snuba_query": 1,
+    "type": "incidents",
+    "status": 1,
+    "subscription_id": null,
+    "date_added": "2023-07-27T16:30:53.667Z",
+    "date_updated": "2023-07-27T16:30:55.354Z"
+  }
+},
+{
+  "model": "sentry.querysubscription",
+  "pk": 3,
+  "fields": {
+    "project": 4,
+    "snuba_query": 2,
+    "type": "incidents",
+    "status": 1,
+    "subscription_id": null,
+    "date_added": "2023-07-27T16:30:53.681Z",
+    "date_updated": "2023-07-27T16:30:55.356Z"
+  }
+},
+{
+  "model": "sentry.alertrule",
+  "pk": 1,
+  "fields": {
+    "organization": 3,
+    "snuba_query": 1,
+    "owner": null,
+    "name": "Worthy Serval",
+    "status": 0,
+    "include_all_projects": true,
+    "threshold_type": 0,
+    "resolve_threshold": null,
+    "threshold_period": 1,
+    "comparison_delta": null,
+    "date_modified": "2023-07-27T16:30:53.660Z",
+    "date_added": "2023-07-27T16:30:53.660Z"
+  }
+},
+{
+  "model": "sentry.alertrule",
+  "pk": 2,
+  "fields": {
+    "organization": 3,
+    "snuba_query": 2,
+    "owner": null,
+    "name": "Native Urchin",
+    "status": 0,
+    "include_all_projects": false,
+    "threshold_type": 0,
+    "resolve_threshold": null,
+    "threshold_period": 1,
+    "comparison_delta": null,
+    "date_modified": "2023-07-27T16:30:53.679Z",
+    "date_added": "2023-07-27T16:30:53.679Z"
+  }
+},
+{
+  "model": "sentry.alertruleactivity",
+  "pk": 1,
+  "fields": {
+    "alert_rule": 1,
+    "previous_alert_rule": null,
+    "user_id": null,
+    "type": 1,
+    "date_added": "2023-07-27T16:30:53.669Z"
+  }
+},
+{
+  "model": "sentry.alertruleactivity",
+  "pk": 2,
+  "fields": {
+    "alert_rule": 2,
+    "previous_alert_rule": null,
+    "user_id": null,
+    "type": 1,
+    "date_added": "2023-07-27T16:30:53.682Z"
+  }
+},
+{
+  "model": "sentry.monitorenvironment",
+  "pk": 1,
+  "fields": {
+    "monitor": 1,
+    "environment": 1,
+    "status": 0,
+    "next_checkin": null,
+    "last_checkin": null,
+    "date_added": "2023-07-27T16:30:53.652Z"
+  }
+},
+{
+  "model": "sentry.alertruleexcludedprojects",
+  "pk": 1,
+  "fields": {
+    "alert_rule": 1,
+    "project": 3,
+    "date_added": "2023-07-27T16:30:53.662Z"
+  }
+},
+{
+  "model": "sentry.incident",
+  "pk": 1,
+  "fields": {
+    "organization": 3,
+    "alert_rule": 2,
+    "identifier": 1,
+    "detection_uuid": null,
+    "status": 1,
+    "status_method": 3,
+    "type": 2,
+    "title": "Pleasant Ibex",
+    "date_started": "2023-07-27T16:30:53.684Z",
+    "date_detected": "2023-07-27T16:30:53.684Z",
+    "date_added": "2023-07-27T16:30:53.685Z",
+    "date_closed": null
+  }
+},
+{
+  "model": "sentry.rulesnooze",
+  "pk": 1,
+  "fields": {
+    "user_id": 1,
+    "owner_id": 1,
+    "rule": 1,
+    "alert_rule": null,
+    "until": null,
+    "date_added": "2023-07-27T16:30:53.591Z"
+  }
+},
+{
+  "model": "sentry.dashboardwidgetquery",
+  "pk": 1,
+  "fields": {
+    "widget": 1,
+    "name": "Test Query",
+    "fields": "[]",
+    "conditions": "",
+    "aggregates": null,
+    "columns": null,
+    "field_aliases": null,
+    "orderby": "",
+    "order": 1,
+    "date_added": "2023-07-27T16:30:53.707Z"
+  }
+},
+{
+  "model": "sentry.pendingincidentsnapshot",
+  "pk": 1,
+  "fields": {
+    "incident": 1,
+    "target_run_date": "2023-07-27T20:30:53.698Z",
+    "date_added": "2023-07-27T16:30:53.698Z"
+  }
+},
+{
+  "model": "sentry.incidentsnapshot",
+  "pk": 1,
+  "fields": {
+    "incident": 1,
+    "event_stats_snapshot": 1,
+    "unique_users": 1,
+    "total_events": 1,
+    "date_added": "2023-07-27T16:30:53.694Z"
+  }
+},
+{
+  "model": "sentry.incidentactivity",
+  "pk": 1,
+  "fields": {
+    "incident": 1,
+    "user_id": null,
+    "type": 1,
+    "value": null,
+    "previous_value": null,
+    "comment": "hello",
+    "date_added": "2023-07-27T16:30:53.690Z"
+  }
+},
+{
+  "model": "sentry.incidentsubscription",
+  "pk": 1,
+  "fields": {
+    "incident": 1,
+    "user_id": 1,
+    "date_added": "2023-07-27T16:30:53.695Z"
+  }
+},
+{
+  "model": "sentry.alertruletrigger",
+  "pk": 1,
+  "fields": {
+    "alert_rule": 1,
+    "label": "Capable Cardinal",
+    "threshold_type": null,
+    "alert_threshold": 100.0,
+    "resolve_threshold": null,
+    "date_added": "2023-07-27T16:30:53.673Z"
+  }
+},
+{
+  "model": "sentry.alertruletriggerexclusion",
+  "pk": 1,
+  "fields": {
+    "alert_rule_trigger": 1,
+    "query_subscription": 2,
+    "date_added": "2023-07-27T16:30:53.675Z"
+  }
+},
+{
+  "model": "sentry.alertruletriggeraction",
+  "pk": 1,
+  "fields": {
+    "integration_id": null,
+    "sentry_app_id": null,
+    "type": 0,
+    "target_type": 1,
+    "target_identifier": "2",
+    "target_display": null,
+    "alert_rule_trigger": 1,
+    "date_added": "2023-07-27T16:30:53.676Z",
+    "sentry_app_config": null
+  }
+},
+{
+  "model": "sentry.incidenttrigger",
+  "pk": 1,
+  "fields": {
+    "incident": 1,
+    "alert_rule_trigger": 1,
+    "status": 1,
+    "date_modified": "2023-07-27T16:30:55.393Z",
+    "date_added": "2023-07-27T16:30:53.697Z"
+  }
+}
+]
