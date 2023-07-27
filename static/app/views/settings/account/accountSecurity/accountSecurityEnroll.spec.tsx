@@ -6,7 +6,6 @@ const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
   describe('Totp', function () {
-    MockApiClient.clearMockResponses();
     const authenticator = TestStubs.Authenticators().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
@@ -29,7 +28,8 @@ describe('AccountSecurityEnroll', function () {
       },
     ]);
 
-    beforeAll(function () {
+    beforeEach(function () {
+      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
