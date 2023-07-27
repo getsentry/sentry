@@ -1,20 +1,36 @@
+import requests
+import urllib3
+from django.conf import settings
+from sentry_kafka_schemas import sentry_kafka_schemas
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.issues.attributes import produce_snapshot_to_kafka, send_snapshot_values
+from sentry.issues.attributes import _retrieve_group_values, _retrieve_snapshot_values
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import json
+from sentry.utils import json, snuba
 from sentry.utils.snuba import _snql_query
 
 
 class DatasetTest(SnubaTestCase, TestCase):
-    def produce_group_snapshot(self, snapshot: GroupAttributesSnapshot) -> None:
-        produce_snapshot_to_kafka(snapshot)
+    def _send(self, snapshot: GroupAttributesSnapshot) -> None:
+        serialized_data = json.dumps(snapshot)
+        codec = sentry_kafka_schemas.get_codec(topic=settings.KAFKA_GROUP_ATTRIBUTES)
+        codec.decode(serialized_data.encode("utf-8"), validate=True)
 
-    def lookup_and_produce_group_snapshot(self, group_id) -> None:
-        with self.settings(SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA=True):
-            send_snapshot_values(group_id, None, False)
+        try:
+            resp = requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/group_attributes/insert",
+                data=json.dumps([snapshot]),
+            )
+
+            if resp.status_code != 200:
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status_code} response from Snuba! {json.loads(resp.text)}"
+                )
+            return None
+        except urllib3.exceptions.HTTPError as err:
+            raise snuba.SnubaError(err)
 
     def test_query_dataset_returns_empty(self) -> None:
         json_body = {
@@ -41,19 +57,24 @@ class DatasetTest(SnubaTestCase, TestCase):
     def test_insert_then_query(self) -> None:
         project = self.create_project()
         group = self.create_group(project=project)
-        self.lookup_and_produce_group_snapshot(group.id)
+
+        snapshot = _retrieve_snapshot_values(_retrieve_group_values(group.id), False)
+        self._send(snapshot)
 
         json_body = {
             "selected_columns": ["project_id", "group_id"],
             "offset": 0,
             "limit": 100,
-            "project": [1],
+            "project": [project.id],
             "dataset": "group_attributes",
             "conditions": [
                 ["project_id", "IN", [project.id]],
             ],
             "consistent": False,
-            "tenant_ids": {"referrer": "group_attributes", "organization_id": 1},
+            "tenant_ids": {
+                "referrer": "group_attributes",
+                "organization_id": project.organization.id,
+            },
         }
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
