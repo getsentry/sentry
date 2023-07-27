@@ -18,6 +18,7 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {
   renderHeadCell,
   SORTABLE_FIELDS,
@@ -170,21 +171,32 @@ type CellProps = {
 };
 
 function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
+  const router = useRouter();
   const label = row.transactionMethod
     ? `${row.transactionMethod} ${row.transaction}`
     : row.transaction;
+
+  const pathname = `/starfish/${
+    extractRoute(location) ?? 'spans'
+  }/span/${encodeURIComponent(span[SpanMetricsFields.SPAN_GROUP])}`;
+  const query = {
+    ...location.query,
+    endpoint,
+    endpointMethod,
+    transaction: row.transaction,
+    transactionMethod: row.transactionMethod,
+  };
+
   return (
     <Fragment>
       <Link
-        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
-          span[SpanMetricsFields.SPAN_GROUP]
-        )}?${qs.stringify({
-          ...location.query,
-          endpoint,
-          endpointMethod,
-          transaction: row.transaction,
-          transactionMethod: row.transactionMethod,
-        })}`}
+        to={`${pathname}?${qs.stringify(query)}`}
+        onClick={() => {
+          router.replace({
+            pathname,
+            query,
+          });
+        }}
       >
         <Truncate value={label} maxLength={75} />
       </Link>
