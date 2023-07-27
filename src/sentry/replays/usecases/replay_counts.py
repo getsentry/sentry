@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.api.event_search import parse_search_query
-from sentry.exceptions import InvalidSearchQuery
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
@@ -23,10 +23,10 @@ FILTER_HAS_A_REPLAY = " AND !replayId:''"
 def get_replay_counts(
     snuba_params: SnubaParams, params: ParamsType, query, return_ids
 ) -> dict[str, Any]:
-    try:
-        replay_ids_mapping = get_replay_id_mappings(query, params, snuba_params)
-    except (InvalidSearchQuery, ValueError) as e:
-        raise e
+    if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
+        raise ValueError("Must provide start and end")
+
+    replay_ids_mapping = get_replay_id_mappings(query, params, snuba_params)
 
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
@@ -46,6 +46,8 @@ def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
 
     select_column, value = get_select_column(query)
     # query = query + FILTER_HAS_A_REPLAY
+    # XXX(jferge): TODO: the above line didn't actually do anything in the previous code.
+    # will re-enable this line after the refactor is merged.
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
@@ -97,7 +99,7 @@ def get_replay_ids(
     return ret
 
 
-def get_select_column(query: str) -> tuple[str, list[Any]]:
+def get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     parsed_query = parse_search_query(query)
 
     select_column_conditions = [
@@ -111,6 +113,11 @@ def get_select_column(query: str) -> tuple[str, list[Any]]:
         raise ValueError("Must provide at least one issue.id, transaction, or replay_id")
 
     condition = select_column_conditions[0]
+
+    if not isinstance(condition.value.raw_value, Sequence) or isinstance(
+        condition.value.raw_value, str
+    ):
+        raise ValueError("Condition value must be a list of strings")
 
     if len(condition.value.raw_value) > MAX_VALS_PROVIDED[condition.key.name]:
         raise ValueError("Too many values provided")
