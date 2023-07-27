@@ -2,14 +2,11 @@ from datetime import datetime, timedelta
 
 import pytest
 import responses
-
 from django.core import mail
-
 from django.test import override_settings
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-
 from sentry.integrations.notifydisable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
@@ -31,7 +28,6 @@ class SlackClientDisable(TestCase):
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
-
 
         self.organization = self.create_organization(owner=self.user)
 
@@ -85,7 +81,6 @@ class SlackClientDisable(TestCase):
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
         assert (f"/settings/integrations/{self.integration.provider}") in msg.body
-
 
     @responses.activate
     def test_fatal_integration(self):
