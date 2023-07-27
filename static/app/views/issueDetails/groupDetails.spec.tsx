@@ -69,7 +69,7 @@ describe('groupDetails', () => {
 
   const createWrapper = (init = defaultInit) => {
     return render(
-      <GroupDetails {...init.router} {...init.routerProps} router={init.router}>
+      <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
       {context: init.routerContext, organization: init.organization, router: init.router}
