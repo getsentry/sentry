@@ -24,8 +24,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
-from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
@@ -337,7 +336,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, get_jwt, mock_issues):
         groups = [g.id for g in Group.objects.all()]
@@ -370,7 +368,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
     def test_comment_workflow_updates_comment(self, mock_metrics, get_jwt, mock_issues):
@@ -420,7 +417,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow_api_error(self, mock_metrics, get_jwt, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -448,7 +444,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow_api_error_locked_issue(self, mock_metrics, get_jwt, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -480,7 +475,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     @responses.activate
     def test_comment_workflow_api_error_rate_limited(self, mock_metrics, get_jwt, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -526,7 +520,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
             "github_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @with_feature("organizations:pr-comment-bot")
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_org_option(self, mock_issues):
         OrganizationOption.objects.set_value(
@@ -539,7 +532,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.models.Project.objects.get_from_cache")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -560,7 +552,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.models.Repository.objects")
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_repo(
         self, mock_metrics, mock_format_comment, mock_repository, mock_issues
     ):
@@ -586,7 +577,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
-    @with_feature("organizations:pr-comment-bot")
     def test_comment_workflow_missing_integration(
         self, mock_metrics, mock_format_comment, mock_issues
     ):
