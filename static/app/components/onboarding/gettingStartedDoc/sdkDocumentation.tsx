@@ -6,82 +6,6 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import type {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-// Documents already migrated from sentry-docs to main sentry repository
-export const migratedDocs = [
-  'javascript-react',
-  'javascript-remix',
-  'javascript-angular',
-  'javascript-vue',
-  'javascript-gatsby',
-  'javascript-ember',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-nextjs',
-  'javascript',
-  'python-django',
-  'python',
-  'python-flask',
-  'python-wsgi',
-  'python-tryton',
-  'python-tornado',
-  'python-starlette',
-  'python-serverless',
-  'python-sanic',
-  'python-quart',
-  'python-pyramid',
-  'python-pylons',
-  'python-gcpfunctions',
-  'python-falcon',
-  'python-chalice',
-  'python-bottle',
-  'python-fastapi',
-  'python-asgi',
-  'python-aiohttp',
-  'python-awslambda',
-  'dotnet',
-  'dotnet-aspnetcore',
-  'dotnet-awslambda',
-  'dotnet-gcpfunctions',
-  'dotnet-maui',
-  'dotnet-uwp',
-  'dotnet-winforms',
-  'dotnet-wpf',
-  'dotnet-xamarin',
-  'dotnet-aspnet',
-  'react-native',
-  'java',
-  'java-spring-boot',
-  'java-logback',
-  'java-log4j2',
-  'java-spring',
-  'php',
-  'php-laravel',
-  'php-symfony',
-  'go',
-  'rust',
-  'minidump',
-  'native',
-  'native-qt',
-  'ruby',
-  'ruby-rails',
-  'ruby-rack',
-  'kotlin',
-  'node',
-  'node-awslambda',
-  'node-azurefunctions',
-  'node-connect',
-  'node-express',
-  'node-gcpfunctions',
-  'node-koa',
-  'node-serverlesscloud',
-  'electron',
-  'elixir',
-  'android',
-  'ionic',
-  'unity',
-  'cordova',
-];
-
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
   organization: Organization;
@@ -113,6 +37,7 @@ export function SdkDocumentation({
     default: React.ComponentType<ModuleProps>;
   }>(null);
 
+  // TODO: This will be removed once we no longer rely on sentry-docs to load platform icons
   const platformPath =
     platform?.type === 'framework'
       ? platform.language === 'minidump'
@@ -125,7 +50,21 @@ export function SdkDocumentation({
         ? `ionic/ionic`
         : platform?.id === 'unity'
         ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
+        : platform?.id === 'flutter'
+        ? `flutter/flutter`
+        : platform?.id === 'dart'
+        ? `dart/dart`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : platform?.id === 'python-celery'
+      ? `python/celery`
+      : platform?.id === 'python-rq'
+      ? `python/rq`
+      : platform?.id === 'python-pymongo'
+      ? `python/mongo`
       : `${platform?.language}/${platform?.id}`;
 
   const {

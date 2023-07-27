@@ -326,7 +326,6 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.middleware.api_gateway.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
-    "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
@@ -359,6 +358,11 @@ TEMPLATES = [
         },
     }
 ]
+
+SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+    "CONTROL": ["sentry.ControlOutbox"],
+    "REGION": ["sentry.RegionOutbox"],
+}
 
 INSTALLED_APPS = (
     "django.contrib.auth",
@@ -745,7 +749,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tasks.auto_ongoing_issues",
-    "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
     "sentry.dynamic_sampling.tasks.collect_orgs",
 )
@@ -950,8 +953,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": timedelta(seconds=30),
         "options": {"expires": 30},
     },
-    "check-monitors": {
-        "task": "sentry.monitors.tasks.check_monitors",
+    "check-monitors-missing": {
+        "task": "sentry.monitors.tasks.check_missing",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
+    "check-monitors-timeout": {
+        "task": "sentry.monitors.tasks.check_timeout",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
@@ -1098,12 +1107,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 3600},
     },
-    "schedule_auto_archive_issues": {
-        "task": "sentry.tasks.auto_archive_issues.run_auto_archive",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
-        "options": {"expires": 3600},
-    },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
@@ -1232,6 +1235,7 @@ LOGGING = {
         "sentry.errors": {"handlers": ["console"], "propagate": False},
         "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "sentry.rules": {"handlers": ["console"], "propagate": False},
+        "sentry.profiles": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -1334,8 +1338,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Use new listing page for crons
-    "organizations:crons-timeline-listing-page": False,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
@@ -1354,6 +1356,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enables data secrecy mode
+    "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
     "organizations:escalating-issues": False,
     # Enable archive/escalating issue workflow in MS Teams
@@ -1376,12 +1380,14 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
-    # Enable profiling GA messaging (update paths from AM1 to AM2)
-    "organizations:profiling-ga": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
+    # Enable profiling CPU chart
+    "organizations:profiling-cpu-chart": False,
+    # Enable profiling Memory chart
+    "organizations:profiling-memory-chart": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1449,12 +1455,10 @@ SENTRY_FEATURES = {
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Allow orgs to install a custom source code management integration
-    "organizations:integrations-custom-scm": False,
     # Allow orgs to create a Discord integration
     "organizations:integrations-discord": False,
     # Enable Discord integration notifications
-    "organizations:integrations-discord-notifications"
+    "organizations:integrations-discord-notifications": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": False,
     # Limit project events endpoint to only query back a certain number of days
@@ -1471,8 +1475,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enable experimental performance improvements.
-    "organizations:enterprise-perf": False,
     # Enables inviting new members based on GitHub commit activity.
     "organizations:gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1487,6 +1489,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
+    # Enable Issue details UI improvements related to highlighting the 'most helpful' event
+    "organizations:issue-details-most-helpful-event-ui": False,
     # Display if a release is using semver when resolving issues
     "organizations:issue-release-semver": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1564,6 +1568,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable linking from 'new issue' slack notifs to the issue replay list
+    "organizations:session-replay-slack-new-issue": False,
     "organizations:session-replay-issue-emails": False,
     "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-trace-table": False,
@@ -1624,8 +1630,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page
-    "organizations:onboarding-heartbeat-footer": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1665,10 +1669,14 @@ SENTRY_FEATURES = {
     "organizations:pr-comment-bot": False,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
+    # Enable functionality for recap server polling.
+    "organizations:recap-server": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1682,8 +1690,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for recap server polling.
-    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
@@ -2706,7 +2712,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
-    "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
@@ -3192,9 +3197,9 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "nodestore",
+    "replays",
     "sentry",
     "social_auth",
-    "sentry.replays",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

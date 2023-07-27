@@ -1,43 +1,29 @@
 import styled from '@emotion/styled';
 
-import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {SpanMetricsFields, SpanMetricsFieldTypes} from 'sentry/views/starfish/types';
 
-const {SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} = SpanMetricsFields;
-
-type SpanMeta = {
-  'span.action': string;
-  'span.description': string;
-  'span.domain': string;
-  'span.op': string;
+type Props = {
+  span: Pick<
+    SpanMetricsFieldTypes,
+    SpanMetricsFields.SPAN_OP | SpanMetricsFields.SPAN_DESCRIPTION
+  >;
 };
 
-export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
-  if (spanMeta['span.op'].startsWith('db')) {
-    return <DatabaseSpanDescription spanMeta={spanMeta} />;
+export function SpanDescription({span}: Props) {
+  if (span[SpanMetricsFields.SPAN_OP].startsWith('db')) {
+    return <DatabaseSpanDescription span={span} />;
   }
 
-  return <DescriptionWrapper>{spanMeta[SPAN_DESCRIPTION]}</DescriptionWrapper>;
+  return <WordBreak>{span[SpanMetricsFields.SPAN_DESCRIPTION]}</WordBreak>;
 }
 
-function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
+function DatabaseSpanDescription({span}: Props) {
   return (
-    <CodeWrapper>
-      <FormattedCode>
-        {highlightSql(spanMeta[SPAN_DESCRIPTION] || '', {
-          action: spanMeta[SPAN_ACTION] || '',
-          domain: spanMeta[SPAN_DOMAIN] || '',
-        })}
-      </FormattedCode>
-    </CodeWrapper>
+    <CodeSnippet language="sql">{span[SpanMetricsFields.SPAN_DESCRIPTION]}</CodeSnippet>
   );
 }
 
-const CodeWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const DescriptionWrapper = styled('div')`
+const WordBreak = styled('div')`
   word-break: break-word;
 `;

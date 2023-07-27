@@ -73,8 +73,8 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
-        with unguarded_write(using=router.db_for_write(OrganizationMember)), assume_test_silo_mode(
-            SiloMode.REGION
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
+            using=router.db_for_write(OrganizationMember)
         ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"

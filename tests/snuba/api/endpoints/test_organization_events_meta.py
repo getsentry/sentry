@@ -1,8 +1,8 @@
+from datetime import timezone
 from unittest import mock
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
@@ -121,6 +121,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
+        assert group_info is not None
         url = reverse(
             "sentry-api-0-organization-events-meta",
             kwargs={"organization_slug": self.project.organization.slug},
