@@ -16,8 +16,8 @@ describe('SQLishFormatter', function () {
   });
 
   it('Adds newlines for keywords', () => {
-    expect(formatter.toString('SELECT hello FROM users LIMIT 1;')).toEqual(
-      'SELECT hello \nFROM users \nLIMIT 1;'
-    );
+    expect(
+      formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
+    ).toEqual('SELECT hello \nFROM users \nORDER BY name DESC \nLIMIT 1;');
   });
 });
