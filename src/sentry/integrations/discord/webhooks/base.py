@@ -53,15 +53,16 @@ class DiscordInteractionsEndpoint(Endpoint):
         try:
             self.discord_request = self.discord_request_class(request)
             self.discord_request.validate()
+
+            if self.discord_request.is_ping():
+                # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
+                return self.respond({"type": 1}, status=200)
+
+            elif self.discord_request.is_command():
+                return self.handle_command()
+
         except DiscordRequestError as e:
             return self.respond(status=e.status)
-
-        if self.discord_request.is_ping():
-            # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
-            return self.respond({"type": 1}, status=200)
-
-        elif self.discord_request.is_command():
-            return self.handle_command()
 
         # This isn't an interaction type that we need to worry about, so we'll
         # just return 200
@@ -103,7 +104,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.reply(message)
 
-        if not (self.discord_request.integration and self.discord_request.user_id):
+        if not self.discord_request.integration or not self.discord_request.user_id:
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         link_url = build_linking_url(
@@ -124,7 +125,7 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.reply(message)
 
-        if not (self.discord_request.integration and self.discord_request.user_id):
+        if not self.discord_request.integration or not self.discord_request.user_id:
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         unlink_url = build_unlinking_url(
