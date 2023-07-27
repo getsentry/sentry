@@ -81,7 +81,8 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
       return <IconInfo />;
   }
 }
-// We want to track the active thread but that can change if the eventId changes, so if the eventID we set the state to be the new best thread
+
+// We want to set the active thread every time the event changes because the best thread might not be the same between events
 const useActiveThreadState = (
   event: Event,
   threads: Thread[]
