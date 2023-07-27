@@ -163,8 +163,7 @@ class FlatFileIdentifier(NamedTuple):
         return meta
 
     def _locking_key(self):
-        identifier_hash = self._hashed()
-        return f"bundle_index:write:{identifier_hash}"
+        return f"bundle_index:write:{self._hashed()}"
 
     def get_lock(self) -> Lock:
         locking_key = self._locking_key()
