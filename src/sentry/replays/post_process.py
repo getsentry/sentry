@@ -12,7 +12,7 @@ from sentry.replays.validators import VALID_FIELD_SET
 class DeviceResponseType(TypedDict, total=False):
     name: Optional[str]
     brand: Optional[str]
-    model: Optional[str]
+    model_id: Optional[str]
     family: Optional[str]
 
 
@@ -143,7 +143,7 @@ def generate_normalized_output(
         ret_item["device"] = {
             "name": item.pop("device_name", None),
             "brand": item.pop("device_brand", None),
-            "model": item.pop("device_model", None),
+            "model_id": item.pop("device_model", None),
             "family": item.pop("device_family", None),
         }
 
@@ -207,7 +207,7 @@ def _archived_row(replay_id: str, project_id: int) -> dict[str, Any]:
         "sdk": {"name": None, "version": None},
         "os": {"name": None, "version": None},
         "browser": {"name": None, "version": None},
-        "device": {"name": None, "brand": None, "model": None, "family": None},
+        "device": {"name": None, "brand": None, "model_id": None, "family": None},
         "urls": None,
         "activity": None,
         "count_dead_clicks": None,

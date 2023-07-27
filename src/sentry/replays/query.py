@@ -559,7 +559,7 @@ class ReplayQueryConfig(QueryConfig):
     device_name = String(field_alias="device.name", query_alias="device_name")
     device_brand = String(field_alias="device.brand", query_alias="device_brand")
     device_family = String(field_alias="device.family", query_alias="device_family")
-    device_model = String(field_alias="device.model", query_alias="device_model")
+    device_model = String(field_alias="device.model_id", query_alias="device_model")
     sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
     sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
