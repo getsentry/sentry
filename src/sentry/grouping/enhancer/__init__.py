@@ -4,6 +4,7 @@ import base64
 import logging
 import os
 import zlib
+from copy import deepcopy
 from hashlib import md5
 from typing import Any, Sequence
 
@@ -150,7 +151,7 @@ class Enhancements:
         if stacktrace_fingerprint:
             # XXX: For now, do the merge on a copy and continue. Once we're ready,
             # we will return from the function
-            _merge_values(frames[:], stacktrace_fingerprint)
+            _merge_values(deepcopy(frames), stacktrace_fingerprint)
 
         in_memory_cache: dict[str, str] = {}
 
