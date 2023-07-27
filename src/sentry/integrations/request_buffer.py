@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from django.conf import settings
 from redis.exceptions import WatchError
@@ -88,10 +88,6 @@ class IntegrationRequestBuffer:
         if len(data) < IS_BROKEN_RANGE:
             return False
 
-        date_set = {data[0] - timedelta(x) for x in range((data[0] - data[-1]).days)}
-        missing = list(date_set - set(data))
-        if len(missing):
-            return False
         return True
 
     def add(self, count: str):
@@ -108,9 +104,7 @@ class IntegrationRequestBuffer:
         while True:
             try:
                 pipe.watch(buffer_key)
-                recent_item_array = self.client.lrange(
-                    buffer_key, 0, 1
-                )  # get first element from array
+                recent_item_array = pipe.lrange(buffer_key, 0, 1)  # get first element from array
                 pipe.multi()
                 if len(recent_item_array):
                     recent_item = json.loads(recent_item_array[0])
