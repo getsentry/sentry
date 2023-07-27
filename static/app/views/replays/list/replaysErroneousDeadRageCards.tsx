@@ -1,4 +1,4 @@
-import {ReactNode, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -136,13 +136,11 @@ function CardTable({
   location,
   organization,
   visibleColumns,
-  emptyMessage,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
   visibleColumns: ReplayColumn[];
-  emptyMessage?: ReactNode;
 }) {
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -165,7 +163,6 @@ function CardTable({
       visibleColumns={visibleColumns}
       saveLocation
       gridRows={'auto ' + gridRows}
-      emptyMessage={emptyMessage}
     />
   );
 }

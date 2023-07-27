@@ -154,7 +154,7 @@ function ReplaysListTable({
   );
 }
 
-export const EmptyStateSubheading = styled('div')`
+const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
