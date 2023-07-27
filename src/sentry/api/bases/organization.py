@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Set, cast
+from typing import Any, Optional, Set
 
 import sentry_sdk
 from django.core.cache import cache
@@ -67,7 +67,7 @@ class OrganizationPermission(SentryPermission):
         # logic for checking valid SSO
         if not request.access.requires_sso:
             return False
-        if not auth.has_completed_sso(request, cast(int, organization.id)):
+        if not auth.has_completed_sso(request, organization.id):
             return True
         if not request.access.sso_is_valid:
             return True
@@ -426,7 +426,7 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         set_measurement("query.num_projects", len_projects)
 
-        params = {
+        params: dict[str, Any] = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],

@@ -6,8 +6,9 @@ from urllib.parse import urlencode
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -76,7 +77,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -122,7 +123,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -157,7 +158,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             resp = self.client.post(self.path, {"init": True})
 
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+            assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
             path = reverse("sentry-auth-sso")
 
@@ -196,7 +197,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
@@ -216,7 +217,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         next = f"/organizations/{self.organization.slug}/releases/"
         resp = self.client.post(self.path + "?next=" + next, {"init": True})
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
@@ -239,7 +240,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             self.path + "?next=" + self.organization.absolute_url(next), {"init": True}
         )
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
@@ -260,7 +261,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(self.path + "?next=" + urlquote(next), {"init": True})
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
@@ -278,7 +279,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": user.email})
@@ -333,7 +334,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -377,7 +378,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": user.email})
@@ -422,7 +423,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(self.path, {"init": True})
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": secondary_email})
@@ -443,7 +444,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -492,7 +493,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -548,7 +549,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -613,7 +614,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -670,7 +671,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -700,7 +701,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -730,7 +731,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -777,7 +778,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -823,7 +824,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -852,7 +853,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         path = reverse("sentry-auth-sso")
 
@@ -1113,7 +1114,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
@@ -1153,7 +1154,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
@@ -1193,7 +1194,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
@@ -1238,7 +1239,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         resp = self.client.post(self.path, {"init": True})
 
         assert resp.status_code == 200
-        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+        assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
         resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")

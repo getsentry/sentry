@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
-from typing import MutableMapping, Tuple
+from typing import Tuple
 
 import sentry_sdk
 from django.db.models import Count, F
@@ -57,7 +59,7 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects: MutableMapping[str, ProjectContext] = {}  # { project_id: ProjectContext }
+        self.projects: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
