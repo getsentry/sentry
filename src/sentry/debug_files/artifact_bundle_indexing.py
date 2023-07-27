@@ -151,7 +151,7 @@ class FlatFileIdentifier(NamedTuple):
         result = ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project_id, release_name=self.release, dist_name=self.dist
         ).first()
-        if result is None:
+        if result is None or result.flat_file_index is None:
             return None
 
         return FlatFileMeta(id=result.id, date=result.date_added)
