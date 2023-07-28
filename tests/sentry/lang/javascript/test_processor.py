@@ -118,7 +118,6 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         data = {
-            "is_exception": True,
             "platform": "javascript",
             "project": project.id,
             "exception": {
@@ -167,7 +166,6 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         data = {
-            "is_exception": True,
             "platform": "javascript",
             "project": project.id,
             "exception": {
