@@ -367,9 +367,10 @@ class ActivityNotificationTest(APITestCase):
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
+        parsed_version = parse_release(release.version)["description"]
         # check the txt version
         assert (
-            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
+            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {parsed_version}"
             in msg.body
         )
         # check the html version
@@ -379,7 +380,7 @@ class ActivityNotificationTest(APITestCase):
         )
 
         attachment, text = get_attachment()
-        assert text == f"Issue marked as resolved in {release.version} by {self.name}"
+        assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]

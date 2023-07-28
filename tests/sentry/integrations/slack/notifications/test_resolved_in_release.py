@@ -15,14 +15,14 @@ from sentry.types.activity import ActivityType
 class SlackResolvedInReleaseNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
-    def create_notification(self, group):
+    def create_notification(self, group, version="meow"):
         return ResolvedInReleaseActivityNotification(
             Activity(
                 project=self.project,
                 group=group,
                 user_id=self.user.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE,
-                data={"version": "meow"},
+                data={"version": version},
             )
         )
 
@@ -91,4 +91,21 @@ class SlackResolvedInReleaseNotificationTest(
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
         self.assert_generic_issue_attachments(
             attachment, self.project.slug, "resolved_in_release_activity-slack-user"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_resolved_in_release_parsed_version(self, mock_func):
+        """
+        Test that the release version is formatted to the short version
+        """
+        notification = self.create_notification(self.group, version="frontend@1.0.0")
+        with self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+        assert text == f"Issue marked as resolved in 1.0.0 by {self.name}"
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
         )
