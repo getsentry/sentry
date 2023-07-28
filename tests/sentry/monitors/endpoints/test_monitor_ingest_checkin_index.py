@@ -87,6 +87,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 monitor_environment.next_checkin
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
+            assert (
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
 
             # Confirm next check-in is populated with config and expected time
             expected_time = monitor_environment.next_checkin
@@ -158,6 +162,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 monitor_environment.next_checkin
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
+            assert (
+                monitor_environment.next_checkin_latest
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
 
     def test_disabled(self):
         for path_func in self._get_path_functions():
@@ -178,6 +186,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert monitor_environment.last_checkin == checkin.date_added
             assert (
                 monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
+            )
+            assert (
+                monitor_environment.next_checkin_latest
                 == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
