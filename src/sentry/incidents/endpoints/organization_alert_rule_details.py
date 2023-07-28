@@ -8,13 +8,20 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
-from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.incidents.logic import (
+    AlreadyDeletedError,
+    delete_alert_rule,
+    get_slack_actions_with_async_lookups,
+)
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
+from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
@@ -67,6 +74,55 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
     return Response(serialized_rule)
 
 
+def update_alert_rule(request: Request, organization, alert_rule):
+    data = request.data
+    serializer = DrfAlertRuleSerializer(
+        context={
+            "organization": organization,
+            "access": request.access,
+            "user": request.user,
+            "ip_address": request.META.get("REMOTE_ADDR"),
+            "installations": app_service.get_installed_for_organization(
+                organization_id=organization.id
+            ),
+        },
+        instance=alert_rule,
+        data=data,
+        # partial=True, # TODO look up what this does. I copied it over because the project one had it
+    )
+
+    if serializer.is_valid():
+        #     if not self._verify_user_has_permission(request, alert_rule):
+        #         return Response(
+        #             {
+        #                 "detail": [
+        #                     "You do not have permission to edit this alert rule because you are not a member of the assigned team."
+        #                 ]
+        #             },
+        #             status=403,
+        #         )
+
+        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        if get_slack_actions_with_async_lookups(organization, request.user, data):
+            # need to kick off an async job for Slack
+            client = RedisRuleStatus()
+            task_args = {
+                "organization_id": organization.id,
+                "uuid": client.uuid,
+                "data": data,
+                "alert_rule_id": alert_rule.id,
+                "user_id": request.user.id,
+            }
+            find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+            # The user has requested a new Slack channel and we tell the client to check again in a bit
+            return Response({"uuid": client.uuid}, status=202)
+        else:
+            alert_rule = serializer.save()
+            return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
@@ -78,34 +134,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return fetch_alert_rule(request, organization, alert_rule)
 
     def put(self, request: Request, organization, alert_rule) -> Response:
-        serializer = DrfAlertRuleSerializer(
-            context={
-                "organization": organization,
-                "access": request.access,
-                "user": request.user,
-                "ip_address": request.META.get("REMOTE_ADDR"),
-                "installations": app_service.get_installed_for_organization(
-                    organization_id=organization.id
-                ),
-            },
-            instance=alert_rule,
-            data=request.data,
-        )
-
-        if serializer.is_valid():
-            if not self._verify_user_has_permission(request, alert_rule):
-                return Response(
-                    {
-                        "detail": [
-                            "You do not have permission to edit this alert rule because you are not a member of the assigned team."
-                        ]
-                    },
-                    status=403,
-                )
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return update_alert_rule(request, organization, alert_rule)
 
     def delete(self, request: Request, organization, alert_rule) -> Response:
         if not self._verify_user_has_permission(request, alert_rule):
