@@ -247,17 +247,30 @@ def devserver(
             }
         )
 
-    if ingest and not workers:
-        click.echo("--ingest was provided, implicitly enabling --workers")
-        workers = True
+    if ingest:
+        # --skip-only-if is so that --ingest just works without needing to
+        # explicitly set SENTRY_USE_RELAY.
+        daemons += [
+            ("relay", ["sentry", "devservices", "attach", "--fast", "--skip-only-if", "relay"])
+        ]
+
+        kafka_consumers.add("ingest-events")
+        kafka_consumers.add("ingest-attachments")
+        kafka_consumers.add("ingest-transactions")
+        kafka_consumers.add("ingest-monitors")
+
+        if not workers:
+            click.echo("--ingest was provided, implicitly enabling --workers")
+            workers = True
 
     if workers:
+        daemons += [_get_daemon("worker"), _get_daemon("cron")]
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
-
-        daemons += [_get_daemon("worker"), _get_daemon("cron")]
 
         from sentry import eventstream
 
@@ -271,26 +284,16 @@ def devserver(
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
 
-        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
-
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
             kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
-        if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
+        if settings.SENTRY_USE_PROFILING:
+            kafka_consumers.add("ingest-profiles")
 
-            kafka_consumers.add("ingest-events")
-            kafka_consumers.add("ingest-attachments")
-            kafka_consumers.add("ingest-transactions")
-            kafka_consumers.add("ingest-monitors")
-
-            if settings.SENTRY_USE_PROFILING:
-                kafka_consumers.add("ingest-profiles")
-
-            if settings.SENTRY_USE_METRICS_DEV:
-                kafka_consumers.add("ingest-metrics")
-                kafka_consumers.add("ingest-generic-metrics")
-                kafka_consumers.add("billing-metrics-consumer")
+        if settings.SENTRY_USE_METRICS_DEV:
+            kafka_consumers.add("ingest-metrics")
+            kafka_consumers.add("ingest-generic-metrics")
+            kafka_consumers.add("billing-metrics-consumer")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)

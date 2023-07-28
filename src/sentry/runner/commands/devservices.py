@@ -170,8 +170,11 @@ def devservices() -> None:
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
+@click.option(
+    "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
+)
 @click.argument("service", nargs=1)
-def attach(project: str, fast: bool, service: str) -> None:
+def attach(project: str, fast: bool, skip_only_if: bool, service: str) -> None:
     """
     Run a single devservice in the foreground.
 
@@ -186,7 +189,7 @@ def attach(project: str, fast: bool, service: str) -> None:
 
     configure()
 
-    containers = _prepare_containers(project, silent=True)
+    containers = _prepare_containers(project, skip_only_if=skip_only_if, silent=True)
     if service not in containers:
         raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
