@@ -1,3 +1,7 @@
+import React from 'react';
+
+import {render} from 'sentry-test/reactTestingLibrary';
+
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 describe('SQLishFormatter', function () {
@@ -12,6 +16,21 @@ describe('SQLishFormatter', function () {
       expect(
         formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
       ).toEqual('SELECT hello \nFROM users \nORDER BY name DESC \nLIMIT 1;');
+    });
+  });
+
+  describe('SQLishFormatter.toSimpleMarkup()', () => {
+    const formatter = new SQLishFormatter();
+    const getMarkup = (markup: any): string => {
+      const {container} = render(<React.Fragment>{markup}</React.Fragment>);
+
+      return container.innerHTML;
+    };
+
+    it('Wraps every token in a `<span>` element', () => {
+      expect(getMarkup(formatter.toSimpleMarkup('SELECT hello;'))).toEqual(
+        '<span>SELECT</span><span> </span><span>hello;</span>'
+      );
     });
   });
 });
