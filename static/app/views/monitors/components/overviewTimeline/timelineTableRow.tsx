@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import {Link} from 'react-router';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Monitor} from 'sentry/views/monitors/types';
@@ -48,22 +49,28 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
           </Button>
         )}
       </MonitorEnvContainer>
-      {!bucketedData ? (
-        <TimelinePlaceholder />
-      ) : (
-        <TimelineContainer>
-          {environments.map(({name}) => {
-            return (
-              <CheckInTimeline
-                key={name}
-                {...timelineProps}
-                bucketedData={bucketedData}
-                environment={name}
-              />
-            );
-          })}
-        </TimelineContainer>
-      )}
+
+      <TimelineContainer>
+        {environments.map(({name}) => {
+          return (
+            <TimelineEnvOuterContainer key={name}>
+              {!bucketedData ? (
+                <TimelineEnvContainer key="timeline">
+                  <TimelinePlaceholder count={Math.round(timelineProps.width / 20)} />
+                </TimelineEnvContainer>
+              ) : (
+                <TimelineEnvContainer key="placeholder">
+                  <CheckInTimeline
+                    {...timelineProps}
+                    bucketedData={bucketedData}
+                    environment={name}
+                  />
+                </TimelineEnvContainer>
+              )}
+            </TimelineEnvOuterContainer>
+          );
+        })}
+      </TimelineContainer>
     </TimelineRow>
   );
 }
@@ -79,6 +86,22 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
       <Name>{monitor.name}</Name>
       <Schedule>{schedule}</Schedule>
     </DetailsContainer>
+  );
+}
+
+function TimelinePlaceholder({count}: {count: number}) {
+  return (
+    <TimelinePlaceholderContainer>
+      {[...new Array(count)].map((_, i) => (
+        <PlaceholderTick
+          key={i}
+          style={{
+            left: `${(i * (100 / count)).toFixed(2)}%`,
+            animationDelay: `${(i / count).toFixed(2)}s`,
+          }}
+        />
+      ))}
+    </TimelinePlaceholderContainer>
   );
 }
 
@@ -142,8 +165,62 @@ const TimelineContainer = styled('div')`
   padding: ${space(3)} 0;
   flex-direction: column;
   gap: ${space(4)};
+  contain: content;
 `;
 
-const TimelinePlaceholder = styled(Placeholder)`
-  align-self: center;
+const TimelineEnvOuterContainer = styled('div')`
+  position: relative;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+`;
+
+const TimelineEnvContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: ${fadeIn} 1.5s ease-out forwards;
+  contain: content;
+`;
+
+const TimelinePlaceholderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100%;
+`;
+
+const placeholderTickKeyframes = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(0.75) translateZ(0);
+    filter: blur(12px);
+  }
+  33.33% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+    filter: blur(0px);
+  }
+  66.66% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.75) translateZ(0);
+    filter: blur(12px);
+  }
+`;
+
+const PlaceholderTick = styled('div')`
+  position: absolute;
+  margin-top: 1px;
+  background: ${p => p.theme.translucentBorder};
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+
+  opacity: 0;
+  transform: scale(0.75) translateZ(0);
+  filter: blur(12px);
+  animation: ${placeholderTickKeyframes} 2s ease-out forwards infinite;
 `;
