@@ -123,6 +123,34 @@ def update_alert_rule(request: Request, organization, alert_rule):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def remove_alert_rule(request: Request, organization, alert_rule):
+    # if not self._verify_user_has_permission(request, alert_rule):
+    #     return Response(
+    #         {
+    #             "detail": [
+    #                 "You do not have permission to delete this alert rule because you are not a member of the assigned team."
+    #             ]
+    #         },
+    #         status=403,
+    #     )
+    try:
+        delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except AlreadyDeletedError:
+        return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
+
+
+def _verify_user_has_permission(self, request: Request, alert_rule):
+    if not is_active_superuser(request):
+        if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
+            team = alert_rule.owner.resolve()
+            if not OrganizationMemberTeam.objects.filter(
+                organizationmember__user_id=request.user.id, team=team, is_active=True
+            ).exists():
+                return False
+    return True
+
+
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
@@ -137,31 +165,4 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return update_alert_rule(request, organization, alert_rule)
 
     def delete(self, request: Request, organization, alert_rule) -> Response:
-        if not self._verify_user_has_permission(request, alert_rule):
-            return Response(
-                {
-                    "detail": [
-                        "You do not have permission to delete this alert rule because you are not a member of the assigned team."
-                    ]
-                },
-                status=403,
-            )
-        try:
-            delete_alert_rule(
-                alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR")
-            )
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except AlreadyDeletedError:
-            return Response(
-                "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
-            )
-
-    def _verify_user_has_permission(self, request: Request, alert_rule):
-        if not is_active_superuser(request):
-            if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
-                team = alert_rule.owner.resolve()
-                if not OrganizationMemberTeam.objects.filter(
-                    organizationmember__user_id=request.user.id, team=team, is_active=True
-                ).exists():
-                    return False
-        return True
+        return remove_alert_rule(request, organization, alert_rule)
