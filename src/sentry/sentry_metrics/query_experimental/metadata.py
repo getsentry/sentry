@@ -254,14 +254,16 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         Arithmetic functions require vectors as parameters and return vectors.
         """
 
+        name = function.function
         if len(function.parameters) != 2:
-            raise InvalidMetricsQuery(f"`{function.function}` must have two parameters")
+            raise InvalidMetricsQuery(f"`{name}` must have two parameters")
 
         lhs = self._visit_expression(function.parameters[0])
         rhs = self._visit_expression(function.parameters[1])
 
-        if not isinstance(lhs.type_, VectorType) or not isinstance(rhs.type_, VectorType):
-            raise InvalidMetricsQuery(f"Cannot apply `{function.function}` to a metric")
+        allowed_types = (VectorType, ScalarType)  # TODO: Check scalar is not a string
+        if not isinstance(lhs.type_, allowed_types) or not isinstance(rhs.type_, allowed_types):
+            raise InvalidMetricsQuery(f"Cannot apply `{name}` to a metric, aggregation needed")
 
         return AnnotatedExpression(
             node=function,

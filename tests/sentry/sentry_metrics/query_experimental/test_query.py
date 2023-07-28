@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from sentry.sentry_metrics.query_experimental import get_series
 from sentry.sentry_metrics.query_experimental.types import (
     FILTER,
@@ -14,6 +16,8 @@ from sentry.sentry_metrics.query_experimental.types import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils import BaseMetricsLayerTestCase, TestCase
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def __example_to_remove():
@@ -73,10 +77,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
     def test_basic(self):
         MRI = "d:transactions/duration@millisecond"
         VALUES = [
-            (self.now + timedelta(hours=0), 100),
-            (self.now + timedelta(hours=1), 120),
-            (self.now + timedelta(hours=2), 80),
-            (self.now + timedelta(hours=3), 100),
+            (self.now + timedelta(hours=0), 100.0),
+            (self.now + timedelta(hours=1), 120.0),
+            (self.now + timedelta(hours=2), 80.0),
+            (self.now + timedelta(hours=3), 100.0),
         ]
 
         for ts, value in VALUES:
@@ -108,10 +112,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
     def test_groupby(self):
         MRI = "d:transactions/duration@millisecond"
         VALUES = [
-            (self.now + timedelta(hours=0), 100, "a"),
-            (self.now + timedelta(hours=1), 120, "a"),
-            (self.now + timedelta(hours=2), 80, "a"),
-            (self.now + timedelta(hours=3), 100, "b"),
+            (self.now + timedelta(hours=0), 100.0, "a"),
+            (self.now + timedelta(hours=1), 120.0, "a"),
+            (self.now + timedelta(hours=2), 80.0, "a"),
+            (self.now + timedelta(hours=3), 100.0, "b"),
         ]
 
         for ts, value, tx in VALUES:
@@ -142,11 +146,188 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             (self.now + timedelta(hours=0), None),
             (self.now + timedelta(hours=1), None),
             (self.now + timedelta(hours=2), None),
-            (self.now + timedelta(hours=3), 100),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
+    def test_filter(self):
+        MRI = "d:transactions/duration@millisecond"
+        VALUES = [
+            (self.now + timedelta(hours=0), 100.0, "a"),
+            (self.now + timedelta(hours=1), 120.0, "a"),
+            (self.now + timedelta(hours=2), 80.0, "a"),
+            (self.now + timedelta(hours=3), 100.0, "b"),
+        ]
+
+        for ts, value, tx in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI,
+                tags={"transaction": tx},
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
+            filters=[Condition(Column("transaction"), Op.EQ, "b")],
+            groups=[],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            interval=3600,
+        )
+
+        result = get_series(query)
+        assert list(result.iter_series()) == [
+            # TODO: Include all intervals in series
+            # (self.now + timedelta(hours=0), None),
+            # (self.now + timedelta(hours=1), None),
+            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
+    @pytest.mark.skip(reason="TODO: refactor filter, conditions not allowed")
+    def test_filter_expression(self):
+        MRI = "d:transactions/duration@millisecond"
+        VALUES = [
+            (self.now + timedelta(hours=0), 100.0, "a"),
+            (self.now + timedelta(hours=1), 120.0, "a"),
+            (self.now + timedelta(hours=2), 80.0, "a"),
+            (self.now + timedelta(hours=3), 100.0, "b"),
+        ]
+
+        for ts, value, tx in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI,
+                tags={"transaction": tx},
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        expr = Function(
+            AggregationFn.AVG.value,
+            [Function(FILTER, [Column(MRI), Condition(Column("transaction"), Op.EQ, "b")])],
+        )
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            expressions=[expr],
+            filters=[],
+            groups=[],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            interval=3600,
+        )
+
+        result = get_series(query)
+        assert list(result.iter_series()) == [
+            # TODO: Include all intervals in series
+            # (self.now + timedelta(hours=0), None),
+            # (self.now + timedelta(hours=1), None),
+            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
+    @pytest.mark.skip(reason="TODO: normalization not implemented")
+    def test_filter_expression_outside(self):
+        MRI = "d:transactions/duration@millisecond"
+        VALUES = [
+            (self.now + timedelta(hours=0), 100.0, "a"),
+            (self.now + timedelta(hours=1), 120.0, "a"),
+            (self.now + timedelta(hours=2), 80.0, "a"),
+            (self.now + timedelta(hours=3), 100.0, "b"),
+        ]
+
+        for ts, value, tx in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI,
+                tags={"transaction": tx},
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        expr = Function(
+            FILTER,
+            [
+                Function(AggregationFn.AVG.value, [Column(MRI)]),
+                Condition(Column("transaction"), Op.EQ, "b"),
+            ],
+        )
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            expressions=[expr],
+            filters=[],
+            groups=[],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            interval=3600,
+        )
+
+        result = get_series(query)
+        assert list(result.iter_series()) == [
+            # TODO: Include all intervals in series
+            # (self.now + timedelta(hours=0), None),
+            # (self.now + timedelta(hours=1), None),
+            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
+    def test_arithmetic(self):
+        MRI = "d:transactions/duration@millisecond"
+        VALUES = [
+            (self.now + timedelta(hours=0), 100.0),
+            (self.now + timedelta(hours=1), 120.0),
+            (self.now + timedelta(hours=2), 80.0),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
+        for ts, value in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI,
+                tags={},
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        expr = Function(
+            ArithmeticFn.MULTIPLY.value, [Function(AggregationFn.AVG.value, [Column(MRI)]), 2]
+        )
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            expressions=[expr],
+            filters=[],
+            groups=[],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            interval=3600,
+        )
+
+        result = get_series(query)
+        assert list(result.iter_series()) == [
+            (self.now + timedelta(hours=0), 2 * 100.0),
+            (self.now + timedelta(hours=1), 2 * 120.0),
+            (self.now + timedelta(hours=2), 2 * 80.0),
+            (self.now + timedelta(hours=3), 2 * 100.0),
         ]
 
 
-# TODO: grouping
-# TODO: filter
-# TODO: arithmetic
 # TODO: Test missing tag
+# TODO: Test missing tag value
+# TODO: Test reverse tag mapping on sessions

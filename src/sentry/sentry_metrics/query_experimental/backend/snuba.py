@@ -89,7 +89,7 @@ class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
         """
         return self.bulk_execute([query])[0]
 
-    def bulk_execute(self, requests) -> List[SeriesResult]:
+    def bulk_execute(self, requests: List[SnubaRequest]) -> List[SeriesResult]:
         """
         Convert and run a series of queries against Snuba.
         """
@@ -301,36 +301,32 @@ class SnubaResultConverter:
         self.buckets: Dict[GroupKey, SeriesDict] = {}
         self.num_expressions = 1  # TODO
 
-    def _parse_tag_key(self, key: str) -> Optional[int]:
-        if key.startswith("tags_raw["):
-            return int(key[9:-1])  # TODO: Exceptions
-        return None
-
     def _parse_expression_id(self, key: str) -> Optional[int]:
         if key.startswith("__expr_"):
-            return int(key[7:])  # TODO: Exceptions
+            return int(key[7:])
         return None
 
-    def _record_bucket(self, by: TagDict, series: SeriesDict):
-        key = frozenset(by.items())
-        self.buckets.setdefault(key, {}).update(series)
+    def _record_bucket(self, bucket_time: datetime, tags: TagDict, values: Dict[int, float]):
+        series = self.buckets.setdefault(frozenset(tags.items()), {})
+        for expr_id, value in values.items():
+            series.setdefault(expr_id, {})[bucket_time] = value
 
     def _record_entry(self, entry: Dict[str, Any]):
         timestamp: str = entry.pop(COLUMN_TIMESTAMP_GROUP.name)
         bucket_time = datetime.fromisoformat(timestamp)
         self.intervals.add(bucket_time)
 
-        series: SeriesDict = {}
-        by: TagDict = {}
+        values: Dict[int, float] = {}
+        tags: TagDict = {}
 
         for k, v in entry.items():
             if expr_id := self._parse_expression_id(k):
-                series.setdefault(expr_id - 1, {})[bucket_time] = float(v)
+                values[expr_id - 1] = float(v)
             else:
                 self.tags.setdefault(k, set()).add(str(v))
-                by[k] = str(v)
+                tags[k] = str(v)
 
-        self._record_bucket(by, series)
+        self._record_bucket(bucket_time, tags, values)
 
     def convert(self) -> SeriesResult:
         for entry in self.snuba_result["data"]:
