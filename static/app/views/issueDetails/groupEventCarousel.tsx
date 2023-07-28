@@ -13,8 +13,8 @@ import {
   IconChevron,
   IconCopy,
   IconEllipsis,
+  IconLink,
   IconNext,
-  IconOpen,
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
@@ -66,9 +66,9 @@ const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
 
 const EVENT_NAV_DROPDOWN_OPTIONS = [
-  {value: EventNavDropdownOption.RECOMMENDED, label: 'Recommended Event'},
-  {value: EventNavDropdownOption.LATEST, label: 'Latest Event'},
-  {value: EventNavDropdownOption.OLDEST, label: 'Oldest Event'},
+  {value: EventNavDropdownOption.RECOMMENDED, label: 'Recommended'},
+  {value: EventNavDropdownOption.LATEST, label: 'Latest'},
+  {value: EventNavDropdownOption.OLDEST, label: 'Oldest'},
   {options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}]},
 ];
 
@@ -343,18 +343,21 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           ]}
         />
         {xlargeViewport && (
-          <Button size={BUTTON_SIZE} onClick={copyLink}>
-            Copy Link
-          </Button>
+          <Tooltip title={t('Copy link to this issue event')}>
+            <Button
+              size={BUTTON_SIZE}
+              icon={<IconLink />}
+              onClick={copyLink}
+              aria-label={t('Copy Link')}
+            />
+          </Tooltip>
         )}
         {xlargeViewport && (
-          <Button
-            size={BUTTON_SIZE}
-            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
-            onClick={downloadJson}
-          >
-            JSON
-          </Button>
+          <Tooltip title={t('View JSON')}>
+            <Button size={BUTTON_SIZE} onClick={downloadJson} aria-label={t('View JSON')}>
+              {'{ }'}
+            </Button>
+          </Tooltip>
         )}
         <EventNavigationDropdown group={group} />
         <NavButtons>
