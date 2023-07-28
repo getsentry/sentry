@@ -31,7 +31,7 @@ def make_event(stacktraces):
 
 
 class NormalizeInApptest(TestCase):
-    def test_normalize_with_system_frames(self):
+    def test_changes_in_app_not_set_into_in_app_False(self):
         event_data = make_event([make_stacktrace(frame_0_in_app=True)])
 
         normalize_stacktraces_for_grouping(event_data)
@@ -40,7 +40,7 @@ class NormalizeInApptest(TestCase):
         assert frames[0]["in_app"] is True
         assert frames[1]["in_app"] is False
 
-    def test_normalize_skips_none(self):
+    def test_skips_None_frames(self):
         # No arguments means neither example frame will have an `in_app` value
         stacktrace = make_stacktrace()
         stacktrace["frames"].insert(0, None)
