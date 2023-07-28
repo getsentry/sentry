@@ -56,6 +56,10 @@ describe('SQLishFormatter', function () {
       ).toEqual(
         'SELECT * \nFROM messages \nWHERE (receiver_user_id = Users.id \nAND created >= :c1))'
       );
+
+      expect(formatter.toString('SELECT "id" FROM "bottle" LIMIT $2')).toEqual(
+        'SELECT "id" \nFROM "bottle" \nLIMIT $2'
+      );
     });
 
     it('Formats Python-style parameters', () => {
