@@ -372,7 +372,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: BaseApiResponse):
+    def record_response(self, response: Response):
         if self.is_response_fatal(response):
             self.record_request_fatal(response)
         elif self.is_response_error(response):

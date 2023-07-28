@@ -73,7 +73,7 @@ class SlackClient(IntegrationProxyClient):
         if not resp_json.get("ok"):
             if "account_inactive" == resp_json.get("error", ""):
                 return True
-            return False
+        return False
 
     def track_response_data(
         self,
