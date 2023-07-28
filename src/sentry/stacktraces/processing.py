@@ -204,7 +204,7 @@ def find_stacktraces_in_data(
         stacktrace: Any,
         # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
         # or None for top-level stacktraces
-        container: Any,
+        container: Any = None,
         # Whether or not the container is from `exception.values`
         is_exception: bool = False,
         # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
@@ -233,23 +233,23 @@ def find_stacktraces_in_data(
     for exc in get_path(data, "exception", "values", filter=True, default=()):
         _append_stacktrace(
             exc.get("stacktrace"),
-            exc,
+            container=exc,
             is_exception=True,
             include_empty_exceptions=include_empty_exceptions,
         )
 
     # Look for stacktraces under the key `stacktrace`
-    _append_stacktrace(data.get("stacktrace"), None)
+    _append_stacktrace(data.get("stacktrace"))
 
     # The native family includes stacktraces under threads
     for thread in get_path(data, "threads", "values", filter=True, default=()):
-        _append_stacktrace(thread.get("stacktrace"), thread)
+        _append_stacktrace(thread.get("stacktrace"), container=thread)
 
     if include_raw:
         # Iterate over a copy of rv, otherwise, it will infinitely append to itself
         for info in rv[:]:
             if info.container is not None:
-                _append_stacktrace(info.container.get("raw_stacktrace"), info.container)
+                _append_stacktrace(info.container.get("raw_stacktrace"), container=info.container)
 
     return rv
 
