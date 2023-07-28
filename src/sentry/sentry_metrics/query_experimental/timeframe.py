@@ -43,7 +43,7 @@ def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
     interval = query.interval
     if interval == 0:
         interval = _infer_interval(query.start, query.end, config.granularities)
-    granularity = config.granularity(query.interval).granularity
+    granularity = config.granularity(interval).granularity
 
     # Ensure the interval is a multiple of the granularity and align the timeframe
     interval = round(interval / granularity) * granularity

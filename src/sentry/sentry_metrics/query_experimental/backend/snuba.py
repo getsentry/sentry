@@ -133,7 +133,7 @@ class SnubaQueryConverter:
         )
 
         return SnubaRequest(
-            dataset=self.config.dataset,
+            dataset=self.config.dataset.value,
             app_id=APP_ID,
             query=snuba_query,
             tenant_ids={"organization_id": self.query.scope.org_id},
@@ -149,7 +149,7 @@ class SnubaQueryConverter:
         if len(entities) != 1:
             raise ValueError("Snuba query must reference a single entity")
 
-        return entities.pop().value
+        return entities.pop()
 
     def _build_select(self) -> Sequence[SelectableExpression]:
         return [self._convert_expression(e) for e in self.query.expressions]

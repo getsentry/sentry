@@ -89,7 +89,7 @@ class QueryConfig:
         return Entity(key.value)
 
     def granularity(self, interval: int) -> Granularity:
-        granularity = max(*(g for g in self.granularities if g <= interval))
+        granularity = max(g for g in self.granularities if g <= interval)
         return Granularity(granularity)
 
 

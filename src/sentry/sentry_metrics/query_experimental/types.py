@@ -4,8 +4,8 @@ Types to construct a metrics query request.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Mapping, Optional, Sequence
+from enum import Enum, EnumMeta
+from typing import Any, Mapping, Optional, Sequence
 
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -14,6 +14,7 @@ from snuba_sdk.function import Function
 
 from sentry.snuba.metrics.naming_layer import ParsedMRI
 from sentry.snuba.metrics.naming_layer import parse_mri as _parse_mri
+from sentry.utils.cache import memoize
 
 __all__ = (
     "AggregationFn",
@@ -34,7 +35,20 @@ __all__ = (
 )
 
 
-class AggregationFn(Enum):
+class IndexableEnumMeta(EnumMeta):
+    def __contains__(cls, item: Any):
+        """
+        Allow checking if a value is valid for an enum using ``in``.
+        """
+
+        try:
+            cls(item)
+            return True
+        except ValueError:
+            return False
+
+
+class AggregationFn(Enum, metaclass=IndexableEnumMeta):
     """
     Valid aggregation functions for metrics queries to be used with ``Function``.
     """
@@ -51,15 +65,8 @@ class AggregationFn(Enum):
     # RATE = "rate"  # TODO: Implement rate
     COUNT_UNIQUE = "count_unique"
 
-    def __contains__(cls, item):
-        try:
-            AggregationFn(item)
-            return True
-        except ValueError:
-            return False
 
-
-class ArithmeticFn(Enum):
+class ArithmeticFn(Enum, metaclass=IndexableEnumMeta):
     """
     Valid arithmetic functions for metrics queries to be used with ``Function``.
     """
@@ -68,13 +75,6 @@ class ArithmeticFn(Enum):
     MINUS = "minus"
     MULTIPLY = "multiply"
     DIVIDE = "divide"
-
-    def __contains__(cls, item):
-        try:
-            ArithmeticFn(item)
-            return True
-        except ValueError:
-            return False
 
 
 # Function name used for filtering.
@@ -123,6 +123,18 @@ class SeriesQuery:
         """
         # TODO: Move this to a query builder, since we also need groups etc.
         raise NotImplementedError("TODO")
+
+    def __hash__(self):
+        return hash(self._id)
+
+    def __eq__(self, other):
+        return self._id == other._id
+
+    @memoize
+    def _id(self):
+        from uuid import uuid4
+
+        return uuid4()
 
 
 class InvalidMetricsQuery(Exception):

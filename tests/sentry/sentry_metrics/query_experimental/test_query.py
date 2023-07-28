@@ -69,7 +69,6 @@ def test_basic():
         groups=[],
         start=datetime(2023, 1, 1),
         end=datetime(2023, 1, 2),
-        interval=3600,
     )
 
     result = get_series(query)

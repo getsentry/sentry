@@ -95,7 +95,7 @@ class ExpandTransform(QueryTransform):
         if column.name.startswith("$"):
             return column
 
-        expression = self.registry.resolve(column.name)
+        expression = self.registry.try_resolve(column.name)
         if expression is None:
             return column
 

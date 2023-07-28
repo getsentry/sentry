@@ -3,7 +3,6 @@ Resolution of indexed metric names, tag keys, and tag values in metric queries
 and results.
 """
 
-from dataclasses import replace
 from typing import Union
 
 from sentry.sentry_metrics import indexer
@@ -75,7 +74,11 @@ class IndexerTransform(QueryTransform):
         if resolved is None:
             resolved = STRING_NOT_FOUND
 
-        return replace(column, key=str(resolved))
+        # NB: key is a non-init field of a frozen class. It is meant to be used
+        # with subscriptible, which is context-dependent. In metrics queries,
+        # it is used to store the index of the metric name, tag key, or value.
+        super(Column, column).__setattr__("key", str(resolved))
+        return column
 
     def _visit_str(self, string: str) -> Union[str, int]:
         if not self.config.index_values:
