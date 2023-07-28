@@ -202,8 +202,13 @@ def find_stacktraces_in_data(
 
     def _append_stacktrace(
         stacktrace: Any,
+        # The entry in `exception.values` or `threads.values` containing the `stacktrace` attribute,
+        # or None for top-level stacktraces
         container: Any,
+        # Whether or not the container is from `exception.values`
         is_exception: bool = False,
+        # Prevent skipping empty/null stacktraces from `exception.values` (other empty/null
+        # stacktraces are always skipped)
         include_empty_exceptions: bool = False,
     ) -> None:
         frames = _safe_get_frames(stacktrace)
