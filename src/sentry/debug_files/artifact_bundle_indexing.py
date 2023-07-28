@@ -345,14 +345,14 @@ class FlatFileIndex:
         json_index = json.dumps(json_idx)
 
         if len(self._files_by_url) == 0:
-            metrics.incr(
+            metrics.timing(
                 "artifact_bundle_flat_file_indexing.debug_id_index.size_in_mb",
-                amount=size_in_mb(json_index),
+                value=size_in_mb(json_index),
             )
         else:
-            metrics.incr(
+            metrics.timing(
                 "artifact_bundle_flat_file_indexing.url_index.size_in_mb",
-                amount=size_in_mb(json_index),
+                value=size_in_mb(json_index),
             )
 
         return json_index
