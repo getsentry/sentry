@@ -40,5 +40,3 @@ class OptionsPresenter(ABC):
     @abstractmethod
     def error(self, key: str, not_writable_reason: str):
         pass
-
-    # todo: eventually add methods for invalid options, and options being set to the wrong type.

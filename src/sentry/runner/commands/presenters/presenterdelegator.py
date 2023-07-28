@@ -46,7 +46,7 @@ class PresenterDelegator(OptionsPresenter):
         if self.slackpresenter:
             self.slackpresenter.drift(key)
 
-    def error(self):
+    def error(self, key: str, not_writable_reason: str):
         if self.check_slack_webhook_config:
-            self.slackpresenter.error()
-        self.consolepresenter.error()
+            self.slackpresenter.error(key, not_writable_reason)
+        self.consolepresenter.error(key, not_writable_reason)
