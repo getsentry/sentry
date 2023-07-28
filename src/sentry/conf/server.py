@@ -1669,7 +1669,7 @@ SENTRY_FEATURES = {
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
-    "organizations:pr-comment-bot": False,
+    "organizations:pr-comment-bot": True,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
