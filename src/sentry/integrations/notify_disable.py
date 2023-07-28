@@ -1,3 +1,5 @@
+from typing import Union
+
 from sentry.models import Organization
 from sentry.utils.email import MessageBuilder
 
@@ -33,7 +35,10 @@ def get_subject(integration_name: str) -> str:
 
 
 def notify_disable(
-    organization: Organization, integration_name: str, redis_key: str, project: str | None = None
+    organization: Organization,
+    integration_name: str,
+    redis_key: str,
+    project: Union[str, None] = None,
 ):
 
     integration_link = get_url(
