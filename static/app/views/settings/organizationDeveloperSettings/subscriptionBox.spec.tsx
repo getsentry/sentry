@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
@@ -9,8 +11,7 @@ describe('SubscriptionBox', () => {
   beforeEach(() => {
     onChange.mockReset();
   });
-
-  function renderComponent(props) {
+  function renderComponent(props: Partial<ComponentProps<typeof SubscriptionBox>> = {}) {
     return render(
       <SubscriptionBox
         resource="issue"
@@ -18,18 +19,19 @@ describe('SubscriptionBox', () => {
         disabledFromPermissions={false}
         onChange={onChange}
         organization={org}
+        isNew={false}
         {...props}
       />
     );
   }
 
   it('renders resource checkbox', () => {
-    const {container} = renderComponent({});
+    const {container} = renderComponent();
     expect(container).toSnapshot();
   });
 
   it('calls onChange prop when checking checkbox', async () => {
-    renderComponent({});
+    renderComponent();
 
     await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith('issue', true);
