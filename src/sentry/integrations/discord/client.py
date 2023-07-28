@@ -6,6 +6,7 @@ import logging
 from requests import PreparedRequest
 
 from sentry import options
+from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils.json import JSONData
@@ -28,6 +29,9 @@ class DiscordClient(IntegrationProxyClient):
 
     # https://discord.com/developers/docs/resources/channel#get-channel
     CHANNEL_URL = "/channels/{channel_id}"
+
+    # https://discord.com/developers/docs/resources/channel#create-message
+    MESSAGE_URL = "/channels/{channel_id}/messages"
 
     def __init__(
         self,
@@ -73,3 +77,9 @@ class DiscordClient(IntegrationProxyClient):
         Get a channel by id.
         """
         return self.get(self.CHANNEL_URL.format(channel_id=channel_id))
+
+    def send_message(self, channel_id: str, message: DiscordMessageBuilder) -> None:
+        """
+        Send a message to the specified channel.
+        """
+        self.post(self.MESSAGE_URL.format(channel_id=channel_id), data=message.build())

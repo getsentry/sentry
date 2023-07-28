@@ -24,11 +24,6 @@ class DiscordNotifyServiceForm(forms.Form):
         self.fields["server"].choices = server_list
         self.fields["server"].widget.choices = self.fields["server"].choices
 
-        # We only want to save if we are able to find a matching channel id for
-        # the given channel name.
-        # TODO: Do we need this?
-        self._pending_save = False
-
     def _format_discord_error_message(self, message: str) -> object:
         return _(f"Discord: {message}")
 
@@ -41,11 +36,19 @@ class DiscordNotifyServiceForm(forms.Form):
         assert channel_id == cleaned_data["channel_id"]
 
         server = cleaned_data.get("server")
+        integration = integration_service.get_integration(integration_id=server)
+
+        if not integration:
+            raise forms.ValidationError(
+                self._format_discord_error_message("Server is a required field."),
+                code="invalid",
+            )
 
         if channel_id:
             try:
                 validate_channel_id(
                     channel_id=channel_id,
+                    guild_id=integration.external_id,
                     integration_id=server,
                 )
             except ValidationError as e:
@@ -53,11 +56,5 @@ class DiscordNotifyServiceForm(forms.Form):
                     self._format_discord_error_message("; ".join(e.messages)),
                     code="invalid",
                 )
-        integration = integration_service.get_integration(integration_id=server)
-        if not integration:
-            raise forms.ValidationError(
-                self._format_discord_error_message("Server is a required field."),
-                code="invalid",
-            )
 
         return cleaned_data
