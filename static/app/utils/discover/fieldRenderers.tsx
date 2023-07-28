@@ -52,6 +52,8 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -697,9 +699,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
-  sps_percent_change: SpecialFunctionFieldRenderer;
   time_spent_percentage: SpecialFunctionFieldRenderer;
-  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -765,6 +765,14 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  time_spent_percentage: fieldName => data => {
+    return (
+      <TimeSpentCell
+        percentage={data[fieldName]}
+        total={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+      />
     );
   },
 };
