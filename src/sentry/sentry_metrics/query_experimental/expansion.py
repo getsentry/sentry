@@ -4,12 +4,9 @@ Expansion for derived metrics in query expressions.
 
 from typing import Dict, Optional, Union
 
-from sentry.snuba.metrics.naming_layer import parse_mri
-
-from .transform import QueryLayer, QueryTransform
-from .types import Column, Condition, Expression, InvalidMetricsQuery, SeriesQuery
-
-# TODO: Support dynamic lookup for measurements
+from .pipeline import QueryLayer
+from .transform import QueryTransform
+from .types import Column, Condition, Expression, InvalidMetricsQuery, SeriesQuery, parse_mri
 
 
 class ExpressionRegistry:
@@ -31,11 +28,8 @@ class ExpressionRegistry:
         if mri in self._metrics:
             raise ValueError(f"Derived metric `{mri}` already registered")
 
-        if parse_mri(mri) is None:
-            raise ValueError(f"Invalid MRI: `{mri}`")
-
-        # TODO: Validate expression?
-        self._metrics[mri] = expression
+        parse_mri(mri)  # Validate and discard result
+        self._metrics[mri] = expression  # TODO: Validate expression?
 
     def resolve(self, mri: str) -> Expression:
         expression = self.try_resolve(mri)
@@ -53,11 +47,21 @@ _REGISTRY: ExpressionRegistry = ExpressionRegistry()
 def register_derived_metric(mri: str, expression: Expression):
     """
     Register a derived metric that will be expanded in queries.
+
+    Use ``expand_derived_metrics`` to expand derived metrics in a query. This is
+    done automatically by ``get_series``.
     """
     _REGISTRY.register(mri, expression)
 
 
 class ExpansionLayer(QueryLayer):
+    """
+    Layer for the query pipeline that recursively expands references to derived
+    metrics in queries with their backing expressions.
+
+    Use ``register_derived_metric`` to register derived metrics.
+    """
+
     def __init__(self, registry: Optional[ExpressionRegistry] = None):
         self.registry = registry
 

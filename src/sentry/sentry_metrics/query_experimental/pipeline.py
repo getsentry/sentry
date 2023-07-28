@@ -6,42 +6,38 @@ from typing import List
 
 from .backend import MetricsBackend, default_backend
 from .calculation import generate_calculation
-from .expansion import ExpansionLayer
-from .indexes import IndexLayer
-from .metadata import ValidationLayer
-from .naming import NamingLayer
-from .timeframe import TimeframeLayer
-from .transform import QueryLayer
 from .types import SeriesQuery, SeriesResult
 
 # TODO: Request class?
 
 
-def get_series(query: SeriesQuery, public: bool = False) -> SeriesResult:
+class QueryLayer:
     """
-    Execute a series query and return the result.
-
-    :param query: The query object to execute.
-    :param public: Whether to map metric names and tag names to a public
-        namespace. If this is True, MRIs and private metrics cannot be used.
+    Base class for layers that wrap the query pipeline and preprocess queries or
+    post process results.
     """
 
-    # TODO: Support binding variables (column with $ prefix)?
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        """
+        Transform a query. Default implementation is an identity transform.
+        """
+        return query
 
-    return (
-        QueryPipeline()
-        .layer_if(public, NamingLayer())
-        .layer(TimeframeLayer())
-        .layer(ExpansionLayer())
-        .layer(IndexLayer())
-        .layer(ValidationLayer())
-        .execute(query)
-    )
+    def transform_result(self, result: SeriesResult) -> SeriesResult:
+        """
+        Transform a result. Default implementation is an identity transform.
+        """
+        return result
 
 
 class QueryPipeline:
     """
     A configurable pipeline for executing metrics queries.
+
+    To construct a pipeline, add layers with :meth:`layer` and then execute
+    queries with :meth:`execute`. Layers are applied in the following order:
+     - Query preprocessing: outer-most to inner-most
+     - Result postprocessing: inner-most to outer-most
     """
 
     def __init__(self):
@@ -70,11 +66,11 @@ class QueryPipeline:
 
     def layer_if(self, flag: bool, layer) -> "QueryPipeline":
         """
-        Add a query layer to the pipeline that transforms queries or results if
-        the given flag is set.
+        Add a conditional query layer to the pipeline that transforms queries or
+        results if the given flag is set.
 
-        This layer is first to transform the query and last to transform the
-        result.
+        This is a convenience method that allows chaining optional layers. See
+        :meth:`layer` for more information.
         """
 
         if flag:

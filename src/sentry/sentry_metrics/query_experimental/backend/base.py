@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from sentry.sentry_metrics.query_experimental.types import SeriesQuery, SeriesResult
+from ..types import SeriesQuery, SeriesResult
 
 TRequest = TypeVar("TRequest")
 

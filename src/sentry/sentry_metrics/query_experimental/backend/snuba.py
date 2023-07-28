@@ -5,17 +5,24 @@ from snuba_sdk import Query as SnubaQuery
 from snuba_sdk import Request as SnubaRequest
 from snuba_sdk import SelectableExpression
 
-from sentry.sentry_metrics.query_experimental.types import SeriesQuery, SeriesResult
 from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_config
-from sentry.snuba.metrics.naming_layer import parse_mri
-from sentry.snuba.metrics.utils import TS_COL_GROUP, TS_COL_QUERY
 from sentry.utils.snuba import raw_snql_query
 
+from ..timeframe import resolve_granularity
+from ..transform import QueryVisitor
+from ..types import (
+    FILTER,
+    AggregationFn,
+    ArithmeticFn,
+    Expression,
+    Function,
+    InvalidMetricsQuery,
+    SeriesQuery,
+    SeriesResult,
+    parse_mri,
+)
+from ..use_case import get_use_case
 from .base import MetricsBackend
-from .timeframe import resolve_granularity
-from .transform import QueryVisitor
-from .types import FILTER, AggregationFn, ArithmeticFn, Expression, Function, InvalidMetricsQuery
-from .use_case import get_use_case
 
 # General snuba configuration
 APP_ID = "sentry_metrics"
@@ -24,8 +31,8 @@ REFERRER = "sentry_metrics.query"
 # Snuba column names
 COLUMN_PROJECT_ID = Column("project_id")
 COLUMN_ORG_ID = Column("org_id")
-COLUMN_TIMESTAMP_FILTER = Column(TS_COL_QUERY)  # Used in filters
-COLUMN_TIMESTAMP_GROUP = Column(TS_COL_GROUP)  # Used in groupby
+COLUMN_TIMESTAMP_FILTER = Column("timestamp")  # Used in filters
+COLUMN_TIMESTAMP_GROUP = Column("bucketed_time")  # Used in groupby
 COLUMN_VALUE = Column("value")
 COLUMN_METRIC_ID = Column("metric_id")
 
@@ -101,12 +108,13 @@ class SnqlBuilder:
         """
         Generate a SnQL query from a metric series query.
         """
+
         snuba_query = SnubaQuery(
             match=self._resolve_entity(),
             select=self._build_select(),
             groupby=self._build_groupby(),
             where=self._build_where(),
-            granularity=resolve_granularity(self.query.interval),
+            granularity=resolve_granularity(self.query),
         )
 
         return SnubaRequest(
@@ -189,8 +197,6 @@ class SnqlBuilder:
             if not node.key.isnumeric():
                 raise InvalidMetricsQuery("Metric name must be a resolved index")
             mri = parse_mri(node.name)
-            if mri is None:
-                raise InvalidMetricsQuery(f"Expected MRI, got `{node.name}`")
             return (mri.entity, [Function("equals", [COLUMN_METRIC_ID, node.key])])
 
         if isinstance(node, Function) and node.function == FILTER:
@@ -303,9 +309,6 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
 
     def _visit_column(self, column: Column) -> Set[Entity]:
         mri = parse_mri(column.name)
-        if mri is None:
-            raise InvalidMetricsQuery(f"Expected MRI, got `{column.name}`")
-
         return {self.config.entity(mri.entity)}
 
     def _visit_str(self, string: str) -> Set[Entity]:

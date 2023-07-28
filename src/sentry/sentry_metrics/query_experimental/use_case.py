@@ -6,10 +6,9 @@ queries.
 from typing import Set
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import parse_mri
 
 from .transform import QueryVisitor
-from .types import Column, Condition, Function, InvalidMetricsQuery, SeriesQuery
+from .types import Column, Condition, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
 
 
 def get_use_case(query: SeriesQuery) -> UseCaseID:
@@ -53,8 +52,6 @@ class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
 
     def _visit_column(self, column: Column) -> Set[UseCaseID]:
         mri = parse_mri(column.name)
-        if mri is None:
-            raise InvalidMetricsQuery(f"Expected MRI, got `{column.name}`")
 
         try:
             return {UseCaseID(mri.namespace)}

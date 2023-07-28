@@ -1,6 +1,6 @@
 """
-Transform that resolves indexed metric names, tag keys, and tag values in metric
-queries.
+Resolution of indexed metric names, tag keys, and tag values in metric queries
+and results.
 """
 
 from dataclasses import replace
@@ -9,13 +9,30 @@ from typing import Union
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_query_config
 
-from .transform import QueryLayer, QueryTransform
+from .pipeline import QueryLayer
+from .transform import QueryTransform
 from .types import Column, SeriesQuery, SeriesResult
 from .use_case import get_use_case
 
 #: Special integer used to represent a string missing from the indexer
 # TODO: Import or move from sentry.snuba.metrics.utils
 STRING_NOT_FOUND = -1
+
+
+# TODO: Support dynamic lookup for measurements
+
+
+class IndexLayer(QueryLayer):
+    """
+    Layer for the query pipeline that resolves indexed metric names, tag keys,
+    and tag values in metric queries and maps them back in results.
+    """
+
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        return map_query_indexes(query)
+
+    def transform_result(self, result: SeriesResult) -> SeriesResult:
+        return map_result_indexes(result)
 
 
 def map_query_indexes(query: SeriesQuery) -> SeriesQuery:
@@ -67,11 +84,3 @@ class IndexerTransform(QueryTransform):
         if resolved := indexer.resolve(self.use_case, self.org_id, string):
             return resolved
         return STRING_NOT_FOUND
-
-
-class IndexLayer(QueryLayer):
-    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
-        return map_query_indexes(query)
-
-    def transform_result(self, result: SeriesResult) -> SeriesResult:
-        return map_result_indexes(result)

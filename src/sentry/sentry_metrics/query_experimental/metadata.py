@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import parse_mri
 
-from .transform import QueryLayer, QueryNode, QueryVisitor
+from .pipeline import QueryLayer
+from .transform import QueryNode, QueryVisitor
 from .types import (
     FILTER,
     AggregationFn,
@@ -21,14 +21,14 @@ from .types import (
     InvalidMetricsQuery,
     Op,
     SeriesQuery,
+    parse_mri,
 )
 
 
 class ValidationLayer(QueryLayer):
     """
     A query pipeline layer that checks if a query is structurally and
-    semantically valid. Returns the query if the query is valid, and otherwise
-    raises an ``InvalidMetricsQuery`` exception.
+    semantically valid. The query is not modified by this layer.
     """
 
     def transform_query(self, query: SeriesQuery) -> SeriesQuery:
@@ -49,7 +49,7 @@ def annotate_query(query: SeriesQuery) -> "AnnotatedQuery":
 
 class ExpressionType(ABC):
     """
-    The data type of expressions used in metrics queries.
+    The data type that an expression evaluates to in metrics queries.
     """
 
     pass
@@ -109,23 +109,47 @@ MRI_TYPES: Mapping[str, ExpressionType] = {
 
 
 class AnnotatedNode(ABC):
+    """
+    Base class for annotated query nodes. This is returned by the
+    ``TypeAnnotationTransform``.
+    """
+
     pass
 
 
 @dataclass(frozen=True)
 class AnnotatedExpression(AnnotatedNode):
+    """
+    A query expression annotated with its return type.
+    """
+
     node: QueryNode
     type_: ExpressionType
 
 
 @dataclass(frozen=True)
 class AnnotatedQuery(AnnotatedNode):
+    """
+    A query with annotated expressions the return types of its expressions.
+
+    :param query: The original query.
+    :param expressions: The annotated expressions in the same order as in the
+        query. Each of the annotated expressions also references the original
+        expression.
+    :param use_case: The single use case that the query operates on.
+    """
+
     query: SeriesQuery
-    annotated_expressions: Sequence[AnnotatedExpression]
+    expressions: Sequence[AnnotatedExpression]
     use_case: UseCaseID
 
 
 class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
+    """
+    A query visitor that annotates the query and each expression with its return
+    type and validates all filters.
+    """
+
     def __init__(self):
         self._use_case = None
 
@@ -162,7 +186,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
 
         return AnnotatedQuery(
             query=query,
-            annotated_expressions=expressions,
+            expressions=expressions,
             use_case=self._use_case,
         )
 
@@ -269,8 +293,6 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
 
     def _annotate_metric(self, column: Column) -> AnnotatedExpression:
         mri = parse_mri(column.name)
-        if mri is None:
-            raise InvalidMetricsQuery(f"Expected MRI, got `{column.name}`")
         if mri.entity not in MRI_TYPES:
             raise InvalidMetricsQuery(f"Unknown metric type `{mri.entity}`")
 

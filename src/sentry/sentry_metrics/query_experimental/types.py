@@ -12,6 +12,9 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Expression
 from snuba_sdk.function import Function
 
+from sentry.snuba.metrics.naming_layer import ParsedMRI
+from sentry.snuba.metrics.naming_layer import parse_mri as _parse_mri
+
 __all__ = (
     "AggregationFn",
     "ArithmeticFn",
@@ -23,6 +26,8 @@ __all__ = (
     "InvalidMetricsQuery",
     "MetricQueryScope",
     "Op",
+    "parse_mri",
+    "ParsedMRI",
     "SeriesQuery",
     "SeriesResult",
     "VariableMap",
@@ -134,3 +139,15 @@ class SeriesResult:
     """
 
     pass
+
+
+def parse_mri(mri: str) -> ParsedMRI:
+    """
+    Parse a formatted MRI into its components. Raises ``InvalidMetricsQuery`` if
+    the MRI is malformed or invalid.
+    """
+
+    if parsed := _parse_mri(mri):
+        return parsed
+
+    raise InvalidMetricsQuery(f"Invalid MRI: `{mri}`")

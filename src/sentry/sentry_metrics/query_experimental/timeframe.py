@@ -7,9 +7,20 @@ from snuba_sdk import Granularity
 
 from sentry.sentry_metrics.use_case_id_registry import get_query_config
 
-from .transform import QueryLayer
+from .pipeline import QueryLayer
 from .types import SeriesQuery
 from .use_case import get_use_case
+
+
+class TimeframeLayer(QueryLayer):
+    """
+    Layer for the query pipeline that normalizes the interval and timeframe of
+    a query to align with the available granularities and ensures the timeframe
+    covers the interval.
+    """
+
+    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
+        return normalize_timeframe(query)
 
 
 def resolve_granularity(query: SeriesQuery) -> Granularity:
@@ -69,8 +80,3 @@ def _align_timeframe(start: datetime, end: datetime, interval: int) -> Tuple[dat
     end = m + math.ceil((end - m) / delta) * delta
 
     return (start, end)
-
-
-class TimeframeLayer(QueryLayer):
-    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
-        return normalize_timeframe(query)

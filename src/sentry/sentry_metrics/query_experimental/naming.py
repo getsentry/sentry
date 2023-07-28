@@ -5,10 +5,9 @@ Name translations between public API names and MRIs.
 from dataclasses import replace
 from typing import Dict, Optional
 
-from sentry.snuba.metrics.naming_layer import parse_mri
-
-from .transform import QueryLayer, QueryTransform
-from .types import Column, SeriesQuery, SeriesResult
+from .pipeline import QueryLayer
+from .transform import QueryTransform
+from .types import Column, SeriesQuery, SeriesResult, parse_mri
 
 # TODO: Support dynamic lookup for measurements
 
@@ -33,9 +32,7 @@ class NameRegistry:
         if public in self._public_to_internal or internal in self._internal_to_public:
             raise ValueError(f"Name {public} or MRI {internal} already registered")
 
-        if parse_mri(internal) is None:
-            raise ValueError(f"Invalid MRI: `{internal}`")
-
+        parse_mri(internal)
         self._public_to_internal[public] = internal
         self._internal_to_public[internal] = public
 
@@ -58,11 +55,21 @@ _REGISTRY: NameRegistry = NameRegistry()
 def register_public_name(internal: str, public: str):
     """
     Register a public name for translation to an MRI in the global registry.
+
+    Use ``map_query_names`` and ``map_result_names`` to map names in queries and
+    results. This is done automatically by ``get_series``.
     """
     _REGISTRY.register(internal, public)
 
 
 class NamingLayer(QueryLayer):
+    """
+    Layer for the query pipeline that public metric names to MRIs and vice
+    versa.
+
+    Use ``register_public_name`` to register derived metrics.
+    """
+
     def __init__(self, registry: Optional[NameRegistry] = None):
         self.registry = registry
 
@@ -94,6 +101,10 @@ def map_result_names(result: SeriesResult, registry: Optional[NameRegistry] = No
 
 
 class NameTransform(QueryTransform):
+    """
+    Transform for mapping public metric names to MRIs and vice versa.
+    """
+
     def __init__(self, registry: NameRegistry):
         self.registry = registry
 

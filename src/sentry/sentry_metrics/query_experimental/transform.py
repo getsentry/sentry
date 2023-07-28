@@ -6,16 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import replace
 from typing import Generic, TypeVar, Union
 
-from .types import (
-    FILTER,
-    Column,
-    Condition,
-    Expression,
-    Function,
-    InvalidMetricsQuery,
-    SeriesQuery,
-    SeriesResult,
-)
+from .types import FILTER, Column, Condition, Expression, Function, InvalidMetricsQuery, SeriesQuery
 
 QueryNode = Union[SeriesQuery, Expression]
 TVisited = TypeVar("TVisited")
@@ -136,17 +127,3 @@ class QueryTransform(QueryVisitor[QueryNode]):
 
     def _visit_float(self, value: float) -> Union[int, float]:
         return value
-
-
-class QueryLayer:
-    def transform_query(self, query: SeriesQuery) -> SeriesQuery:
-        """
-        Transform a query. Default implementation is an identity transform.
-        """
-        return query
-
-    def transform_result(self, result: SeriesResult) -> SeriesResult:
-        """
-        Transform a result. Default implementation is an identity transform.
-        """
-        return result

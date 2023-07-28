@@ -22,6 +22,7 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "parse_mri",
+    "ParsedMRI",
 )
 
 import re
