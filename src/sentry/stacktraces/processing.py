@@ -200,9 +200,18 @@ def find_stacktraces_in_data(
     """
     rv = []
 
-    def _append_stacktrace(stacktrace, container, is_exception: bool = False) -> None:
+    def _append_stacktrace(
+        stacktrace: Any,
+        container: Any,
+        is_exception: bool = False,
+        include_empty_exceptions: bool = False,
+    ) -> None:
         frames = _safe_get_frames(stacktrace)
-        if not is_exception and (not stacktrace or not frames):
+
+        if is_exception and include_empty_exceptions:
+            # win-fast bypass of null/empty check
+            pass
+        elif not stacktrace or not frames:
             return
 
         platforms = _get_frames_metadata(frames, data.get("platform", "unknown"))
@@ -217,7 +226,12 @@ def find_stacktraces_in_data(
 
     # Look for stacktraces under the key `exception`
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _append_stacktrace(exc.get("stacktrace"), exc, is_exception=include_empty_exceptions)
+        _append_stacktrace(
+            exc.get("stacktrace"),
+            exc,
+            is_exception=True,
+            include_empty_exceptions=include_empty_exceptions,
+        )
 
     # Look for stacktraces under the key `stacktrace`
     _append_stacktrace(data.get("stacktrace"), None)
