@@ -85,7 +85,6 @@ class SlackClient(IntegrationProxyClient):
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
         span = span or Span()
-
         try:
             span.set_http_status(int(code))
         except ValueError:
