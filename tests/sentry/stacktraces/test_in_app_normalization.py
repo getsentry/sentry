@@ -94,7 +94,7 @@ class MacOSInAppDetectionTest(TestCase):
 
 
 class iOSInAppDetectionTest(TestCase):
-    def assert_correct_in_app_value(self, function, isInApp: bool):
+    def assert_correct_in_app_value(self, function, is_in_app: bool):
         data = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
@@ -127,89 +127,91 @@ class iOSInAppDetectionTest(TestCase):
         normalize_stacktraces_for_grouping(data, grouping_config=config)
 
         frames = data["exception"]["values"][0]["stacktrace"]["frames"]
-        assert frames[0]["in_app"] is isInApp, (
-            "For function: " + function + " expected:" + str(isInApp)
+        assert frames[0]["in_app"] is is_in_app, (
+            "For function: " + function + " expected:" + str(is_in_app)
         )
 
     def test_ios_function_name_in_app_detection(self):
-        self.assert_correct_in_app_value(function="sentrycrash__hook_dispatch_async", isInApp=False)
         self.assert_correct_in_app_value(
-            function="sentrycrash__hook_dispatch_after_f", isInApp=False
+            function="sentrycrash__hook_dispatch_async", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="sentrycrash__async_backtrace_capture", isInApp=False
+            function="sentrycrash__hook_dispatch_after_f", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="__sentrycrash__hook_dispatch_async_block_invoke", isInApp=False
+            function="sentrycrash__async_backtrace_capture", is_in_app=False
+        )
+        self.assert_correct_in_app_value(
+            function="__sentrycrash__hook_dispatch_async_block_invoke", is_in_app=False
         )
 
-        self.assert_correct_in_app_value(function="kscm_f", isInApp=False)
-        self.assert_correct_in_app_value(function="kscm_", isInApp=False)
-        self.assert_correct_in_app_value(function=" kscm_", isInApp=False)
-        self.assert_correct_in_app_value(function="kscm", isInApp=True)
+        self.assert_correct_in_app_value(function="kscm_f", is_in_app=False)
+        self.assert_correct_in_app_value(function="kscm_", is_in_app=False)
+        self.assert_correct_in_app_value(function=" kscm_", is_in_app=False)
+        self.assert_correct_in_app_value(function="kscm", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="sentrycrashcm_f", isInApp=False)
-        self.assert_correct_in_app_value(function="sentrycrashcm_", isInApp=False)
-        self.assert_correct_in_app_value(function=" sentrycrashcm_", isInApp=False)
-        self.assert_correct_in_app_value(function="sentrycrashcm", isInApp=True)
+        self.assert_correct_in_app_value(function="sentrycrashcm_f", is_in_app=False)
+        self.assert_correct_in_app_value(function="sentrycrashcm_", is_in_app=False)
+        self.assert_correct_in_app_value(function=" sentrycrashcm_", is_in_app=False)
+        self.assert_correct_in_app_value(function="sentrycrashcm", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="kscrash_f", isInApp=False)
-        self.assert_correct_in_app_value(function="kscrash_", isInApp=False)
-        self.assert_correct_in_app_value(function=" kscrash_", isInApp=False)
-        self.assert_correct_in_app_value(function="kscrash", isInApp=True)
+        self.assert_correct_in_app_value(function="kscrash_f", is_in_app=False)
+        self.assert_correct_in_app_value(function="kscrash_", is_in_app=False)
+        self.assert_correct_in_app_value(function=" kscrash_", is_in_app=False)
+        self.assert_correct_in_app_value(function="kscrash", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="sentrycrash_f", isInApp=False)
-        self.assert_correct_in_app_value(function="sentrycrash_", isInApp=False)
-        self.assert_correct_in_app_value(function=" sentrycrash_", isInApp=False)
-        self.assert_correct_in_app_value(function="sentrycrash", isInApp=True)
+        self.assert_correct_in_app_value(function="sentrycrash_f", is_in_app=False)
+        self.assert_correct_in_app_value(function="sentrycrash_", is_in_app=False)
+        self.assert_correct_in_app_value(function=" sentrycrash_", is_in_app=False)
+        self.assert_correct_in_app_value(function="sentrycrash", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="+[KSCrash ]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[KSCrash]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[KSCrashy]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[MyKSCrashy ", isInApp=True)
+        self.assert_correct_in_app_value(function="+[KSCrash ]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[KSCrash]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[KSCrashy]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[MyKSCrashy ", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="+[RNSentry ]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[RNSentry]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[RNSentry]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[MRNSentry ]", isInApp=True)
+        self.assert_correct_in_app_value(function="+[RNSentry ]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[RNSentry]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[RNSentry]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[MRNSentry ]", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="+[Sentry ]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[Sentry]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[Sentry]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[MSentry capture]", isInApp=True)
+        self.assert_correct_in_app_value(function="+[Sentry ]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[Sentry]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[Sentry]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[MSentry capture]", is_in_app=True)
 
-        self.assert_correct_in_app_value(function="-[SentryHub captureMessage]", isInApp=False)
-        self.assert_correct_in_app_value(function="-[SentryClient captureMessage]", isInApp=False)
-        self.assert_correct_in_app_value(function="+[SentrySDK captureMessage]", isInApp=False)
+        self.assert_correct_in_app_value(function="-[SentryHub captureMessage]", is_in_app=False)
+        self.assert_correct_in_app_value(function="-[SentryClient captureMessage]", is_in_app=False)
+        self.assert_correct_in_app_value(function="+[SentrySDK captureMessage]", is_in_app=False)
         self.assert_correct_in_app_value(
-            function="-[SentryStacktraceBuilder buildStacktraceForCurrentThread]", isInApp=False
+            function="-[SentryStacktraceBuilder buildStacktraceForCurrentThread]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryThreadInspector getCurrentThreads]", isInApp=False
+            function="-[SentryThreadInspector getCurrentThreads]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryClient captureMessage:withScope:]", isInApp=False
+            function="-[SentryClient captureMessage:withScope:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryFrameInAppLogic isInApp:]", isInApp=False
+            function="-[SentryFrameInAppLogic isInApp:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryFrameRemover removeNonSdkFrames:]", isInApp=False
+            function="-[SentryFrameRemover removeNonSdkFrames:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryDebugMetaBuilder buildDebugMeta:withScope:]", isInApp=False
+            function="-[SentryDebugMetaBuilder buildDebugMeta:withScope:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryCrashAdapter crashedLastLaunch]", isInApp=False
+            function="-[SentryCrashAdapter crashedLastLaunch]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryCrashAdapter isRateLimitActive:]", isInApp=False
+            function="-[SentryCrashAdapter isRateLimitActive:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryTransport sendEvent:attachments:]", isInApp=False
+            function="-[SentryTransport sendEvent:attachments:]", is_in_app=False
         )
         self.assert_correct_in_app_value(
-            function="-[SentryHttpTransport sendEvent:attachments:]", isInApp=False
+            function="-[SentryHttpTransport sendEvent:attachments:]", is_in_app=False
         )
 
     def test_ios_package_in_app_detection(self):
