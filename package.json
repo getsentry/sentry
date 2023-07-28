@@ -264,5 +264,10 @@
   "volta": {
     "node": "18.12.1",
     "yarn": "1.22.5"
+  },
+  "fork-ts-checker": {
+    "typescript": {
+      "memoryLimit": 4096
+    }
   }
 }
