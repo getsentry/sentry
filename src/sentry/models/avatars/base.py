@@ -70,7 +70,6 @@ class AvatarBase(Model):
             self.update(**update)
             return None
 
-    @property
     def get_file_id(self):
         return self.file_id
 

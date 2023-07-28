@@ -23,6 +23,5 @@ class ControlAvatarBase(AvatarBase):
             return "control_file_id"
         return "file_id"
 
-    @property
     def get_file_id(self):
         return self.control_file_id or self.file_id
