@@ -9,6 +9,7 @@ from django.db import router
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
+from sentry.debug_files.utils import size_in_mb
 from sentry.locks import locks
 from sentry.models.artifactbundle import (
     NULL_STRING,
@@ -341,7 +342,20 @@ class FlatFileIndex:
             "files_by_debug_id": self._files_by_debug_id,
         }
 
-        return json.dumps(json_idx)
+        json_index = json.dumps(json_idx)
+
+        if len(self._files_by_url) == 0:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.debug_id_index.size_in_mb",
+                amount=size_in_mb(json_index),
+            )
+        else:
+            metrics.incr(
+                "artifact_bundle_flat_file_indexing.url_index.size_in_mb",
+                amount=size_in_mb(json_index),
+            )
+
+        return json_index
 
     def merge_urls(self, bundle_meta: BundleMeta, bundle_archive: ArtifactBundleArchive):
         bundle_index = self._add_or_update_bundle(bundle_meta)
