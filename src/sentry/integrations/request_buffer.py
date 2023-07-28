@@ -60,11 +60,12 @@ class IntegrationRequestBuffer:
 
     def is_integration_broken(self):
         """
-        Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
+        Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error OR have > 1000 timeouts in a day
 
         """
         items = self._get()
 
+        # fatal check
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in items
@@ -74,6 +75,17 @@ class IntegrationRequestBuffer:
         if len(data) > 0:
             return True
 
+        # timeout check
+        data = [
+            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
+            for item in items
+            if item.get("fatal_count", 0) > 1000 and item.get("date")
+        ]
+
+        if len(data) > 0:
+            return True
+
+        # slow check
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in items
