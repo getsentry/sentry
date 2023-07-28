@@ -1,33 +1,8 @@
 from __future__ import annotations
 
-from typing import Type
-
 from sentry.db.models import BaseModel
+from tests.sentry.backup import get_exportable_final_derivations_of, get_final_derivations_of
 from tests.sentry.backup.test_models import TESTED_MODELS
-
-
-def get_final_derivations_of(model: Type):
-    """A "final" derivation of the given `model` base class is any non-abstract class for the
-    "sentry" app with `BaseModel` as an ancestor. Top-level calls to this class should pass in `BaseModel` as the argument."""
-    out = set()
-    for sub in model.__subclasses__():
-        subs = sub.__subclasses__()
-        if subs:
-            out.update(get_final_derivations_of(sub))
-        if not sub._meta.abstract and sub._meta.db_table and sub._meta.app_label == "sentry":
-            out.add(sub)
-    return out
-
-
-def get_exportable_final_derivations_of(model: Type):
-    """Like `get_final_derivations_of`, except that it further filters the results to include only `__include_in_export__ = True`."""
-    return set(
-        filter(
-            lambda c: getattr(c, "__include_in_export__") is True,
-            get_final_derivations_of(model),
-        )
-    )
-
 
 ALL_EXPORTABLE_MODELS = {c.__name__ for c in get_exportable_final_derivations_of(BaseModel)}
 

@@ -20,9 +20,6 @@ const defaultOrgFeatures = [
   'dashboards-mep',
 ];
 
-// Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
-
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
     id: '1',
@@ -178,11 +175,6 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/event.type/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
     });
 
     MockApiClient.addMockResponse({

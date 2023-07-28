@@ -32,6 +32,7 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
     )

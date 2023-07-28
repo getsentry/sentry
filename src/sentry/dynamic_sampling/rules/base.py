@@ -1,8 +1,7 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, OrderedDict, Set
 
-import pytz
 import sentry_sdk
 
 from sentry import features, quotas
@@ -37,7 +36,7 @@ def is_recently_added(model: Model) -> bool:
     like this one, the boosting will not happen.
     """
     if hasattr(model, "date_added"):
-        ten_minutes_ago = datetime.now(tz=pytz.UTC) - timedelta(
+        ten_minutes_ago = datetime.now(tz=timezone.utc) - timedelta(
             minutes=NEW_MODEL_THRESHOLD_IN_MINUTES
         )
         return bool(model.date_added >= ten_minutes_ago)
