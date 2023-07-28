@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# to avoid a circular import
+import logging
+
 from requests import PreparedRequest
 
 from sentry import options
@@ -7,7 +10,7 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils.json import JSONData
 
-from .utils import logger
+logger = logging.getLogger("sentry.integrations.discord")
 
 
 class DiscordClient(IntegrationProxyClient):
@@ -21,7 +24,10 @@ class DiscordClient(IntegrationProxyClient):
     USERS_GUILD_URL = "/users/@me/guilds/{guild_id}"
 
     # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
-    APPLICATION_COMMANDS = "/applications/{application_id}/commands"
+    APPLICATION_COMMANDS_URL = "/applications/{application_id}/commands"
+
+    # https://discord.com/developers/docs/resources/channel#get-channel
+    CHANNEL_URL = "/channels/{channel_id}"
 
     def __init__(
         self,
@@ -58,6 +64,12 @@ class DiscordClient(IntegrationProxyClient):
 
     def overwrite_application_commands(self, commands: list[object]) -> None:
         self.put(
-            self.APPLICATION_COMMANDS.format(application_id=self.application_id),
+            self.APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
             data=commands,
         )
+
+    def get_channel(self, channel_id: str) -> object | None:
+        """
+        Get a channel by id.
+        """
+        return self.get(self.CHANNEL_URL.format(channel_id=channel_id))
