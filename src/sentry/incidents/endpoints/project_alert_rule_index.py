@@ -51,7 +51,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
-        return self.fetch_metric_alert(request, project.organization)
+        return self.fetch_metric_alert(request, project.organization, project)
 
     def post(self, request: Request, project) -> Response:
         """
