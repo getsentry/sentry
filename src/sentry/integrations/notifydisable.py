@@ -1,5 +1,7 @@
+from sentry import integrations
 from sentry.models import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.utils.email import MessageBuilder
 
 provider_types = {
     "integration": "integrations",
@@ -8,7 +10,7 @@ provider_types = {
 }
 
 
-def get_url(organization: Organization, provider_type: str, provider) -> str:
+def get_url(organization: Organization, provider_type: str, provider: str) -> str:
     type_name = provider_types.get(provider_type, "")
     return str(
         organization.absolute_url(
@@ -17,22 +19,21 @@ def get_url(organization: Organization, provider_type: str, provider) -> str:
     )
 
 
-def get_provider_type(redis_key) -> str:
+def get_provider_type(redis_key: str) -> str:
     for provider in provider_types:
         if provider in redis_key:
             return provider
 
+    return ""
 
-def get_subject(integration_name) -> str:
+
+def get_subject(integration_name: str) -> str:
     return f"Action required: re-authenticate or fix your {integration_name} integration"
 
 
 def notify_disable(
-    organization=Organization, integration=RpcIntegration, redis_key=str, project=None
+    organization: Organization, integration: RpcIntegration, redis_key: str, project: None
 ):
-
-    from sentry import integrations
-    from sentry.utils.email import MessageBuilder
 
     provider = integrations.get(integration.provider)
     integration_name = provider.name
