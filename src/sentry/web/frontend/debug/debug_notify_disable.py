@@ -2,7 +2,7 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry import integrations
-from sentry.integrations.notifydisable import get_provider_type, get_url
+from sentry.integrations.notify_disable import get_provider_type, get_url
 from sentry.models import Integration
 from sentry.testutils import TestCase
 
