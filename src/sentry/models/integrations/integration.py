@@ -30,27 +30,33 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_integration_provider(integration: Integration | RpcIntegration) -> IntegrationProvider:
-    from sentry import integrations
+class HybridIntegrationUtility:
+    """
+    Class storing shared methods across Integration and RpcIntegrations
+    """
 
-    return integrations.get(integration.provider)
+    @classmethod
+    def get_provider(cls, instance: Integration | RpcIntegration) -> IntegrationProvider:
+        from sentry import integrations
 
+        return integrations.get(instance.provider)
 
-def get_integration_installation(
-    integration: Integration | RpcIntegration, organization_id: int, **kwargs: Any
-) -> IntegrationInstallation:
-    installation = integration.get_provider().get_installation(
-        model=integration,
-        organization_id=organization_id,
-        **kwargs,
-    )
-    return installation
+    @classmethod
+    def get_installation(
+        cls, instance: Integration | RpcIntegration, organization_id: int, **kwargs: Any
+    ) -> IntegrationInstallation:
+        installation = instance.get_provider().get_installation(
+            model=instance,
+            organization_id=organization_id,
+            **kwargs,
+        )
+        return installation
 
-
-def has_integration_feature(
-    integration: Integration | RpcIntegration, feature: IntegrationFeatures
-) -> bool:
-    return feature in integration.get_provider().features
+    @classmethod
+    def has_feature(
+        cls, instance: Integration | RpcIntegration, feature: IntegrationFeatures
+    ) -> bool:
+        return feature in instance.get_provider().features
 
 
 class IntegrationManager(BaseManager):
@@ -90,15 +96,15 @@ class Integration(DefaultFieldsModel):
         unique_together = (("provider", "external_id"),)
 
     def get_provider(self) -> IntegrationProvider:
-        return get_integration_provider(integration=self)
+        return HybridIntegrationUtility.get_provider(instance=self)
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return get_integration_installation(
-            integration=self, organization_id=organization_id, **kwargs
+        return HybridIntegrationUtility.get_installation(
+            instance=self, organization_id=organization_id, **kwargs
         )
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        return has_integration_feature(integration=self, feature=feature)
+        return HybridIntegrationUtility.has_feature(isinstance=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(

@@ -12,11 +12,7 @@ from sentry.integrations.base import (
     IntegrationInstallation,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import (
-    get_integration_installation,
-    get_integration_provider,
-    has_integration_feature,
-)
+from sentry.models.integrations.integration import HybridIntegrationUtility
 from sentry.services.hybrid_cloud import RpcModel
 
 
@@ -38,15 +34,15 @@ class RpcIntegration(RpcModel):
         return "disabled"
 
     def get_provider(self) -> IntegrationProvider:
-        return get_integration_provider(integration=self)
+        return HybridIntegrationUtility.get_provider(instance=self)
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return get_integration_installation(
-            integration=self, organization_id=organization_id, **kwargs
+        return HybridIntegrationUtility.get_installation(
+            instance=self, organization_id=organization_id, **kwargs
         )
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        return has_integration_feature(integration=self, feature=feature)
+        return HybridIntegrationUtility.has_feature(instance=self, feature=feature)
 
 
 class RpcOrganizationIntegration(RpcModel):
