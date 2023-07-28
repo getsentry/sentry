@@ -11,6 +11,9 @@ provider_types = {
 
 
 def get_url(organization: Organization, provider_type: str, provider: str) -> str:
+    if not provider_type:
+        return str(organization.absolute_url("/settings/"))
+
     type_name = provider_types.get(provider_type, "")
     return str(
         organization.absolute_url(
@@ -24,7 +27,7 @@ def get_provider_type(redis_key: str) -> str:
         if provider in redis_key:
             return provider
 
-    return "integrations"
+    return ""
 
 
 def get_subject(integration_name: str) -> str:
