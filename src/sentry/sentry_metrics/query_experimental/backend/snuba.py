@@ -1,8 +1,11 @@
-from typing import Any, List, Mapping, Sequence, Set, Tuple, Type, Union
+from dataclasses import replace
+from datetime import datetime
+from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Sequence, Set, Tuple, Type, Union
 
-from snuba_sdk import Column, Condition, Entity, Function, Op
+from snuba_sdk import AliasedExpression, Column, Condition, Entity, Function, Op
 from snuba_sdk import Query as SnubaQuery
 from snuba_sdk import Request as SnubaRequest
+from snuba_sdk.conditions import OPERATOR_TO_FUNCTION
 from snuba_sdk.query import SelectableExpression
 
 from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_config
@@ -57,14 +60,6 @@ SNQL_AGGREGATES: Mapping[str, Mapping[AggregationFn, str]] = {
     "s": {
         AggregationFn.COUNT_UNIQUE: "uniqIf",
     },
-}
-CONDITION_TO_FUNCTION = {
-    Op.EQ: "equals",
-    Op.NEQ: "notEquals",
-    Op.LIKE: "like",
-    Op.NOT_LIKE: "notLike",
-    Op.IN: "in",
-    Op.NOT_IN: "notIn",
 }
 
 # Additional helper typing
@@ -152,7 +147,13 @@ class SnubaQueryConverter:
         return entities.pop()
 
     def _build_select(self) -> Sequence[SelectableExpression]:
-        return [self._convert_expression(e) for e in self.query.expressions]
+        select = []
+        for i, e in enumerate(self.query.expressions):
+            function = self._convert_expression(e)
+            assert isinstance(function, Function), "must select function"
+            select.append(replace(function, alias=f"__expr_{i + 1}"))
+
+        return select
 
     def _convert_expression(self, node: Expression) -> SelectableExpression:
         if isinstance(node, Function):
@@ -222,31 +223,25 @@ class SnubaQueryConverter:
             (metric_type, conditions) = self._collect_aggregate(inner)
 
             for filt in filters:
-                if filt.op not in CONDITION_TO_FUNCTION:
+                if filt.op not in OPERATOR_TO_FUNCTION:
                     raise InvalidMetricsQuery(f"Unsupported filter condition {filt.op}")
 
                 lhs = self._convert_tag_key(filt.lhs)
                 rhs = self._convert_condition_value(filt.op, filt.rhs)
-                conditions.append(Function(CONDITION_TO_FUNCTION[filt.op], [lhs, rhs]))
+                conditions.append(Function(OPERATOR_TO_FUNCTION[filt.op].value, [lhs, rhs]))
 
             return (metric_type, conditions)
 
         raise InvalidMetricsQuery("Unexpected expression in aggregate")
 
     def _build_where(self) -> Sequence[Condition]:
-        where = [
+        return [
             Condition(COLUMN_ORG_ID, Op.EQ, self.query.scope.org_id),
+            Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids),
             Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.start),
             Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.end),
+            *(self._convert_condition(c) for c in self.query.filters),
         ]
-
-        if self.query.scope.project_ids:
-            where.append(Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids))
-
-        for filt in self.query.filters:
-            where.append(self._convert_condition(filt))
-
-        return where
 
     def _convert_condition(self, condition: Condition) -> Condition:
         # Conditions have a rigid structure at this moment. LHS must be a column,
@@ -288,21 +283,64 @@ class SnubaQueryConverter:
         return value
 
     def _build_groupby(self):
-        groupby = [self._convert_tag_key(c) for c in self.query.groups]
+        groupby = [AliasedExpression(self._convert_tag_key(c), c.name) for c in self.query.groups]
         groupby.append(COLUMN_TIMESTAMP_GROUP)
         return groupby
+
+
+TagDict = Dict[str, str]
+GroupKey = FrozenSet[Tuple[str, str]]
+SeriesDict = Dict[int, Dict[datetime, float]]
 
 
 class SnubaResultConverter:
     def __init__(self, snuba_result: SnubaResult):
         self.snuba_result = snuba_result
+        self.intervals: Set[datetime] = set()
+        self.tags: Dict[str, Set[str]] = {}
+        self.buckets: Dict[GroupKey, SeriesDict] = {}
+        self.num_expressions = 1  # TODO
+
+    def _parse_tag_key(self, key: str) -> Optional[int]:
+        if key.startswith("tags_raw["):
+            return int(key[9:-1])  # TODO: Exceptions
+        return None
+
+    def _parse_expression_id(self, key: str) -> Optional[int]:
+        if key.startswith("__expr_"):
+            return int(key[7:])  # TODO: Exceptions
+        return None
+
+    def _record_bucket(self, by: TagDict, series: SeriesDict):
+        key = frozenset(by.items())
+        self.buckets.setdefault(key, {}).update(series)
+
+    def _record_entry(self, entry: Dict[str, Any]):
+        timestamp: str = entry.pop(COLUMN_TIMESTAMP_GROUP.name)
+        bucket_time = datetime.fromisoformat(timestamp)
+        self.intervals.add(bucket_time)
+
+        series: SeriesDict = {}
+        by: TagDict = {}
+
+        for k, v in entry.items():
+            if expr_id := self._parse_expression_id(k):
+                series.setdefault(expr_id - 1, {})[bucket_time] = float(v)
+            else:
+                self.tags.setdefault(k, set()).add(str(v))
+                by[k] = str(v)
+
+        self._record_bucket(by, series)
 
     def convert(self) -> SeriesResult:
-        from pprint import pprint
+        for entry in self.snuba_result["data"]:
+            self._record_entry(entry)
 
-        pprint(self.snuba_result)
-        # TODO: Get necessary subset of SnubaResultConverter
-        raise NotImplementedError()
+        return SeriesResult(
+            tags={str(k): list(v) for k, v in self.tags.items()},
+            intervals=sorted(self.intervals),
+            groups=self.buckets,
+        )
 
 
 class EntityExtractor(QueryVisitor[Set[Entity]]):

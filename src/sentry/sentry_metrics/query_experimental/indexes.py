@@ -51,7 +51,11 @@ def map_result_indexes(result: SeriesResult) -> SeriesResult:
     Map MRIs in a series result to public metric names and map tag names.
     """
 
-    raise NotImplementedError()
+    # Tag names in buckets do not need to be resolved because the backend
+    # already maps them back.
+
+    # TODO: Resolve tag values if the query config requires it.
+    return result
 
 
 class IndexerTransform(QueryTransform):

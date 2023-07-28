@@ -172,17 +172,17 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         raise InvalidMetricsQuery(f"Expected metrics expression, received {type(node)}")
 
     def _visit_query(self, query: SeriesQuery) -> AnnotatedQuery:
-        expressions = [self._visit_expression(e) for e in query.expressions]
+        self._validate_scope(query)
+        self._validate_timerange(query)
 
         # The use case is set when visiting a metric column, so if it is not
         # set at this point, there are no metrics in the query.
+        expressions = [self._visit_expression(e) for e in query.expressions]
         if self._use_case is None:
             raise InvalidMetricsQuery("No metrics in query")
 
         for filt in query.filters:
             self._validate_filter_condition(filt)
-
-        self._validate_timerange(query)
 
         return AnnotatedQuery(
             query=query,
@@ -338,3 +338,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
 
         if query.interval <= 0:
             raise InvalidMetricsQuery("Interval must be positive.")
+
+    def _validate_scope(self, query: SeriesQuery) -> None:
+        if not query.scope.org_id or not query.scope.project_ids:
+            raise InvalidMetricsQuery("Missing required organization or projects.")

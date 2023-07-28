@@ -73,7 +73,7 @@ def _align_timeframe(start: datetime, end: datetime, interval: int) -> Tuple[dat
     to the interval.
     """
 
-    m = datetime.min
+    m = datetime.min.replace(tzinfo=start.tzinfo)
     delta = timedelta(seconds=interval)
 
     start = m + math.floor((start - m) / delta) * delta
