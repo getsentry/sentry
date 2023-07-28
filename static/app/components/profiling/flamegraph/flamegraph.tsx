@@ -41,11 +41,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-<<<<<<< HEAD
-import {FlamegraphChart, FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
-=======
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
->>>>>>> 0d3cb5c471 (feat(profiling): draw first lines for cpu chart)
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
@@ -627,10 +623,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.transformConfigView(mat);
-        // }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
       }
 
       if (sourceTransformConfigView === spansView) {
@@ -641,10 +636,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.transformConfigView(mat);
-        // }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
       }
 
       canvasPoolManager.draw();
@@ -658,10 +652,9 @@ function Flamegraph(): ReactElement {
       if (uiFramesView && uiFramesCanvas) {
         uiFramesView.resetConfigView(uiFramesCanvas);
       }
-      // @TODO ADD BACK
-      // if (cpuChartView && cpuChartCanvas) {
-      //   cpuChartView.resetConfigView(cpuChartCanvas);
-      // }
+      if (cpuChartView && cpuChartCanvas) {
+        cpuChartView.resetConfigView(cpuChartCanvas);
+      }
       canvasPoolManager.draw();
     };
 
@@ -681,12 +674,11 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      // @TODO ADD BACK
-      // if (cpuChartView) {
-      //   cpuChartView.setConfigView(
-      //     newConfigView.withHeight(cpuChartView.configView.height)
-      //   );
-      // }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -712,12 +704,11 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      // @TODO ADD BACK
-      // if (cpuChartView) {
-      //   cpuChartView.setConfigView(
-      //     newConfigView.withHeight(cpuChartView.configView.height)
-      //   );
-      // }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -744,6 +735,7 @@ function Flamegraph(): ReactElement {
     uiFramesCanvas,
     uiFramesView,
     cpuChartCanvas,
+    cpuChartView,
   ]);
 
   const minimapCanvases = useMemo(() => {
@@ -1001,9 +993,13 @@ function Flamegraph(): ReactElement {
               cpuChartCanvas={cpuChartCanvas}
               setCpuChartCanvasRef={setCpuChartCanvasRef}
 <<<<<<< HEAD
+<<<<<<< HEAD
               canvasBounds={cpuChartCanvasBounds}
 =======
 >>>>>>> f42ea5ce35 (feat(profiling): initialize canvases)
+=======
+              canvasBounds={cpuChartCanvasBounds}
+>>>>>>> 9de3e27ecd (fix(profiling): remove todo comments and enable view syncing)
               cpuChartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
