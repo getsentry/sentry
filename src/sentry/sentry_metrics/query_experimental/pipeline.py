@@ -117,6 +117,7 @@ def _execute_query_raw(query: SeriesQuery, backend: MetricsBackend) -> SeriesRes
 
     calculation = generate_calculation(query)
     for subquery in calculation.queries:
+        # TODO: Run queries in bulk
         result = backend.query(subquery)
         calculation.add_result(subquery, result)
     return calculation.evaluate()

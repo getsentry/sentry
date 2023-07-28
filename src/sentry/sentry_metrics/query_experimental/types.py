@@ -2,7 +2,7 @@
 Types to construct a metrics query request.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Mapping, Optional, Sequence
@@ -84,7 +84,7 @@ FILTER = "filter"
 @dataclass(frozen=True)
 class MetricQueryScope:
     org_id: int
-    project_ids: Sequence[int] = []
+    project_ids: Sequence[int] = field(default_factory=list)
 
 
 # Variables are currently supported only in tag value position. The only

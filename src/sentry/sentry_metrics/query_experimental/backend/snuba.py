@@ -1,12 +1,12 @@
-from typing import Any, List, Sequence, Set, Tuple, Type, Union
+from typing import Any, List, Mapping, Sequence, Set, Tuple, Type, Union
 
-from snuba_sdk import Column, Condition, Entity, Mapping, Op
+from snuba_sdk import Column, Condition, Entity, Function, Op
 from snuba_sdk import Query as SnubaQuery
 from snuba_sdk import Request as SnubaRequest
-from snuba_sdk import SelectableExpression
+from snuba_sdk.query import SelectableExpression
 
 from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_config
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import bulk_snql_query
 
 from ..timeframe import resolve_granularity
 from ..transform import QueryVisitor
@@ -15,7 +15,6 @@ from ..types import (
     AggregationFn,
     ArithmeticFn,
     Expression,
-    Function,
     InvalidMetricsQuery,
     SeriesQuery,
     SeriesResult,
@@ -41,7 +40,7 @@ COLUMN_METRIC_ID = Column("metric_id")
 # Note that all functions are conditional since there's at least one filter on
 # the metric ID. Additional tag filters are applied as needed. Functions are
 # grouped by metric type obtained from ``parse_mri``.
-SNQL_AGGREGATES: Mapping[str, Mapping[str, str]] = {
+SNQL_AGGREGATES: Mapping[str, Mapping[AggregationFn, str]] = {
     "c": {
         AggregationFn.SUM: "sumIf",
     },
@@ -56,7 +55,7 @@ SNQL_AGGREGATES: Mapping[str, Mapping[str, str]] = {
         AggregationFn.P99: "quantilesIf(0.99)",
     },
     "s": {
-        "count_unique": "uniqIf",
+        AggregationFn.COUNT_UNIQUE: "uniqIf",
     },
 }
 CONDITION_TO_FUNCTION = {
@@ -68,6 +67,9 @@ CONDITION_TO_FUNCTION = {
     Op.NOT_IN: "notIn",
 }
 
+# Additional helper typing
+SnubaResult = Mapping[str, Any]
+
 
 class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
     """
@@ -77,28 +79,41 @@ class SnubaMetricsBackend(MetricsBackend[SnubaRequest]):
     ``QueryConfig`` of the use case specified through metrics in the query.
     """
 
+    def __init__(self, use_cache: bool = False):
+        self.use_cache = use_cache
+
     def create_request(self, query: SeriesQuery) -> SnubaRequest:
         """
         Generate a SnQL query from a metric series query.
         """
-        return SnqlBuilder(query).build()
+        return SnubaQueryConverter(query).build()
 
-    def query(self, query: SeriesQuery) -> SeriesResult:
+    def execute(self, query: SnubaRequest) -> SeriesResult:
         """
         Convert and run a series query against Snuba.
         """
-        snuba_results = raw_snql_query(
-            self.create_request(query),
-            use_cache=False,
+        return self.bulk_execute([query])[0]
+
+    def bulk_execute(self, requests) -> List[SeriesResult]:
+        """
+        Convert and run a series of queries against Snuba.
+        """
+        snuba_results = bulk_snql_query(
+            requests,
+            use_cache=self.use_cache,
             referrer=REFERRER,
         )
 
-        assert snuba_results, "silence flake8"
-        # TODO: Get necessary subset of SnubaResultConverter
-        raise NotImplementedError()
+        return [self._convert_result(result) for result in snuba_results]
+
+    def _convert_result(self, snuba_result: SnubaResult) -> SeriesResult:
+        """
+        Convert a Snuba result to a series result.
+        """
+        return SnubaResultConverter(snuba_result).convert()
 
 
-class SnqlBuilder:
+class SnubaQueryConverter:
     def __init__(self, query: SeriesQuery):
         self.query = query
         self.use_case = get_use_case(query)
@@ -106,7 +121,7 @@ class SnqlBuilder:
 
     def build(self) -> SnubaRequest:
         """
-        Generate a SnQL query from a metric series query.
+        Generate a Snuba request from a metric series query.
         """
 
         snuba_query = SnubaQuery(
@@ -170,7 +185,7 @@ class SnqlBuilder:
             raise InvalidMetricsQuery("Aggregate functions must have exactly one parameter")
 
         (metric_type, filters) = self._collect_aggregate(function.parameters[0])
-        aggregate = self._map_aggregation_fn(metric_type, function.function)
+        aggregate = self._map_aggregation_fn(metric_type, AggregationFn(function.function))
         parameter = filters[0] if len(filters) == 1 else Function("and", filters)
 
         return Function(
@@ -178,7 +193,7 @@ class SnqlBuilder:
             parameters=[COLUMN_VALUE, parameter],
         )
 
-    def _map_aggregation_fn(self, metric_type: str, function: str) -> str:
+    def _map_aggregation_fn(self, metric_type: str, function: AggregationFn) -> str:
         if metric_type not in SNQL_AGGREGATES:
             raise InvalidMetricsQuery(f"Unsupported metric type {metric_type}")
 
@@ -276,6 +291,18 @@ class SnqlBuilder:
         groupby = [self._convert_tag_key(c) for c in self.query.groups]
         groupby.append(COLUMN_TIMESTAMP_GROUP)
         return groupby
+
+
+class SnubaResultConverter:
+    def __init__(self, snuba_result: SnubaResult):
+        self.snuba_result = snuba_result
+
+    def convert(self) -> SeriesResult:
+        from pprint import pprint
+
+        pprint(self.snuba_result)
+        # TODO: Get necessary subset of SnubaResultConverter
+        raise NotImplementedError()
 
 
 class EntityExtractor(QueryVisitor[Set[Entity]]):
