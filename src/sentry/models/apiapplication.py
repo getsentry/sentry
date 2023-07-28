@@ -71,10 +71,6 @@ class ApiApplication(Model):
         return self.name
 
     def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
-
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_project(self)
         with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
