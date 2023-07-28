@@ -1711,6 +1711,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable the new flat file indexing system for sourcemaps.
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Signals that the organization supports the on demand metrics prefill.
     "organizations:on-demand-metrics-prefill": False,
     # Signals that the organization can start prefilling on demand metrics.
