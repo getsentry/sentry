@@ -18,6 +18,10 @@ class SlackPresenter(OptionsPresenter):
 
     def flush(self):
         json_data = {
+            # todo: how to grab the region and user responsible.
+            # env variables?
+            "region": None,
+            "user_responsible": None,
             "dry-run": self.dry_run,
             "drifted_options": self.drifted_options,
             "channel_updated_options": self.channel_updated_options,
