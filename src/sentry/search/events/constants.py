@@ -236,7 +236,7 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
-METRICS_FUNCTION_ALIASES = {}
+METRICS_FUNCTION_ALIASES: Dict[str, str] = {}
 
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
