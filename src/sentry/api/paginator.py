@@ -1,13 +1,12 @@
 import bisect
 import functools
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from django.utils import timezone
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 

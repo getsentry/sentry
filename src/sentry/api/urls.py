@@ -270,7 +270,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -413,7 +413,10 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
+from .endpoints.project_dynamic_sampling import (
+    ProjectDynamicSamplingDistributionEndpoint,
+    ProjectDynamicSamplingRateEndpoint,
+)
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -1170,11 +1173,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-geo/$",
-        OrganizationEventsGeoEndpoint.as_view(),
-        name="sentry-api-0-organization-events-geo",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
@@ -2365,6 +2363,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
+        ProjectDynamicSamplingRateEndpoint.as_view(),
+        name="sentry-api-0-project-dynamic-sampling-rate",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/distribution/$",

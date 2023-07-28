@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Optional
 
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
@@ -42,6 +42,7 @@ def log_sample_rate_source(
 
 def log_task_timeout(context: TaskContext) -> None:
     logger.error("dynamic_sampling.task_timeout", extra=context.to_dict())
+    metrics.incr("dynamic_sampling.task_timeout", tags={"task_name": context.name})
 
 
 def log_task_execution(context: TaskContext) -> None:
@@ -79,11 +80,3 @@ def log_recalibrate_org_state(
             "target_effective_ratio": target_sample_rate / effective_sample_rate,
         },
     )
-
-
-def log_action_if(name: str, extra: Dict[str, Any], block: Callable[[], bool]):
-    if block():
-        logger.info(
-            f"dynamic_sampling.{name}",
-            extra=extra,
-        )

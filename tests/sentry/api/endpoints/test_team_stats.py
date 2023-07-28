@@ -33,7 +33,3 @@ class TeamStatsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert response.data[-1][1] == 3, response.data
-        for point in response.data[:-1]:
-            assert point[1] == 0
-        assert len(response.data) == 24

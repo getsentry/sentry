@@ -1,7 +1,7 @@
 from django.contrib import messages
-from django.db import transaction
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -46,8 +46,7 @@ class AuthOrganizationLoginView(AuthLoginView):
 
         return self.respond("sentry/organization-login.html", context)
 
-    @never_cache
-    @transaction.atomic
+    @method_decorator(never_cache)
     def handle(self, request: Request, organization_slug) -> HttpResponse:
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True

@@ -20,8 +20,8 @@ def bulk_transition_group_to_ongoing(
 
     Group.objects.update_group_status(
         groups=groups_to_transistion,
-        status=GroupStatus.UNRESOLVED,  # type: ignore
-        substatus=GroupSubStatus.ONGOING,  # type: ignore
+        status=GroupStatus.UNRESOLVED,
+        substatus=GroupSubStatus.ONGOING,
         activity_type=ActivityType.AUTO_SET_ONGOING,
         activity_data=activity_data,
         send_activity_notification=False,

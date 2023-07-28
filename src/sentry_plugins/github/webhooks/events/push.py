@@ -1,9 +1,9 @@
 import logging
+from datetime import timezone
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404
-from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, Integration, Repository
 from sentry.models.commitfilechange import CommitFileChange

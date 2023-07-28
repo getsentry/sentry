@@ -21,12 +21,15 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 };
+
+export type ReferrerTableType = 'main' | 'dead-rage-table' | 'errors-table';
 
 function getUserBadgeUser(replay: Props['replay']) {
   return replay.is_archived
@@ -52,21 +55,53 @@ export function ReplayCell({
   referrer,
   replay,
   showUrl,
+  referrer_table,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
+  referrer_table: ReferrerTableType;
   showUrl: boolean;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
 
   const replayDetails = {
-    pathname: `/replays/${replay.id}/`,
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
     query: {
       referrer,
       ...eventView.generateQueryStringObject(),
     },
+  };
+
+  const replayDetailsErrorTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'errors',
+    },
+  };
+
+  const replayDetailsDOMEventsTab = {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replay.id}/`),
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: 'dom',
+      f_d_type: 'ui.slowClickDetected',
+    },
+  };
+
+  const detailsTab = () => {
+    switch (referrer_table) {
+      case 'errors-table':
+        return replayDetailsErrorTab;
+      case 'dead-rage-table':
+        return replayDetailsDOMEventsTab;
+      default:
+        return replayDetails;
+    }
   };
 
   const trackNavigationEvent = () =>
@@ -75,6 +110,7 @@ export function ReplayCell({
       platform: project?.platform,
       organization,
       referrer,
+      referrer_table,
     });
 
   if (replay.is_archived) {
@@ -100,7 +136,7 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {project ? <Avatar size={12} project={project} /> : null}
-          <Link to={replayDetails} onClick={trackNavigationEvent}>
+          <Link to={detailsTab} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
         </Row>
@@ -120,7 +156,7 @@ export function ReplayCell({
           replay.is_archived ? (
             replay.user.display_name || t('Unknown User')
           ) : (
-            <MainLink to={replayDetails} onClick={trackNavigationEvent}>
+            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
               {replay.user.display_name || t('Unknown User')}
             </MainLink>
           )

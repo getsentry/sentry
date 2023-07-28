@@ -1,9 +1,7 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,14 +9,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
 
 import {Monitor} from '../../types';
-import {scheduleAsText} from '../../utils';
 
 import {MonitorBucketData, TimeWindow} from './types';
 import {getStartFromTimeWindow, timeWindowConfig} from './utils';
@@ -95,77 +92,23 @@ export function OverviewTimeline({monitorList}: Props) {
       />
 
       {monitorList.map(monitor => (
-        <TimelineRow key={monitor.id}>
-          <MonitorDetails monitor={monitor} />
-          {isLoading || !monitorStats ? (
-            <TimelinePlaceholder />
-          ) : (
-            <div>
-              <CheckInTimeline
-                timeWindow={timeWindow}
-                bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
-                start={start}
-                width={timelineWidth}
-              />
-            </div>
-          )}
-        </TimelineRow>
+        <TimelineTableRow
+          key={monitor.id}
+          monitor={monitor}
+          timeWindow={timeWindow}
+          bucketedData={monitorStats?.[monitor.slug]}
+          end={nowRef.current}
+          start={start}
+          width={timelineWidth}
+        />
       ))}
     </MonitorListPanel>
   );
 }
 
-function MonitorDetails({monitor}: {monitor: Monitor}) {
-  const organization = useOrganization();
-  const schedule = scheduleAsText(monitor.config);
-
-  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
-
-  return (
-    <DetailsContainer to={monitorDetailUrl}>
-      <Name>{monitor.name}</Name>
-      <Schedule>{schedule}</Schedule>
-    </DetailsContainer>
-  );
-}
-
 const MonitorListPanel = styled(Panel)`
   display: grid;
-  grid-template-columns: 350px 1fr;
-`;
-
-const TimelineRow = styled('div')`
-  display: contents;
-
-  &:nth-child(odd) > * {
-    background: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:hover > * {
-    background: ${p => p.theme.backgroundTertiary};
-  }
-
-  > * {
-    transition: background 50ms ease-in-out;
-  }
-`;
-
-const DetailsContainer = styled(Link)`
-  color: ${p => p.theme.textColor};
-  padding: ${space(2)};
-  border-right: 1px solid ${p => p.theme.border};
-  border-radius: 0;
-`;
-
-const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
-`;
-
-const Schedule = styled('small')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  grid-template-columns: 350px 135px 1fr;
 `;
 
 const ListFilters = styled('div')`
@@ -173,15 +116,12 @@ const ListFilters = styled('div')`
   gap: ${space(1)};
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
+  grid-column: 1/3;
 `;
 
 const TimelineWidthTracker = styled('div')`
   position: absolute;
   width: 100%;
   grid-row: 1;
-  grid-column: 2;
-`;
-
-const TimelinePlaceholder = styled(Placeholder)`
-  align-self: center;
+  grid-column: 3;
 `;

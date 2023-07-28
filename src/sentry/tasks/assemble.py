@@ -13,9 +13,14 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.debug_files.artifact_bundle_indexing import (
+    BundleMeta,
+    mark_bundle_for_flat_file_indexing,
+    update_artifact_bundle_index,
+)
 from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
@@ -354,7 +359,9 @@ class ReleaseBundlePostAssembler(PostAssembler):
         min_artifact_count = options.get("processing.release-archive-min-files")
         saved_as_archive = False
 
-        if self.archive.artifact_count >= min_artifact_count:
+        artifact_count = self.archive.artifact_count
+
+        if artifact_count >= min_artifact_count:
             try:
                 update_artifact_index(
                     release,
@@ -367,17 +374,17 @@ class ReleaseBundlePostAssembler(PostAssembler):
             except Exception as exc:
                 logger.error("Unable to update artifact index", exc_info=exc)
 
-        if not saved_as_archive:
+        if not saved_as_archive and artifact_count > 0:
             meta = {
                 "organization_id": self.organization.id,
                 "release_id": release.id,
                 "dist_id": dist.id if dist else dist,
             }
             metrics.incr("sourcemaps.upload.release_file")
-            self._store_single_files(meta, True)
+            self._store_single_files(meta)
 
     @sentry_sdk.tracing.trace
-    def _store_single_files(self, meta: dict, count_as_artifacts: bool):
+    def _store_single_files(self, meta: dict):
         try:
             temp_dir = self.archive.extract()
         except Exception:
@@ -398,7 +405,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
                     file.putfile(fp, logger=logger)
 
                 kwargs = dict(meta, name=artifact_url)
-                extra_fields = {"artifact_count": 1 if count_as_artifacts else 0}
+                extra_fields = {"artifact_count": 1}
                 self._upsert_release_file(file, self._simple_update, kwargs, extra_fields)
 
     @staticmethod
@@ -457,7 +464,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.organization = organization
         self.release = release
         self.dist = dist
-        self.projects_ids = project_ids
+        self.project_ids = project_ids
 
     def _validate_bundle(self):
         self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
@@ -498,7 +505,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
         analytics.record(
             "artifactbundle.manifest_extracted",
             organization_id=self.organization.id,
-            project_ids=self.projects_ids,
+            project_ids=self.project_ids,
             has_debug_ids=len(debug_ids_with_types) > 0,
         )
 
@@ -544,7 +551,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
                     defaults=new_date_added,
                 )
 
-            for project_id in self.projects_ids:
+            for project_id in self.project_ids:
                 ProjectArtifactBundle.objects.create_or_update(
                     organization_id=self.organization.id,
                     project_id=project_id,
@@ -581,6 +588,11 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
 
+        # When uploading a zero-artifact bundle, there is no need to index anything
+        # FIXME: we might even want to early-return *a lot* earlier in this case?
+        if self.archive.artifact_count == 0:
+            return
+
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
@@ -593,6 +605,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 dist=(self.dist or NULL_STRING),
                 date_snapshot=date_snapshot,
             )
+
+        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
+            try:
+                self._index_bundle_into_flat_file(artifact_bundle)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
@@ -732,6 +750,25 @@ class ArtifactBundlePostAssembler(PostAssembler):
                 # We want to capture any exception happening during indexing, since it's crucial to understand if
                 # the system is behaving well because the database can easily end up in an inconsistent state.
                 metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
+                sentry_sdk.capture_exception(e)
+
+    @sentry_sdk.tracing.trace
+    def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
+        identifiers = mark_bundle_for_flat_file_indexing(
+            artifact_bundle, self.project_ids, self.release, self.dist
+        )
+
+        bundle_meta = BundleMeta(
+            id=artifact_bundle.id,
+            # We give priority to the date last modified for total ordering.
+            timestamp=(artifact_bundle.date_last_modified or artifact_bundle.date_uploaded),
+        )
+
+        for identifier in identifiers:
+            try:
+                update_artifact_bundle_index(bundle_meta, self.archive, identifier)
+            except Exception as e:
+                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
                 sentry_sdk.capture_exception(e)
 
 
