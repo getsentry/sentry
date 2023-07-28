@@ -30,6 +30,7 @@ class ConfigOptionsTest(CliTestCase):
         options.register("drifted_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
         yield
 
@@ -41,6 +42,7 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("drifted_option")
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
+        options.unregister("invalid_type")
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -76,6 +78,7 @@ class ConfigOptionsTest(CliTestCase):
         options.default_store.delete_cache(options.lookup_key("list_option"))
         options.default_store.delete_cache(options.lookup_key("drifted_option"))
         options.default_store.delete_cache(options.lookup_key("change_channel_option"))
+        options.default_store.delete_cache(options.lookup_key("invalid_type"))
 
     def test_patch(self):
         def assert_not_set() -> None:
@@ -207,7 +210,12 @@ class ConfigOptionsTest(CliTestCase):
             "--file=tests/sentry/runner/commands/badpatch.yaml",
             "patch",
         )
-        assert rv.exit_code == -1
-        assert "Invalid option. readonly_option cannot be updated. Reason readonly" in rv.output
-        # Verify this was not updated
-        assert options.get("int_option") == 20
+
+        assert rv.exit_code == 0, rv.output
+
+        assert SET_MSG % ("int_option", 50) in rv.output
+        assert "Option invalid_type has invalid type." in rv.output
+
+        assert not options.isset("readonly_option")
+        assert not options.isset("invalid_type")
+        assert options.get("int_option") == 50
