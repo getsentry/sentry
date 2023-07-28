@@ -25,7 +25,7 @@ class UserSocialAuthService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_auths(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+    def get_many(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         """
         Returns a list of RpcUserSocialAuth based on the given filters.
         """
@@ -33,7 +33,7 @@ class UserSocialAuthService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_auth(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
         """
         Returns the first RpcUserSocialAuth based on the given filters.
         """

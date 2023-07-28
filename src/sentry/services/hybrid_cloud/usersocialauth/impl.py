@@ -16,11 +16,11 @@ from social_auth.models import UserSocialAuth
 
 
 class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
-    def get_auths(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
+    def get_many(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         return self._FQ.get_many(filter=filter)
 
-    def get_auth(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
-        auths = self.get_auths(filter=filter)
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+        auths = self.get_many(filter=filter)
         if len(auths) == 0:
             return None
         return auths[0]
@@ -40,7 +40,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
             return query
 
         def base_query(self, ids_only: bool = False) -> QuerySet:
-            return UserSocialAuth.objects  # type: ignore
+            return UserSocialAuth.objects.filter()
 
         def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], Optional[str]]:
             return self._filter_has_any_key_validator(
