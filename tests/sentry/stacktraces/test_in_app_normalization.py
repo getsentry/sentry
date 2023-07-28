@@ -57,7 +57,7 @@ class NormalizeInApptest(TestCase):
 
 
 class MacOSInAppDetectionTest(TestCase):
-    def tes_macos_package_in_app_detection(self):
+    def test_macos_package_in_app_detection(self):
         data = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
