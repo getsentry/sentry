@@ -8,11 +8,11 @@ from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
-def call_global_config(client, relay, private_key):
-    def inner(version):
+def fetch_projconfig(client, relay, private_key):
+    def inner(version, global_):
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
-        raw_json, signature = private_key.pack({"globalConfig": True})
+        raw_json, signature = private_key.pack({"globalConfig": True} if global_ else {})
 
         resp = client.post(
             path,
@@ -28,11 +28,19 @@ def call_global_config(client, relay, private_key):
 
 
 @pytest.mark.parametrize(
-    ("version, expect_global_config"), [*((version, False) for version in (1, 2, 3)), (4, True)]
+    ("version, request_global_config, expect_global_config"),
+    [
+        *((version, False, False) for version in (1, 2, 3)),
+        *((version, True, False) for version in (1, 2, 3)),
+        (4, False, False),
+        (4, True, True),
+    ],
 )
 @django_db_all
-def test_return_global_config(call_global_config, version, expect_global_config):
-    result, status_code = call_global_config(version)
+def test_return_global_config(
+    fetch_projconfig, version, request_global_config, expect_global_config
+):
+    result, status_code = fetch_projconfig(version, request_global_config)
     assert status_code < 400
     if not expect_global_config:
         assert result.get("global") is None
