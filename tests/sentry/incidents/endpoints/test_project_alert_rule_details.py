@@ -117,7 +117,7 @@ class AlertRuleDetailsBase(APITestCase):
 
 @region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
-    def test_simple_hi(self):
+    def test_simple(self):
         self.login_as(self.member_user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(
