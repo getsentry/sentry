@@ -10,7 +10,6 @@ describe('Sentry Application Dashboard', function () {
   const NUM_INSTALLS = 5;
   const NUM_UNINSTALLS = 2;
 
-  const org = TestStubs.Organization();
   let sentryApp;
   let webhookRequest;
 
@@ -69,7 +68,10 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows the total install/uninstall stats', () => {
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
       expect(screen.getByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
@@ -77,7 +79,10 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows the request log', () => {
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
       // The mock response has 1 request
       expect(screen.getByTestId('request-item')).toBeInTheDocument();
@@ -96,7 +101,10 @@ describe('Sentry Application Dashboard', function () {
       });
 
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
 
       expect(
@@ -106,7 +114,10 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows integration and interactions chart', () => {
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
 
       expect(screen.getAllByTestId('chart')).toHaveLength(3);
@@ -156,7 +167,10 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows the request log', () => {
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
       // The mock response has 1 request
       expect(screen.getByTestId('request-item')).toBeInTheDocument();
@@ -177,7 +191,10 @@ describe('Sentry Application Dashboard', function () {
       });
 
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
       expect(
         screen.getByText('No requests found in the last 30 days.')
@@ -186,7 +203,10 @@ describe('Sentry Application Dashboard', function () {
 
     it('shows the component interactions in a line chart', () => {
       render(
-        <SentryApplicationDashboard params={{appSlug: sentryApp.slug, orgId: org.slug}} />
+        <SentryApplicationDashboard
+          {...TestStubs.routeComponentProps()}
+          params={{appSlug: sentryApp.slug}}
+        />
       );
 
       expect(screen.getByTestId('chart')).toBeInTheDocument();
