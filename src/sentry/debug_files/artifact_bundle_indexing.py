@@ -2,7 +2,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, TypeVar
+from typing import Any, ContextManager, Dict, List, NamedTuple, Optional, Tuple, TypeVar
 
 import sentry_sdk
 from django.db import router
@@ -20,7 +20,6 @@ from sentry.models.artifactbundle import (
 )
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.locking.lock import Lock
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -84,8 +83,7 @@ def mark_bundle_for_flat_file_indexing(
         # in the sense that it can end up with duplicates in the database, yay!
         # So just wrap all of this in a lock so we are definitely not creating
         # duplicated index entries concurrently.
-        lock = identifier.get_lock()
-        with TimedRetryPolicy(60)(lock.acquire), atomic_transaction(
+        with identifier.mark_lock(), atomic_transaction(
             using=(
                 router.db_for_write(ArtifactBundleFlatFileIndex),
                 router.db_for_write(FlatFileIndexState),
@@ -104,7 +102,11 @@ def mark_bundle_for_flat_file_indexing(
                 flat_file_index = flat_file_indexes.pop(0)
                 # remove duplicates from the DB:
                 if len(flat_file_indexes) > 0:
+                    metrics.incr("artifact_bundle_flat_file_indexing.duplicate_index")
                     ids = [index.id for index in flat_file_indexes]
+                    FlatFileIndexState.objects.filter(flat_file_index_id__in=ids).update(
+                        flat_file_index_id=flat_file_index.id
+                    )
                     ArtifactBundleFlatFileIndex.objects.filter(id__in=ids).delete()
             else:
                 flat_file_index = ArtifactBundleFlatFileIndex.objects.create(
@@ -128,6 +130,8 @@ def mark_bundle_for_flat_file_indexing(
                     artifact_bundle=artifact_bundle,
                     indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
                 )
+            elif rows_updated > 1:
+                metrics.incr("artifact_bundle_flat_file_indexing.duplicate_state")
 
     return identifiers
 
@@ -224,13 +228,17 @@ class FlatFileIdentifier(NamedTuple):
 
         return meta
 
-    def _locking_key(self):
-        return f"bundle_index:write:{self._hashed()}"
+    @sentry_sdk.tracing.trace
+    def mark_lock(self) -> ContextManager:
+        locking_key = f"bundle_index:mark:{self._hashed()}"
+        lock = locks.get(locking_key, duration=5, name="bundle_index_marking")
+        return TimedRetryPolicy(10)(lock.acquire)
 
-    def get_lock(self) -> Lock:
-        locking_key = self._locking_key()
-
-        return locks.get(locking_key, duration=60 * 10, name="bundle_index")
+    @sentry_sdk.tracing.trace
+    def write_lock(self) -> ContextManager:
+        locking_key = f"bundle_index:write:{self._hashed()}"
+        lock = locks.get(locking_key, duration=10, name="bundle_index_writing")
+        return TimedRetryPolicy(20)(lock.acquire)
 
 
 @sentry_sdk.tracing.trace
@@ -243,10 +251,7 @@ def update_artifact_bundle_index(
 
     If this function fails for any reason, it can be, and *has to be* retried at a later point.
     """
-    # TODO: maybe query `FlatFileIndexState` to avoid double-indexing?
-
-    lock = identifier.get_lock()
-    with TimedRetryPolicy(60)(lock.acquire):
+    with identifier.write_lock():
         flat_file_index = (
             ArtifactBundleFlatFileIndex.objects.select_related("flat_file_index")
             .filter(
@@ -256,6 +261,13 @@ def update_artifact_bundle_index(
             )
             .first()
         )
+        if FlatFileIndexState.objects.filter(
+            flat_file_index_id=flat_file_index.id,
+            artifact_bundle_id=bundle_meta.id,
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED,
+        ).exists():
+            metrics.incr("artifact_bundle_flat_file_indexing.already_indexed")
+            return
 
         index = FlatFileIndex()
         # Load the index from the file if it exists
