@@ -10,7 +10,7 @@ provider_types = {
 
 def get_url(organization: Organization, provider_type: str, provider: str) -> str:
     if not provider_type:
-        return str(organization.absolute_url("/settings/"))
+        return str(organization.absolute_url("/settings/integrations/"))
 
     type_name = provider_types.get(provider_type, "")
     return str(
@@ -33,7 +33,7 @@ def get_subject(integration_name: str) -> str:
 
 
 def notify_disable(
-    organization: Organization, integration_name: str, redis_key: str, project: None
+    organization: Organization, integration_name: str, redis_key: str, project: str | None = None
 ):
 
     integration_link = get_url(
