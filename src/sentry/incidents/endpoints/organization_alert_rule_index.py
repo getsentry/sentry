@@ -37,11 +37,12 @@ from .utils import parse_team_params
 
 
 class AlertRuleIndexMixin(Endpoint):
-    def fetch_metric_alert(self, request, organization):
+    def fetch_metric_alert(self, request, organization, projects=None):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        projects = self.get_projects(request, organization)
+        if not projects:
+            projects = self.get_projects(request, organization)
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
