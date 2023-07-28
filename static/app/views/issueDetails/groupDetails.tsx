@@ -753,6 +753,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
           projectId: props.group?.project.id,
           availableProjects: projectIds,
         });
+        scope.setFingerprint(['group-details-project-not-found']);
         Sentry.captureException(new Error('Project not found'));
       });
     }
