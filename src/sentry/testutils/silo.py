@@ -7,6 +7,7 @@ import re
 import sys
 from contextlib import contextmanager
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -29,15 +30,12 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry import deletions
-from sentry.db.models.base import ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.deletions.base import BaseDeletionTask
-from sentry.models import Actor, NotificationSetting
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
-from sentry.utils.snowflake import SnowflakeIdMixin
+
+if TYPE_CHECKING:
+    from sentry.db.models import ModelSiloLimit
 
 TestMethod = Callable[..., None]
 
@@ -49,6 +47,8 @@ _DEFAULT_TEST_REGIONS = (
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    from sentry.db.models import ModelSiloLimit
+
     silo_limit = getattr(t._meta, "silo_limit", None)
     if not isinstance(silo_limit, ModelSiloLimit):
         raise ValueError(
@@ -253,6 +253,8 @@ _protected_operations: List[re.Pattern] = []
 
 
 def get_protected_operations() -> List[re.Pattern]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
     if len(_protected_operations):
         return _protected_operations
 
@@ -383,6 +385,9 @@ def validate_no_cross_silo_foreign_keys(
 def validate_no_cross_silo_deletions(
     exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
 ) -> None:
+    from sentry import deletions
+    from sentry.deletions.base import BaseDeletionTask
+
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
@@ -420,6 +425,9 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+    from sentry.models import Actor, NotificationSetting
+    from sentry.utils.snowflake import SnowflakeIdMixin
+
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
         return
@@ -439,6 +447,8 @@ def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
 ) -> Set[Any]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
     seen: Set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):

@@ -5,6 +5,8 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.silo import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
+commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
+
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
     """
@@ -19,10 +21,8 @@ def assert_mock_called_once_with_partial(mock, *args, **kwargs):
         assert m_kwargs[kwarg] == kwargs[kwarg], (m_kwargs[kwarg], kwargs[kwarg])
 
 
-commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
-
-
 def assert_commit_shape(commit):
+
     assert commit["id"]
     assert commit["repository"]
     assert commit["author_email"]
