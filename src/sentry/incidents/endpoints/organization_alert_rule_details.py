@@ -17,6 +17,56 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
+def fetch_alert_rule(request: Request, organization, alert_rule):
+    # Serialize Alert Rule
+    expand = request.GET.getlist("expand", [])
+    serialized_rule = serialize(
+        alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
+    )
+
+    # Prepare AlertRuleTriggerActions that are SentryApp components
+    errors = []
+    for trigger in serialized_rule.get("triggers", []):
+        for action in trigger.get("actions", []):
+            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                component = installation.prepare_ui_component(
+                    SentryAppComponent(**action.get("_sentry_app_component")),
+                    None,
+                    action.get("settings"),
+                )
+                if component is None:
+                    errors.append(
+                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
+                    )
+                    action["disabled"] = True
+                    continue
+
+                action["formFields"] = component.schema.get("settings", {})
+
+                # Delete meta fields
+                del action["_sentry_app_installation"]
+                del action["_sentry_app_component"]
+
+    if len(errors):
+        serialized_rule["errors"] = errors
+
+    rule_snooze = RuleSnooze.objects.filter(
+        Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
+    ).first()
+    if rule_snooze:
+        serialized_rule["snooze"] = True
+        if request.user.id == rule_snooze.owner_id:
+            serialized_rule["snoozeCreatedBy"] = "You"
+        else:
+            user = user_service.get_user(rule_snooze.owner_id)
+            if user:
+                serialized_rule["snoozeCreatedBy"] = user.get_display_name()
+        serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
+
+    return Response(serialized_rule)
+
+
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
@@ -25,57 +75,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        # Serialize Alert Rule
-        expand = request.GET.getlist("expand", [])
-        serialized_rule = serialize(
-            alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
-        )
-
-        # Prepare AlertRuleTriggerActions that are SentryApp components
-        errors = []
-        for trigger in serialized_rule.get("triggers", []):
-            for action in trigger.get("actions", []):
-                if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                    installation = SentryAppInstallation(
-                        **action.get("_sentry_app_installation", {})
-                    )
-                    component = installation.prepare_ui_component(
-                        SentryAppComponent(**action.get("_sentry_app_component")),
-                        None,
-                        action.get("settings"),
-                    )
-                    if component is None:
-                        errors.append(
-                            {
-                                "detail": f"Could not fetch details from {installation.sentry_app.name}"
-                            }
-                        )
-                        action["disabled"] = True
-                        continue
-
-                    action["formFields"] = component.schema.get("settings", {})
-
-                    # Delete meta fields
-                    del action["_sentry_app_installation"]
-                    del action["_sentry_app_component"]
-
-        if len(errors):
-            serialized_rule["errors"] = errors
-
-        rule_snooze = RuleSnooze.objects.filter(
-            Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
-        ).first()
-        if rule_snooze:
-            serialized_rule["snooze"] = True
-            if request.user.id == rule_snooze.owner_id:
-                serialized_rule["snoozeCreatedBy"] = "You"
-            else:
-                user = user_service.get_user(rule_snooze.owner_id)
-                if user:
-                    serialized_rule["snoozeCreatedBy"] = user.get_display_name()
-            serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
-
-        return Response(serialized_rule)
+        return fetch_alert_rule(request, organization, alert_rule)
 
     def put(self, request: Request, organization, alert_rule) -> Response:
         serializer = DrfAlertRuleSerializer(

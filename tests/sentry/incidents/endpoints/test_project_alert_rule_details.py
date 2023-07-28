@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleStatus,
@@ -116,14 +117,14 @@ class AlertRuleDetailsBase(APITestCase):
 
 @region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
-    def test_simple(self):
+    def test_simple_hi(self):
         self.login_as(self.member_user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id
             )
 
-        assert resp.data == serialize(self.alert_rule)
+        assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
     def test_aggregate_translation(self):
         self.login_as(self.owner_user)
