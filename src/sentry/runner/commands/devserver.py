@@ -252,8 +252,6 @@ def devserver(
         workers = True
 
     if workers:
-        kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
-
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
@@ -268,15 +266,15 @@ def devserver(
             kafka_consumers.add("post-process-forwarder-transactions")
             kafka_consumers.add("post-process-forwarder-issue-platform")
 
+        kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
+
+        if occurrence_ingest:
+            kafka_consumers.add("ingest-occurrences")
+
         daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
             kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
-
-        if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
-            kafka_consumers.add("ingest-metrics")
-            kafka_consumers.add("ingest-generic-metrics")
-            kafka_consumers.add("billing-metrics-consumer")
 
         if settings.SENTRY_USE_RELAY:
             daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
@@ -289,8 +287,10 @@ def devserver(
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
 
-        if occurrence_ingest:
-            kafka_consumers.add("ingest-occurrences")
+            if settings.SENTRY_USE_METRICS_DEV:
+                kafka_consumers.add("ingest-metrics")
+                kafka_consumers.add("ingest-generic-metrics")
+                kafka_consumers.add("billing-metrics-consumer")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
