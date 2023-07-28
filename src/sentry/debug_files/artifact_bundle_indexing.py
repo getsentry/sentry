@@ -104,9 +104,6 @@ def mark_bundle_for_flat_file_indexing(
                 if len(flat_file_indexes) > 0:
                     metrics.incr("artifact_bundle_flat_file_indexing.duplicate_index")
                     ids = [index.id for index in flat_file_indexes]
-                    FlatFileIndexState.objects.filter(flat_file_index_id__in=ids).update(
-                        flat_file_index_id=flat_file_index.id
-                    )
                     ArtifactBundleFlatFileIndex.objects.filter(id__in=ids).delete()
             else:
                 flat_file_index = ArtifactBundleFlatFileIndex.objects.create(
@@ -264,7 +261,7 @@ def update_artifact_bundle_index(
         if FlatFileIndexState.objects.filter(
             flat_file_index_id=flat_file_index.id,
             artifact_bundle_id=bundle_meta.id,
-            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED,
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
         ).exists():
             metrics.incr("artifact_bundle_flat_file_indexing.already_indexed")
             return
