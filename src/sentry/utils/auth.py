@@ -250,12 +250,21 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    queryset = User.objects.filter(username=username)
+    queryset = User.objects.filter()
     if is_active is not None:
         queryset = queryset.filter(is_active=is_active)
     if with_valid_password:
         queryset = queryset.exclude(password="!")
-    return list(queryset)
+    try:
+        # First try username case insenstive match on username.
+        user = queryset.get(username__iexact=username)
+        return [user]
+    except User.DoesNotExist:
+        # If not, we can take a stab at guessing it's an email address
+        if "@" in username:
+            # email isn't guaranteed unique
+            return list(queryset.filter(email__iexact=username))
+        return []
 
 
 def login(
