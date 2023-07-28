@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils import TestCase
 
 
-def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set"):
+def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set") -> dict[str, Any]:
     frames = [
         {
             "abs_path": "http://example.com/foo.js",
@@ -26,7 +30,7 @@ def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set"):
     return {"frames": frames}
 
 
-def make_event(stacktraces):
+def make_event(stacktraces: list[Any]) -> dict[str, Any]:
     return {"exception": {"values": [{"stacktrace": stacktrace} for stacktrace in stacktraces]}}
 
 
@@ -57,7 +61,7 @@ class NormalizeInApptest(TestCase):
 
 class MacOSInAppDetectionTest(TestCase):
     def test_macos_package_in_app_detection(self):
-        data = {
+        data: dict[str, Any] = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
             "exception": {
@@ -94,7 +98,7 @@ class MacOSInAppDetectionTest(TestCase):
 
 class iOSInAppDetectionTest(TestCase):
     def assert_correct_in_app_value(self, function, is_in_app: bool):
-        data = {
+        data: dict[str, Any] = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted
             "exception": {
@@ -214,7 +218,7 @@ class iOSInAppDetectionTest(TestCase):
         )
 
     def test_ios_package_in_app_detection(self):
-        data = {
+        data: dict[str, Any] = {
             "platform": "native",
             "stacktrace": {
                 "frames": [
