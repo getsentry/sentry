@@ -27,8 +27,11 @@ import {
   StarfishFunctions,
 } from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+
+const formatter = new SQLishFormatter();
 
 type Row = {
   'avg(span.self_time)': number;
@@ -126,7 +129,16 @@ export default function SpansTable({
           grid={{
             renderHeadCell: column => renderHeadCell({column, sort, location}),
             renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization, endpoint, method),
+              renderBodyCell(
+                column,
+                row,
+                moduleName,
+                meta,
+                location,
+                organization,
+                endpoint,
+                method
+              ),
           }}
           location={location}
         />
@@ -139,6 +151,7 @@ export default function SpansTable({
 function renderBodyCell(
   column: Column,
   row: Row,
+  moduleName: ModuleName,
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
@@ -161,6 +174,11 @@ function renderBodyCell(
       );
     }
 
+    const description =
+      moduleName === ModuleName.DB
+        ? formatter.toSimpleMarkup(row[SPAN_DESCRIPTION])
+        : row[SPAN_DESCRIPTION];
+
     return (
       <OverflowEllipsisTextContainer>
         {row[SPAN_GROUP] ? (
@@ -169,10 +187,10 @@ function renderBodyCell(
               queryString ? `?${qs.stringify(queryString)}` : ''
             }`}
           >
-            {row[SPAN_DESCRIPTION] || '<null>'}
+            {description || '<null>'}
           </Link>
         ) : (
-          row[SPAN_DESCRIPTION] || '<null>'
+          description || '<null>'
         )}
       </OverflowEllipsisTextContainer>
     );

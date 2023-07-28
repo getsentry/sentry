@@ -1,56 +1,47 @@
 import * as Sentry from '@sentry/react';
 
+import {simpleMarkup} from 'sentry/views/starfish/utils/sqlish/formatters/simpleMarkup';
+import {string} from 'sentry/views/starfish/utils/sqlish/formatters/string';
 import {SQLishParser} from 'sentry/views/starfish/utils/sqlish/SQLishParser';
-import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
+
+enum Format {
+  STRING = 'string',
+  SIMPLE_MARKUP = 'simpleMarkup',
+}
+
+const FORMATTERS = {
+  [Format.STRING]: string,
+  [Format.SIMPLE_MARKUP]: simpleMarkup,
+};
 
 export class SQLishFormatter {
   parser: SQLishParser;
-  tokens?: Token[];
 
   constructor() {
     this.parser = new SQLishParser();
   }
 
-  toString(sql: string): string;
-  toString(tokens: Token[]): string;
-  toString(input: string | Token[]): string {
-    if (typeof input === 'string') {
-      try {
-        const tokens = this.parser.parse(input);
-        return this.toString(tokens);
-      } catch (error) {
-        Sentry.captureException(error);
-        // If we fail to parse the SQL, return the original string, so there is always output
-        return input;
-      }
+  toString(sql: string) {
+    return this.toFormat(sql, Format.STRING);
+  }
+
+  toSimpleMarkup(sql: string) {
+    return this.toFormat(sql, Format.SIMPLE_MARKUP);
+  }
+
+  toFormat(sql: string, format: Format.STRING): string;
+  toFormat(sql: string, format: Format.SIMPLE_MARKUP): React.ReactElement[];
+  toFormat(sql: string, format: Format) {
+    let tokens;
+
+    try {
+      tokens = this.parser.parse(sql);
+    } catch (error) {
+      Sentry.captureException(error);
+      // If we fail to parse the SQL, return the original string
+      return sql;
     }
 
-    const tokens = input;
-    let ret = '';
-
-    function contentize(content: Token): void {
-      if (content.type === 'Keyword') {
-        ret += '\n';
-      }
-
-      if (Array.isArray(content.content)) {
-        content.content.forEach(contentize);
-        return;
-      }
-
-      if (typeof content.content === 'string') {
-        if (content.type === 'Whitespace') {
-          ret += ' ';
-        } else {
-          ret += content.content;
-        }
-        return;
-      }
-
-      return;
-    }
-
-    tokens.forEach(contentize);
-    return ret.trim();
+    return FORMATTERS[format](tokens);
   }
 }
