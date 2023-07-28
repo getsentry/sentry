@@ -139,6 +139,10 @@ class EventStream(Service):
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
     ) -> None:
+        if event.tag["sample_event"]:
+            logger.debug(
+                "inserting event", extra={"event.id": event.id, "project_id": event.project_id}
+            )
         self._dispatch_post_process_group_task(
             event.event_id,
             event.project_id,

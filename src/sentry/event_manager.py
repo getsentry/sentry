@@ -176,6 +176,11 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
     return None
 
 
+def is_sample_event(job):
+    data = job["data"]
+    return get_tag(data, "sample_event") == "yes"
+
+
 def plugin_is_regression(group: Group, event: Event) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
@@ -461,6 +466,12 @@ class EventManager:
     ) -> Event:
         jobs = [job]
 
+        if is_sample_event(job["event"]):
+            logger.debug(
+                "save_error_events: processing sample event",
+                extra={"event.id": job["event"].id, "project_id": project.id},
+            )
+
         is_reprocessed = is_reprocessed_event(job["data"])
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
@@ -578,6 +589,11 @@ class EventManager:
             raise
 
         if not group_info:
+            if is_sample_event(job["event"]):
+                logger.debug(
+                    "save_error_events: no groupinfo found, returning event",
+                    extra={"event.id": job["event"].id, "project_id": project.id},
+                )
             return job["event"]
 
         job["event"].group = group_info.group
@@ -1285,6 +1301,12 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
+        if is_sample_event(job["event"]):
+            logger.debug(
+                "_eventstream_insert_many: attempting to insert event into eventstream",
+                extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
+            )
+
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
                 "internal.captured.eventstream_insert",
@@ -1317,6 +1339,11 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
+        if is_sample_event(job["event"]):
+            logger.debug(
+                "_eventstream_insert_many: inserting into evenstream",
+                extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
+            )
         eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
