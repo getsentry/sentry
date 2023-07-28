@@ -50,8 +50,11 @@ def notify_disable(
     for user in organization.get_owners():
 
         msg = MessageBuilder(
-            subject=get_subject(integration_name),
-            context={"integration_name": integration_name, "integration_link": integration_link},
+            subject=get_subject(integration_name.title()),
+            context={
+                "integration_name": integration_name.title(),
+                "integration_link": integration_link,
+            },
             html_template="sentry/integrations/notify-disable.html",
             template="sentry/integrations/notify-disable.txt",
         )
