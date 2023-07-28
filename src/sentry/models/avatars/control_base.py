@@ -22,3 +22,6 @@ class ControlAvatarBase(AvatarBase):
         if ControlFileBlob._storage_config():
             return "control_file_id"
         return "file_id"
+
+    def get_file_id(self):
+        return self.control_file_id or self.file_id
