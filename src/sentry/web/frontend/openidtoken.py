@@ -36,7 +36,7 @@ class OpenIDToken:
         self.exp = exp if exp else default_expiration()
         self.iat = iat if iat else timezone.now()
 
-    def get_encrypted_id_token(self, grant: ApiGrant) -> str:
+    def get_signed_id_token(self, grant: ApiGrant) -> str:
         headers = {
             "alg": "HS256",
             "typ": "JWT",

@@ -639,7 +639,7 @@ export function eventViewToWidgetQuery({
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (sort && displayType !== DisplayType.WORLD_MAP) {
+  if (sort) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
