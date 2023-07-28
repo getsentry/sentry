@@ -108,6 +108,7 @@ const Overlay = styled('div')`
 const GridLineContainer = styled('div')`
   position: relative;
   height: 100%;
+  z-index: 1;
 `;
 
 const LabelsContainer = styled('div')`
@@ -119,7 +120,7 @@ const LabelsContainer = styled('div')`
 const Gridline = styled('div')<{left: number}>`
   position: absolute;
   left: ${p => p.left}px;
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  border-left: 1px solid ${p => p.theme.translucentInnerBorder};
   height: 100%;
 `;
 
@@ -127,6 +128,7 @@ const TimeLabelContainer = styled(Gridline)`
   display: flex;
   height: 100%;
   align-items: center;
+  border-left: none;
 `;
 
 const TimeLabel = styled(DateTime)`

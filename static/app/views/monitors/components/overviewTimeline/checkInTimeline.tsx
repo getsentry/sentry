@@ -69,7 +69,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: 100%;
 `;
 
 const JobTick = styled('div')<{
