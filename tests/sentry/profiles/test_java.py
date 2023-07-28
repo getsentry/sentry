@@ -44,6 +44,7 @@ def mapper():
         ("([[J)V", "(long[][])"),
         ("(I)I", "(int): int"),
         ("([B)V", "(byte[])"),
+        ("(L)", ""),
     ],
 )
 def test_deobfuscate_signature(mapper, obfuscated, expected):

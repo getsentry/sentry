@@ -34,7 +34,11 @@ def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
             arrays = 0
         elif t == "L":
             start_index = i - arrays
-            end_index = parameter_types[i:].index(";")
+            try:
+                end_index = parameter_types[i:].index(";")
+            except ValueError:
+                # the lack of `;` indicates a malformed signature
+                return [], ""
             types.append(parameter_types[start_index : i + end_index + 1])
             arrays = 0
             i += end_index
