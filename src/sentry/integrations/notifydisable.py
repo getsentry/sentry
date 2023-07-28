@@ -24,7 +24,7 @@ def get_provider_type(redis_key: str) -> str:
         if provider in redis_key:
             return provider
 
-    return ""
+    return "integrations"
 
 
 def get_subject(integration_name: str) -> str:
