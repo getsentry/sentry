@@ -10,6 +10,7 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 import {
@@ -18,6 +19,7 @@ import {
 } from './collapsibleTimeline';
 
 interface FlamegraphChartProps {
+  canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   chart: FlamegraphChart | null;
   cpuChartCanvas: FlamegraphCanvas | null;

@@ -584,10 +584,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.setConfigView(rect);
-        // }
+        if (cpuChartView) {
+          cpuChartView.setConfigView(rect);
+        }
       }
 
       if (sourceConfigViewChange === spansView) {
@@ -599,10 +598,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.setConfigView(rect);
-        // }
+        if (cpuChartView) {
+          cpuChartView.setConfigView(rect);
+        }
       }
       canvasPoolManager.draw();
     };
@@ -624,10 +622,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.transformConfigView(mat);
-        // }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
       }
 
       if (sourceTransformConfigView === spansView) {
@@ -638,10 +635,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        // @TODO ADD BACK
-        // if (cpuChartView) {
-        //   cpuChartView.transformConfigView(mat);
-        // }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
       }
 
       canvasPoolManager.draw();
@@ -655,10 +651,9 @@ function Flamegraph(): ReactElement {
       if (uiFramesView && uiFramesCanvas) {
         uiFramesView.resetConfigView(uiFramesCanvas);
       }
-      // @TODO ADD BACK
-      // if (cpuChartView && cpuChartCanvas) {
-      //   cpuChartView.resetConfigView(cpuChartCanvas);
-      // }
+      if (cpuChartView && cpuChartCanvas) {
+        cpuChartView.resetConfigView(cpuChartCanvas);
+      }
       canvasPoolManager.draw();
     };
 
@@ -678,12 +673,11 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      // @TODO ADD BACK
-      // if (cpuChartView) {
-      //   cpuChartView.setConfigView(
-      //     newConfigView.withHeight(cpuChartView.configView.height)
-      //   );
-      // }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -709,12 +703,11 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      // @TODO ADD BACK
-      // if (cpuChartView) {
-      //   cpuChartView.setConfigView(
-      //     newConfigView.withHeight(cpuChartView.configView.height)
-      //   );
-      // }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -741,6 +734,7 @@ function Flamegraph(): ReactElement {
     uiFramesCanvas,
     uiFramesView,
     cpuChartCanvas,
+    cpuChartView,
   ]);
 
   const minimapCanvases = useMemo(() => {
@@ -780,7 +774,7 @@ function Flamegraph(): ReactElement {
     return [cpuChartCanvasRef];
   }, [cpuChartCanvasRef]);
 
-  const _cpuChartCanvasBounds = useResizeCanvasObserver(
+  const cpuChartCanvasBounds = useResizeCanvasObserver(
     chartCanvases,
     canvasPoolManager,
     cpuChartCanvas,
@@ -997,6 +991,7 @@ function Flamegraph(): ReactElement {
               cpuChartCanvasRef={cpuChartCanvasRef}
               cpuChartCanvas={cpuChartCanvas}
               setCpuChartCanvasRef={setCpuChartCanvasRef}
+              canvasBounds={cpuChartCanvasBounds}
               cpuChartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
