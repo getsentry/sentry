@@ -1,12 +1,7 @@
 from rest_framework.exceptions import NotFound
 
-from sentry.models import (
-    Commit,
-    Organization,
-    ProjectCodeOwners,
-    ProjectOwnership,
-    RepositoryProjectPathConfig,
-)
+from sentry.models import Commit, Organization, ProjectCodeOwners, RepositoryProjectPathConfig
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.tasks.base import instrumented_task, retry
 

@@ -15,9 +15,9 @@ from sentry.models import (
     IdentityStatus,
     NotificationSetting,
     OrganizationIntegration,
-    ProjectOwnership,
     Rule,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -392,9 +392,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             team_id=self.team.id,
         )
 
-        rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
         ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
+            project_id=self.project.id, schema=dump_schema([g_rule]), fallthrough=True
         )
 
         event = self.store_event(

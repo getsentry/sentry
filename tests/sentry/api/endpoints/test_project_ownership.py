@@ -6,9 +6,10 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry, ProjectOwnership
+from sentry.models import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.groupowner import ISSUE_OWNERS_DEBOUNCE_DURATION, GroupOwner, GroupOwnerType
+from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase

@@ -24,11 +24,11 @@ from sentry.models import (
     OrganizationOption,
     Project,
     ProjectBookmark,
-    ProjectOwnership,
     ProjectRedirect,
     RegionScheduledDeletion,
     Rule,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write

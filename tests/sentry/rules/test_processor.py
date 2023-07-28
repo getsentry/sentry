@@ -7,7 +7,8 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule
+from sentry.models import GroupRuleStatus, GroupStatus, Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry

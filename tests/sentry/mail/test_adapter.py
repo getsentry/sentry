@@ -29,7 +29,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOption,
-    ProjectOwnership,
     Repository,
     Rule,
     User,
@@ -37,6 +36,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,

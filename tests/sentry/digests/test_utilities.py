@@ -11,7 +11,8 @@ from sentry.digests.utils import (
     sort_records,
 )
 from sentry.eventstore.models import Event
-from sentry.models import Project, ProjectOwnership
+from sentry.models import Project
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import ActorType
