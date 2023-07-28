@@ -55,40 +55,8 @@ class NormalizeInApptest(TestCase):
         assert data["stacktrace"]["frames"][1]["in_app"] is False
         assert data["stacktrace"]["frames"][2]["in_app"] is False
 
-    def test_ios_package_in_app_detection(self):
-        data = {
-            "platform": "native",
-            "stacktrace": {
-                "frames": [
-                    {
-                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
-                        "instruction_addr": "0x1000",
-                    },
-                    {
-                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/Frameworks/foo.dylib",
-                        "instruction_addr": "0x2000",
-                    },
-                    {
-                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/Frameworks/libswiftCore.dylib",
-                        "instruction_addr": "0x3000",
-                    },
-                    {"package": "/usr/lib/whatever.dylib", "instruction_addr": "0x4000"},
-                ]
-            },
-        }
 
-        config = load_grouping_config(get_default_grouping_config_dict())
-        normalize_stacktraces_for_grouping(data, grouping_config=config)
-
-        # App object should be in_app
-        assert data["stacktrace"]["frames"][0]["in_app"] is True
-        # Framework should be in app (but optional)
-        assert data["stacktrace"]["frames"][1]["in_app"] is True
-        # libswift should not be system
-        assert data["stacktrace"]["frames"][2]["in_app"] is False
-        # Unknown object should default to not in_app
-        assert data["stacktrace"]["frames"][3]["in_app"] is False
-
+class MacOSInAppDetectionTest(TestCase):
     def tes_macos_package_in_app_detection(self):
         data = {
             "platform": "cocoa",
@@ -124,6 +92,8 @@ class NormalizeInApptest(TestCase):
         assert frames[0]["in_app"] is True
         assert frames[1]["in_app"] is False
 
+
+class iOSInAppDetectionTest(TestCase):
     def ios_function_name_in_app_detection(self, function, isInApp: bool):
         data = {
             "platform": "cocoa",
@@ -249,3 +219,37 @@ class NormalizeInApptest(TestCase):
         self.ios_function_name_in_app_detection(
             function="-[SentryHttpTransport sendEvent:attachments:]", isInApp=False
         )
+
+    def test_ios_package_in_app_detection(self):
+        data = {
+            "platform": "native",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
+                        "instruction_addr": "0x1000",
+                    },
+                    {
+                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/Frameworks/foo.dylib",
+                        "instruction_addr": "0x2000",
+                    },
+                    {
+                        "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/Frameworks/libswiftCore.dylib",
+                        "instruction_addr": "0x3000",
+                    },
+                    {"package": "/usr/lib/whatever.dylib", "instruction_addr": "0x4000"},
+                ]
+            },
+        }
+
+        config = load_grouping_config(get_default_grouping_config_dict())
+        normalize_stacktraces_for_grouping(data, grouping_config=config)
+
+        # App object should be in_app
+        assert data["stacktrace"]["frames"][0]["in_app"] is True
+        # Framework should be in app (but optional)
+        assert data["stacktrace"]["frames"][1]["in_app"] is True
+        # libswift should not be system
+        assert data["stacktrace"]["frames"][2]["in_app"] is False
+        # Unknown object should default to not in_app
+        assert data["stacktrace"]["frames"][3]["in_app"] is False
