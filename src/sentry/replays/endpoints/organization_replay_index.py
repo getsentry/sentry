@@ -1,5 +1,6 @@
 from typing import List
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -106,7 +107,8 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                     )
                 },
             )
-        except QueryMemoryLimitExceeded:
+        except QueryMemoryLimitExceeded as e:
+            sentry_sdk.capture_exception(e)
             context = {
                 "detail": "Replay search query limits exceeded. Please narrow the time-range."
             }
