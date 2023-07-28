@@ -9,8 +9,8 @@ from sentry.utils.pytest.fixtures import django_db_all
 
 @pytest.fixture
 def call_global_config(client, relay, private_key):
-    def inner():
-        path = reverse("sentry-api-0-relay-projectconfigs")
+    def inner(version):
+        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         raw_json, signature = private_key.pack({"globalConfig": True})
 
@@ -27,14 +27,20 @@ def call_global_config(client, relay, private_key):
     return inner
 
 
+@pytest.mark.parametrize(
+    ("version, expect_global_config"), [*((version, False) for version in (1, 2, 3)), (4, True)]
+)
 @django_db_all
-def test_return_global_config(call_global_config):
-    result, status_code = call_global_config()
+def test_return_global_config(call_global_config, version, expect_global_config):
+    result, status_code = call_global_config(version)
     assert status_code < 400
-    assert result["global"] == {
-        "measurements": {
-            "builtinMeasurements": BUILTIN_MEASUREMENTS,
-            "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
-        },
-        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
-    }
+    if not expect_global_config:
+        assert result.get("global") is None
+    else:
+        assert result.get("global") == {
+            "measurements": {
+                "builtinMeasurements": BUILTIN_MEASUREMENTS,
+                "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
+            },
+            "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+        }
