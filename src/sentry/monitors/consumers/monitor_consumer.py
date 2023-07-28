@@ -293,6 +293,7 @@ def _process_message(wrapper: Dict) -> None:
                 return
 
             status = getattr(CheckInStatus, validated_params["status"].upper())
+            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
             # Invalid UUIDs will raise ValueError
             check_in_id = uuid.UUID(params["check_in_id"])
@@ -335,8 +336,6 @@ def _process_message(wrapper: Dict) -> None:
                 monitor_config = monitor.get_validated_config()
                 timeout_at = get_timeout_at(monitor_config, status, date_added)
 
-                trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
-
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
                     guid = uuid.uuid4()
@@ -376,7 +375,9 @@ def _process_message(wrapper: Dict) -> None:
                     return
 
             if check_in.status == CheckInStatus.ERROR:
-                monitor_environment.mark_failed(start_time)
+                monitor_environment.mark_failed(
+                    start_time, occurrence_context={"trace_id": trace_id}
+                )
             else:
                 monitor_environment.mark_ok(check_in, start_time)
 

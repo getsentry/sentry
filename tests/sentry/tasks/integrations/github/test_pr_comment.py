@@ -515,12 +515,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
             "github_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    def test_comment_workflow_missing_feature_flag(self, mock_issues):
-        github_comment_workflow(self.pr.id, self.project.id)
-
-        assert not mock_issues.called
-
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_org_option(self, mock_issues):

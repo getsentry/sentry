@@ -17,7 +17,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.constants import ObjectStatus
 from sentry.models import OrganizationIntegration, ScheduledDeletion
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
@@ -70,8 +69,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             raise Http404
         integration = self.get_integration(organization_context.organization.id, integration_id)
         # do any integration specific deleting steps
-        integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+        integration.get_installation(
+            organization_id=organization_context.organization.id
         ).uninstall()
 
         with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
@@ -101,8 +100,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         **kwds: Any,
     ) -> Response:
         integration = self.get_integration(organization_context.organization.id, integration_id)
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+        installation = integration.get_installation(
+            organization_id=organization_context.organization.id
         )
         try:
             installation.update_organization_config(request.data)
