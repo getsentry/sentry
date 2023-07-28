@@ -30,7 +30,7 @@ def get_global_config():
     return {
         "measurements": get_measurements_config(),
         # Subset of conditional tagging rules that does not depend on the project:
-        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+        "metricConditionalTagging": HISTOGRAM_OUTLIER_RULES,
     }
 
 

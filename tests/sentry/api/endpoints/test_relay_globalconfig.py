@@ -50,5 +50,5 @@ def test_return_global_config(
                 "builtinMeasurements": BUILTIN_MEASUREMENTS,
                 "maxCustomMeasurements": CUSTOM_MEASUREMENT_LIMIT,
             },
-            "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
+            "metricConditionalTagging": HISTOGRAM_OUTLIER_RULES,
         }
