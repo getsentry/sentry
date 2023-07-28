@@ -38,7 +38,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import (
+from sentry.testutils.cases import (
     APITestCase,
     ReleaseCommitPatchTest,
     SetRefsTestCase,

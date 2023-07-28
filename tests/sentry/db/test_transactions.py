@@ -14,11 +14,11 @@ from sentry.db.postgres.transactions import (
 from sentry.models import Organization, User, outbox_context
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import collect_transaction_queries
 from sentry.testutils.silo import no_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 

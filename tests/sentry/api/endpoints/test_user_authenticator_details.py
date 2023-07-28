@@ -13,7 +13,7 @@ from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models import Authenticator, Organization, User
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

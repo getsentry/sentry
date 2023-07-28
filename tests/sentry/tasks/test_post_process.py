@@ -53,7 +53,7 @@ from sentry.tasks.post_process import (
     post_process_group,
     process_event,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format

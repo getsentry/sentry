@@ -21,11 +21,11 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
 from sentry.services.hybrid_cloud.project import RpcProject
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:

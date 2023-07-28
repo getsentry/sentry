@@ -79,8 +79,8 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
     TransactionTestCase,
-    assert_mock_called_once_with_partial,
 )
+from sentry.testutis.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format

@@ -7,7 +7,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.event_manager import EventManager
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature

@@ -38,7 +38,7 @@ from sentry.snuba.metrics.fields.snql import (
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 
 pytestmark = pytest.mark.sentry_metrics

@@ -15,7 +15,7 @@ from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import process_commit_context
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format

@@ -88,7 +88,7 @@ from sentry.monitors.models import (
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.utils.json import JSONData
 from tests.sentry.backup import (
     get_exportable_final_derivations_of,

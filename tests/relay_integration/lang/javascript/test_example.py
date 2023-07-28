@@ -3,7 +3,7 @@ import os
 import pytest
 
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import RelayStoreHelper
+from sentry.testutils.cases import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_symbolicator
 

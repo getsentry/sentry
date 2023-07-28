@@ -8,7 +8,7 @@ from sentry.models import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import control_silo_test, region_silo_test
 

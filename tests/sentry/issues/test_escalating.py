@@ -18,7 +18,7 @@ from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache

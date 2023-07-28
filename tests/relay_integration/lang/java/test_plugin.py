@@ -7,7 +7,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.models import File, ProjectDebugFile
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 

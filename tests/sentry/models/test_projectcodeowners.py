@@ -1,6 +1,6 @@
 from sentry.models import ProjectCodeOwners
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 

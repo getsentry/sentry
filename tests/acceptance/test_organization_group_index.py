@@ -7,7 +7,7 @@ from django.utils import timezone
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
 from sentry.models.groupinbox import add_group_to_inbox
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

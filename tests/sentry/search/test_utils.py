@@ -16,7 +16,7 @@ from sentry.search.utils import (
     parse_query,
     tokenize_query,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
