@@ -78,7 +78,6 @@ class SlackClientDisable(TestCase):
             notify_disable(
                 self.organization, self.integration.provider.name, client._get_redis_key()
             )
-        # email test
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
