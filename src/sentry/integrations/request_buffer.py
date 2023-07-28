@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from redis.exceptions import WatchError
 from requests import Response
 
 from sentry.utils import redis
@@ -11,19 +10,17 @@ KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 BROKEN_RANGE_DAYS = 7  # 7 days
 
-VALID_KEYS = ["success", "error", "fatal"]
+
+def is_response_success(resp: Response) -> bool:
+    if resp.status_code:
+        if resp.status_code < 300:
+            return True
+    return False
 
 
 def is_response_error(resp: Response) -> bool:
     if resp.status_code:
         if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
-    return False
-
-
-def is_response_success(resp: Response) -> bool:
-    if resp.status_code:
-        if resp.status_code < 300:
             return True
     return False
 
@@ -39,15 +36,27 @@ class IntegrationRequestBuffer:
         self.client = redis.redis_clusters.get(cluster_id)
         self.integration_key = key
         self.key_expiration_seconds = expiration_seconds
+        if "sentry-app" in key:
+            self.counts = ["success", "error", "timeout"]
+        else:
+            self.counts = ["success", "error", "fatal"]
 
-    def record_error(self):
+    def record_exception_error(self, e: Exception):
         self._add("error")
 
-    def record_success(self):
-        self._add("success")
+    def record_response_error(self, resp: Response):
+        if is_response_error(resp):
+            self._add("error")
+
+    def record_success(self, resp: Response):
+        if is_response_success(resp):
+            self._add("success")
 
     def record_fatal(self):
         self._add("fatal")
+
+    def record_timeout(self):
+        self._add("timeout")
 
     def is_integration_broken(self):
         """
@@ -58,6 +67,7 @@ class IntegrationRequestBuffer:
 
         days_fatal = []
         days_error = []
+        days_timeout = []
 
         for day_count in broken_range_days_counts:
             if int(day_count.get("fatal_count", 0)) > 0:
@@ -67,19 +77,13 @@ class IntegrationRequestBuffer:
                 and int(day_count.get("success_count", 0)) == 0
             ):
                 days_error.append(day_count)
-
-        # timeout check
-        data = [
-            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in items
-            if item.get("timeout_count", 0) >= settings.BROKEN_TIMEOUT_THRESHOLD
-            and item.get("date")
-        ]
-
-        if len(data) > 0:
-            return True
+            elif int(day_count.get("timeout_count", 0)) >= settings.BROKEN_TIMEOUT_THRESHOLD:
+                days_timeout.append(day_count)
 
         if len(days_fatal) > 0:
+            return True
+
+        if len(days_timeout) > 0:
             return True
 
         if not len(days_error):
@@ -91,7 +95,7 @@ class IntegrationRequestBuffer:
         return True
 
     def _add(self, count: str):
-        if count not in VALID_KEYS:
+        if count not in self.counts:
             raise Exception("Requires a valid key param.")
 
         now = datetime.now().strftime("%Y-%m-%d")
@@ -101,23 +105,6 @@ class IntegrationRequestBuffer:
         pipe.hincrby(buffer_key, count + "_count", 1)
         pipe.expire(buffer_key, self.key_expiration_seconds)
         pipe.execute()
-
-    def record_exception_error(self, e: Exception):
-        self.add("error")
-
-    def record_response_error(self, resp: Response):
-        if is_response_error(resp):
-            self.add("error")
-
-    def record_success(self, resp: Response):
-        if is_response_success(resp):
-            self.add("success")
-
-    def record_fatal(self):
-        self.add("fatal")
-
-    def record_timeout(self):
-        self.add("timeout")
 
     def _get_all_from_buffer(self):
         """
@@ -130,7 +117,7 @@ class IntegrationRequestBuffer:
             for i in range(BUFFER_SIZE)
         ]
 
-        return self._get_range_buffers(all_range)
+        return [item for item in self._get_range_buffers(all_range) if len(item) > 0]
 
     def _get_broken_range_from_buffer(self):
         """
@@ -142,7 +129,6 @@ class IntegrationRequestBuffer:
             f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
             for i in range(BROKEN_RANGE_DAYS)
         ]
-
         return self._get_range_buffers(broken_range_keys)
 
     def _get_range_buffers(self, keys):
