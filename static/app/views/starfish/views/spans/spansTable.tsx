@@ -176,7 +176,7 @@ function renderBodyCell(
 
     const description =
       moduleName === ModuleName.DB
-        ? formatter.toPlainHTML(row[SPAN_DESCRIPTION])
+        ? formatter.toSimpleMarkup(row[SPAN_DESCRIPTION])
         : row[SPAN_DESCRIPTION];
 
     return (
