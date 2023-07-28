@@ -24,7 +24,7 @@ Parameter
   = Parameter:("%s" / ":c" [0-9]) { return { type: 'Parameter', content: Array.isArray(Parameter) ? Parameter.join('') : Parameter } }
 
 CollapsedColumns
-  = ".." { return { type: 'CollapsedColumns' } }
+  = ".." { return { type: 'CollapsedColumns', content: '..' } }
 
 Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
