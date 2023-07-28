@@ -146,7 +146,8 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         }
 
         stacktrace_infos = [
-            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+            stacktrace
+            for stacktrace in find_stacktraces_in_data(data, include_empty_exceptions=True)
         ]
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version, "dist": "foo", "timestamp": 123.4},
@@ -201,7 +202,8 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         }
 
         stacktrace_infos = [
-            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+            stacktrace
+            for stacktrace in find_stacktraces_in_data(data, include_empty_exceptions=True)
         ]
 
         processor = JavaScriptStacktraceProcessor(

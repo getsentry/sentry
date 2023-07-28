@@ -144,7 +144,7 @@ class FindStacktracesTest(TestCase):
             },
         }
 
-        infos = find_stacktraces_in_data(data, with_exceptions=True)
+        infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
         assert len(infos) == 4
         assert sum(1 for x in infos if x.stacktrace) == 3
         assert sum(1 for x in infos if x.is_exception) == 4
