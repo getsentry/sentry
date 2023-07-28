@@ -146,6 +146,7 @@ const Wrapper = styled(Panel, {
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
+    margin: auto;
     border: none;
     grid-column: auto / span ${p => p.columns};
   }

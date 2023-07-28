@@ -246,52 +246,50 @@ function ReplayTable({
         );
       })}
       {isErrorTable || isDeadRageTable ? (
-        <Fragment>
-          <TableFooter>
-            {
-              <Button
-                size="sm"
-                onClick={() => {
-                  setShowMoreReplays(!showMoreReplays);
-                  browserHistory.push({
-                    pathname: newLocation.pathname,
-                    query: showMoreReplays
-                      ? isErrorTable
-                        ? {
-                            ...newLocation.query,
-                            cursor: undefined,
-                            query: 'count_errors:>0',
-                            sort: '-count_errors',
-                          }
-                        : {
-                            ...newLocation.query,
-                            cursor: undefined,
-                            query: 'count_rage_clicks:>0',
-                            sort: '-count_rage_clicks',
-                          }
+        // <Fragment>
+        <TableFooter>
+          {
+            <Button
+              style={{
+                height: '100%',
+                width: '100%',
+              }}
+              borderless
+              size="sm"
+              onClick={() => {
+                setShowMoreReplays(!showMoreReplays);
+                browserHistory.push({
+                  pathname: newLocation.pathname,
+                  query: showMoreReplays
+                    ? isErrorTable
+                      ? {
+                          ...newLocation.query,
+                          cursor: undefined,
+                          query: 'count_errors:>0',
+                          sort: '-count_errors',
+                        }
                       : {
                           ...newLocation.query,
                           cursor: undefined,
-                          query: '',
-                          sort: eventView.sorts[0],
-                        },
-                  });
-                }}
-                icon={
-                  showMoreReplays ? <IconSearch size="xs" /> : <IconClose size="xs" />
-                }
-              >
-                {buttonLabel}
-              </Button>
-            }
-          </TableFooter>
-          <EmptyCell />
-          <EmptyCell />
-          {visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS) ? (
-            <EmptyCell />
-          ) : undefined}
-        </Fragment>
-      ) : undefined}
+                          query: 'count_rage_clicks:>0',
+                          sort: '-count_rage_clicks',
+                        }
+                    : {
+                        ...newLocation.query,
+                        cursor: undefined,
+                        query: '',
+                        sort: eventView.sorts[0],
+                      },
+                });
+              }}
+              icon={showMoreReplays ? <IconSearch size="xs" /> : <IconClose size="xs" />}
+            >
+              {buttonLabel}
+            </Button>
+          }
+        </TableFooter>
+      ) : // </Fragment>
+      undefined}
     </StyledPanelTable>
   );
 }
@@ -332,11 +330,7 @@ const TableFooter = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: 0 0 0 ${space(2)};
+  grid-column: 1/-1;
+  grid-row: -2;
 `;
-
-const EmptyCell = styled('div')`
-  display: flex;
-`;
-
 export default ReplayTable;
