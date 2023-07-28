@@ -488,15 +488,16 @@ function getSpanFieldBytes(span: Span, field: string) {
 
 type ParameterLookup = Record<string, string[]>;
 
-/** Extracts changing URL query parameters from a list of `http.client` spans.
+/**
+ * Extracts changing URL query parameters from a list of `http.client` spans.
  * e.g.,
  *
  * https://service.io/r?id=1&filter=none
  * https://service.io/r?id=2&filter=none
  * https://service.io/r?id=3&filter=none
-
-  * @returns A condensed string describing the query parameters changing
-  * between the URLs of the given span. e.g., "id:{1,2,3}"
+ *
+ * @returns A condensed string describing the query parameters changing
+ * between the URLs of the given span. e.g., "id:{1,2,3}"
  */
 function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
   const URLs = spans
@@ -519,10 +520,12 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
   return pairs;
 }
 
-/** Parses the span data and pulls out the URL. Accounts for different SDKs and
-     different versions of SDKs formatting and parsing the URL contents
-     differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
-     and instead it should use the data provided by the backend */
+/**
+ * Parses the span data and pulls out the URL. Accounts for different SDKs and
+ * different versions of SDKs formatting and parsing the URL contents
+ * differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
+ * and instead it should use the data provided by the backend
+ */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
   let URLString;
 

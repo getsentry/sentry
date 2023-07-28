@@ -239,15 +239,14 @@ interface MemoryChartContainerProps extends Props {
 
 /**
  * This container is used to update echarts outside of React. `currentTime` is
- * the current time of the player -- if replay is currently playing, this will be
- * updated quite frequently causing the chart to constantly re-render. The
- * re-renders will conflict with mouse interactions (e.g. hovers and
- * tooltips).
+ * the current time of the player -- if replay is currently playing, this will
+ * be updated quite frequently causing the chart to constantly re-render. The
+ * re-renders will conflict with mouse interactions (e.g. hovers and tooltips).
  *
  * We need `MemoryChart` (which wraps an `<AreaChart>`) to re-render as
  * infrequently as possible, so we use React.memo and only pass in props that
  * are not frequently updated.
- * */
+ */
 function MemoryChartContainer({
   currentTime,
   currentHoverTime,

@@ -83,30 +83,24 @@ type DefaultProps = {
 
 type Props = {
   api: Client;
-
   children: RenderFunc;
-
   /**
    * Organization slug
    */
   orgId: string;
-
   /**
    * List of projects that have we already have summaries for (i.e. from store)
    */
   projects: Project[];
-
   /**
    * Whether to fetch all the projects in the organization of which the user
    * has access to
-   * */
+   */
   allProjects?: boolean;
-
   /**
    * Number of projects to return when not using `props.slugs`
    */
   limit?: number;
-
   /**
    * List of project ids to look for summaries for, this can be from `props.projects`,
    * otherwise fetch from API

@@ -54,7 +54,7 @@ export interface DropdownMenuListProps
    * Whether the menu should close when an item has been clicked/selected
    */
   closeOnSelect?: boolean;
-  /*
+  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactChild;

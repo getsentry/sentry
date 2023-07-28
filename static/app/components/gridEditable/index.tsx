@@ -323,8 +323,8 @@ class GridEditable<
             </GridHeadCellStatic>
           ))}
         {
-          /* Note that this.onResizeMouseDown assumes GridResizer is nested
-            1 levels under GridHeadCell */
+          // Note that this.onResizeMouseDown assumes GridResizer is nested
+          // 1 levels under GridHeadCell
           columnOrder.map((column, i) => (
             <GridHeadCell
               data-test-id="grid-head-cell"
