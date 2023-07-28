@@ -37,10 +37,6 @@ def ignore_unpublished_app_errors(func):
     return wrapper
 
 
-def is_considered_error(error: Exception) -> bool:
-    return True
-
-
 def is_timeout(e: Exception) -> bool:
     if e is Timeout or e is ConnectionError:
         return True
@@ -61,54 +57,37 @@ def is_response_success(resp: Response) -> bool:
     return False
 
 
-def record_error(sentryapp: SentryApp, error: Exception):
-    redis_key = sentryapp._get_redis_key()
+def record_timeout(sentry_app: SentryApp, resp: Response):
+    redis_key = sentry_app._get_redis_key()
     if not len(redis_key):
         return
-    if is_timeout(error):
-        record_request_timeout(sentryapp, error)
-        return
-    if not is_considered_error(error):
-        return
-    buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_error()
-    if buffer.is_integration_broken():
-        disable_app(error)
+    if is_timeout(resp):
+        buffer = IntegrationRequestBuffer(redis_key)
+        buffer.record_timeout()
+        if buffer.is_integration_broken():
+            disable_app(resp)
 
 
-def record_request_error(sentryapp: SentryApp, resp: Response):
-    redis_key = sentryapp._get_redis_key()
-    if not len(redis_key):
-        return
+def record_request_error(redis_key: str, resp: Response):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_error()
     if buffer.is_integration_broken():
         disable_app(resp)
 
 
-def record_request_success(sentryapp: SentryApp, resp: Response):
-    redis_key = sentryapp._get_redis_key()
-    if not len(redis_key):
-        return
+def record_request_success(redis_key: str, resp: Response):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_success()
 
 
-def record_request_timeout(sentryapp: SentryApp, resp: Response):
+def record_response(sentryapp: SentryApp, response: Response):
     redis_key = sentryapp._get_redis_key()
     if not len(redis_key):
         return
-    buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_timeout()
-    if buffer.is_integration_broken():
-        disable_app(resp)
-
-
-def record_response(sentryapp: SentryApp, response: Response):
     if is_response_error(response):
-        record_request_error(sentryapp, response)
+        record_request_error(redis_key, response)
     elif is_response_success(response):
-        record_request_success(sentryapp, response)
+        record_request_success(redis_key, response)
 
 
 def disable_app(sentryapp: SentryApp):
@@ -161,7 +140,7 @@ def send_and_save_webhook_request(
             url=url,
             headers=app_platform_event.headers,
         )
-        record_error(sentry_app, e)
+        record_timeout(sentry_app, e)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
