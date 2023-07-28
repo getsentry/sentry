@@ -14,7 +14,7 @@ class DebugNotifyDisableView(View, TestCase):
         self.integration = Integration.objects.create(
             provider="slack",
             name="Awesome Team",
-            external_id="TXXXXXXX8",
+            external_id="TXXXXXXXZ",
             metadata={
                 "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
                 "installation_type": "born_as_bot",
@@ -28,7 +28,7 @@ class DebugNotifyDisableView(View, TestCase):
         integration_link = get_url(
             self.organization,
             get_provider_type(f"sentry-integration-error:{self.integration.external_id}"),
-            self.integration.provider,
+            provider.name,
         )
 
         return MailPreview(

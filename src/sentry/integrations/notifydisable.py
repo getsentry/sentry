@@ -1,12 +1,10 @@
-from sentry import integrations
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils.email import MessageBuilder
 
 provider_types = {
     "integration": "integrations",
     "plugin": "plugins",
-    "sentry-app": "sentry-apps",
+    "sentry-app": "developer-settings",
 }
 
 
@@ -35,16 +33,15 @@ def get_subject(integration_name: str) -> str:
 
 
 def notify_disable(
-    organization: Organization, integration: RpcIntegration, redis_key: str, project: None
+    organization: Organization, integration_name: str, redis_key: str, project: None
 ):
 
-    provider = integrations.get(integration.provider)
-    integration_name = provider.name
     integration_link = get_url(
         organization,
         get_provider_type(redis_key),
-        integration.provider,
+        integration_name,
     )
+
     users = organization.get_owners()
 
     for user in users:
