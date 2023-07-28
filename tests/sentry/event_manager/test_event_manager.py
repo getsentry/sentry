@@ -3697,3 +3697,57 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
+
+
+@region_silo_test
+class EventManagerStacktraceCacheTest(TestCase, EventManagerTestMixin):
+    def test_cache_simple(self) -> None:
+        """Test that we re-use the cache and skip call apply_modifications_rule a 2nd time"""
+        frames1 = [
+            {
+                "context_line": "            query_builder = build_query_builder(",
+                "vars": {"aggregation_value": "88"},
+            },
+            {
+                "context_line": "    return entity_subscription.build_query_builder(query, project_ids, environment, params)",
+                "vars": {"aggregation_value": "88"},
+            },
+        ]
+        data1 = make_event(platform="python", stacktrace={"frames": frames1})
+
+        manager = EventManager(data1)
+        event1 = manager.save(self.project.id)
+        assert event1.group is not None
+
+        assert event1.data["stacktrace"]["frames"][0]["vars"]["aggregation_value"] == "88"
+        # assert event1.data["stacktrace"]["frames"][0]["in_app"] is True
+
+        frames2 = [
+            {
+                "context_line": "            query_builder = build_query_builder(",
+                "vars": {"aggregation_value": "22"},
+            },
+            {
+                "context_line": "    return entity_subscription.build_query_builder(query, project_ids, environment, params)",
+                "vars": {"aggregation_value": "22"},
+            },
+        ]
+        data2 = make_event(platform="python", stacktrace={"frames": frames2})
+        manager = EventManager(data2)
+        event2 = manager.save(self.project.id)
+
+        assert event2.data["stacktrace"]["frames"][0]["vars"]["aggregation_value"] == "22"
+        # assert event1.data["stacktrace"]["frames"][0]["in_app"] is True
+
+        # XXX: Test the cache
+        # XXX: Test no 2nd call to apply_modifications_to_frame
+
+        # XXX: Fix odd typing issue
+        # error: Item "None" of "Optional[Group]" has no attribute "id"  [union-attr]
+        # assert event1.group.id == event2.group.id
+        assert event1.get_primary_hash() == "42a9bcf2bd7d0eb90dece0714f1c649e"
+        assert event2.get_primary_hash() == "42a9bcf2bd7d0eb90dece0714f1c649e"
+
+        # test_cache_failing_stacktrace_fingerprint
+
+        # test_cache_failing_rules_fingerprint

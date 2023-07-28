@@ -152,7 +152,7 @@ class Enhancements:
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         # We include the rules fingerprint to make sure that the set of rules are still the same
         cache_key = f"stacktrace_rules_fingerprint.{rules_fingerprint}.{stacktrace_fingerprint}"
-        use_cache = stacktrace_fingerprint and rules_fingerprint
+        use_cache = bool(stacktrace_fingerprint and rules_fingerprint)
         if use_cache:
             merged, merged_frames = _merge_cached_values(frames, cache_key, platform)
             if merged:
@@ -353,6 +353,20 @@ class Rule:
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
+
+    def serialized(self) -> tuple[list[str], list[str]] | None:
+        matchers_actions = None
+        try:
+            matchers = []
+            for matcher in self.matchers:
+                matchers.append(matcher.description)
+
+            matchers_actions = (matchers, [str(x) for x in self.actions])
+        except Exception:
+            # XXX: Add metric
+            logger.exception("Failed to serialize Rule.")
+
+        return matchers_actions
 
     def get_matching_frame_actions(
         self,
@@ -604,13 +618,14 @@ def _generate_rules_fingerprint(rules: Sequence[Rule], platform: str) -> str:
     rules_fingerprint = ""
     for rule in rules:
         try:
-            hash_value(rules_hash, rule)
+            rule_serialized = rule.serialized()
+            hash_value(rules_hash, rule_serialized)
         except TypeError:
             hashing_failure = True
             # This will create an error in Sentry and help us evaluate why it failed
             logger.exception(
                 "Rules hashing failure. Investigate and fix.",
-                extra={"rule": rule, "platform": platform},
+                extra={"rule": rule_serialized, "platform": platform},
             )
 
     if not hashing_failure:
