@@ -191,7 +191,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 0
         assert (
-            mock_logger.exception.call_args.args[0]
+            mock_logger.error.call_args.args[0]
             == "The Opsgenie team no longer exists, or the team does not belong to the selected account."
         )
 
@@ -206,7 +206,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 0
         assert (
-            mock_logger.exception.call_args.args[0]
+            mock_logger.error.call_args.args[0]
             == "Integration removed, but the rule still refers to it"
         )
 

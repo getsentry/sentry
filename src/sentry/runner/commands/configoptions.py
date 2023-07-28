@@ -139,7 +139,9 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
             presenter_delegator.error(key, not_writable_reason.value)
             presenter_delegator.flush()
-            metrics.incr("options_automator.run", tags={"status": "invalid_option"})
+            metrics.incr(
+                "options_automator.run", tags={"status": "invalid_option"}, sample_rate=1.0
+            )
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)
@@ -176,6 +178,7 @@ def patch(ctx) -> None:
             metrics.incr(
                 "options_automator.run",
                 tags={"status": "update_failed"},
+                sample_rate=1.0,
             )
             presenter_delegator.error(
                 key, "Updated failed. Check db connection, option type, and option spelling."
@@ -186,6 +189,7 @@ def patch(ctx) -> None:
     metrics.incr(
         "options_automator.run",
         tags={"status": "drift" if not ctx.obj["drifted_options"] else "success"},
+        sample_rate=1.0,
     )
 
     presenter_delegator.flush()
@@ -226,6 +230,7 @@ def sync(ctx):
                 metrics.incr(
                     "options_automator.run",
                     tags={"status": "update_failed"},
+                    sample_rate=1.0,
                 )
                 raise
         else:
@@ -238,11 +243,13 @@ def sync(ctx):
                             metrics.incr(
                                 "options_automator.run",
                                 tags={"status": "update_failed"},
+                                sample_rate=1.0,
                             )
                             presenter_delegator.error(
                                 opt.name,
                                 "Updated failed. Check db connection, option type, and option spelling.",
                             )
+
                             presenter_delegator.flush()
                             raise
                     presenter_delegator.unset(opt.name)
@@ -254,4 +261,5 @@ def sync(ctx):
     metrics.incr(
         "options_automator.run",
         tags={"status": "drift" if not drift_found else "success"},
+        sample_rate=1.0,
     )
