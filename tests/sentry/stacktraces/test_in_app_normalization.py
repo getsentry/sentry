@@ -3,57 +3,56 @@ from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils import TestCase
 
 
+def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set"):
+    frames = [
+        {
+            "abs_path": "http://example.com/foo.js",
+            "filename": "foo.js",
+            "lineno": 4,
+            "colno": 0,
+        },
+        {
+            "abs_path": "http://example.com/foo.js",
+            "filename": "foo.js",
+            "lineno": 1,
+            "colno": 0,
+        },
+    ]
+    if frame_0_in_app != "not set":
+        frames[0]["in_app"] = frame_0_in_app
+    if frame_1_in_app != "not set":
+        frames[1]["in_app"] = frame_1_in_app
+
+    return {"frames": frames}
+
+
+def make_event(stacktraces):
+    return {"exception": {"values": [{"stacktrace": stacktrace} for stacktrace in stacktraces]}}
+
+
 class NormalizeInApptest(TestCase):
     def test_normalize_with_system_frames(self):
-        data = {
-            "stacktrace": {
-                "frames": [
-                    None,
-                    {
-                        "abs_path": "http://example.com/foo.js",
-                        "filename": "foo.js",
-                        "lineno": 4,
-                        "colno": 0,
-                        "in_app": True,
-                    },
-                    {
-                        "abs_path": "http://example.com/foo.js",
-                        "filename": "foo.js",
-                        "lineno": 1,
-                        "colno": 0,
-                    },
-                ]
-            }
-        }
+        event_data = make_event([make_stacktrace(frame_0_in_app=True)])
 
-        normalize_stacktraces_for_grouping(data)
-        assert data["stacktrace"]["frames"][1]["in_app"] is True
-        assert data["stacktrace"]["frames"][2]["in_app"] is False
+        normalize_stacktraces_for_grouping(event_data)
+
+        frames = event_data["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is True
+        assert frames[1]["in_app"] is False
 
     def test_normalize_skips_none(self):
-        data = {
-            "stacktrace": {
-                "frames": [
-                    None,
-                    {
-                        "abs_path": "http://example.com/foo.js",
-                        "filename": "foo.js",
-                        "lineno": 4,
-                        "colno": 0,
-                    },
-                    {
-                        "abs_path": "http://example.com/foo.js",
-                        "filename": "foo.js",
-                        "lineno": 1,
-                        "colno": 0,
-                    },
-                ]
-            }
-        }
+        # No arguments means neither example frame will have an `in_app` value
+        stacktrace = make_stacktrace()
+        stacktrace["frames"].insert(0, None)
+        event_data = make_event([stacktrace])
 
-        normalize_stacktraces_for_grouping(data)
-        assert data["stacktrace"]["frames"][1]["in_app"] is False
-        assert data["stacktrace"]["frames"][2]["in_app"] is False
+        normalize_stacktraces_for_grouping(event_data)
+
+        frames = event_data["exception"]["values"][0]["stacktrace"]["frames"]
+        # The values here weren't set before we called `normalize_stacktraces_for_grouping`,
+        # so the fact that they now are shows that it didn't bail when it hit the `None` frame
+        assert frames[1]["in_app"] is False
+        assert frames[2]["in_app"] is False
 
 
 class MacOSInAppDetectionTest(TestCase):
