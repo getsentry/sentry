@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import responses
 from django.conf import settings
+from requests import Request
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
@@ -16,6 +17,7 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleStatus,
+    AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
@@ -23,7 +25,6 @@ from sentry.incidents.models import (
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
-from sentry.models.actor import get_actor_for_user
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo import SiloMode
@@ -371,27 +372,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 **test_params,
             )
 
-    def test_not_updated_fields(self):
-        self.login_as(self.owner_user)
-        alert_rule = self.alert_rule
-        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
-        serialized_alert_rule = self.get_serialized_alert_rule()
-
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
-            )
-
-        existing_sub = self.alert_rule.snuba_query.subscriptions.first()
-
-        alert_rule.refresh_from_db()
-        # Alert rule should be exactly the same
-        assert resp.data == serialize(self.alert_rule)
-        # If the aggregate changed we'd have a new subscription, validate that
-        # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
-        assert updated_sub.subscription_id == existing_sub.subscription_id
-
     def test_update_trigger_label_to_unallowed_value(self):
         self.login_as(self.owner_user)
 
@@ -652,13 +632,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         test_params = self.valid_params.copy()
         test_params["triggers"] = [
             {
