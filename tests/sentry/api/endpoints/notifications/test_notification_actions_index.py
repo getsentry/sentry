@@ -408,4 +408,37 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         self.login_as(user)
 
-        self.test_post_simple()
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects]
+            + [
+                self.create_project(organization=self.organization, teams=[self.create_team()]).slug
+            ],
+        }
+
+        assert not registration.validate_action.called
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+        # Database reflects changes
+        assert registration.validate_action.called
+        notif_action = NotificationAction.objects.get(id=response.data.get("id"))
+        assert response.data == serialize(notif_action)
+        # Relation table has been updated
+        notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
+
+        # team admin does not create notification actions for projects they don't have access to via a team
+        assert len(notif_action_projects) == len(self.projects)
