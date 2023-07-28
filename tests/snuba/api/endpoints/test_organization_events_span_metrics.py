@@ -622,22 +622,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_http_error_rate_and_count(self):
         super().test_http_error_rate_and_count()
 
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_percentile_percent_change(self):
-        super().test_percentile_percent_change()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_http_error_count_percent_change(self):
-        super().test_http_error_count_percent_change()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_epm_percent_change(self):
-        super().test_epm_percent_change()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_eps_percent_change(self):
-        super().test_eps_percent_change()
-
     @pytest.mark.xfail(reason="Cannot group by transform")
     def test_span_module(self):
         super().test_span_module()
