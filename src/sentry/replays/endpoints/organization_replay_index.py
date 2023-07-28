@@ -1,5 +1,6 @@
 from typing import List
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -19,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.validators import ReplayValidator
+from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 
 @region_silo_endpoint
@@ -94,13 +96,20 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 actor=request.user,
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: {
-                "data": process_raw_response(
-                    results,
-                    fields=request.query_params.getlist("field"),
-                )
-            },
-        )
+        try:
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: {
+                    "data": process_raw_response(
+                        results,
+                        fields=request.query_params.getlist("field"),
+                    )
+                },
+            )
+        except QueryMemoryLimitExceeded as e:
+            sentry_sdk.capture_exception(e)
+            context = {
+                "detail": "Replay search query limits exceeded. Please narrow the time-range."
+            }
+            return self.respond(context, status=504)
