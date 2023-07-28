@@ -117,7 +117,7 @@ class IssueTrackingPlugin2(Plugin):
         auth = usersocialauth_service.get_one_or_none(
             filter={"user_id": request.user.id, "provider": self.auth_provider}
         )
-        return bool(auth)
+        return not bool(auth)
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         """

@@ -36,7 +36,7 @@ class RepositoryProviderTest(TestCase):
 
         usa = UserSocialAuth.objects.create(provider="dummy", user=user)
 
-        assert provider.get_auth(user) == usa
+        assert provider.get_auth(user).id == usa.id
 
     def test_get_auth_for_organization(self):
         user = self.create_user()
@@ -49,4 +49,4 @@ class RepositoryProviderTest(TestCase):
         integration = Integration.objects.create(provider="dummy", external_id="123456")
         integration.add_organization(org, user, default_auth_id=usa.id)
 
-        assert provider.get_auth(user, organization=org) == usa
+        assert provider.get_auth(user, organization=org).id == usa.id

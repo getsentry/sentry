@@ -12,8 +12,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
 from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 
-# from social_auth.models import UserSocialAuth
-
 
 class ProviderMixin:
     auth_provider: str | None = None
