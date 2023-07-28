@@ -1,7 +1,11 @@
 import {useMemo} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Button} from 'sentry/components/button';
+import {IconClose, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -119,12 +123,26 @@ function ReplaysErroneousDeadRageCards() {
           location={newLocation}
           organization={organization}
           visibleColumns={errorCols}
+          searchQuery={{
+            ...location.query,
+            cursor: undefined,
+            query: 'count_errors:>0',
+            sort: '-count_errors',
+          }}
+          buttonLabel={t('Show all replays with errors')}
         />
         <CardTable
           eventView={eventViewDeadRage}
           location={newLocation}
           organization={organization}
           visibleColumns={deadRageCols}
+          searchQuery={{
+            ...location.query,
+            cursor: undefined,
+            query: 'count_rage_clicks:>0',
+            sort: '-count_rage_clicks',
+          }}
+          buttonLabel={t('Show all replays with rage clicks')}
         />
       </SplitCardContainer>
     ) : null
@@ -136,10 +154,18 @@ function CardTable({
   location,
   organization,
   visibleColumns,
+  searchQuery,
+  buttonLabel,
 }: {
+  buttonLabel: string;
   eventView: EventView;
   location: Location;
   organization: Organization;
+  searchQuery: {
+    cursor: undefined;
+    query: string;
+    sort: string;
+  };
   visibleColumns: ReplayColumn[];
 }) {
   const {replays, isFetching, fetchError} = useReplayList({
@@ -154,16 +180,51 @@ function CardTable({
     .map(_ => '1fr')
     .join(' ');
 
+  const emptyLocation = useLocation();
+
+  const emptySearchQuery = {
+    ...emptyLocation.query,
+    cursor: undefined,
+    query: '',
+    sort: '',
+  };
+
   return (
-    <ReplayTable
-      fetchError={fetchError}
-      isFetching={isFetching}
-      replays={replays}
-      sort={undefined}
-      visibleColumns={visibleColumns}
-      saveLocation
-      gridRows={'auto ' + gridRows}
-    />
+    <div>
+      <ReplayTable
+        fetchError={fetchError}
+        isFetching={isFetching}
+        replays={replays}
+        sort={undefined}
+        visibleColumns={visibleColumns}
+        saveLocation
+        gridRows={'auto ' + gridRows}
+      />
+      <StyledButton
+        size="sm"
+        onClick={() => {
+          const newQuery =
+            emptyLocation.query.query === searchQuery.query
+              ? emptySearchQuery
+              : searchQuery;
+          browserHistory.push({
+            pathname: emptyLocation.pathname,
+            query: newQuery,
+          });
+        }}
+        icon={
+          emptyLocation.query.query === searchQuery.query ? (
+            <IconClose size="xs" />
+          ) : (
+            <IconSearch size="xs" />
+          )
+        }
+      >
+        {emptyLocation.query.query === searchQuery.query
+          ? t('Clear filter')
+          : buttonLabel}
+      </StyledButton>
+    </div>
   );
 }
 
@@ -172,6 +233,13 @@ const SplitCardContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
   align-items: stretch;
+`;
+
+const StyledButton = styled(Button)`
+  width: 100%;
+  border-top: none;
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  padding: ${space(3)};
 `;
 
 export default ReplaysErroneousDeadRageCards;
