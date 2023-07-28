@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import logging
 from typing import Callable, List, Optional
 
+import sentry_sdk
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
@@ -16,8 +16,6 @@ from sentry.services.hybrid_cloud.usersocialauth.model import (
 from sentry.services.hybrid_cloud.usersocialauth.serial import serialize_usersocialauth
 from sentry.services.hybrid_cloud.usersocialauth.service import UserSocialAuthService
 from social_auth.models import UserSocialAuth
-
-logger = logging.getLogger(__name__)
 
 
 class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
@@ -36,8 +34,8 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
                 provider=usa.provider, external_id=usa.uid
             )
             integration.add_organization(organization, None, default_auth_id=usa.id)
-        except Exception as e:
-            logger.error("link_auth.failure", extra={"error": str(e)})
+        except Exception as error:
+            sentry_sdk.capture_exception(error=error)
             return False
         return True
 
