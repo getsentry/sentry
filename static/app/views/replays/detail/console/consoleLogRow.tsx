@@ -1,25 +1,22 @@
-import {CSSProperties, memo, useCallback, useMemo} from 'react';
+import {CSSProperties, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconFire, IconWarning} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
-import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
-import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-
-import {OnDimensionChange} from '../useVirtualizedInspector';
+import {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type Props = {
-  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   currentHoverTime: number | undefined;
   currentTime: number;
+  frame: BreadcrumbFrame;
   index: number;
   startTimestampMs: number;
   style: CSSProperties;
@@ -29,7 +26,7 @@ type Props = {
 
 function UnmemoizedConsoleLogRow({
   index,
-  breadcrumb,
+  frame,
   currentTime,
   currentHoverTime,
   startTimestampMs,
@@ -40,17 +37,14 @@ function UnmemoizedConsoleLogRow({
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
-  );
+  const onClickTimestamp = useCallback(() => handleClick(frame), [handleClick, frame]);
   const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
+    () => handleMouseEnter(frame),
+    [handleMouseEnter, frame]
   );
   const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
+    () => handleMouseLeave(frame),
+    [handleMouseLeave, frame]
   );
   const handleDimensionChange = useCallback(
     (path, expandedState, e) =>
@@ -58,12 +52,9 @@ function UnmemoizedConsoleLogRow({
     [onDimensionChange, index]
   );
 
-  const crumbTime = useMemo(
-    () => relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs),
-    [breadcrumb.timestamp, startTimestampMs]
-  );
-  const hasOccurred = currentTime >= crumbTime;
-  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
     <ConsoleLog
@@ -74,22 +65,17 @@ function UnmemoizedConsoleLogRow({
         afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
       })}
       hasOccurred={hasOccurred}
-      level={breadcrumb.level}
+      level={(frame as ConsoleFrame).level}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={style}
     >
-      <Icon level={breadcrumb.level} />
+      <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
       <Message>
-        {breadcrumbHasIssue(breadcrumb) ? (
-          <IssueLinkWrapper>
-            <ViewIssueLink breadcrumb={breadcrumb} />
-          </IssueLinkWrapper>
-        ) : null}
         <ErrorBoundary mini>
           <MessageFormatter
             expandPaths={expandPaths}
-            breadcrumb={breadcrumb}
+            frame={frame}
             onExpand={handleDimensionChange}
           />
         </ErrorBoundary>
@@ -97,29 +83,26 @@ function UnmemoizedConsoleLogRow({
       <TimestampButton
         onClick={onClickTimestamp}
         startTimestampMs={startTimestampMs}
-        timestampMs={breadcrumb.timestamp || ''}
+        timestampMs={frame.timestampMs}
       />
     </ConsoleLog>
   );
 }
 
-const IssueLinkWrapper = styled('div')`
-  float: right;
-`;
-
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
-  level: string;
+  level: undefined | string;
 }>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
+  align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 
   background-color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].backgroundLight
+    ['warning', 'error'].includes(String(p.level))
+      ? p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
   /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
@@ -127,8 +110,8 @@ const ConsoleLog = styled('div')<{
   border-bottom: 1px solid transparent;
 
   color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].iconColor
+    ['warning', 'error'].includes(String(p.level))
+      ? p.theme.alert[String(p.level)].iconColor
       : p.hasOccurred
       ? 'inherit'
       : p.theme.gray300};
@@ -144,17 +127,34 @@ const ConsoleLog = styled('div')<{
 `;
 
 const ICONS = {
-  [BreadcrumbLevelType.ERROR]: <IconFire size="xs" />,
-  [BreadcrumbLevelType.WARNING]: <IconWarning size="xs" />,
+  [BreadcrumbLevelType.ERROR]: (
+    <Tooltip title={BreadcrumbLevelType.ERROR}>
+      <IconClose size="xs" isCircled />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.WARNING]: (
+    <Tooltip title={BreadcrumbLevelType.WARNING}>
+      <IconWarning size="xs" />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.INFO]: (
+    <Tooltip title={BreadcrumbLevelType.INFO}>
+      <IconInfo size="xs" />
+    </Tooltip>
+  ),
 };
 
-const Icon = styled(
-  ({level, className}: {level: BreadcrumbLevelType; className?: string}) => (
-    <span className={className}>{ICONS[level]}</span>
-  )
-)`
+const MediumFontSize = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
+
+function ConsoleLevelIcon({level}: {level: string | undefined}) {
+  return level && level in ICONS ? (
+    <MediumFontSize>{ICONS[level]}</MediumFontSize>
+  ) : (
+    <i />
+  );
+}
 
 const Message = styled('div')`
   font-family: ${p => p.theme.text.familyMono};

@@ -31,7 +31,11 @@ import type {
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {isDeadClick, isDeadRageClick} from 'sentry/utils/replays/types';
+import {
+  BreadcrumbCategories,
+  isDeadClick,
+  isDeadRageClick,
+} from 'sentry/utils/replays/types';
 import type {
   RecordingEvent,
   ReplayCrumb,
@@ -212,7 +216,10 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(
+      frame =>
+        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
+    )
   );
 
   getNavigationFrames = memoize(() =>
@@ -302,10 +309,6 @@ export default class ReplayReader {
   /*********************/
   /** OLD STUFF BELOW **/
   /*********************/
-  getConsoleCrumbs = memoize(() =>
-    this.breadcrumbs.filter(crumb => crumb.category === 'console')
-  );
-
   getNonConsoleCrumbs = memoize(() =>
     this.breadcrumbs.filter(crumb => crumb.category !== 'console')
   );
