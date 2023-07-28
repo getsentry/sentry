@@ -866,8 +866,8 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
             integration = integration_service.get_integration(integration_id=oi.integration_id)
             if not integration:
                 continue
-            integration_installation = integration_service.get_installation(
-                integration=integration, organization_id=oi.organization_id
+            integration_installation = integration.get_installation(
+                organization_id=oi.organization_id
             )
             if not integration_installation:
                 continue

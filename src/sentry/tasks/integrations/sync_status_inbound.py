@@ -32,9 +32,7 @@ def sync_status_inbound(
     if not affected_groups:
         return
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization_id
-    )
+    installation = integration.get_installation(organization_id=organization_id)
 
     try:
         # This makes an API call.

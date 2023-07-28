@@ -9,7 +9,6 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -34,9 +33,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
         """
         integration = self.get_integration(organization.id, integration_id)
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)
@@ -56,9 +53,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
         **kwds: Any,
     ) -> Response:
         integration = self.get_integration(organization.id, integration_id)
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if not isinstance(install, ServerlessMixin):
             return self.respond({"detail": "Serverless not supported"}, status=400)

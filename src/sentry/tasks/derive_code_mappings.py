@@ -187,9 +187,7 @@ def get_installation(
     if not organization_integration:
         return None, None
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization.id
-    )
+    installation = integration.get_installation(organization_id=organization.id)
 
     return installation, organization_integration
 

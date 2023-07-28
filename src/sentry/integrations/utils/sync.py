@@ -40,9 +40,7 @@ def where_should_sync(
         organization
         for organization in organizations.filter(**kwargs)
         if features.has("organizations:integrations-issue-sync", organization)
-        and integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).should_sync(key)
+        and integration.get_installation(organization_id=organization.id).should_sync(key)
     ]
 
 

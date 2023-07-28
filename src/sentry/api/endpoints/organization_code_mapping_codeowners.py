@@ -16,9 +16,7 @@ def get_codeowner_contents(config):
         raise NotFound(detail="No associated integration")
 
     integration = integration_service.get_integration(integration_id=config.integration_id)
-    install = integration_service.get_installation(
-        integration=integration, organization_id=config.project.organization_id
-    )
+    install = integration.get_installation(organization_id=config.project.organization_id)
     return install.get_codeowner_file(config.repository, ref=config.default_branch)
 
 

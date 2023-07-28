@@ -228,9 +228,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         metrics.incr("github_pr_comment.error", tags={"type": "missing_integration"})
         return
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=org_id
-    )
+    installation = integration.get_installation(organization_id=org_id)
 
     # GitHubAppsClient (GithubClientMixin)
     # TODO(cathy): create helper function to fetch client for repo
@@ -292,9 +290,7 @@ def github_comment_reactions():
             metrics.incr("github_pr_comment.comment_reactions.missing_integration")
             return
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=pr.organization_id
-        )
+        installation = integration.get_installation(organization_id=pr.organization_id)
 
         # GitHubAppsClient (GithubClientMixin)
         # TODO(cathy): create helper function to fetch client for repo

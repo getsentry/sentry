@@ -10,7 +10,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -50,9 +49,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         )
         repo_names = {installed_repo.name for installed_repo in installed_repos}
 
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
 
         if isinstance(install, RepositoryMixin):
             try:

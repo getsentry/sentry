@@ -72,9 +72,7 @@ class IntegrationRepositoryProvider:
         if rpc_org_integration is None:
             raise Integration.DoesNotExist("Integration matching query does not exist.")
 
-        return integration_service.get_installation(
-            integration=rpc_integration, organization_id=organization_id
-        )
+        return rpc_integration.get_installation(organization_id=organization_id)
 
     def create_repository(
         self,

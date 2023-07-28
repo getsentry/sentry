@@ -67,9 +67,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
             for i in integrations:
                 try:
-                    installation = integration_service.get_installation(
-                        integration=i, organization_id=organization.id
-                    )
+                    installation = i.get_installation(organization_id=organization.id)
                     repos.extend(installation.get_unmigratable_repositories())
                 except Exception:
                     capture_exception()

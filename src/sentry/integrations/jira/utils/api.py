@@ -95,9 +95,7 @@ def handle_status_change(integration, data):
         integration_id=integration.id
     )
     for oi in org_integrations:
-        install = integration_service.get_installation(
-            integration=integration, organization_id=oi.organization_id
-        )
+        install = integration.get_installation(organization_id=oi.organization_id)
         if isinstance(install, IssueSyncMixin):
             install.sync_status_inbound(issue_key, {"changelog": changelog, "issue": data["issue"]})
 

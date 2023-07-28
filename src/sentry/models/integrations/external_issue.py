@@ -96,6 +96,4 @@ class ExternalIssue(Model):
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
 
-        return integration_service.get_installation(
-            integration=integration, organization_id=self.organization_id
-        )
+        return integration.get_installation(organization_id=self.organization_id)

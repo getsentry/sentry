@@ -7,7 +7,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint
@@ -26,9 +25,7 @@ class OrganizationIntegrationIssuesEndpoint(RegionOrganizationIntegrationBaseEnd
         :pparam string integration_id: the id of the integration
         """
         integration = self.get_integration(organization.id, integration_id)
-        install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        )
+        install = integration.get_installation(organization_id=organization.id)
         if isinstance(install, IssueSyncMixin):
             install.migrate_issues()
             return Response(status=204)
