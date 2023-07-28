@@ -13,7 +13,7 @@ from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 logger = logging.getLogger(__name__)
@@ -69,10 +69,13 @@ class SlackClient(IntegrationProxyClient):
         return prepared_request
 
     def is_response_fatal(self, response: Response) -> bool:
-        resp_json = response.json()
-        if not resp_json.get("ok"):
-            if "account_inactive" == resp_json.get("error", ""):
-                return True
+        try:
+            resp_json = response.json()
+            if not resp_json.get("ok"):
+                if "account_inactive" == resp_json.get("error", ""):
+                    return True
+            return False
+        except json.JSONDecodeError:
             return False
 
     def track_response_data(
