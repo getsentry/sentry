@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {Fragment, ReactNode, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconSearch} from 'sentry/icons';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -61,6 +61,21 @@ function ReplayTable({
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
+  const isErrorTable = visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS);
+  const isDeadRageTable = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
+  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
+  const [showMoreReplays, setShowMoreReplays] = useState(true);
+
+  const buttonLabel = useMemo(() => {
+    if (!showMoreReplays) {
+      return t('Show all replays');
+    }
+    const label = isErrorTable
+      ? t('Show all replays with errors')
+      : t('Show all replays with rage clicks');
+
+    return label;
+  }, [showMoreReplays, isErrorTable]);
 
   const {
     selection: {projects},
@@ -71,8 +86,6 @@ function ReplayTable({
     organization,
     projectId: projects.map(String),
   });
-
-  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   const location: Location = saveLocation
     ? {
@@ -138,8 +151,6 @@ function ReplayTable({
 
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
-  const isErrorTable = visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS);
-  const isDeadRageTable = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   return (
     <StyledPanelTable
@@ -241,28 +252,36 @@ function ReplayTable({
               <Button
                 size="sm"
                 onClick={() => {
+                  setShowMoreReplays(!showMoreReplays);
                   browserHistory.push({
                     pathname: newLocation.pathname,
-                    query: isErrorTable
-                      ? {
-                          ...newLocation.query,
-                          cursor: undefined,
-                          query: 'count_errors:>0',
-                          sort: '-count_errors',
-                        }
+                    query: showMoreReplays
+                      ? isErrorTable
+                        ? {
+                            ...newLocation.query,
+                            cursor: undefined,
+                            query: 'count_errors:>0',
+                            sort: '-count_errors',
+                          }
+                        : {
+                            ...newLocation.query,
+                            cursor: undefined,
+                            query: 'count_rage_clicks:>0',
+                            sort: '-count_rage_clicks',
+                          }
                       : {
                           ...newLocation.query,
                           cursor: undefined,
-                          query: 'count_rage_clicks:>0',
-                          sort: '-count_rage_clicks',
+                          query: '',
+                          sort: eventView.sorts[0],
                         },
                   });
                 }}
-                icon={<IconSearch size="xs" />}
+                icon={
+                  showMoreReplays ? <IconSearch size="xs" /> : <IconClose size="xs" />
+                }
               >
-                {isErrorTable
-                  ? t('Show all replays with errors')
-                  : t('Show all replays with rage clicks')}
+                {buttonLabel}
               </Button>
             }
           </TableFooter>
