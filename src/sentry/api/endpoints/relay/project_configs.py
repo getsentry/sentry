@@ -26,6 +26,7 @@ ProjectConfig = MutableMapping[str, Any]
 
 
 def get_global_config():
+    metrics.incr("relay.project_configs.global.fetched")
     return {
         "measurements": get_measurements_config(),
         # Subset of conditional tagging rules that does not depend on the project:
@@ -54,11 +55,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         assert relay is not None  # should be provided during Authentication
         response = {}
 
-        if request.relay_request_data.get("globalConfig"):
-            metrics.incr("relay.project_configs.global.fetched")
-            global_config = get_global_config()
-            response["global"] = global_config
-
         full_config_requested = request.relay_request_data.get("fullConfig")
 
         if full_config_requested and not relay.is_internal:
@@ -67,7 +63,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if self._should_use_v3(version, request):
+        if version == "4":
+            if request.relay_request_data.get("globalConfig"):
+                response["global"] = get_global_config()
+        elif self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
