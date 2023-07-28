@@ -47,11 +47,7 @@ def notify_disable(
         integration_name,
     )
 
-    users = organization.get_owners()
-
-    for user in users:
-
-        user_email = user.email
+    for user in organization.get_owners():
 
         msg = MessageBuilder(
             subject=get_subject(integration_name),
@@ -59,4 +55,4 @@ def notify_disable(
             html_template="sentry/integrations/notify-disable.html",
             template="sentry/integrations/notify-disable.txt",
         )
-        msg.send_async([user_email])
+        msg.send_async([user.email])
