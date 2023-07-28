@@ -83,11 +83,7 @@ export function PerformanceChangeExplorer({
   location,
 }: PerformanceChangeExplorerProps) {
   return (
-    <DetailPanel
-      detailKey={!collapsed ? transaction.transaction : ''}
-      onClose={onClose}
-      analytics={false}
-    >
+    <DetailPanel detailKey={!collapsed ? transaction.transaction : ''} onClose={onClose}>
       {!collapsed && (
         <PanelBodyWrapper>
           <ExplorerBody

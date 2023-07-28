@@ -3,31 +3,30 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const PANEL_WIDTH = '50vw';
 
 type SlideOverPanelProps = {
-  analytics: boolean;
   children: React.ReactNode;
   collapsed: boolean;
+  onOpen?: () => void;
 };
 
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children, analytics}: SlideOverPanelProps,
+  {collapsed, children, onOpen}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   const {query} = useLocation();
   const organization = useOrganization();
   useEffect(() => {
-    if (!collapsed && analytics) {
-      trackAnalytics('starfish.panel.open', {organization});
+    if (!collapsed && onOpen) {
+      onOpen();
     }
-  }, [query, collapsed, organization, analytics]);
+  }, [query, collapsed, organization, onOpen]);
   return (
     <_SlideOverPanel
       ref={ref}
