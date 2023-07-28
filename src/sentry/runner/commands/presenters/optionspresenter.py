@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 """
+Abstract class for presenting changes to options to different channels.
 
+This class defines the interface for presenting and communicating changes made to options in a system to various output channels.
 """
 
 
