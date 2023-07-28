@@ -54,3 +54,27 @@ def __example_to_remove():
 
     result = get_series(query)
     assert result
+
+
+def test_basic():
+    expr = Function(
+        AggregationFn.AVG.value,
+        [Column("d:transactions/duration@millisecond")],
+    )
+
+    query = SeriesQuery(
+        scope=MetricQueryScope(org_id=1),
+        expressions=[expr],
+        filters=[],
+        groups=[],
+        start=datetime(2023, 1, 1),
+        end=datetime(2023, 1, 2),
+        interval=3600,
+    )
+
+    result = get_series(query)
+    assert result
+
+
+# TODO: filter
+# TODO: arithmetic
