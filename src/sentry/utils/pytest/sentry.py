@@ -3,6 +3,8 @@ from __future__ import annotations
 import collections
 import os
 import random
+import shutil
+import sys
 from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
@@ -36,6 +38,12 @@ def pytest_configure(config):
     )
 
     config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+
+    if sys.platform == "darwin" and shutil.which("colima"):
+        # This is the only way other than pytest --basetemp to change
+        # the temproot. We'd like to keep invocations to just "pytest".
+        # See source code for pytest's TempPathFactory.
+        os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")

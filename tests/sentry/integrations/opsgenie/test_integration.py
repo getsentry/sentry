@@ -101,7 +101,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
-        opsgenie_client = installation.get_client()
+        opsgenie_client = installation.get_client(integration_key=METADATA["api_key"])
 
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-5678"}]}
         resp_data = {"data": {"id": "123-id", "name": "cool-team"}}
@@ -122,7 +122,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
-        opsgenie_client = installation.get_client()
+        opsgenie_client = installation.get_client(integration_key="1234-bad")
 
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-bad"}]}
         responses.add(responses.GET, url=f"{opsgenie_client.base_url}/teams/cool-team")

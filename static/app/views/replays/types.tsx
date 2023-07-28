@@ -211,8 +211,6 @@ export type MemorySpan = ReplaySpan<{
   };
 }>;
 
-export type NetworkSpan = ReplaySpan;
-
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;

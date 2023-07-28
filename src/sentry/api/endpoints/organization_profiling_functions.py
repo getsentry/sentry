@@ -178,6 +178,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                         "request_end": v[data["function"]]["end"],
                     }
                     for k, v in stats_data.items()
+                    if v[data["function"]]["data"]
                 },
                 "sort": data["trend"].as_sort(),
                 "trendFunction": data["function"],

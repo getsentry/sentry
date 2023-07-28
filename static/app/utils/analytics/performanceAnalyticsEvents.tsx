@@ -92,6 +92,17 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
+  'performance_views.performance_change_explorer.open': {
+    transaction: string;
+  };
+  'performance_views.performance_change_explorer.span_link_clicked': {
+    group: string;
+    op: string;
+    transaction: string;
+  };
+  'performance_views.performance_change_explorer.summary_link_clicked': {
+    transaction: string;
+  };
   'performance_views.project_issue_detection_threshold_changed': {
     organization: Organization;
     project_slug: string;
@@ -330,4 +341,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landing.table.unparameterized':
     'Performance Views: Landing Page - Table Unparameterized',
   'performance_views.landing.table.seen': 'Performance Views: Landing Page - Table Seen',
+  'performance_views.performance_change_explorer.open':
+    'Performance Views: Performance Change Explorer - Opened',
+  'performance_views.performance_change_explorer.span_link_clicked':
+    'Performance Views: Performance Change Explorer - Link to Span',
+  'performance_views.performance_change_explorer.summary_link_clicked':
+    'Performance Views: Performance Change Explorer - Link to Summary',
 };

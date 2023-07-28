@@ -119,6 +119,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     """
 
     from sentry import options
+    from sentry.utils import metrics
 
     ctx.obj["dry_run"] = dry_run
 
@@ -138,6 +139,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
             presenter_delegator.error(key, not_writable_reason.value)
             presenter_delegator.flush()
+            metrics.incr("options_automator.run", tags={"status": "invalid_option"})
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)
@@ -155,21 +157,37 @@ def patch(ctx) -> None:
     Only the options present in the file are updated. No deletions
     are performed.
     """
+    from sentry.utils import metrics
+
     dry_run = bool(ctx.obj["dry_run"])
+    presenter_delegator = ctx.obj["presenter_delegator"]
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
 
     for key, value in ctx.obj["options_to_update"].items():
-        _attempt_update(
-            key,
-            value,
-            ctx.obj["drifted_options"],
-            ctx.obj["presenter_delegator"],
-            dry_run,
-            bool(ctx.obj["hide_drift"]),
-        )
+        try:
+            _attempt_update(
+                key,
+                value,
+                ctx.obj["drifted_options"],
+                presenter_delegator,
+                dry_run,
+                bool(ctx.obj["hide_drift"]),
+            )
+        except Exception:
+            metrics.incr(
+                "options_automator.run",
+                tags={"status": "update_failed"},
+            )
+            presenter_delegator.flush()
+            raise
 
-    ctx.obj["controller"].write()
+    metrics.incr(
+        "options_automator.run",
+        tags={"status": "drift" if not ctx.obj["drifted_options"] else "success"},
+    )
+
+    presenter_delegator.flush()
 
 
 @configoptions.command()
@@ -183,6 +201,7 @@ def sync(ctx):
     """
 
     from sentry import options
+    from sentry.utils import metrics
 
     dry_run = bool(ctx.obj["dry_run"])
     if dry_run:
@@ -191,24 +210,45 @@ def sync(ctx):
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
     options_to_update = ctx.obj["options_to_update"]
+    drift_found = bool(ctx.obj["drifted_options"])
     presenter_delegator = ctx.obj["presenter_delegator"]
     for opt in all_options:
         if opt.name in options_to_update:
-            _attempt_update(
-                opt.name,
-                options_to_update[opt.name],
-                ctx.obj["drifted_options"],
-                presenter_delegator,
-                dry_run,
-                bool(ctx.obj["hide_drift"]),
-            )
+            try:
+                _attempt_update(
+                    opt.name,
+                    options_to_update[opt.name],
+                    ctx.obj["drifted_options"],
+                    presenter_delegator,
+                    dry_run,
+                    bool(ctx.obj["hide_drift"]),
+                )
+            except Exception:
+                metrics.incr(
+                    "options_automator.run",
+                    tags={"status": "update_failed"},
+                )
+                raise
         else:
             if options.isset(opt.name):
                 if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
                     if not dry_run:
-                        options.delete(opt.name)
+                        try:
+                            options.delete(opt.name)
+                        except Exception:
+                            metrics.incr(
+                                "options_automator.run",
+                                tags={"status": "update_failed"},
+                            )
+                            presenter_delegator.flush()
+                            raise
                     presenter_delegator.unset(opt.name)
                 else:
                     presenter_delegator.drift(opt.name, None)
-
+                    drift_found = True
     presenter_delegator.flush()
+
+    metrics.incr(
+        "options_automator.run",
+        tags={"status": "drift" if not drift_found else "success"},
+    )

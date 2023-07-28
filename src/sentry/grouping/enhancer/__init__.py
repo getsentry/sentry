@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import os
 import zlib
-from typing import Any, Dict, List, Sequence
+from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
@@ -118,8 +118,8 @@ class Enhancements:
             bases = []
         self.bases = bases
 
-        self._modifier_rules: List[Rule] = []
-        self._updater_rules = []
+        self._modifier_rules: list[Rule] = []
+        self._updater_rules: list[Rule] = []
         for rule in self.iter_rules():
             if modifier_rule := rule._as_modifier_rule():
                 self._modifier_rules.append(modifier_rule)
@@ -127,13 +127,16 @@ class Enhancements:
                 self._updater_rules.append(updater_rule)
 
     def apply_modifications_to_frame(
-        self, frames: Sequence[Any], platform: str, exception_data: Any
-    ):
-        """This applies the frame modifications to the frames itself.  This
+        self,
+        frames: Sequence[dict[str, Any]],
+        platform: str,
+        exception_data: dict[str, Any],
+        rule=None,
+    ) -> None:
+        """This applies the frame modifications to the frames itself. This
         does not affect grouping.
         """
-        # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        in_memory_cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -143,13 +146,13 @@ class Enhancements:
         ):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
-                    match_frames, platform, exception_data, cache
+                    match_frames, platform, exception_data, in_memory_cache
                 ):
+                    # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
-        # XXX: This may be an in-memory cache
-        cache: Dict[str, str] = {}
+        in_memory_cache: dict[str, str] = {}
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
@@ -158,7 +161,7 @@ class Enhancements:
         for rule in self._updater_rules:
 
             for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, cache
+                match_frames, platform, exception_data, in_memory_cache
             ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
@@ -332,7 +335,13 @@ class Rule:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
-    def get_matching_frame_actions(self, frames, platform, exception_data=None, cache=None):
+    def get_matching_frame_actions(
+        self,
+        match_frames: Sequence[dict[str, Any]],
+        platform: str,
+        exception_data: dict[str, Any],
+        in_memory_cache: dict[str, str],
+    ) -> list[tuple[int, Action]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -341,15 +350,15 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(frames, None, platform, exception_data, cache):
+            if not m.matches_frame(match_frames, None, platform, exception_data, in_memory_cache):
                 return []
 
         rv = []
 
         # 2 - Check if frame matchers match
-        for idx, frame in enumerate(frames):
+        for idx, _ in enumerate(match_frames):
             if all(
-                m.matches_frame(frames, idx, platform, exception_data, cache)
+                m.matches_frame(match_frames, idx, platform, exception_data, in_memory_cache)
                 for m in self._other_matchers
             ):
                 for action in self.actions:

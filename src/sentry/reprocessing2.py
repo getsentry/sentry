@@ -96,6 +96,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -643,7 +644,7 @@ def start_group_reprocessing(
     # and simplified from groupserializer.
     event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
-        dataset=snuba.Dataset.Events,  # from
+        dataset=Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
         referrer="reprocessing2.start_group_reprocessing",
     )["data"][0]["times_seen"]
