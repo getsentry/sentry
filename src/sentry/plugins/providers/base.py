@@ -20,7 +20,7 @@ class ProviderMixin:
     logger: logging.Logger | None = None
 
     def link_auth(self, user, organization, data):
-        usa = usersocialauth_service.get_auth(
+        usa = usersocialauth_service.get_one_or_none(
             filter={
                 "id": data["default_auth_id"],
                 "user_id": user.id,
@@ -95,7 +95,7 @@ class ProviderMixin:
         if not user.is_authenticated:
             return True
 
-        auths = usersocialauth_service.get_auths(
+        auths = usersocialauth_service.get_many(
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
         return len(auths) == 0
@@ -110,13 +110,13 @@ class ProviderMixin:
                 providers=[self.auth_provider], organization_id=organization.id
             )
             if len(ois) > 0 and ois[0].default_auth_id is not None:
-                auth = usersocialauth_service.get_auth(filter={"id": ois[0].default_auth_id})
+                auth = usersocialauth_service.get_one_or_none(filter={"id": ois[0].default_auth_id})
                 if auth:
                     return auth
 
         if not user.is_authenticated:
             return None
-        return usersocialauth_service.get_auth(
+        return usersocialauth_service.get_one_or_none(
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
 

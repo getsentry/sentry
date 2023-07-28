@@ -67,7 +67,7 @@ class IssueTrackingPlugin(Plugin):
         if not user.is_authenticated:
             return None
 
-        auth = usersocialauth_service.get_auth(
+        auth = usersocialauth_service.get_one_or_none(
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
         return auth
@@ -83,7 +83,7 @@ class IssueTrackingPlugin(Plugin):
         if not request.user.is_authenticated:
             return True
 
-        auth = usersocialauth_service.get_auth(
+        auth = usersocialauth_service.get_one_or_none(
             filter={"user_id": request.user.id, "provider": self.auth_provider}
         )
         return bool(auth)

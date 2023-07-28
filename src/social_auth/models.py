@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, Dict, Type
 
 from django.apps import apps
 from django.conf import settings
@@ -14,6 +14,11 @@ from sentry.db.models import control_silo_only_model
 from .fields import JSONField
 from .utils import setting
 
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+    from social_auth.backends import SocialAuthBackend
+
+
 AUTH_USER_MODEL = settings.AUTH_USER_MODEL
 
 UID_LENGTH = setting("SOCIAL_AUTH_UID_LENGTH", 255)
@@ -22,6 +27,56 @@ ASSOCIATION_SERVER_URL_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_SERVER_URL_LENG
 ASSOCIATION_HANDLE_LENGTH = setting("SOCIAL_AUTH_ASSOCIATION_HANDLE_LENGTH", 255)
 
 CLEAN_USERNAME_REGEX = re.compile(r"[^\w.@+-_]+", re.UNICODE)
+
+
+class HybridUserSocialAuthUtility:
+    """
+    Class containing methods shared across UserSocialAuth and RpcUserSocialAuth that do not perform
+    database transactions
+    """
+
+    @classmethod
+    def get_backend(
+        cls, instance: UserSocialAuth | RpcUserSocialAuth
+    ) -> Type[SocialAuthBackend] | None:
+        # Make import here to avoid recursive imports :-/
+        from social_auth.backends import get_backends
+
+        return get_backends().get(instance.provider)
+
+    @classmethod
+    def tokens(cls, instance: UserSocialAuth | RpcUserSocialAuth) -> Dict[str, Any]:
+        """Return access_token stored in extra_data or None"""
+        backend = instance.get_backend()
+        if backend:
+            return backend.AUTH_BACKEND.tokens(instance)
+        else:
+            return {}
+
+    @classmethod
+    def expiration_datetime(cls, instance: UserSocialAuth | RpcUserSocialAuth) -> timedelta | None:
+        """Return provider session live seconds. Returns a timedelta ready to
+        use with session.set_expiry().
+
+        If provider returns a timestamp instead of session seconds to live, the
+        timedelta is inferred from current time (using UTC timezone). None is
+        returned if there's no value stored or it's invalid.
+        """
+        if instance.extra_data and "expires" in instance.extra_data:
+            try:
+                expires = int(instance.extra_data["expires"])
+            except (ValueError, TypeError):
+                return None
+
+            now = datetime.utcnow()
+
+            # Detect if expires is a timestamp
+            if expires > time.mktime(now.timetuple()):
+                # expires is a datetime
+                return datetime.fromtimestamp(expires) - now
+            else:
+                # expires is a timedelta
+                return timedelta(seconds=expires)
 
 
 @control_silo_only_model
@@ -45,19 +100,14 @@ class UserSocialAuth(models.Model):
         return f"{self.user} - {self.provider.title()}"
 
     def get_backend(self):
-        # Make import here to avoid recursive imports :-/
-        from social_auth.backends import get_backends
-
-        return get_backends().get(self.provider)
+        return HybridUserSocialAuthUtility.get_backend(instance=self)
 
     @property
     def tokens(self):
-        """Return access_token stored in extra_data or None"""
-        backend = self.get_backend()
-        if backend:
-            return backend.AUTH_BACKEND.tokens(self)
-        else:
-            return {}
+        return HybridUserSocialAuthUtility.tokens(instance=self)
+
+    def expiration_datetime(self):
+        return HybridUserSocialAuthUtility.expiration_datetime(instance=self)
 
     def revoke_token(self, drop_token=True):
         """Attempts to revoke permissions for provider."""
@@ -84,30 +134,6 @@ class UserSocialAuth(models.Model):
                 if new_refresh_token:
                     self.extra_data["refresh_token"] = new_refresh_token
                 self.save()
-
-    def expiration_datetime(self):
-        """Return provider session live seconds. Returns a timedelta ready to
-        use with session.set_expiry().
-
-        If provider returns a timestamp instead of session seconds to live, the
-        timedelta is inferred from current time (using UTC timezone). None is
-        returned if there's no value stored or it's invalid.
-        """
-        if self.extra_data and "expires" in self.extra_data:
-            try:
-                expires = int(self.extra_data["expires"])
-            except (ValueError, TypeError):
-                return None
-
-            now = datetime.utcnow()
-
-            # Detect if expires is a timestamp
-            if expires > time.mktime(now.timetuple()):
-                # expires is a datetime
-                return datetime.fromtimestamp(expires) - now
-            else:
-                # expires is a timedelta
-                return timedelta(seconds=expires)
 
     @classmethod
     def clean_username(cls, value):
