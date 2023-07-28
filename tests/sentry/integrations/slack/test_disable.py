@@ -7,7 +7,7 @@ from django.test import override_settings
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.notifydisable import notify_disable
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
