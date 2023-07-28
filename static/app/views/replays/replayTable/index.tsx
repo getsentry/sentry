@@ -1,12 +1,14 @@
 import {Fragment, ReactNode} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconList} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -136,6 +138,8 @@ function ReplayTable({
 
   const referrer = getRouteStringFromRoutes(routes);
   const eventView = EventView.fromLocation(location);
+  const isErrorTable = visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS);
+  const isDeadRageTable = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   return (
     <StyledPanelTable
@@ -230,12 +234,37 @@ function ReplayTable({
           </Fragment>
         );
       })}
-      {visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS) ||
-      visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ? (
+      {isErrorTable || isDeadRageTable ? (
         <Fragment>
           <TableFooter>
-            <IconList size="xs" />
-            {t('Show all replays with xyz')}
+            {
+              <Button
+                size="sm"
+                onClick={() => {
+                  browserHistory.push({
+                    pathname: newLocation.pathname,
+                    query: isErrorTable
+                      ? {
+                          ...newLocation.query,
+                          cursor: undefined,
+                          query: 'count_errors:>0',
+                          sort: '-count_errors',
+                        }
+                      : {
+                          ...newLocation.query,
+                          cursor: undefined,
+                          query: 'count_rage_clicks:>0',
+                          sort: '-count_rage_clicks',
+                        },
+                  });
+                }}
+                icon={<IconSearch size="xs" />}
+              >
+                {isErrorTable
+                  ? t('Show all replays with errors')
+                  : t('Show all replays with rage clicks')}
+              </Button>
+            }
           </TableFooter>
           <EmptyCell />
           <EmptyCell />
@@ -284,7 +313,7 @@ const TableFooter = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  padding: 10px 5px 10px 20px;
+  padding: 0 0 0 ${space(2)};
 `;
 
 const EmptyCell = styled('div')`
