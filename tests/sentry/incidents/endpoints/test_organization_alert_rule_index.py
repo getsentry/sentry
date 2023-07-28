@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.db import router
 from django.test.utils import override_settings
 from freezegun import freeze_time
 
@@ -16,9 +17,10 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models import AuditLogEntry, Integration
+from sentry.models.organizationmember import OrganizationMember
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
@@ -490,12 +492,22 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 404
 
     def test_no_perms(self):
+        with unguarded_write(using=router.db_for_write(OrganizationMember)):
+            OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
+
         member_user = self.create_user()
         self.create_member(
             user=member_user, organization=self.organization, role="member", teams=[self.team]
         )
         self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(member_user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
+
+        self.login_as(self.user)
         resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 403
 
