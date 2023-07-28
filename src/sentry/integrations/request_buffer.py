@@ -92,6 +92,9 @@ class IntegrationRequestBuffer:
 
     def add(self, count: str):
         VALID_KEYS = ["success", "error", "fatal"]
+        if "sentry-app" in self.integrationkey:
+            VALID_KEYS = ["success", "error", "timeout"]
+
         if count not in VALID_KEYS:
             raise Exception("Requires a valid key param.")
 
@@ -145,3 +148,6 @@ class IntegrationRequestBuffer:
 
     def record_fatal(self):
         self.add("fatal")
+
+    def record_timeout(self):
+        self.add("timeout")
