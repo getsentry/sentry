@@ -33,7 +33,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
 
         installation: BitbucketIntegration = integration.get_installation(
             organization_id=organization.id
-        )  # type: ignore
+        )
 
         if field == "externalIssue":
             repo = request.GET.get("repo")

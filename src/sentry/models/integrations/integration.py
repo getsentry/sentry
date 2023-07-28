@@ -104,7 +104,7 @@ class Integration(DefaultFieldsModel):
         )
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        return HybridIntegrationUtility.has_feature(isinstance=self, feature=feature)
+        return HybridIntegrationUtility.has_feature(instance=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(

@@ -17,7 +17,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.constants import ObjectStatus
 from sentry.models import OrganizationIntegration, ScheduledDeletion
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
