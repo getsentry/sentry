@@ -5,7 +5,6 @@ from typing import List, Optional
 
 from django.db import OperationalError
 from django.db.models import Max
-from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
@@ -75,7 +74,6 @@ def get_daily_10min_bucket(now: datetime):
     acks_late=True,
 )
 @retry(on=(OperationalError,))
-@monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
     """
