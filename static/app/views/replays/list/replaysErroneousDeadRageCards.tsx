@@ -200,14 +200,7 @@ function CardTable({
         saveLocation
         gridRows={'auto ' + gridRows}
       />
-      <Button
-        style={{
-          width: '100%',
-          borderTop: '0',
-          borderTopLeftRadius: '0',
-          borderTopRightRadius: '0',
-          padding: '20px',
-        }}
+      <StyledButton
         size="sm"
         onClick={() => {
           const newQuery =
@@ -230,7 +223,7 @@ function CardTable({
         {emptyLocation.query.query === searchQuery.query
           ? t('Clear filter')
           : buttonLabel}
-      </Button>
+      </StyledButton>
     </div>
   );
 }
@@ -240,6 +233,13 @@ const SplitCardContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   gap: ${space(2)};
   align-items: stretch;
+`;
+
+const StyledButton = styled(Button)`
+  width: 100%;
+  border-top: none;
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  padding: ${space(3)};
 `;
 
 export default ReplaysErroneousDeadRageCards;
