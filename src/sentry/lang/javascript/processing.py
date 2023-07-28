@@ -228,6 +228,9 @@ def _normalize_frame(frame: Any) -> dict:
     if abs_path := frame.get("abs_path"):
         frame["abs_path"] = unquote(abs_path)
 
+    # Symbolicator will *output* `data`, but never use it from the input
+    frame.pop("data", None)
+
     return frame
 
 
