@@ -11,6 +11,7 @@ describe('SQLishParser', function () {
       'WHERE age = 10;', // Equality
       'WHERE age != 10;', // Inequality
       'WHERE age > 10 AND age < 20;', // Comparison
+      "WHERE$1 ILIKE ' % ' || 'text'", // Conditionals
       'SELECT id, name;', // Column lists
       'columns AS `tags[column]`', // ClickHouse backtics
       'SELECT id, nam*', // Truncation
