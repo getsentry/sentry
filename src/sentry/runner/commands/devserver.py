@@ -247,8 +247,6 @@ def devserver(
             }
         )
 
-    os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
-
     if ingest and not workers:
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
