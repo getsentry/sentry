@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+import secrets
 from typing import Any
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -28,7 +28,7 @@ def is_internal_ip(request: HttpRequest) -> bool:
 def get_system_token() -> str:
     token = options.get("sentry:system-token")
     if not token:
-        token = uuid4().hex
+        token = secrets.token_hex()
         options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
     return token
 
