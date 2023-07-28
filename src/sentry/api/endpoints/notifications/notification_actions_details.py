@@ -2,6 +2,7 @@ import logging
 
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,7 +35,15 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     def convert_args(self, request: Request, action_id: int, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
+        # projects where the user has access
         accessible_projects = self.get_projects(request, organization, project_ids={-1})
+        # projects where the user has project membership
+        projects = self.get_projects(request, organization)
+
+        # org admins can modify projects and not have direct project access
+        if not projects and not request.access.has_scope("project:write"):
+            raise PermissionDenied
+
         try:
             # It must either have no project affiliation, or be accessible to the user...
             action = (

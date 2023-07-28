@@ -263,6 +263,10 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         data = self.validate_slack_channel(data)
         data = self.validate_pagerduty_service(data)
 
+        # we may pass in a list of projects in which the user has project membership
+        if self.context.get("projects"):
+            data["projects"] = [project.id for project in self.context["projects"]]
+
         return data
 
     class Meta:

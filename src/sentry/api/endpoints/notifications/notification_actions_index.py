@@ -3,6 +3,7 @@ from typing import Dict
 
 from django.db.models import Q
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,9 +22,21 @@ logger = logging.getLogger(__name__)
 class NotificationActionsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:write", "org:admin"],
+        "POST": [
+            "org:read",
+            "org:write",
+            "org:admin",
+        ],
+        "PUT": [
+            "org:read",
+            "org:write",
+            "org:admin",
+        ],
+        "DELETE": [
+            "org:read",
+            "org:write",
+            "org:admin",
+        ],
     }
 
 
@@ -68,11 +81,14 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
+        projects = self.get_projects(request, organization)
+
+        # org admins can modify projects and not have direct project access
+        if not projects and not request.access.has_scope("project:write"):
+            raise PermissionDenied
+
         serializer = NotificationActionSerializer(
-            context={
-                "access": request.access,
-                "organization": organization,
-            },
+            context={"access": request.access, "organization": organization, "projects": projects},
             data=request.data,
         )
         if not serializer.is_valid():

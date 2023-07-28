@@ -13,6 +13,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
@@ -389,3 +390,22 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         # Relation table has been updated
         notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
         assert len(notif_action_projects) == len(self.projects)
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_org_admin(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="admin")
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_post_simple()
