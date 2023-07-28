@@ -29,7 +29,7 @@ describe('SQLishFormatter', function () {
 
     it('Wraps every token in a `<span>` element', () => {
       expect(getMarkup(formatter.toSimpleMarkup('SELECT hello;'))).toEqual(
-        '<span>SELECT</span><span> </span><span>hello;</span>'
+        '<b>SELECT</b><span> </span><span>hello;</span>'
       );
     });
   });
