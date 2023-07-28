@@ -77,6 +77,7 @@ class HybridUserSocialAuthUtility:
             else:
                 # expires is a timedelta
                 return timedelta(seconds=expires)
+        return None
 
 
 @control_silo_only_model
