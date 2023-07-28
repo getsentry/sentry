@@ -18,13 +18,14 @@ class ConsolePresenter(OptionsPresenter):
     UNSET_MSG = "[UNSET] Option %s unset."
     DRY_RUN_MSG = "!!! Dry-run flag on. No update will be performed."
 
-    def __init__(self) -> None:
+    def __init__(self, dry_run) -> None:
         self.drifted_options = []
         self.channel_updated_options = []
         self.updated_options = []
         self.set_options = []
         self.unset_options = []
         self.error_options = []
+        self.dry_run = dry_run
 
     def flush(self):
         for key, db_value in self.drifted_options:

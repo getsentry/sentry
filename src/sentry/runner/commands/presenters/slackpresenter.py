@@ -7,23 +7,27 @@ from sentry.utils import json
 
 
 class SlackPresenter(OptionsPresenter):
-    def __init__(self) -> None:
+    def __init__(self, dry_run) -> None:
         self.drifted_options = []
         self.channel_updated_options = []
         self.updated_options = []
         self.set_options = []
         self.unset_options = []
         self.error_options = []
+        self.dry_run = dry_run
 
     def flush(self):
-        """
-        The slack notifications should be informative but not noisy.
-        There will be one message for all the errors, and one message
-        for all the successful updated options.
-        """
-        # success = []
-        # failed = []
-        pass
+        json_data = {
+            "dry-run": self.dry_run,
+            "drifted_options": self.drifted_options,
+            "channel_updated_options": self.channel_updated_options,
+            "updated_options": self.updated_options,
+            "set_options": self.set_options,
+            "unset_options": self.unset_options,
+            "error_options": self.error_options,
+        }
+
+        self.send_to_webhook(json_data)
 
     def set(self, key: str, value: Any):
         self.set_options.append((key, value))
@@ -46,6 +50,7 @@ class SlackPresenter(OptionsPresenter):
     def send_to_webhook(json_data):
         headers = {"Content-Type": "application/json"}
         # todo: change webhook url (pass in as k8s secret? eng pipes is public)
-        #       send http post request to engpipes webhook
-        #       figure out how to add env var k8s secrets?
+        # send http post request to engpipes webhook
+        # figure out how to add env var k8s secrets?
+        # how to pass along which region (as part of secrets)
         requests.post("url", data=json.dumps(json_data), headers=headers)

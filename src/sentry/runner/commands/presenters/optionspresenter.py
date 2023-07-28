@@ -10,6 +10,10 @@ This class defines the interface for presenting and communicating changes made t
 
 class OptionsPresenter(ABC):
     @abstractmethod
+    def dry_run(self):
+        pass
+
+    @abstractmethod
     def flush(self):
         pass
 

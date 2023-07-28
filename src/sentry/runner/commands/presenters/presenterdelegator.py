@@ -6,10 +6,10 @@ from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 
 
 class PresenterDelegator(OptionsPresenter):
-    def __init__(self) -> None:
-        self.consolepresenter = ConsolePresenter()
+    def __init__(self, dry_run) -> None:
+        self.consolepresenter = ConsolePresenter(dry_run)
         if self.check_slack_webhook_config():
-            self.slackpresenter = SlackPresenter()
+            self.slackpresenter = SlackPresenter(dry_run)
         self.slackpresenter = None
 
     def check_slack_webhook_config(self):

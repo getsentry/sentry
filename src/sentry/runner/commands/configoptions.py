@@ -130,7 +130,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
-    presenter_delegator = PresenterDelegator
+    presenter_delegator = PresenterDelegator(dry_run)
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
@@ -161,8 +161,6 @@ def patch(ctx) -> None:
 
     dry_run = bool(ctx.obj["dry_run"])
     presenter_delegator = ctx.obj["presenter_delegator"]
-    if dry_run:
-        click.echo("!!! Dry-run flag on. No update will be performed.")
 
     for key, value in ctx.obj["options_to_update"].items():
         try:
@@ -178,6 +176,9 @@ def patch(ctx) -> None:
             metrics.incr(
                 "options_automator.run",
                 tags={"status": "update_failed"},
+            )
+            presenter_delegator.error(
+                key, "Updated failed. Check db connection, option type, and option spelling."
             )
             presenter_delegator.flush()
             raise
@@ -204,8 +205,6 @@ def sync(ctx):
     from sentry.utils import metrics
 
     dry_run = bool(ctx.obj["dry_run"])
-    if dry_run:
-        click.echo("!!! Dry-run flag on. No update will be performed.")
 
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -239,6 +238,10 @@ def sync(ctx):
                             metrics.incr(
                                 "options_automator.run",
                                 tags={"status": "update_failed"},
+                            )
+                            presenter_delegator.error(
+                                opt.name,
+                                "Updated failed. Check db connection, option type, and option spelling.",
                             )
                             presenter_delegator.flush()
                             raise
