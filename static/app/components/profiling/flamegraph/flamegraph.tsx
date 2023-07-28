@@ -41,6 +41,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
@@ -63,8 +64,6 @@ import {
   useProfileTransaction,
   useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
-
-import {FlamegraphChart} from '../../../utils/profiling/flamegraphChart';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -154,6 +153,7 @@ function findLongestMatchingFrame(
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
+const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChart.Empty;
 
 const noopFormatDuration = () => '';
 
@@ -233,19 +233,6 @@ function Flamegraph(): ReactElement {
     return new SpanChart(spanTree, {unit: profile.unit});
   }, [spanTree, profile]);
 
-  const CPUChart = useMemo(() => {
-    if (!profile) {
-      return null;
-    }
-
-    return new FlamegraphChart(
-      profileGroup.measurements?.cpu_usage_0 ?? {
-        unit: 'percentage',
-        values: [],
-      }
-    );
-  }, [profile, profileGroup.measurements?.cpu_usage_0]);
-
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
@@ -306,6 +293,20 @@ function Flamegraph(): ReactElement {
     flamegraph.configSpace,
     hasUIFrames,
   ]);
+
+  const CPUChart = useMemo(() => {
+    if (!hasCPUChart) {
+      return LOADING_OR_FALLBACK_CPU_CHART;
+    }
+
+    return new FlamegraphChart(
+      Rect.From(flamegraph.configSpace),
+      profileGroup.measurements?.cpu_usage_0 ?? {
+        unit: 'percentage',
+        values: [],
+      }
+    );
+  }, [profileGroup.measurements?.cpu_usage_0, flamegraph.configSpace, hasCPUChart]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
@@ -493,7 +494,7 @@ function Flamegraph(): ReactElement {
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: CPUChart,
-        mode: 'stretchToFit',
+        mode: 'anchorBottom',
         options: {
           // Invert chart so origin is at bottom left
           // corner as opposed to top left
@@ -505,10 +506,9 @@ function Flamegraph(): ReactElement {
       });
 
       // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(
-        flamegraphView.configView.withHeight(newView.configView.height),
-        {width: {min: 0}}
-      );
+      newView.setConfigView(flamegraphView.configView.withHeight(100), {
+        width: {min: 0},
+      });
 
       return newView;
     },
@@ -550,13 +550,15 @@ function Flamegraph(): ReactElement {
     const minWidthBetweenViews = Math.min(
       flamegraphView?.minWidth ?? Number.MAX_SAFE_INTEGER,
       spansView?.minWidth ?? Number.MAX_SAFE_INTEGER,
-      uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER
+      uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER,
+      cpuChartView?.minWidth ?? Number.MAX_SAFE_INTEGER
     );
 
     flamegraphView?.setMinWidth?.(minWidthBetweenViews);
     spansView?.setMinWidth?.(minWidthBetweenViews);
     uiFramesView?.setMinWidth?.(minWidthBetweenViews);
-  }, [flamegraphView, spansView, uiFramesView]);
+    cpuChartView?.setMinWidth?.(minWidthBetweenViews);
+  }, [flamegraphView, spansView, uiFramesView, cpuChartView]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -582,6 +584,10 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
+        // @TODO ADD BACK
+        // if (cpuChartView) {
+        //   cpuChartView.setConfigView(rect);
+        // }
       }
 
       if (sourceConfigViewChange === spansView) {
@@ -593,6 +599,10 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
+        // @TODO ADD BACK
+        // if (cpuChartView) {
+        //   cpuChartView.setConfigView(rect);
+        // }
       }
       canvasPoolManager.draw();
     };
@@ -614,9 +624,10 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        if (cpuChartView) {
-          cpuChartView.transformConfigView(mat);
-        }
+        // @TODO ADD BACK
+        // if (cpuChartView) {
+        //   cpuChartView.transformConfigView(mat);
+        // }
       }
 
       if (sourceTransformConfigView === spansView) {
@@ -627,9 +638,10 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
-        if (cpuChartView) {
-          cpuChartView.transformConfigView(mat);
-        }
+        // @TODO ADD BACK
+        // if (cpuChartView) {
+        //   cpuChartView.transformConfigView(mat);
+        // }
       }
 
       canvasPoolManager.draw();
@@ -643,9 +655,10 @@ function Flamegraph(): ReactElement {
       if (uiFramesView && uiFramesCanvas) {
         uiFramesView.resetConfigView(uiFramesCanvas);
       }
-      if (cpuChartView && cpuChartCanvas) {
-        cpuChartView.resetConfigView(cpuChartCanvas);
-      }
+      // @TODO ADD BACK
+      // if (cpuChartView && cpuChartCanvas) {
+      //   cpuChartView.resetConfigView(cpuChartCanvas);
+      // }
       canvasPoolManager.draw();
     };
 
@@ -665,11 +678,12 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      if (cpuChartView) {
-        cpuChartView.setConfigView(
-          newConfigView.withHeight(cpuChartView.configView.height)
-        );
-      }
+      // @TODO ADD BACK
+      // if (cpuChartView) {
+      //   cpuChartView.setConfigView(
+      //     newConfigView.withHeight(cpuChartView.configView.height)
+      //   );
+      // }
       canvasPoolManager.draw();
     };
 
@@ -695,11 +709,12 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
-      if (cpuChartView) {
-        cpuChartView.setConfigView(
-          newConfigView.withHeight(cpuChartView.configView.height)
-        );
-      }
+      // @TODO ADD BACK
+      // if (cpuChartView) {
+      //   cpuChartView.setConfigView(
+      //     newConfigView.withHeight(cpuChartView.configView.height)
+      //   );
+      // }
       canvasPoolManager.draw();
     };
 
@@ -726,7 +741,6 @@ function Flamegraph(): ReactElement {
     uiFramesCanvas,
     uiFramesView,
     cpuChartCanvas,
-    cpuChartView,
   ]);
 
   const minimapCanvases = useMemo(() => {
@@ -760,6 +774,17 @@ function Flamegraph(): ReactElement {
     canvasPoolManager,
     uiFramesCanvas,
     uiFramesView
+  );
+
+  const chartCanvases = useMemo(() => {
+    return [cpuChartCanvasRef];
+  }, [cpuChartCanvasRef]);
+
+  const _cpuChartCanvasBounds = useResizeCanvasObserver(
+    chartCanvases,
+    canvasPoolManager,
+    cpuChartCanvas,
+    cpuChartView
   );
 
   const flamegraphCanvases = useMemo(() => {

@@ -44,7 +44,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.model = model;
     this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
-    this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
+    this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 1;
 
     // This is a transformation matrix that is applied to the configView, it allows us to
     // transform an entire view and render it without having to recompute the models.

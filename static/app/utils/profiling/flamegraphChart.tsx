@@ -18,7 +18,9 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
-  constructor(measurement: Profiling.Measurement) {
+  static Empty = new FlamegraphChart(Rect.Empty(), {unit: 'percent', values: []});
+
+  constructor(configSpace: Rect, measurement: Profiling.Measurement) {
     this.series = new Array<Serie>();
 
     this.series[0] = {
@@ -48,13 +50,13 @@ export class FlamegraphChart {
     }
 
     this.domains.y[1] = 100;
-
-    this.configSpace =
-      new Rect(
-        ...this.domains.x,
-        this.domains.x[1] - this.domains.x[0],
-        this.domains.y[1] - this.domains.y[0]
-      ) ?? Rect.Empty();
+    this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
+    // this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0] + 10).withY(this.domains.y[0] - 10);
+    // new Rect(
+    //   ...this.domains.x,
+    //   this.domains.x[1] - this.domains.x[0],
+    //   this.domains.y[1] - this.domains.y[0]
+    // ) ?? Rect.Empty();
     this.formatter = makeFormatter(measurement.unit);
   }
 }

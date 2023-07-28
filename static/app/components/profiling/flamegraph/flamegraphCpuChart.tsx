@@ -53,6 +53,8 @@ export function FlamegraphCpuChart({
     const drawCpuChart = () => {
       cpuChartRenderer.draw(
         cpuChartView.configView,
+        cpuChartView.configSpace,
+        cpuChartCanvas.physicalSpace,
         cpuChartView.fromConfigView(cpuChartCanvas.physicalSpace)
       );
     };

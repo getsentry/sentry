@@ -21,7 +21,12 @@ export class FlamegraphChartRenderer {
     // @TODO binary search for closes value
   }
 
-  draw(_configView: Rect, configViewToPhysicalSpace: mat3) {
+  draw(
+    _configView: Rect,
+    _configSpace: Rect,
+    _physicalSpace: Rect,
+    configViewToPhysicalSpace: mat3
+  ) {
     if (!this.canvas) {
       throw new Error('No canvas to draw on');
     }
@@ -34,6 +39,15 @@ export class FlamegraphChartRenderer {
 
     // Helper lines for dev
     this.context.font = '16px sans-serif';
+    this.context.textBaseline = 'middle';
+
+    this.context.strokeStyle = `red`;
+    this.context.beginPath();
+    const origin = new Rect(0, 0, 1, 1).transformRect(configViewToPhysicalSpace);
+    this.context.arc(origin.x, origin.y, 10, 0, 2 * Math.PI);
+    this.context.fill();
+
+    this.context.strokeStyle = `black`;
     for (const h of [0, 25, 50, 75, 100]) {
       const r = new Rect(0, h, 1, 1).transformRect(configViewToPhysicalSpace);
 
@@ -44,6 +58,7 @@ export class FlamegraphChartRenderer {
       this.context.fillText(h.toString(), this.canvas.width / 2, r.y);
     }
 
+    // @TODO draw series
     // for (let i = 0; i < this.chart.series.length; i++) {
     //   this.context.strokeStyle = `red`;
     //   this.context.beginPath();
