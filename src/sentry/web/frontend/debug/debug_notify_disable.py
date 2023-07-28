@@ -3,13 +3,12 @@ from django.views.generic import View
 
 from sentry import integrations
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models import Integration
-from sentry.testutils import TestCase
+from sentry.models import Integration, Organization
 
 from .mail import MailPreview
 
 
-class DebugNotifyDisableView(View, TestCase):
+class DebugNotifyDisableView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         self.integration = Integration.objects.create(
             provider="slack",
@@ -21,7 +20,7 @@ class DebugNotifyDisableView(View, TestCase):
             },
         )
 
-        self.organization = self.create_organization()
+        self.organization = Organization(id=1, slug="organization", name="My Company")
 
         provider = integrations.get(self.integration.provider)
         integration_name = provider.name
