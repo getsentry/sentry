@@ -149,6 +149,7 @@ const Wrapper = styled(Panel, {
     margin: auto;
     border: none;
     grid-column: auto / span ${p => p.columns};
+    height: 174px;
   }
 
   /* safari needs an overflow value or the contents will spill out */

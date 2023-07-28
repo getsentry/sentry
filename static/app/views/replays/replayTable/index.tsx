@@ -1,16 +1,12 @@
-import {Fragment, ReactNode, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
-import {IconClose, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -44,6 +40,7 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  footer?: ReactNode;
   gridRows?: string;
   saveLocation?: boolean;
 };
@@ -57,25 +54,12 @@ function ReplayTable({
   emptyMessage,
   saveLocation,
   gridRows,
+  footer,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
-  const isErrorTable = visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS);
-  const isDeadRageTable = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
   const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
-  const [showMoreReplays, setShowMoreReplays] = useState(true);
-
-  const buttonLabel = useMemo(() => {
-    if (!showMoreReplays) {
-      return t('Show all replays');
-    }
-    const label = isErrorTable
-      ? t('Show all replays with errors')
-      : t('Show all replays with rage clicks');
-
-    return label;
-  }, [showMoreReplays, isErrorTable]);
 
   const {
     selection: {projects},
@@ -245,51 +229,7 @@ function ReplayTable({
           </Fragment>
         );
       })}
-      {isErrorTable || isDeadRageTable ? (
-        // <Fragment>
-        <TableFooter>
-          {
-            <Button
-              style={{
-                height: '100%',
-                width: '100%',
-              }}
-              borderless
-              size="sm"
-              onClick={() => {
-                setShowMoreReplays(!showMoreReplays);
-                browserHistory.push({
-                  pathname: newLocation.pathname,
-                  query: showMoreReplays
-                    ? isErrorTable
-                      ? {
-                          ...newLocation.query,
-                          cursor: undefined,
-                          query: 'count_errors:>0',
-                          sort: '-count_errors',
-                        }
-                      : {
-                          ...newLocation.query,
-                          cursor: undefined,
-                          query: 'count_rage_clicks:>0',
-                          sort: '-count_rage_clicks',
-                        }
-                    : {
-                        ...newLocation.query,
-                        cursor: undefined,
-                        query: '',
-                        sort: eventView.sorts[0],
-                      },
-                });
-              }}
-              icon={showMoreReplays ? <IconSearch size="xs" /> : <IconClose size="xs" />}
-            >
-              {buttonLabel}
-            </Button>
-          }
-        </TableFooter>
-      ) : // </Fragment>
-      undefined}
+      {footer}
     </StyledPanelTable>
   );
 }
@@ -304,6 +244,12 @@ const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
   gridRows?: string;
 }>`
+  ${props =>
+    props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
+      ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
+      : ``}
+  margin-bottom: 0;
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
@@ -326,11 +272,4 @@ const StyledAlert = styled(Alert)<{showBottomBorder?: boolean}>`
     props.showBottomBorder ? `border-width: 1px 0 1px 0;` : `border-width: 1px 0 0 0;`}
 `;
 
-const TableFooter = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  grid-column: 1/-1;
-  grid-row: -2;
-`;
 export default ReplayTable;
