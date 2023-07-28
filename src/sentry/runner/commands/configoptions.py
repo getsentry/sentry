@@ -4,72 +4,15 @@ from typing import Any, Optional, Set
 import click
 from yaml import safe_dump, safe_load
 
-from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
-from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
+from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
-
-# These messages are produced more than once and referenced in tests.
-# This is the reason they are constants.
-DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
-DB_VALUE = "Value of option %s on DB:"
-CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
-UPDATE_MSG = "[UPDATE] Option %s updated. Old value: \n%s\nNew value: \n%s"
-SET_MSG = "[SET] Option %s set to value: \n%s"
-UNSET_MSG = "[UNSET] Option %s unset."
-
-
-class OptionsPresenterController:
-    def __init__(self) -> None:
-        pass
-
-    def check_slack_webhook_config(self):
-        return True
-
-    consolepresenter = ConsolePresenter()
-    slackpresenter = SlackPresenter()
-    drifted_options = []
-    channel_updated_options = []
-    updated_options = []
-    set_options = []
-    unset_options = []
-
-    def update(self, key: str, db_value: Any, value: Any):
-        self.updated_options.append((key, db_value, value))
-
-    def channel_update(self, key: str):
-        self.channel_updated_options.append(key)
-
-    def drift(self, key: str):
-        self.drifted_options.append(key)
-
-    def set(self, key: str, value: Any):
-        self.set_options.append((key, value))
-
-    def unset(self, key: str):
-        self.unset_options.append(key)
-
-    def write(self):
-        if self.check_slack_webhook_config:
-            self.slackpresenter.write()
-        self.consolepresenter.write(
-            self.drifted_options,
-            self.channel_updated_options,
-            self.updated_options,
-            self.set_options,
-            self.unset_options,
-        )
-
-    def error(self, key: str, not_writable_reason: str):
-        if self.check_slack_webhook_config:
-            self.slackpresenter.error()
-        self.consolepresenter.error(key, not_writable_reason)
 
 
 def _attempt_update(
     key: str,
     value: Any,
     drifted_options: Set[str],
-    controller: OptionsPresenterController,
+    presenter_delegator: PresenterDelegator,
     dry_run: bool,
     hide_drift: bool,
 ) -> None:
@@ -88,14 +31,11 @@ def _attempt_update(
     db_value = options.get(key)
     db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
-        controller.drift(key)
-        logger.error("Option %s drifted and cannot be updated.", key)
-        if not hide_drift:
-            click.echo(DB_VALUE % key)
-            # This is yaml instead of the python representation as the
-            # expected flow, in this case, is to use the output of this
-            # line to copy paste it in the config map.
-            click.echo(safe_dump(db_value_to_print))
+        if hide_drift:
+            presenter_delegator.drift(key, None)
+            logger.error("Option %s drifted and cannot be updated.", key)
+        else:
+            presenter_delegator.drift(key, safe_dump(db_value_to_print))
         return
 
     last_update_channel = options.get_last_update_channel(key)
@@ -113,21 +53,20 @@ def _attempt_update(
             # the DB and then change the default value.
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            click.echo(SET_MSG % (key, value))
-            controller.set(key, value)
+            presenter_delegator.set(key, value)
 
         elif last_update_channel != options.UpdateChannel.AUTOMATOR:
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
-            controller.channel_update(key)
+            presenter_delegator.channel_update(key)
         return
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
     if last_update_channel is not None:
-        controller.update(key, db_value, value)
+        presenter_delegator.update(key, db_value, value)
     else:
-        controller.set(key, value)
+        presenter_delegator.set(key, value)
 
 
 @click.group()
@@ -190,14 +129,15 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
-    controller = OptionsPresenterController()
-    ctx.obj["controller"] = controller
+    presenter_delegator = PresenterDelegator
+    ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
         not_writable_reason = options.can_update(key, value, options.UpdateChannel.AUTOMATOR)
 
         if not_writable_reason and not_writable_reason != options.NotWritableReason.DRIFTED:
-            controller.error(key, not_writable_reason.value)
+            presenter_delegator.error(key, not_writable_reason.value)
+            presenter_delegator.flush()
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)
@@ -224,7 +164,7 @@ def patch(ctx) -> None:
             key,
             value,
             ctx.obj["drifted_options"],
-            ctx.obj["controller"],
+            ctx.obj["presenter_delegator"],
             dry_run,
             bool(ctx.obj["hide_drift"]),
         )
@@ -251,13 +191,14 @@ def sync(ctx):
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
     options_to_update = ctx.obj["options_to_update"]
+    presenter_delegator = ctx.obj["presenter_delegator"]
     for opt in all_options:
         if opt.name in options_to_update:
             _attempt_update(
                 opt.name,
                 options_to_update[opt.name],
                 ctx.obj["drifted_options"],
-                ctx.obj["controller"],
+                presenter_delegator,
                 dry_run,
                 bool(ctx.obj["hide_drift"]),
             )
@@ -266,10 +207,8 @@ def sync(ctx):
                 if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
                     if not dry_run:
                         options.delete(opt.name)
-                    click.echo(UNSET_MSG % opt.name)
-                    ctx.obj["updated_options"].append(UNSET_MSG % opt.name)
+                    presenter_delegator.unset(opt.name)
                 else:
-                    click.echo(DRIFT_MSG % opt.name)
-                    ctx.obj["drifted_options"].append(DRIFT_MSG % opt.name)
+                    presenter_delegator.drift(opt.name, None)
 
-    ctx.obj["controller"].write()
+    presenter_delegator.flush()
