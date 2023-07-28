@@ -25,4 +25,4 @@ class ControlAvatarBase(AvatarBase):
 
     @property
     def get_file_id(self):
-        return self.control_file_id
+        return self.control_file_id or self.file_id
