@@ -27,6 +27,12 @@ describe('SQLishFormatter', function () {
       return container.innerHTML;
     };
 
+    it('Capitalizes keywords', () => {
+      expect(getMarkup(formatter.toSimpleMarkup('select hello'))).toEqual(
+        '<b>SELECT</b><span> </span><span>hello</span>'
+      );
+    });
+
     it('Wraps every token in a `<span>` element', () => {
       expect(getMarkup(formatter.toSimpleMarkup('SELECT hello;'))).toEqual(
         '<b>SELECT</b><span> </span><span>hello;</span>'

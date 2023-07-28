@@ -11,7 +11,9 @@ export function simpleMarkup(tokens: Token[]): React.ReactElement[] {
 
     if (typeof content.content === 'string') {
       if (content.type === 'Keyword') {
-        accumulator.push(<b key={toKey(content.content)}>{content.content}</b>);
+        accumulator.push(
+          <b key={toKey(content.content)}>{content.content.toUpperCase()}</b>
+        );
       } else {
         accumulator.push(<span key={toKey(content.content)}>{content.content}</span>);
       }
