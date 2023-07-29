@@ -135,6 +135,55 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    def test_proxy_with_different_base_url(self, mock_client, mock_get_client):
+        signature = encode_subnet_signature(
+            secret=self.secret,
+            base_url="https://foobar.example.com/api",
+            path="/chat.postMessage",
+            identifier=str(self.org_integration.id),
+            request_body=b"",
+        )
+        headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_BASE_URL="https://foobar.example.com/api",
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
+
+        mock_response = Mock(spec=Response)
+        mock_response.content = str({"some": "data"}).encode("utf-8")
+        mock_response.status_code = 400
+        mock_response.reason = "Bad Request"
+        mock_response.headers = {
+            "Content-Type": "application/json",
+            "X-Arbitrary": "Value",
+            PROXY_SIGNATURE_HEADER: "123",
+        }
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client._request = MagicMock(return_value=mock_response)
+        mock_client.should_delegate = MagicMock(return_value=False)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
+        assert prepared_request.url == "https://foobar.example.com/chat.postMessage"
+        assert prepared_request.headers == {
+            "Cookie": "",
+            "Content-Type": "application/octet-stream",
+        }
+
+        assert proxy_response.content == mock_response.content
+        assert proxy_response.status_code == mock_response.status_code
+        assert proxy_response.reason_phrase == mock_response.reason
+        assert proxy_response["Content-Type"] == mock_response.headers["Content-Type"]
+        assert proxy_response["X-Arbitrary"] == mock_response.headers["X-Arbitrary"]
+        assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
+
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
     def test__validate_sender(self):
         # Missing header data

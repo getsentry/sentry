@@ -169,7 +169,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if not self._should_operate(request):
             raise Http404
 
-        full_url = urljoin(self.client.base_url, self.proxy_path)
+        base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+
+        full_url = urljoin(base_url, self.proxy_path)
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
