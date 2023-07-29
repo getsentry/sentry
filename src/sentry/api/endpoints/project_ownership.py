@@ -8,9 +8,9 @@ from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOwnership
 from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry

@@ -4,7 +4,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
@@ -546,11 +545,11 @@ class GroupSerializerBase(Serializer, ABC):
                     last_seen = item["last_seen"]
 
         if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
+            return datetime.now(timezone.utc) - timedelta(days=30)
 
         return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
+            min(last_seen - timedelta(days=1), datetime.now(timezone.utc) - timedelta(days=14)),
+            datetime.now(timezone.utc) - timedelta(days=90),
         )
 
     @staticmethod
@@ -649,18 +648,12 @@ class GroupSerializerBase(Serializer, ABC):
         integrations = integration_service.get_integrations(organization_id=org_id)
         for integration in integrations:
             if not (
-                integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-                )
-                or integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-                )
+                integration.has_feature(feature=IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
             ):
                 continue
 
-            install = integration_service.get_installation(
-                integration=integration, organization_id=org_id
-            )
+            install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,

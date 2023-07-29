@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import freezegun
-import pytz
 
 from sentry.api.serializers import serialize
 from sentry.models import Rule
@@ -61,7 +60,7 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             start=iso_format(before_now(days=6)),
             end=iso_format(before_now(days=0)),
         )
-        base_triggered_date = before_now(days=1).replace(tzinfo=pytz.UTC)
+        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
         assert resp.data == serialize(
             [
                 RuleGroupHistory(self.group, 3, base_triggered_date),
