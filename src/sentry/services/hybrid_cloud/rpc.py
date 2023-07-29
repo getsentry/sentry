@@ -104,7 +104,7 @@ class RpcMethodSignature:
         parameters = list(inspect.signature(self._base_method).parameters.values())
         parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     _RETURN_MODEL_ATTR = "value"
 
@@ -123,7 +123,7 @@ class RpcMethodSignature:
         self._validate_type_token(return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
@@ -588,7 +588,7 @@ class RpcSenderCredentials:
 
     @classmethod
     def read_from_settings(cls) -> RpcSenderCredentials:
-        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER
+        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER  # type: ignore[misc]
         if isinstance(setting_values, str):
             setting_values = json.loads(setting_values)
         return cls(**setting_values) if setting_values else cls()

@@ -40,7 +40,6 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberSummary,
     organization_service,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -141,12 +140,6 @@ class DatabaseBackedAuthService(AuthService):
             for oid in organization_ids
         ]
 
-    def _load_auth_user(self, user: User) -> RpcUser | None:
-        rpc_user: RpcUser | None = None
-        if user is not None:
-            return user_service.get_user(user_id=user.id)
-        return rpc_user
-
     def authenticate_with(
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
@@ -155,14 +148,14 @@ class DatabaseBackedAuthService(AuthService):
         token: Any = None
 
         for authenticator_type in authenticator_types:
-            t = authenticator_type.as_authenticator().authenticate(fake_request)
+            t = authenticator_type.as_authenticator().authenticate(fake_request)  # type: ignore[arg-type]
             if t is not None:
                 user, token = t
                 break
 
         return AuthenticationContext(
             auth=AuthenticatedToken.from_token(token) if token else None,
-            user=self._load_auth_user(user),
+            user=user_service.get_user(user_id=user.id) if user else None,
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
@@ -175,7 +168,7 @@ class DatabaseBackedAuthService(AuthService):
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
             # called, from slightly different, middleware.
-            handler.process_request(fake_request)
+            handler.process_request(fake_request)  # type: ignore[arg-type]
         except AuthUserPasswordExpired as e:
             expired_user = e.user
         except Exception as e:
@@ -192,11 +185,11 @@ class DatabaseBackedAuthService(AuthService):
         )
 
         if expired_user is not None:
-            result.user = self._load_auth_user(expired_user)
+            result.user = user_service.get_user(user_id=expired_user.id)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             with transaction.atomic(using=router.db_for_read(User)):
-                result.user = self._load_auth_user(fake_request.user)
+                result.user = user_service.get_user(user_id=fake_request.user.id)
                 transaction.set_rollback(True, using=router.db_for_read(User))
             if SiloMode.single_process_silo_mode():
                 connections.close_all()

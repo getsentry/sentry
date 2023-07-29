@@ -105,6 +105,8 @@ def send_incident_alert_notification(
     from .card_builder import build_incident_attachment
 
     attachment = build_incident_attachment(incident, new_status, metric_value)
+    if action.target_identifier is None:
+        raise ValueError("Can't send without `target_identifier`")
     integration_service.send_msteams_incident_alert_notification(
         integration_id=action.integration_id,
         channel=action.target_identifier,

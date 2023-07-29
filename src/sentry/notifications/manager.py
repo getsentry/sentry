@@ -468,7 +468,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         ).delete()
 
     def disable_settings_for_users(
-        self, provider: ExternalProviders, users: Sequence[User]
+        self, provider: ExternalProviders, users: Iterable[User]
     ) -> None:
         """
         Given a list of users, overwrite all of their parent-independent

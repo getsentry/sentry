@@ -10,7 +10,6 @@ from sentry.api.serializers import (
     UserSerializer,
 )
 from sentry.api.serializers.base import Serializer
-from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     OrganizationMapping,
@@ -156,11 +155,7 @@ class DatabaseBackedUserService(UserService):
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):
-        def apply_filters(
-            self,
-            query: BaseQuerySet,
-            filters: UserFilterArgs,
-        ) -> List[User]:
+        def apply_filters(self, query: QuerySet, filters: UserFilterArgs) -> QuerySet:
             if "user_ids" in filters:
                 query = query.filter(id__in=filters["user_ids"])
             if "is_active" in filters:
@@ -185,7 +180,7 @@ class DatabaseBackedUserService(UserService):
                 else:
                     query = query.filter(authenticator__isnull=False, authenticator__type__in=at)
 
-            return list(query)
+            return query
 
         def base_query(self, ids_only: bool = False) -> QuerySet:
             if ids_only:

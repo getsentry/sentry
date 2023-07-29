@@ -75,7 +75,7 @@ class FilterQueryDatabaseImpl(
     def _filter_has_any_key_validator(self, *keys: str) -> Callable[[FILTER_ARGS], Optional[str]]:
         def validator(d: FILTER_ARGS) -> Optional[str]:
             for k in keys:
-                if k in d:  # type: ignore # We assume FILTER_ARGS is a dict
+                if k in d:  # type: ignore[operator]  # We assume FILTER_ARGS is a dict
                     return None
 
             return f"Filter must contain at least one of: {keys}"
