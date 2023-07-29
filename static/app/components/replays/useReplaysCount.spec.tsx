@@ -7,13 +7,11 @@ import useReplaysCount from './useReplaysCount';
 jest.mock('sentry/utils/useLocation');
 
 describe('useReplaysCount', () => {
-  const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
   const mockGroupIds = ['123', '456'];
   const mockReplayIds = ['abc', 'def'];
   const mockTransactionNames = ['/home', '/profile'];
 
-  MockUseLocation.mockReturnValue({
+  jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
     query: {},

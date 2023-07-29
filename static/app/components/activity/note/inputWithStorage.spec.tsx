@@ -26,9 +26,9 @@ describe('NoteInputWithStorage', function () {
   };
 
   it('loads draft item from local storage when mounting', function () {
-    (localStorage as jest.Mocked<typeof localStorage>).getItem.mockImplementation(() =>
-      JSON.stringify({item1: 'saved item'})
-    );
+    jest
+      .mocked(localStorage.getItem)
+      .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
@@ -49,9 +49,11 @@ describe('NoteInputWithStorage', function () {
   });
 
   it('removes draft item after submitting', async function () {
-    (localStorage as jest.Mocked<typeof localStorage>).getItem.mockImplementation(() =>
-      JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
-    );
+    jest
+      .mocked(localStorage.getItem)
+      .mockImplementation(() =>
+        JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
+      );
 
     render(<NoteInputWithStorage {...defaultProps} />);
 

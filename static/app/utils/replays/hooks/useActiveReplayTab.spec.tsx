@@ -11,14 +11,10 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useOrganization');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockUseOrganization = useOrganization as jest.MockedFunction<
-  typeof useOrganization
->;
-const mockPush = browserHistory.push as jest.MockedFunction<typeof browserHistory.push>;
+const mockPush = jest.mocked(browserHistory.push);
 
 function mockLocation(query: string = '') {
-  mockUseLocation.mockReturnValue({
+  jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
     key: '',
@@ -31,11 +27,7 @@ function mockLocation(query: string = '') {
 
 function mockOrganization(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  mockUseOrganization.mockReturnValue(
-    TestStubs.Organization({
-      features,
-    })
-  );
+  jest.mocked(useOrganization).mockReturnValue(TestStubs.Organization({features}));
 }
 
 describe('useActiveReplayTab', () => {

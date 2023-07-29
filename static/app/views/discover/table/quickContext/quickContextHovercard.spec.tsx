@@ -49,7 +49,6 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 };
 
 jest.mock('sentry/utils/useLocation');
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
@@ -64,7 +63,7 @@ describe('Quick Context', function () {
     afterEach(() => {
       queryClient.clear();
       MockApiClient.clearMockResponses();
-      mockUseLocation.mockReset();
+      jest.mocked(useLocation).mockReset();
     });
 
     it('Renders child', async () => {

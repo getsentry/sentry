@@ -6,9 +6,7 @@ import {SampleDataAlert} from './sampleDataAlert';
 
 jest.mock('sentry/utils/useDismissAlert');
 
-const mockUseDismissAlert = useDismissAlert as jest.MockedFunction<
-  typeof useDismissAlert
->;
+const mockUseDismissAlert = jest.mocked(useDismissAlert);
 
 describe('SampleDataAlert', function () {
   it('renders if not dismissed', async function () {

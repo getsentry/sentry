@@ -23,12 +23,10 @@ jest.mock('sentry/utils/useProjects');
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
-  const MockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-
   beforeEach(() => {
     const project = TestStubs.Project({platform: 'javascript'});
 
-    MockUseProjects.mockReturnValue({
+    jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,

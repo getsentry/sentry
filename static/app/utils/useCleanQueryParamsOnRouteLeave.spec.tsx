@@ -11,18 +11,10 @@ import {useLocation} from './useLocation';
 jest.mock('react-router');
 jest.mock('./useLocation');
 
-const MockBrowserHistoryListen = browserHistory.listen as jest.MockedFunction<
-  typeof browserHistory.listen
->;
-const MockBrowserHistoryReplace = browserHistory.replace as jest.MockedFunction<
-  typeof browserHistory.replace
->;
+const MockBrowserHistoryListen = jest.mocked(browserHistory.listen);
+const MockBrowserHistoryReplace = jest.mocked(browserHistory.replace);
 
-const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
-MockUseLocation.mockReturnValue({
-  pathname: '/home',
-} as Location);
+jest.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
 
 type QueryParams = {cursor: string; limit: number; project: string};
 

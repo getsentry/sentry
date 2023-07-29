@@ -5,9 +5,7 @@ import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
 jest.mock('sentry/utils/useProjectSdkUpdates');
 
-const mockUseProjectSdkUpdates = useProjectSdkUpdates as jest.MockedFunction<
-  typeof useProjectSdkUpdates
->;
+const mockUseProjectSdkUpdates = jest.mocked(useProjectSdkUpdates);
 
 function mockCurrentVersion(
   mockUpdates: Array<{

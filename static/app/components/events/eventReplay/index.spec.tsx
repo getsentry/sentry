@@ -19,11 +19,7 @@ const mockReplay = ReplayReader.factory({
   attachments: TestStubs.ReplaySegmentInit({}),
 });
 
-const mockUseReplayReader = useReplayReader as jest.MockedFunction<
-  typeof useReplayReader
->;
-
-mockUseReplayReader.mockImplementation(() => {
+jest.mocked(useReplayReader).mockImplementation(() => {
   return {
     attachments: [],
     errors: [],
@@ -38,17 +34,13 @@ mockUseReplayReader.mockImplementation(() => {
 });
 
 describe('EventReplay', function () {
-  const MockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
+  const MockUseReplayOnboardingSidebarPanel = jest.mocked(
+    useReplayOnboardingSidebarPanel
+  );
 
-  const MockUseReplayOnboardingSidebarPanel =
-    useReplayOnboardingSidebarPanel as jest.MockedFunction<
-      typeof useReplayOnboardingSidebarPanel
-    >;
-
-  const MockUseHasOrganizationSentAnyReplayEvents =
-    useHasOrganizationSentAnyReplayEvents as jest.MockedFunction<
-      typeof useHasOrganizationSentAnyReplayEvents
-    >;
+  const MockUseHasOrganizationSentAnyReplayEvents = jest.mocked(
+    useHasOrganizationSentAnyReplayEvents
+  );
 
   const organization = TestStubs.Organization({
     features: ['session-replay'],
@@ -66,7 +58,7 @@ describe('EventReplay', function () {
   beforeEach(function () {
     const project = TestStubs.Project({platform: 'javascript'});
 
-    MockUseProjects.mockReturnValue({
+    jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
       fetching: false,
       hasMore: false,

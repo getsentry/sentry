@@ -8,9 +8,7 @@ import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useRepla
 jest.mock('sentry/utils/useLocation');
 
 describe('useReplaysFromIssue', () => {
-  const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-
-  const location = {
+  const location: Location = {
     pathname: '',
     search: '',
     query: {},
@@ -18,8 +16,8 @@ describe('useReplaysFromIssue', () => {
     state: undefined,
     action: 'PUSH',
     key: '',
-  } as Location;
-  MockUseLocation.mockReturnValue(location);
+  };
+  jest.mocked(useLocation).mockReturnValue(location);
 
   const organization = TestStubs.Organization({
     features: ['session-replay'],

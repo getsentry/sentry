@@ -11,10 +11,7 @@ import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetwork
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
->;
+const mockUseLocation = jest.mocked(useLocation);
 
 const [
   SPAN_0_NAVIGATE,
@@ -113,7 +110,7 @@ describe('useNetworkFilters', () => {
   ];
 
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {
