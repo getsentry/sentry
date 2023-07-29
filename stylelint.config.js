@@ -42,5 +42,4 @@ module.exports = {
     // Disable no invalid media query, doesn't like our theme values
     'media-query-no-invalid': null,
   },
-  ignoreDisables: false,
 };
