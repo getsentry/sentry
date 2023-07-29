@@ -105,9 +105,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             organization_id=self.org_integration.organization_id
         )
         self.client: IntegrationProxyClient = installation.get_client()
-        client_type = type(self.client)
-        self.log_extra["client_type"] = client_type.__name__
-        if not issubclass(client_type, IntegrationProxyClient):
+        client_class = self.client.__class__
+        self.log_extra["client_type"] = client_class.__name__
+        if not issubclass(client_class, IntegrationProxyClient):
             logger.error("invalid_client", extra=self.log_extra)
             return False
 

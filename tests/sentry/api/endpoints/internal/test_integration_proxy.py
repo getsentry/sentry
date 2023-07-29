@@ -11,6 +11,7 @@ from requests import Response
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.client import ApiClient
+from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
@@ -50,10 +51,13 @@ def test_ensure_http_headers_match() -> None:
     assert set(headers) == expected
 
 
+SENTRY_SUBNET_SECRET = "hush-hush-im-invisible"
+
+
 @control_silo_test(stable=True)
 class InternalIntegrationProxyEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-integration-proxy"
-    secret = "hush-hush-im-invisible"
+    secret = SENTRY_SUBNET_SECRET
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -82,9 +86,23 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         )
         self.valid_request = self.factory.get(self.path, **self.valid_header_kwargs)
 
-    @patch.object(InternalIntegrationProxyEndpoint, "client")
-    @patch.object(InternalIntegrationProxyEndpoint, "_should_operate", return_value=True)
-    def test_proxy(self, mock_should_operate, mock_client):
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    def test_proxy(self, mock_client, mock_get_client):
+        signature = encode_subnet_signature(
+            secret=self.secret,
+            base_url="https://example.com/api",
+            path="/chat.postMessage",
+            identifier=str(self.org_integration.id),
+            request_body=b"",
+        )
+        headers = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_BASE_URL="https://example.com/api",
+            HTTP_X_SENTRY_SUBNET_SIGNATURE=signature,
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
+
         mock_response = Mock(spec=Response)
         mock_response.content = str({"some": "data"}).encode("utf-8")
         mock_response.status_code = 400
@@ -99,10 +117,16 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
         mock_client._request = MagicMock(return_value=mock_response)
         mock_client.should_delegate = MagicMock(return_value=False)
+        mock_get_client.return_value = mock_client
 
-        proxy_response = self.client.get(self.path, **self.valid_header_kwargs)
-        assert mock_should_operate.called
-        assert mock_client._request.called
+        proxy_response = self.client.get(self.path, **headers)
+
+        prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
+        assert prepared_request.url == "https://example.com/chat.postMessage"
+        assert prepared_request.headers == {
+            "Cookie": "",
+            "Content-Type": "application/octet-stream",
+        }
 
         assert proxy_response.content == mock_response.content
         assert proxy_response.status_code == mock_response.status_code
