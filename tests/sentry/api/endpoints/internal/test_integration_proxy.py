@@ -30,6 +30,7 @@ from sentry.utils import json
 class SiloHttpHeaders(TypedDict, total=False):
     HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: str
     HTTP_X_SENTRY_SUBNET_SIGNATURE: str
+    HTTP_X_SENTRY_SUBNET_BASE_URL: str
 
 
 def test_ensure_http_headers_match() -> None:

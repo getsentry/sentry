@@ -43,7 +43,6 @@ def serialize_integration_external_project(
     return RpcIntegrationExternalProject(
         id=iep.id,
         organization_integration_id=iep.organization_integration_id,
-        date_added=iep.date_added,
         name=iep.name,
         external_id=iep.external_id,
         resolved_status=iep.resolved_status,

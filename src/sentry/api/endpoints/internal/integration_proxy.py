@@ -53,7 +53,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         signature = request.headers.get(PROXY_SIGNATURE_HEADER)
         identifier = request.headers.get(PROXY_OI_HEADER)
         base_url = request.headers.get(PROXY_BASE_URL_HEADER)
-        if None in [signature, identifier, base_url]:
+        if signature is None or identifier is None or base_url is None:
             logger.error("invalid_sender_headers", extra=self.log_extra)
             return False
         is_valid = verify_subnet_signature(
