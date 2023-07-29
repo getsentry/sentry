@@ -1,4 +1,3 @@
-/* stylelint-disable */
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
