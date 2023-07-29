@@ -56,12 +56,13 @@ def send_incident_alert_notification(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
-        # Integration removed, but rule is still active.
+        logger.info("Opsgenie integration removed, but the rule is still active.")
         return
 
     team = get_team(org_integration=org_integration, team_id=action.target_identifier)
     if not team:
         # team removed, but the rule is still active
+        logger.info("Opsgenie team removed, but the rule is still active.")
         return
 
     integration_key = team["integration_key"]
