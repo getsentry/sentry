@@ -192,7 +192,6 @@
     "jest-fail-on-console": "^3.0.2",
     "jest-junit": "15.0.0",
     "jest-sentry-environment": "3.0.0",
-    "postcss-jsx": "0.36.4",
     "postcss-styled-syntax": "^0.4.0",
     "react-refresh": "0.14.0",
     "react-test-renderer": "17.0.2",
