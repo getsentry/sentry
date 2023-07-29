@@ -17,7 +17,8 @@ from uuid import uuid4
 import sentry_sdk
 from django.apps import apps
 from django.db import connections, router
-from django.db.models import BaseManager, Max
+from django.db.models import Max
+from django.db.models.manager import BaseManager
 from django.utils import timezone
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
