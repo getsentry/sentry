@@ -1,6 +1,6 @@
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all

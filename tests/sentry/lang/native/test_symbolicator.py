@@ -8,7 +8,7 @@ from sentry.lang.native.sources import (
     reverse_aliases_map,
 )
 from sentry.testutils.helpers import Feature
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 CUSTOM_SOURCE_CONFIG = """
 [{

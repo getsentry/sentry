@@ -5,8 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.cases import PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 

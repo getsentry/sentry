@@ -7,7 +7,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)

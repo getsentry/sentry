@@ -31,7 +31,7 @@ from sentry.models.project import Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)

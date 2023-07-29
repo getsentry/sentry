@@ -6,8 +6,7 @@ from django.test import override_settings
 
 from sentry.models import Authenticator, AuthProvider
 from sentry.models.authidentity import AuthIdentity
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession

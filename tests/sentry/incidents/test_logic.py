@@ -71,7 +71,7 @@ from sentry.models.actor import get_actor_id_for_user
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils.cases import BaseMetricsTestCase, BaseIncidentsTest, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]

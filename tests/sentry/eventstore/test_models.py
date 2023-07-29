@@ -11,12 +11,11 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 

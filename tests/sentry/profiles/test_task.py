@@ -8,7 +8,7 @@ from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.utils import json
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
 

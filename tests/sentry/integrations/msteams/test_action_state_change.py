@@ -21,8 +21,8 @@ from sentry.models import (
 )
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.silo import SiloMode
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 

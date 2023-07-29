@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.relay.projectconfig_cache import redis
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def test_delete_count(monkeypatch):

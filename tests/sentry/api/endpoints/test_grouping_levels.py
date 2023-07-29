@@ -7,7 +7,7 @@ from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import prune_empty_keys
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)

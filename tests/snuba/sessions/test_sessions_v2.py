@@ -13,7 +13,7 @@ from sentry.snuba.sessions_v2 import (
     get_timestamps,
     massage_sessions_result,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def _make_query(qs, allow_minute_resolution=True, params=None):

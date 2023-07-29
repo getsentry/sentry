@@ -11,8 +11,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
+from sentry.testutils.cases import APITestCase, OrganizationMetricMetaIntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)

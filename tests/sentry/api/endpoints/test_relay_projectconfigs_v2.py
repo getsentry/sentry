@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import ProjectKey, ProjectKeyStatus
 from sentry.testutils.helpers import Feature
 from sentry.utils import json, safe
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 

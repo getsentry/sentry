@@ -14,7 +14,7 @@ from sentry.lang.native.processing import (
     process_native_stacktraces,
 )
 from sentry.models.eventerror import EventError
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 

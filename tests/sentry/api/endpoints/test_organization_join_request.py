@@ -6,8 +6,7 @@ from django.core import mail
 
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.silo import SiloMode
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_attachment_no_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

@@ -2,8 +2,8 @@ from sentry import audit_log
 from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.silo import SiloMode
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.asserts import assert_org_audit_log_exists
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

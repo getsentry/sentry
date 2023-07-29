@@ -71,7 +71,7 @@ from sentry.snuba.metrics.query import MetricConditionField, MetricField, Metric
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 

@@ -2,7 +2,7 @@ import pytest
 
 from sentry.lang.native.sources import filter_ignored_sources
 from sentry.testutils.helpers import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class TestIgnoredSourcesFiltering:

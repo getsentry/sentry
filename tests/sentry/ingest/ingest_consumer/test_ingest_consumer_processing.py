@@ -15,8 +15,8 @@ from sentry.ingest.ingest_consumer import (
     process_userreport,
 )
 from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import django_db_all
 
 PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
 PROGUARD_SOURCE = b"""\

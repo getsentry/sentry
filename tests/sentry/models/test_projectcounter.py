@@ -3,7 +3,7 @@ import pytest
 from sentry import options
 from sentry.models import Counter
 from sentry.testutils.silo import region_silo_test
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all

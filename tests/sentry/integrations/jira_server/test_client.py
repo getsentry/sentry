@@ -8,8 +8,7 @@ from sentry.integrations.jira_server.client import JiraServerClient
 from sentry.models import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import BaseTestCase
+from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 

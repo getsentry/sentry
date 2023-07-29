@@ -1,8 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data

@@ -9,8 +9,8 @@ from sentry.spans.grouping.utils import hash_values
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
+from sentry.testutils.relay import RelayStoreHelper
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):

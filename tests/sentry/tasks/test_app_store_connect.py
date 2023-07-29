@@ -8,7 +8,7 @@ from sentry.lang.native import appconnect
 from sentry.models.appconnectbuilds import AppConnectBuild
 from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
 from sentry.tasks.app_store_connect import get_or_create_persisted_build, process_builds
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class TestUpdateDsyms:

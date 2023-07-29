@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from sentry.datascrubbing import scrub_data
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def merge_pii_configs(prefixes_and_configs):

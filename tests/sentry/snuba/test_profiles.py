@@ -13,7 +13,7 @@ from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)

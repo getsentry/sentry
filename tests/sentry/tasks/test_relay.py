@@ -17,7 +17,7 @@ from sentry.tasks.relay import (
     schedule_invalidate_project_config,
 )
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def _cache_keys_for_project(project):

@@ -5,8 +5,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.cases import ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

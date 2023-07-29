@@ -6,8 +6,7 @@ from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache

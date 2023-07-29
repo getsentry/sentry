@@ -14,8 +14,7 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import Rule
 from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import send_notification
 from sentry.utils import json

@@ -16,9 +16,9 @@ from sentry.tasks.deletion.hybrid_cloud import (
     set_watermark,
 )
 from sentry.testutils.factories import Factories
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)

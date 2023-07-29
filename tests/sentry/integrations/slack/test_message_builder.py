@@ -19,8 +19,7 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri

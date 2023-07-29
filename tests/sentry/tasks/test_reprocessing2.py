@@ -27,9 +27,9 @@ from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def _create_event_attachment(evt, type):

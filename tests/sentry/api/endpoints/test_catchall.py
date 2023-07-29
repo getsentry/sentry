@@ -1,7 +1,7 @@
 from rest_framework import status
 
-from sentry.testutils.cases import APITestCase
 from sentry.testutils.asserts import assert_status_code
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test
 
 

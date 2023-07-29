@@ -12,9 +12,9 @@ from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer_v2.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.pytest.fixtures import django_db_all
 
 logger = logging.getLogger(__name__)
 

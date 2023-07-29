@@ -11,8 +11,7 @@ from sentry import release_health
 from sentry.models import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsTestCase, SnubaTestCase
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor

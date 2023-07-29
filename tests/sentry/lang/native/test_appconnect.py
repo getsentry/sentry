@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.lang.native import appconnect
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 if TYPE_CHECKING:
     from sentry.models import Project

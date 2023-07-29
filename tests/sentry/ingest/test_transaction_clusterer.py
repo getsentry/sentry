@@ -31,7 +31,7 @@ from sentry.models import Organization, Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def test_multi_fanout():

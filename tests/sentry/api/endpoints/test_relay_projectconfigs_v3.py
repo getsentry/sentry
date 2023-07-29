@@ -8,7 +8,7 @@ from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils import json
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)

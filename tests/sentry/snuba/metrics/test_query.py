@@ -23,7 +23,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.utils.dates import parse_stats_period
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class MetricsQueryBuilder:

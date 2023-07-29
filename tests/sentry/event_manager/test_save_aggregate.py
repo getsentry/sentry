@@ -10,7 +10,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models import GroupHash
 from sentry.testutils.silo import region_silo_test
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)

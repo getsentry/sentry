@@ -3,7 +3,7 @@ from unittest import mock
 from sentry.models import ProjectOption
 from sentry.projectoptions import default_manager, defaults
 from sentry.projectoptions.manager import WellKnownProjectOption
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def latest_epoch(value):

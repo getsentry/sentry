@@ -8,8 +8,8 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import mockdata
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @control_silo_test(stable=True)

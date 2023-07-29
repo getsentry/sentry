@@ -1,6 +1,6 @@
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all

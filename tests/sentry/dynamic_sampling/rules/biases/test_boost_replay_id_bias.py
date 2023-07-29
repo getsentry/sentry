@@ -1,5 +1,5 @@
 from sentry.dynamic_sampling.rules.biases.boost_replay_id_bias import BoostReplayIdBias
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all

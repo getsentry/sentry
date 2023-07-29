@@ -13,7 +13,7 @@ from sentry.tasks.store import (
     save_event,
     time_synthetic_monitoring_event,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 

@@ -2,7 +2,7 @@ from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)

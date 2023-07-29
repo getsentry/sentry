@@ -36,8 +36,11 @@ from sentry.snuba.metrics.naming_layer import (
     TransactionTagsKey,
 )
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import (
+    BaseMetricsLayerTestCase,
+    MetricsEnhancedPerformanceTestCase,
+    TestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics

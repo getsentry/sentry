@@ -3,7 +3,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from sentry.testutils.helpers import Feature
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)

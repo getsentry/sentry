@@ -5,7 +5,7 @@ from fixtures.sdk_crash_detection.crash_event import (
     get_crash_event_with_frames,
     get_frames,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data

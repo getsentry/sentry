@@ -8,8 +8,7 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.models import ExternalIssue, Integration
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils.cases import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import region_silo_test

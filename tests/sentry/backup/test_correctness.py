@@ -13,7 +13,7 @@ from sentry.runner.commands.backup import (
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.backup import ValidationError, export_to_file
 
 EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}

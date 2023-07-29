@@ -7,7 +7,7 @@ from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models import Group, GroupHash
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
