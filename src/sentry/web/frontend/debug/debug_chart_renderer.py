@@ -543,8 +543,6 @@ class DebugChartRendererView(View):
         ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE, discover_empty))
         ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
         ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_geo))
-        ret.append(charts.generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_empty))
         ret.append(
             charts.generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
         )

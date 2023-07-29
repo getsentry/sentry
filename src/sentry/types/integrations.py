@@ -11,9 +11,11 @@ class ExternalProviders(ValueEqualityEnum):
     SLACK = 110
     MSTEAMS = 120
     PAGERDUTY = 130
+    DISCORD = 140
     GITHUB = 200
     GITLAB = 210
 
+    # TODO: do migration to delete this from database
     CUSTOM = 700
 
     @property
@@ -26,6 +28,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.SLACK: "slack",
     ExternalProviders.MSTEAMS: "msteams",
     ExternalProviders.PAGERDUTY: "pagerduty",
+    ExternalProviders.DISCORD: "discord",
     ExternalProviders.GITHUB: "github",
     ExternalProviders.GITLAB: "gitlab",
     ExternalProviders.CUSTOM: "custom_scm",

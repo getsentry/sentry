@@ -125,8 +125,6 @@ export interface Member {
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
-  // TODO: Move to global store
-  groupOrgRoles: {role: OrgRole; teamSlug: string}[];
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   invite_link: string | null;
@@ -137,7 +135,6 @@ export interface Member {
   orgRoleList: OrgRole[];
   pending: boolean | undefined;
   projects: string[];
-
   /**
    * @deprecated use orgRole
    */
@@ -147,8 +144,9 @@ export interface Member {
    * @deprecated use orgRoleList
    */
   roles: OrgRole[];
+  teamRoleList: TeamRole[];
 
-  teamRoleList: TeamRole[]; // TODO: Move to global store
+  // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
@@ -156,11 +154,14 @@ export interface Member {
   /**
    * @deprecated use teamRoles
    */
-  teams: string[]; // # Deprecated, use teamRoles
+  teams: string[];
+  // # Deprecated, use teamRoles
   /**
    * User may be null when the member represents an invited member
    */
   user: User | null;
+  // TODO: Move to global store
+  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
@@ -245,7 +246,6 @@ export type SavedQueryState = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
-export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 
 // API response format for a single series
 export type EventsStats = {

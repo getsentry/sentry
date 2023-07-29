@@ -1,6 +1,4 @@
-from datetime import datetime, timedelta
-
-import pytz
+from datetime import datetime, timedelta, timezone
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -29,7 +27,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         self.db = SnubaTSDB()
 
         # Set up the times
-        self.now = datetime.now(pytz.utc)
+        self.now = datetime.now(timezone.utc)
         self.start_time = self.now - timedelta(days=7)
         self.one_day_later = self.start_time + timedelta(days=1)
         self.day_before_start_time = self.start_time - timedelta(days=1)

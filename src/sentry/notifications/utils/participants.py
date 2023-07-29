@@ -26,13 +26,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    ProjectOwnership,
     Release,
     Rule,
     Team,
     User,
 )
 from sentry.models.commit import Commit
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.helpers import (
     get_settings_by_provider,

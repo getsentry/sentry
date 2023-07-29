@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict
 from urllib.parse import unquote
 
 from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
@@ -228,6 +228,9 @@ def _normalize_frame(frame: Any) -> dict:
     if abs_path := frame.get("abs_path"):
         frame["abs_path"] = unquote(abs_path)
 
+    # Symbolicator will *output* `data`, but never use it from the input
+    frame.pop("data", None)
+
     return frame
 
 
@@ -250,7 +253,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ]
 
     metrics.incr("sourcemaps.symbolicator.events")
-    data["processed_by_symbolicator"] = True
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
         metrics.incr("sourcemaps.symbolicator.events.skipped")
@@ -307,7 +309,3 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     return data
-
-
-def get_js_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
-    return process_js_stacktraces

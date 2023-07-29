@@ -1,13 +1,11 @@
-import styled from '@emotion/styled';
-
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 
 type Props = {
@@ -71,7 +69,7 @@ export function MergedToolbar({
 
   return (
     <PanelHeader hasButtons>
-      <div>
+      <ButtonBar gap={1}>
         <Confirm
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}
@@ -79,7 +77,7 @@ export function MergedToolbar({
             'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
           )}
         >
-          <Button size="sm" title={unmergeDisabledReason}>
+          <Button size="xs" title={unmergeDisabledReason}>
             {mergedItems.length <= 1
               ? t('Unmerge')
               : tct('Unmerge ([itemsSelectedQuantity])', {
@@ -88,8 +86,8 @@ export function MergedToolbar({
           </Button>
         </Confirm>
 
-        <CompareButton
-          size="sm"
+        <Button
+          size="xs"
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
           title={
@@ -99,15 +97,11 @@ export function MergedToolbar({
           }
         >
           {t('Compare')}
-        </CompareButton>
-      </div>
-      <Button size="sm" onClick={onToggleCollapse}>
+        </Button>
+      </ButtonBar>
+      <Button size="xs" onClick={onToggleCollapse}>
         {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
       </Button>
     </PanelHeader>
   );
 }
-
-const CompareButton = styled(Button)`
-  margin-left: ${space(1)};
-`;

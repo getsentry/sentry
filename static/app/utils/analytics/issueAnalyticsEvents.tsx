@@ -14,6 +14,11 @@ type SourceMapDebugParam = {
   group_id?: string;
 } & BaseEventAnalyticsParams;
 
+type SourceMapWizardParam = {
+  project_id: string;
+  group_id?: string;
+} & BaseEventAnalyticsParams;
+
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
 interface ExternalIssueParams extends CommonGroupAnalyticsData {
@@ -59,9 +64,9 @@ export type IssueEventParameters = {
   'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
-  'issue_details.sourcemap_wizard_copy': {};
-  'issue_details.sourcemap_wizard_dismiss': {};
-  'issue_details.sourcemap_wizard_learn_more': {};
+  'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
+  'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
+  'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;

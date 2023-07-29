@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -70,15 +69,6 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
             update_kwargs["integration_id"] = integration.id
             update_kwargs["provider"] = f"integrations:{integration.provider}"
-
-        if (
-            features.has("organizations:integrations-custom-scm", organization, actor=request.user)
-            and repo.provider == "integrations:custom_scm"
-        ):
-            if result.get("name"):
-                update_kwargs["name"] = result["name"]
-            if result.get("url") is not None:
-                update_kwargs["url"] = result["url"] or None
 
         if update_kwargs:
             old_status = repo.status

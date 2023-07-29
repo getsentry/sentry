@@ -56,7 +56,7 @@ def format_signature(parameter_java_types: List[str], return_java_type: str) -> 
     return signature
 
 
-def byte_code_type_to_java_type(mapper, byte_code_type: str) -> str:
+def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
     if not byte_code_type:
         return ""
 
@@ -68,19 +68,20 @@ def byte_code_type_to_java_type(mapper, byte_code_type: str) -> str:
         if byte_code_type[-1] != ";":
             return byte_code_type
         obfuscated = byte_code_type[1:-1].replace("/", ".")
-        mapped = mapper.remap_class(obfuscated)
-        if mapped:
-            return mapped
+        if mapper:
+            mapped = mapper.remap_class(obfuscated)
+            if mapped:
+                return mapped
         return obfuscated
     elif token == "[":
-        return f"{byte_code_type_to_java_type(mapper, byte_code_type[1:])}[]"
+        return f"{byte_code_type_to_java_type(byte_code_type[1:], mapper)}[]"
     else:
         return byte_code_type
 
 
 # map_obfucated_signature will parse then deobfuscated a signature and
 # format it appropriately
-def deobfuscate_signature(mapper, signature: str) -> str:
+def deobfuscate_signature(signature: str, mapper=None) -> str:
     if not signature:
         return ""
 
@@ -90,8 +91,8 @@ def deobfuscate_signature(mapper, signature: str) -> str:
 
     parameter_java_types = []
     for parameter_type in parameter_types:
-        new_class = byte_code_type_to_java_type(mapper, parameter_type)
+        new_class = byte_code_type_to_java_type(parameter_type, mapper)
         parameter_java_types.append(new_class)
 
-    return_java_type = byte_code_type_to_java_type(mapper, return_type)
+    return_java_type = byte_code_type_to_java_type(return_type, mapper)
     return format_signature(parameter_java_types, return_java_type)

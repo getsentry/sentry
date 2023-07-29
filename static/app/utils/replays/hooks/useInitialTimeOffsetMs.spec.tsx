@@ -8,10 +8,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/replays/fetchReplayClicks');
 
-const MockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const MockFetchReplayClicks = fetchReplayClicks as jest.MockedFunction<
-  typeof fetchReplayClicks
->;
+const MockUseLocation = jest.mocked(useLocation);
+const MockFetchReplayClicks = jest.mocked(fetchReplayClicks);
 
 const {organization, project} = initializeOrg();
 const replay = TestStubs.ReplayRecord();
