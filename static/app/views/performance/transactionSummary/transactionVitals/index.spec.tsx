@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Query} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
@@ -17,9 +19,19 @@ import {
   ZOOM_KEYS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
-function initialize({project, features, transaction, query} = {}) {
+function initialize({
+  project,
+  features,
+  transaction,
+  query,
+}: {
+  features?: string[];
+  project?: Project;
+  query?: Query;
+  transaction?: string;
+} = {}) {
   features = features || ['performance-view'];
-  project = project || TestStubs.Project();
+  project = project || (TestStubs.Project() as Project);
   query = query || {};
   const data = initializeOrg({
     organization: TestStubs.Organization({
@@ -40,10 +52,10 @@ function initialize({project, features, transaction, query} = {}) {
   return data;
 }
 
-function WrappedComponent({organization, ...props}) {
+function WrappedComponent({location, organization, ...props}) {
   return (
     <OrganizationContext.Provider value={organization}>
-      <TransactionVitals organization={organization} {...props} />
+      <TransactionVitals location={location} organization={organization} {...props} />
     </OrganizationContext.Provider>
   );
 }
@@ -116,11 +128,18 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const histogramData = {};
-    const webVitals = VITAL_GROUPS.reduce((vs, group) => vs.concat(group.vitals), []);
+    interface HistogramData {
+      count: number;
+      histogram: number;
+    }
+    const histogramData: Record<string, HistogramData[]> = {};
+    const webVitals = VITAL_GROUPS.reduce<string[]>(
+      (vs, group) => vs.concat(group.vitals),
+      []
+    );
 
     for (const measurement of webVitals) {
-      const data = [];
+      const data: HistogramData[] = [];
       for (let i = 0; i < 100; i++) {
         data.push({
           histogram: i,
