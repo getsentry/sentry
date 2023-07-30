@@ -7,14 +7,13 @@ from sentry.utils import json
 
 
 class SlackPresenter(OptionsPresenter):
-    def __init__(self, dry_run) -> None:
-        self.drifted_options = List[(str, str)]
+    def __init__(self) -> None:
+        self.drifted_options = List[(str, Any)]
         self.channel_updated_options = List[str]
-        self.updated_options = List[(str, str, str)]
-        self.set_options = List[(str, str)]
+        self.updated_options = List[(str, Any, Any)]
+        self.set_options = List[(str, Any)]
         self.unset_options = List[str]
-        self.error_options = List[(str, str)]
-        self.dry_run = dry_run
+        self.error_options = List[(str, Any)]
 
     def flush(self) -> None:
         json_data = {
@@ -28,20 +27,20 @@ class SlackPresenter(OptionsPresenter):
 
         self.send_to_webhook(json_data)
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: str) -> None:
         self.set_options.append((key, value))
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: Any, value: Any) -> None:
-        self.update_options.append((key, db_value, value))
+    def update(self, key: str, db_value: str, value: str) -> None:
+        self.updated_options.append((key, db_value, value))
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: str) -> None:
-        self.drifted_options.append(key, db_value)
+    def drift(self, key: str, db_value: Any) -> None:
+        self.drifted_options.append((key, db_value))
 
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))

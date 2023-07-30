@@ -6,13 +6,13 @@ from sentry.runner.commands.presenters.slackpresenter import SlackPresenter
 
 
 class PresenterDelegator(OptionsPresenter):
-    def __init__(self, dry_run) -> None:
-        self.consolepresenter = ConsolePresenter(dry_run)
-        self.slackpresenter = SlackPresenter(dry_run)
+    def __init__(self) -> None:
+        self.consolepresenter = ConsolePresenter()
+        self.slackpresenter = SlackPresenter()
 
-    def __getattr__(self, name, *args, **kwargs):
-        getattr(self.slackpresenter, name)(*args, **kwargs)
-        getattr(self.consolepresenter, name)(*args, **kwargs)
+    def __getattr__(self, name, *args):
+        getattr(self.slackpresenter, name)(*args)
+        getattr(self.consolepresenter, name)(*args)
 
     def check_slack_webhook_config(self):
         return True
@@ -32,8 +32,8 @@ class PresenterDelegator(OptionsPresenter):
     def channel_update(self, key: str):
         self.__getattr__("channel_update", key)
 
-    def drift(self, key: str):
-        self.__getattr__("drift", key)
+    def drift(self, key: str, db_value: Any):
+        self.__getattr__("drift", key, db_value)
 
     def error(self, key: str, not_writable_reason: str):
         self.__getattr__("error", key, not_writable_reason)

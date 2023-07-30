@@ -126,7 +126,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     ctx.obj["options_to_update"] = options_to_update
 
     drifted_options = set()
-    presenter_delegator = PresenterDelegator(dry_run)
+    presenter_delegator = PresenterDelegator()
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
@@ -159,6 +159,8 @@ def patch(ctx) -> None:
 
     dry_run = bool(ctx.obj["dry_run"])
     presenter_delegator = ctx.obj["presenter_delegator"]
+    if dry_run:
+        click.echo("!!! Dry-run flag on. No update will be performed.")
 
     for key, value in ctx.obj["options_to_update"].items():
         try:
@@ -207,6 +209,9 @@ def sync(ctx):
     dry_run = bool(ctx.obj["dry_run"])
 
     all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
+
+    if dry_run:
+        click.echo("!!! Dry-run flag on. No update will be performed.")
 
     options_to_update = ctx.obj["options_to_update"]
     drift_found = bool(ctx.obj["drifted_options"])

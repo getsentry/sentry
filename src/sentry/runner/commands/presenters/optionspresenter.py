@@ -6,9 +6,9 @@ class OptionsPresenter(ABC):
     """
     This class defines the interface for presenting
     and communicating changes made to options in a
-    system to various output channels. It follows a
-    flush approach, where changes are accumulated and
-    presented as a whole after all options have been processed.
+    system to various output channels. Output presentation
+    is buffered and flushed out only after all options
+    have been processed, or an exception occurs.
     """
 
     @abstractmethod
@@ -36,7 +36,7 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def drift(self, key: str, db_value: str) -> None:
+    def drift(self, key: str, db_value: Any) -> None:
         raise NotImplementedError
 
     @abstractmethod
