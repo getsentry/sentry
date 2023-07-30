@@ -40,6 +40,7 @@ type Props = {
   sort: Sort | undefined;
   visibleColumns: ReplayColumn[];
   emptyMessage?: ReactNode;
+  footer?: ReactNode;
   gridRows?: string;
   saveLocation?: boolean;
 };
@@ -53,10 +54,12 @@ function ReplayTable({
   emptyMessage,
   saveLocation,
   gridRows,
+  footer,
 }: Props) {
   const routes = useRoutes();
   const newLocation = useLocation();
   const organization = useOrganization();
+  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   const {
     selection: {projects},
@@ -67,8 +70,6 @@ function ReplayTable({
     organization,
     projectId: projects.map(String),
   });
-
-  const showBottomBorder = visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS);
 
   const location: Location = saveLocation
     ? {
@@ -228,6 +229,7 @@ function ReplayTable({
           </Fragment>
         );
       })}
+      {footer}
     </StyledPanelTable>
   );
 }
@@ -242,6 +244,12 @@ const StyledPanelTable = styled(PanelTable)<{
   visibleColumns: ReplayColumn[];
   gridRows?: string;
 }>`
+  ${props =>
+    props.visibleColumns.includes(ReplayColumn.MOST_RAGE_CLICKS) ||
+    props.visibleColumns.includes(ReplayColumn.MOST_ERRONEOUS_REPLAYS)
+      ? `border-bottom-left-radius: 0; border-bottom-right-radius: 0;`
+      : ``}
+  margin-bottom: 0;
   grid-template-columns: ${p =>
     p.visibleColumns
       .filter(Boolean)
