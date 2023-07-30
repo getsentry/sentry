@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 import click
 
@@ -16,14 +16,15 @@ class ConsolePresenter(OptionsPresenter):
     SET_MSG = "[SET] Option %s set to value: \n%s"
     UNSET_MSG = "[UNSET] Option %s unset."
     DRY_RUN_MSG = "!!! Dry-run flag on. No update will be performed."
+    ERROR_MSG = "Invalid option. %s cannot be updated. Reason %s"
 
     def __init__(self, dry_run) -> None:
-        self.drifted_options = []
-        self.channel_updated_options = []
-        self.updated_options = []
-        self.set_options = []
-        self.unset_options = []
-        self.error_options = []
+        self.drifted_options = List[(str, str)]
+        self.channel_updated_options = List[str]
+        self.updated_options = List[(str, str, str)]
+        self.set_options = List[(str, str)]
+        self.unset_options = List[str]
+        self.error_options = List[(str, str)]
         self.dry_run = dry_run
 
     def flush(self) -> None:
@@ -55,9 +56,9 @@ class ConsolePresenter(OptionsPresenter):
             click.echo(self.UNSET_MSG % key)
 
         for key, reason in self.error_options:
-            click.echo(f"Invalid option. {key} cannot be updated. Reason {reason}")
+            click.echo(self.ERROR_MSG % (key, reason))
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: str) -> None:
         self.set_options.append((key, value))
 
     def unset(self, key: str) -> None:
@@ -69,7 +70,7 @@ class ConsolePresenter(OptionsPresenter):
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: Any) -> None:
+    def drift(self, key: str, db_value: str) -> None:
         self.drifted_options((key, db_value))
 
     def error(self, key: str, not_writable_reason: str) -> None:

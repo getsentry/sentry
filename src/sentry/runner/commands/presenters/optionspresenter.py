@@ -6,39 +6,39 @@ class OptionsPresenter(ABC):
     """
     This class defines the interface for presenting
     and communicating changes made to options in a
-    system to various output channels. Only after all
-    options are processed is the output presented. In other
-    words, output is not written immediately, but rather all
-    at once.
+    system to various output channels. It follows a
+    flush approach, where changes are accumulated and
+    presented as a whole after all options have been processed.
     """
 
     @abstractmethod
     def flush(self) -> None:
         """
-        The method to call to flush out all output.
+        Flushes out all buffered output to the implemented
+        output channel.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def set(self, key: str, value: Any) -> None:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def unset(self, key: str) -> None:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def update(self, key: str, db_value: Any, value: Any) -> None:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def channel_update(self, key: str) -> None:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def drift(self, key: str, db_value: Any) -> None:
-        pass
+    def drift(self, key: str, db_value: str) -> None:
+        raise NotImplementedError
 
     @abstractmethod
     def error(self, key: str, not_writable_reason: str) -> None:
-        pass
+        raise NotImplementedError

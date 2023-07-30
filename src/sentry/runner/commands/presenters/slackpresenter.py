@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 import requests
 
@@ -8,21 +8,16 @@ from sentry.utils import json
 
 class SlackPresenter(OptionsPresenter):
     def __init__(self, dry_run) -> None:
-        self.drifted_options = []
-        self.channel_updated_options = []
-        self.updated_options = []
-        self.set_options = []
-        self.unset_options = []
-        self.error_options = []
+        self.drifted_options = List[(str, str)]
+        self.channel_updated_options = List[str]
+        self.updated_options = List[(str, str, str)]
+        self.set_options = List[(str, str)]
+        self.unset_options = List[str]
+        self.error_options = List[(str, str)]
         self.dry_run = dry_run
 
     def flush(self) -> None:
         json_data = {
-            # todo: how to grab the region and user responsible.
-            # env variables?
-            "region": None,
-            "user_responsible": None,
-            "dry-run": self.dry_run,
             "drifted_options": self.drifted_options,
             "channel_updated_options": self.channel_updated_options,
             "updated_options": self.updated_options,
@@ -45,8 +40,8 @@ class SlackPresenter(OptionsPresenter):
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str) -> None:
-        self.drifted_options(key)
+    def drift(self, key: str, db_value: str) -> None:
+        self.drifted_options.append(key, db_value)
 
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))
@@ -58,3 +53,6 @@ class SlackPresenter(OptionsPresenter):
         # figure out how to add env var k8s secrets?
         # how to pass along which region (as part of secrets)
         requests.post("url", data=json.dumps(json_data), headers=headers)
+
+    def check_slack_webhook_config(self):
+        pass

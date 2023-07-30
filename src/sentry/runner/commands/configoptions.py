@@ -9,10 +9,10 @@ from sentry.runner.decorators import configuration, log_options
 
 
 def _attempt_update(
+    presenter_delegator: PresenterDelegator,
     key: str,
     value: Any,
     drifted_options: Set[str],
-    presenter_delegator: PresenterDelegator,
     dry_run: bool,
     hide_drift: bool,
 ) -> None:
@@ -163,10 +163,10 @@ def patch(ctx) -> None:
     for key, value in ctx.obj["options_to_update"].items():
         try:
             _attempt_update(
+                presenter_delegator,
                 key,
                 value,
                 ctx.obj["drifted_options"],
-                presenter_delegator,
                 dry_run,
                 bool(ctx.obj["hide_drift"]),
             )
@@ -215,10 +215,10 @@ def sync(ctx):
         if opt.name in options_to_update:
             try:
                 _attempt_update(
+                    presenter_delegator,
                     opt.name,
                     options_to_update[opt.name],
                     ctx.obj["drifted_options"],
-                    presenter_delegator,
                     dry_run,
                     bool(ctx.obj["hide_drift"]),
                 )
