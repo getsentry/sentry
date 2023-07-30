@@ -9,7 +9,6 @@ class ConsolePresenter(OptionsPresenter):
 
     # These messages are produced more than once and referenced in tests.
     # This is the reason they are constants.
-
     DRIFT_MSG = "[DRIFT] Option %s drifted and cannot be updated."
     DB_VALUE = "Value of option %s on DB:"
     CHANNEL_UPDATE_MSG = "[CHANNEL UPDATE] Option %s value unchanged. Last update channel updated."
@@ -27,9 +26,16 @@ class ConsolePresenter(OptionsPresenter):
         self.error_options = []
         self.dry_run = dry_run
 
-    def flush(self):
+    def flush(self) -> None:
+        import logging
+
+        logger = logging.getLogger("sentry.options_automator")
+        if self.dry_run:
+            click.echo("!!! Dry-run flag on. No update will be performed.")
+
         for key, db_value in self.drifted_options:
             click.echo(self.DRIFT_MSG % key)
+            logger.error("Option %s drifted and cannot be updated.", key)
             if db_value:
                 # This is yaml instead of the python representation as the
                 # expected flow, in this case, is to use the output of this
@@ -51,20 +57,20 @@ class ConsolePresenter(OptionsPresenter):
         for key, reason in self.error_options:
             click.echo(f"Invalid option. {key} cannot be updated. Reason {reason}")
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
 
-    def unset(self, key: str):
+    def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: Any, value: Any):
+    def update(self, key: str, db_value: Any, value: Any) -> None:
         self.update_options.append((key, db_value, value))
 
-    def channel_update(self, key: str):
+    def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: Any):
+    def drift(self, key: str, db_value: Any) -> None:
         self.drifted_options((key, db_value))
 
-    def error(self, key: str, not_writable_reason: str):
+    def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))

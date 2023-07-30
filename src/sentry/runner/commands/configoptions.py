@@ -20,11 +20,8 @@ def _attempt_update(
     Updates the option if it is not drifted and if we are not in dry
     run mode.
     """
-    import logging
 
     from sentry import options
-
-    logger = logging.getLogger("sentry.options_automator")
 
     opt = options.lookup_key(key)
 
@@ -33,7 +30,6 @@ def _attempt_update(
     if key in drifted_options:
         if hide_drift:
             presenter_delegator.drift(key, None)
-            logger.error("Option %s drifted and cannot be updated.", key)
         else:
             presenter_delegator.drift(key, safe_dump(db_value_to_print))
         return

@@ -16,7 +16,7 @@ class SlackPresenter(OptionsPresenter):
         self.error_options = []
         self.dry_run = dry_run
 
-    def flush(self):
+    def flush(self) -> None:
         json_data = {
             # todo: how to grab the region and user responsible.
             # env variables?
@@ -33,25 +33,25 @@ class SlackPresenter(OptionsPresenter):
 
         self.send_to_webhook(json_data)
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))
 
-    def unset(self, key: str):
+    def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: Any, value: Any):
+    def update(self, key: str, db_value: Any, value: Any) -> None:
         self.update_options.append((key, db_value, value))
 
-    def channel_update(self, key: str):
+    def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str):
+    def drift(self, key: str) -> None:
         self.drifted_options(key)
 
-    def error(self, key: str, not_writable_reason: str):
+    def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))
 
-    def send_to_webhook(json_data):
+    def send_to_webhook(json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
         # todo: change webhook url (pass in as k8s secret? eng pipes is public)
         # send http post request to engpipes webhook
