@@ -6,7 +6,7 @@
 from typing import Any, Dict, TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
-from social_auth.models import HybridUserSocialAuthUtility
+from social_auth.utils import expiration_datetime, get_backend, tokens
 
 
 class RpcUserSocialAuth(RpcModel):
@@ -17,14 +17,14 @@ class RpcUserSocialAuth(RpcModel):
     extra_data: Dict[str, Any]
 
     def get_backend(self):
-        return HybridUserSocialAuthUtility.get_backend(instance=self)
+        return get_backend(instance=self)
 
     @property
     def tokens(self):
-        return HybridUserSocialAuthUtility.tokens(instance=self)
+        return tokens(instance=self)
 
     def expiration_datetime(self):
-        return HybridUserSocialAuthUtility.expiration_datetime(instance=self)
+        return expiration_datetime(instance=self)
 
 
 class UserSocialAuthFilterArgs(TypedDict, total=False):
