@@ -27,7 +27,7 @@ class RpcNotificationSetting(RpcModel):
     scope_type: NotificationScopeType = NotificationScopeType.USER
     scope_identifier: int = -1
     id: int = -1
-    target_id: int = -1
+    target_id: Optional[int] = None
     team_id: Optional[int] = None
     user_id: Optional[int] = None
     provider: ExternalProviders = ExternalProviders.EMAIL

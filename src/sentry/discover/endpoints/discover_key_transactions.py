@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from rest_framework.exceptions import ParseError
@@ -181,7 +184,7 @@ class KeyTransactionTeamSerializer(Serializer):
             .order_by("transaction", "project_team__project_id")
         )
 
-        attrs = defaultdict(
+        attrs: dict[Team, dict[str, Any]] = defaultdict(
             lambda: {
                 "count": 0,
                 "key_transactions": [],

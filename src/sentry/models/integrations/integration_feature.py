@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from enum import Enum
 from typing import List, Union
@@ -130,7 +132,7 @@ class IntegrationFeatureManager(BaseManager):
             features_by_target[feature.target_id].add(feature)
         return features_by_target
 
-    def get_descriptions_as_dict(self, features: List["IntegrationFeature"]):
+    def get_descriptions_as_dict(self, features: List[IntegrationFeature]):
         """
         Returns a dict mapping IntegrationFeature id (key) to description (value)
         This will do bulk requests for each type of Integration, rather than individual transactions for
@@ -140,7 +142,7 @@ class IntegrationFeatureManager(BaseManager):
         # e.g. {0 : {1 : "ExampleApp1", "2": "ExampleApp2"}}
         #      (where 0 == IntegrationTypes.SENTRY_APP.value)
         #      (where 1,2 == SentryApp.id)
-        names_by_id_by_type = defaultdict(dict)
+        names_by_id_by_type: dict[int, dict[int, str]] = defaultdict(dict)
         for integration_type, model in INTEGRATION_MODELS_BY_TYPE.items():
             model_ids = {
                 feature.target_id for feature in features if feature.target_type == integration_type
