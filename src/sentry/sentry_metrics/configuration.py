@@ -42,7 +42,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
-    should_index_tag_values: bool = False
+    should_index_tag_values: bool
     is_output_sliced: Optional[bool] = False
 
 
@@ -90,6 +90,7 @@ def get_ingest_config(
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                should_index_tag_values=False,
             )
         )
 
