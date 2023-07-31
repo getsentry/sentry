@@ -1,5 +1,7 @@
+from datetime import timedelta
 from typing import List, Union
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -9,6 +11,13 @@ from typing_extensions import TypedDict
 from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.actionable_items_helper import (
+    deprecated_event_errors,
+    errors_to_hide,
+    find_debug_frames,
+    find_prompts_activity,
+    priority,
+)
 from sentry.api.helpers.source_map_helper import source_map_debug
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
@@ -24,38 +33,6 @@ class ActionableItemResponse(TypedDict):
 
 class SourceMapProcessingResponse(TypedDict):
     errors: List[ActionableItemResponse]
-
-
-priority = {EventError.JS_INVALID_SOURCEMAP: 2, EventError.JS_NO_COLUMN: 3}
-
-fileNameBlocklist = ["@webkit-masked-url"]
-
-errors_to_hide = [
-    EventError.JS_MISSING_SOURCE,
-    EventError.JS_INVALID_SOURCEMAP,
-    EventError.JS_INVALID_SOURCEMAP_LOCATION,
-    EventError.JS_TOO_MANY_REMOTE_SOURCES,
-    EventError.JS_INVALID_SOURCE_ENCODING,
-    EventError.UNKNOWN_ERROR,
-    EventError.MISSING_ATTRIBUTE,
-    EventError.NATIVE_NO_CRASHED_THREAD,
-    EventError.NATIVE_INTERNAL_FAILURE,
-    EventError.NATIVE_MISSING_SYSTEM_DSYM,
-    EventError.NATIVE_MISSING_SYMBOL,
-    EventError.NATIVE_SIMULATOR_FRAME,
-    EventError.NATIVE_UNKNOWN_IMAGE,
-    EventError.NATIVE_SYMBOLICATOR_FAILED,
-]
-
-deprecated_event_errors = [
-    EventError.FETCH_TOO_LARGE,
-    EventError.FETCH_INVALID_ENCODING,
-    EventError.FETCH_TIMEOUT,
-    EventError.FETCH_INVALID_HTTP_CODE,
-    EventError.JS_INVALID_CONTENT,
-    EventError.TOO_LARGE_FOR_CACHE,
-    EventError.JS_NO_COLUMN,
-]
 
 
 @region_silo_endpoint
@@ -88,7 +65,8 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         Return a list of actionable items for a given event.
         """
 
-        if not self.has_feature(project.organization, request):
+        organization = project.organization
+        if not self.has_feature(organization, request):
             raise NotFound(
                 detail="Endpoint not available without 'organizations:actionable-items' feature flag"
             )
@@ -97,7 +75,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         if event is None:
             raise NotFound(detail="Event not found")
 
-        errors = []
+        actions = []
 
         debug_frames = find_debug_frames(event)
         for frame_idx, exception_idx in debug_frames:
@@ -106,50 +84,31 @@ class ActionableItemsEndpoint(ProjectEndpoint):
 
             if issue:
                 response = SourceMapProcessingIssue(issue, data=data).get_api_context()
-                errors.append(response)
+                actions.append(response)
 
         for event_error in event.errors:
             if event_error.type in errors_to_hide or event_error.type in deprecated_event_errors:
                 continue
             response = EventError(event_error).get_api_context()
-            errors.append(response)
 
-        priority_get = lambda x: priority.get(x, len(errors))
-        sorted_errors = sorted(errors, key=priority_get)
+            actions.append(response)
+
+        features = [x.type for x in actions]
+        prompts_activity = find_prompts_activity(
+            organization.id, project.id, request.user.id, features
+        )
+        prompt_features = [prompt.feature for prompt in prompts_activity]
+
+        for action in actions:
+            if action.type in prompt_features:
+                prompt = prompts_activity.filter(feature=action.type).first()
+                dismissed = prompt.data.dismissed_ts
+                if dismissed and dismissed + timedelta(days=7) < timezone.now():
+                    action["dismissed"] = True
+                else:
+                    action["dismissed"] = False
+
+        priority_get = lambda x: priority.get(x, len(actions))
+        sorted_errors = sorted(actions, key=priority_get)
 
         return Response({"errors": sorted_errors})
-
-
-def find_debug_frames(event):
-    debug_frames = []
-    exceptions = event.exception.values
-    seen_filenames = []
-
-    for exception_idx, exception in enumerate(exceptions):
-        for frame_idx, frame in enumerate(exception.stacktrace.frames):
-            if frame.in_app and frame.filename not in seen_filenames:
-                debug_frames.append((frame_idx, exception_idx))
-                seen_filenames.append(frame.filename)
-
-    return debug_frames
-
-
-def get_file_extension(filename):
-    segments = filename.split(".")
-    if len(segments) > 1:
-        return segments[-1]
-    return None
-
-
-def is_frame_filename_pathlike(frame):
-    filename = frame.get("absPath", "")
-    try:
-        filename = filename.split("/").reverse()[0]
-    except Exception:
-        pass
-
-    return (
-        (frame.get("filename") == "<anonymous>" and frame.get("inApp"))
-        or frame.get("function") in fileNameBlocklist
-        or (filename and not get_file_extension(filename))
-    )
