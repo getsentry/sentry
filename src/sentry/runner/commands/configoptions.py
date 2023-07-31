@@ -29,7 +29,7 @@ def _attempt_update(
     db_value_to_print = "[REDACTED]" if opt.has_any_flag({options.FLAG_CREDENTIAL}) else db_value
     if key in drifted_options:
         if hide_drift:
-            presenter_delegator.drift(key, None)
+            presenter_delegator.drift(key, "")
         else:
             presenter_delegator.drift(key, safe_dump(db_value_to_print))
         return
@@ -207,11 +207,10 @@ def sync(ctx):
     from sentry.utils import metrics
 
     dry_run = bool(ctx.obj["dry_run"])
-
-    all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
-
     if dry_run:
         click.echo("!!! Dry-run flag on. No update will be performed.")
+
+    all_options = options.filter(options.FLAG_AUTOMATOR_MODIFIABLE)
 
     options_to_update = ctx.obj["options_to_update"]
     drift_found = bool(ctx.obj["drifted_options"])

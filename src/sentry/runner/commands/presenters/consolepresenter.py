@@ -34,7 +34,7 @@ class ConsolePresenter(OptionsPresenter):
         for key, db_value in self.drifted_options:
             click.echo(self.DRIFT_MSG % key)
             logger.error(self.DRIFT_MSG % key)
-            if db_value:
+            if db_value != "":
                 click.echo(self.DB_VALUE % key)
                 # This is yaml instead of the python representation as the
                 # expected flow, in this case, is to use the output of this
