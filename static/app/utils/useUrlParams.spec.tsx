@@ -8,15 +8,11 @@ import useUrlParams from './useUrlParams';
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockGetCurrentLocation = browserHistory.getCurrentLocation as jest.MockedFunction<
-  typeof browserHistory.getCurrentLocation
->;
-
 type Query = {limit: string; page: string};
 
 describe('useUrlParams', () => {
   beforeEach(() => {
-    mockGetCurrentLocation.mockReturnValue({
+    jest.mocked(browserHistory.getCurrentLocation).mockReturnValue({
       query: {
         page: '3',
         limit: '50',

@@ -211,7 +211,7 @@ def get_processor(data_export, environment_id):
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
             payload = data_export.query_info
-            processor = IssuesByTagProcessor(
+            return IssuesByTagProcessor(
                 project_id=payload["project"][0],
                 group_id=payload["group"],
                 key=payload["key"],
@@ -219,13 +219,12 @@ def get_processor(data_export, environment_id):
                 tenant_ids={"organization_id": data_export.organization_id},
             )
         elif data_export.query_type == ExportQueryType.DISCOVER:
-            processor = DiscoverProcessor(
+            return DiscoverProcessor(
                 discover_query=data_export.query_info,
                 organization_id=data_export.organization_id,
             )
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
-        return processor
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
