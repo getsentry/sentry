@@ -1,9 +1,11 @@
 #!/bin/bash
 
-echo "Copying your postgres volume for use with colima. Will take a few minutes."
+echo "Copying your postgres and clickhouse volume for use with colima. Will take a few minutes."
 tmpdir=$(mktemp -d)
+mkdir "${tmpdir}/postgres" "${tmpdir}/clickhouse"
 docker context use desktop-linux
-docker run --rm -v sentry_postgres:/from -v "${tmpdir}:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
+docker run --rm -v sentry_postgres:/from -v "${tmpdir}/postgres:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
+docker run --rm -v sentry_clickhouse:/from -v "${tmpdir}/clickhouse:/to" alpine ash -c "cd /from ; cp -a . /to"
 
 echo "Stopping Docker.app. If a 'process terminated unexpectedly' dialog appears, dismiss it."
 osascript - <<'EOF' || exit
@@ -48,9 +50,11 @@ python3 -uS scripts/start-colima.py
 
 # The context will be colima, we just want to double make sure.
 docker context use colima
-echo "Recreating your postgres volume for use with colima. May take a few minutes."
+echo "Recreating your postgres and clickhouse volume for use with colima. May take a few minutes."
+# volume create is idempotent noop if already exists
 docker volume create --name sentry_postgres
-docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
+docker run --rm -v "${tmpdir}/postgres:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
+docker run --rm -v "${tmpdir}/clickhouse:/from" -v sentry_clickhouse:/to alpine ash -c "cd /from ; cp -a . /to"
 rm -rf "$tmpdir"
 
 echo "-----------------------------------------------"
