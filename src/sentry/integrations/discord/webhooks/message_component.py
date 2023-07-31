@@ -66,11 +66,27 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 "discord.interaction.component.assign",
                 extra={**logging_data, "assign_to": self.request.get_selected_options()[0]},
             )
-            return self.assign_to()
+            return self.assign()
+
+        elif self.custom_id.startswith(CustomIds.RESOLVE_DIALOG):
+            logger.info("discord.interaction.component.resolve_dialog", extra={**logging_data})
+            return self.resolve_dialog()
 
         elif self.custom_id.startswith(CustomIds.RESOLVE):
             logger.info("discord.interaction.component.resolve", extra={**logging_data})
             return self.resolve()
+
+        elif self.custom_id.startswith(CustomIds.UNRESOLVE):
+            logger.info("discord.interaction.component.unresolve", extra={**logging_data})
+            return self.unresolve()
+
+        elif self.custom_id.startswith(CustomIds.MARK_ONGOING):
+            logger.info("discord.interaction.component.mark_ongoing", extra={**logging_data})
+            return self.unresolve(from_mark_ongoing=True)
+
+        elif self.custom_id.startswith(CustomIds.ARCHIVE):
+            logger.info("discord.interaction.component.archive", extra={**logging_data})
+            return self.archive()
 
         logger.info("discord.interaction.component.unknown_custom_id", extra={**logging_data})
         return Response(status=404)
@@ -87,7 +103,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         )
         return self.send_message(message)
 
-    def assign_to(self) -> Response:
+    def assign(self) -> Response:
         assignee = self.request.get_selected_options()[0]
 
         self.update_group(
@@ -103,11 +119,64 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         )
         return self.send_message(message, update=True)
 
-    def resolve(self) -> Response:
-        self.update_group({"status": "resolved"})
-        return self.send_message("Issue has been resolved!")
+    def resolve_dialog(self) -> Response:
+        resolve_selector = DiscordSelectMenu(
+            custom_id=f"{CustomIds.RESOLVE}:{self.group_id}",
+            placeholder="Select the resolution target",
+            options=[
+                DiscordSelectMenuOption("Immediately", ""),
+                DiscordSelectMenuOption("In the next release", "inNextRelease"),
+                DiscordSelectMenuOption("In the current release", "inCurrentRelease"),
+            ],
+        )
+        message = DiscordMessageBuilder(
+            components=[DiscordActionRow([resolve_selector])],
+            flags=DiscordMessageFlags().set_ephemeral(),
+        )
+        return self.send_message(message)
 
-    def update_group(self, data: Mapping[str, str]) -> None:
+    def resolve(self) -> Response:
+        status: dict[str, object] = {
+            "status": "resolved",
+        }
+        message = "The issue has been resolved."
+
+        selected_option = ""
+        if self.request.is_select_component():
+            selected_option = self.request.get_selected_options()[0]
+
+        if selected_option == "inNextRelease":
+            status["statusDetails"] = {"inNextRelease": True}
+            message = "The issue will be resolved in the next release."
+        elif selected_option == "inCurrentRelease":
+            status["statusDetails"] = {"inRelease": "latest"}
+            message = "The issue will be resolved in the current release."
+
+        self.update_group(status)
+        return self.send_message(message, update=self.request.is_select_component())
+
+    def unresolve(self, from_mark_ongoing: bool = False) -> Response:
+        self.update_group(
+            {
+                "status": "unresolved",
+                "substatus": "ongoing",
+            }
+        )
+
+        if from_mark_ongoing:
+            return self.send_message("The issue has been marked as Ongoing.")
+        return self.send_message("The issue has been unresolved.")
+
+    def archive(self) -> Response:
+        self.update_group(
+            {
+                "status": "ignored",
+                "substatus": "until_escalating",
+            }
+        )
+        return self.send_message("The issue will be ignored until it escalates.")
+
+    def update_group(self, data: Mapping[str, object]) -> None:
         update_groups(
             request=self.request.request,
             group_ids=[self.group.id],

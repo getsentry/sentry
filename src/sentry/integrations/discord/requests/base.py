@@ -188,7 +188,10 @@ class DiscordRequest:
             return ""
         return self.data["custom_id"]  # type: ignore
 
+    def is_select_component(self) -> bool:
+        return self.data["component_type"] == DiscordMessageComponentTypes.SELECT
+
     def get_selected_options(self) -> list[str]:
-        if self.data["component_type"] != DiscordMessageComponentTypes.SELECT:
+        if not self.is_select_component():
             return []
         return self.data["values"]  # type: ignore

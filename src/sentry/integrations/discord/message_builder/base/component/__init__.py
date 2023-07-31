@@ -18,3 +18,4 @@ class DiscordComponentCustomIds:
     ASSIGN = "assign"
     RESOLVE = "resolve"
     UNRESOLVE = "unresolve"
+    MARK_ONGOING = "mark_ongoing"

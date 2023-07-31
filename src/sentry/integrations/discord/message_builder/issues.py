@@ -140,7 +140,7 @@ def build_components(
 
     if status == GroupStatus.IGNORED:
         archive_button = DiscordButton(
-            custom_id=f"{CustomIds.UNRESOLVE}:{group.id}",
+            custom_id=f"{CustomIds.MARK_ONGOING}:{group.id}",
             label="Mark as Ongoing",
         )
 
