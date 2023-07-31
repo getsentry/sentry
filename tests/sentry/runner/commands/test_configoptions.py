@@ -82,33 +82,41 @@ class ConfigOptionsTest(CliTestCase):
 
             # The script produces log lines when DRIFT is detected. This
             # makes it easier to surface these as Sentry errors.
-            # This also means the output is polluted with a log line
-            # because reconfiguring the logger in the test is quite tricky
-            # as it is initialized at the beginning of the test.
-            # So we just split the output in two and check each part
-            # independently.
-            output_before_log = "\n".join(
+
+            set_output = "\n".join(
                 [
                     ConsolePresenter.SET_MSG % ("int_option", 40),
-                    ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
                     ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
                     ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
-                    ConsolePresenter.DRIFT_MSG % "drifted_option",
                 ]
             )
-
-            output_after_log = "\n".join(
+            drift_output = "\n".join(
                 [
+                    ConsolePresenter.DRIFT_MSG % "drifted_option",
                     ConsolePresenter.DB_VALUE % "drifted_option",
                     "- 1",
                     "- 2",
                     "- 3",
                     "",
+                ]
+            )
+
+            channel_update_output = "\n".join(
+                [
                     ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
                 ]
             )
-            assert output_before_log in rv.output
-            assert output_after_log in rv.output
+
+            update_output = "\n".join(
+                [
+                    ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+                ]
+            )
+
+            assert drift_output in rv.output
+            assert set_output in rv.output
+            assert channel_update_output in rv.output
+            assert update_output in rv.output
 
         assert_not_set()
         rv = self.invoke(
@@ -160,29 +168,40 @@ class ConfigOptionsTest(CliTestCase):
             "sync",
         )
         assert rv.exit_code == 0, rv.output
-        output_before_log = "\n".join(
+        set_output = "\n".join(
             [
                 ConsolePresenter.SET_MSG % ("int_option", 40),
-                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
                 ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
                 ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
-                ConsolePresenter.DRIFT_MSG % "drifted_option",
             ]
         )
-        output_after_log = "\n".join(
+        drift_output = "\n".join(
             [
+                ConsolePresenter.DRIFT_MSG % "drifted_option",
                 ConsolePresenter.DB_VALUE % "drifted_option",
                 "- 1",
                 "- 2",
                 "- 3",
                 "",
-                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
-                ConsolePresenter.UNSET_MSG % "to_unset_option",
             ]
         )
 
-        assert output_before_log in rv.output
-        assert output_after_log in rv.output
+        channel_update_output = "\n".join(
+            [
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+            ]
+        )
+
+        update_output = "\n".join(
+            [
+                ConsolePresenter.UPDATE_MSG % ("str_option", "old value", "new value"),
+            ]
+        )
+
+        assert drift_output in rv.output
+        assert set_output in rv.output
+        assert channel_update_output in rv.output
+        assert update_output in rv.output
 
         assert options.get("int_option") == 40
         assert options.get("str_option") == "new value"

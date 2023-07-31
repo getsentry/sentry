@@ -184,13 +184,13 @@ def patch(ctx) -> None:
             presenter_delegator.flush()
             raise
 
+    presenter_delegator.flush()
+
     metrics.incr(
         "options_automator.run",
         tags={"status": "drift" if not ctx.obj["drifted_options"] else "success"},
         sample_rate=1.0,
     )
-
-    presenter_delegator.flush()
 
 
 @configoptions.command()
