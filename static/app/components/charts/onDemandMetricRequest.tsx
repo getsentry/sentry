@@ -37,7 +37,7 @@ class OnDemandMetricRequest extends EventsRequest {
       });
 
       return timeseriesData;
-    } catch (resp) {
+    } catch {
       return {
         data: [],
         isMetricsData: false,
