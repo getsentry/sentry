@@ -101,9 +101,7 @@ class OnDemandMetricRequest extends EventsRequest {
         if (!hideError) {
           addErrorMessage(errorMessage);
         }
-        if (onError) {
-          onError(errorMessage);
-        }
+          onError?.(errorMessage);
         this.setState({
           errored: true,
           errorMessage,
