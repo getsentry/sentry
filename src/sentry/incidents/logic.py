@@ -851,8 +851,12 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        bulk_delete_snuba_subscriptions(subscriptions)
+
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
-        bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
