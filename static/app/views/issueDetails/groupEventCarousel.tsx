@@ -66,10 +66,24 @@ const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
 
 const EVENT_NAV_DROPDOWN_OPTIONS = [
-  {value: EventNavDropdownOption.RECOMMENDED, label: 'Recommended'},
-  {value: EventNavDropdownOption.LATEST, label: 'Latest'},
-  {value: EventNavDropdownOption.OLDEST, label: 'Oldest'},
-  {options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}]},
+  {
+    value: EventNavDropdownOption.RECOMMENDED,
+    label: t('Recommended'),
+    details: t('Event with the most content'),
+  },
+  {
+    value: EventNavDropdownOption.LATEST,
+    label: t('Latest'),
+    details: t('Last seen event in this issue'),
+  },
+  {
+    value: EventNavDropdownOption.OLDEST,
+    label: t('Oldest'),
+    details: t('First seen event in this issue'),
+  },
+  {
+    options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
+  },
 ];
 
 const copyToClipboard = (value: string) => {
