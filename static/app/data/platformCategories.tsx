@@ -231,6 +231,8 @@ export const profiling: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-remix',
   'javascript-sveltekit',
+  'javascript',
+  'javascript-react',
   // python
   'python',
   'python-django',

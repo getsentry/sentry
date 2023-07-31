@@ -15,11 +15,19 @@ export const profilingOnboardingDocKeys = [
   '4-upload',
 ] as const;
 
+export const browserProfilingOnboardingDocKeysWithDocumentPolicy = [
+  '1-install',
+  '2-configure-document-policy',
+  '3-configure',
+] as const;
+
 type ProfilingOnboardingDocKeys = (typeof profilingOnboardingDocKeys)[number];
+type BrowserProfilingOnboardingDocKeys =
+  (typeof browserProfilingOnboardingDocKeysWithDocumentPolicy)[number];
 
 export const supportedPlatformExpectedDocKeys: Record<
   SupportedProfilingPlatformSDK,
-  ProfilingOnboardingDocKeys[]
+  ProfilingOnboardingDocKeys[] | BrowserProfilingOnboardingDocKeys[]
 > = {
   android: ['1-install', '2-configure-performance', '3-configure-profiling', '4-upload'],
   'apple-ios': [
@@ -53,6 +61,8 @@ export const supportedPlatformExpectedDocKeys: Record<
     '2-configure-performance',
     '3-configure-profiling',
   ],
+  javascript: ['1-install', '2-configure-document-policy', '3-configure'],
+  'javascript-react': ['1-install', '2-configure-document-policy', '3-configure'],
 };
 
 function makeDocKey(platformId: PlatformKey, key: string) {
