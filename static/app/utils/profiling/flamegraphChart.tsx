@@ -51,12 +51,7 @@ export class FlamegraphChart {
 
     this.domains.y[1] = 100;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
-    // this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0] + 10).withY(this.domains.y[0] - 10);
-    // new Rect(
-    //   ...this.domains.x,
-    //   this.domains.x[1] - this.domains.x[0],
-    //   this.domains.y[1] - this.domains.y[0]
-    // ) ?? Rect.Empty();
+
     this.formatter = makeFormatter(measurement.unit);
   }
 }
