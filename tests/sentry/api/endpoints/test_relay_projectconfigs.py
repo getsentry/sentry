@@ -353,7 +353,7 @@ def test_relay_disabled_project(
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
     """
     Test health check filter (aka ignoreTransactions)
