@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 
 
 class SidebarTest(AcceptanceTestCase):

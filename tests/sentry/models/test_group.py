@@ -19,7 +19,7 @@ from sentry.models import (
     get_group_with_redirect,
 )
 from sentry.models.release import _get_cache_key
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test

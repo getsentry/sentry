@@ -4,7 +4,7 @@ from unittest.mock import patch
 import responses
 
 from sentry.models import Integration, OrganizationIntegration, Repository
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry_plugins.github.client import GithubPluginAppsClient, GithubPluginClient
 from sentry_plugins.github.plugin import GitHubAppsRepositoryProvider, GitHubRepositoryProvider

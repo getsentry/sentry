@@ -7,7 +7,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 

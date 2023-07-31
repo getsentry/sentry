@@ -1,5 +1,5 @@
 from sentry import audit_log
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -23,7 +23,7 @@ from sentry.tasks.unmerge import (
     get_group_creation_attributes,
     unmerge,
 )
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel

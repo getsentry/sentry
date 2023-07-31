@@ -4,7 +4,7 @@ from sentry import nodestore
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect, GroupStatus
 from sentry.tasks.deletion import delete_groups
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

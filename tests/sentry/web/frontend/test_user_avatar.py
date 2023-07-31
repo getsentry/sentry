@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import File, UserAvatar
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 

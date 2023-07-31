@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from sentry.models import ProjectKey
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

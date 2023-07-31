@@ -10,7 +10,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.client import ApiClient, AuthApiClient
 

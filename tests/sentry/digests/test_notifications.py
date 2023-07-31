@@ -17,7 +17,7 @@ from sentry.digests.notifications import (
 )
 from sentry.models import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

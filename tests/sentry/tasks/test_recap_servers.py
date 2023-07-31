@@ -11,7 +11,7 @@ from sentry.tasks.recap_servers import (
     poll_project_recap_server,
     poll_recap_servers,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.utils import json
 

@@ -3,7 +3,7 @@ from pickle import PickleBuffer, PickleError
 
 import pytest
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class PickleProtocolTestCase(TestCase):

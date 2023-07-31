@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,

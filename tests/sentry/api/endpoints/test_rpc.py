@@ -14,7 +14,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.rpc import generate_request_signature
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 

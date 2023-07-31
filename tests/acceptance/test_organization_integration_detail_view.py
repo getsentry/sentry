@@ -5,7 +5,7 @@ from fixtures.page_objects.organization_integration_settings import (
     OrganizationIntegrationDetailViewPage,
 )
 from sentry.models import Integration
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 

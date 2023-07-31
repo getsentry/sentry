@@ -10,7 +10,7 @@ from sentry.incidents.models import AlertRule
 from sentry.models import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

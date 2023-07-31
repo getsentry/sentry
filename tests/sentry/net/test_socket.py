@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import override_settings
 
 from sentry.net.socket import ensure_fqdn, is_ipaddress_allowed, is_safe_hostname
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_blacklist
 
 

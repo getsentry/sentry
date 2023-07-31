@@ -8,7 +8,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberWithTeamsSerializer,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

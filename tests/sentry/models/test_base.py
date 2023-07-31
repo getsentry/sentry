@@ -5,7 +5,7 @@ from pytest import raises
 
 from sentry.db.models.base import Model, ModelSiloLimit, get_model_if_available
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class AvailableOnTest(TestCase):

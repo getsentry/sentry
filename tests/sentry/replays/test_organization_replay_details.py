@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}

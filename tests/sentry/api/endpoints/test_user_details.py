@@ -7,7 +7,7 @@ from sentry.models import (
     UserPermission,
     UserRole,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test

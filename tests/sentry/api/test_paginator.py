@@ -21,7 +21,7 @@ from sentry.api.paginator import (
 )
 from sentry.incidents.models import AlertRule, Incident
 from sentry.models import Rule, User
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursors import Cursor
 

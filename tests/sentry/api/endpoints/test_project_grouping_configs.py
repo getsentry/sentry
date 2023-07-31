@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import ApiToken
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 

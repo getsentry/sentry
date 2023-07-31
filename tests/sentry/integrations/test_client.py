@@ -20,7 +20,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ApiClientTest(TestCase):

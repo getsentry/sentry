@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 

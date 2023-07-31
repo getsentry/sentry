@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.http import HttpRequest
 
 from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

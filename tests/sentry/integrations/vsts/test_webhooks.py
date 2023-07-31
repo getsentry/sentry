@@ -24,7 +24,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.http import absolute_uri
 

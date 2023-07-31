@@ -20,7 +20,7 @@ from sentry.tasks.sentry_apps import (
     send_webhooks,
     workflow_notification,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache

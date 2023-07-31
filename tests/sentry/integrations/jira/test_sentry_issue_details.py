@@ -8,7 +8,7 @@ from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models import ExternalIssue, Group, GroupLink, Integration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils.http import absolute_uri
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"

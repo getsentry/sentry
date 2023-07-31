@@ -1,4 +1,4 @@
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.email.address import (
     get_from_email_domain,

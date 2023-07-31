@@ -12,7 +12,7 @@ from sentry.models import (
 )
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 
 

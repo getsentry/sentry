@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.subdomain import SubdomainMiddleware
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 
 
 class SubdomainMiddlewareTest(TestCase):

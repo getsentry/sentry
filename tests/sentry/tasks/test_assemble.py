@@ -29,7 +29,7 @@ from sentry.tasks.assemble import (
     assemble_file,
     get_assemble_status,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class BaseAssembleTest(TestCase):

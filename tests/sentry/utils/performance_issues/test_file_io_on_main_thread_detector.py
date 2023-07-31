@@ -10,7 +10,7 @@ import pytest
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.io_main_thread_detector import (

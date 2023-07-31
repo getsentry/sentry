@@ -3,7 +3,7 @@ from unittest import mock
 from sentry import features
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 

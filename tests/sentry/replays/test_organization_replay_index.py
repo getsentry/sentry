@@ -10,7 +10,7 @@ from sentry.replays.testutils import (
     mock_replay,
     mock_replay_click,
 )
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor

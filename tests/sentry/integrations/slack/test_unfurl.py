@@ -16,7 +16,7 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
 

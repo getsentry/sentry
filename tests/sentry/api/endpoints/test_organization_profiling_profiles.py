@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 PROFILING_FEATURES = {"organizations:profiling": True}

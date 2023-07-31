@@ -1,6 +1,6 @@
 from django.template import engines
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SerializeDetailedOrgTest(TestCase):

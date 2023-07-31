@@ -3,7 +3,7 @@ import datetime
 from django.urls import reverse
 
 from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseDeploysListTest(APITestCase):

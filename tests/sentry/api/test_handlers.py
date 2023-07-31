@@ -5,7 +5,7 @@ from django.urls import re_path
 from rest_framework.permissions import AllowAny
 
 from sentry.api.base import Endpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.snuba import RateLimitExceeded
 

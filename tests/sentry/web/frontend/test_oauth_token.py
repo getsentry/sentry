@@ -3,7 +3,7 @@ from functools import cached_property
 from django.utils import timezone
 
 from sentry.models import ApiApplication, ApiGrant, ApiToken
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 

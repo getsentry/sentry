@@ -10,7 +10,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.models import Organization, Project
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0

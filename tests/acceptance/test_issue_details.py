@@ -5,7 +5,7 @@ import pytz
 from django.utils import timezone
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 

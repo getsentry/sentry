@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_EVENT_EXAMPLE
 

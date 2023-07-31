@@ -14,7 +14,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -6,7 +6,7 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
 from sentry.silo.client import ControlSiloClient, RegionSiloClient, SiloClientError
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, RegionResolutionError
 from sentry.utils import json

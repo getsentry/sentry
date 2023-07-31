@@ -6,7 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
 from sentry.silo import unguarded_write
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ProjectsListTest(APITestCase):

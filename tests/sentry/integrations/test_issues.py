@@ -8,7 +8,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -33,7 +33,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 

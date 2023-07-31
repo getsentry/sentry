@@ -2,7 +2,7 @@ from io import BytesIO
 from urllib.parse import urlencode
 
 from sentry.models import EventAttachment, File
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 
 
 class TeamsListTest(AcceptanceTestCase):

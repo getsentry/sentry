@@ -2,7 +2,7 @@ from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 

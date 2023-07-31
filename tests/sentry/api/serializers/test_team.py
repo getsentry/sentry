@@ -5,7 +5,7 @@ from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProje
 from sentry.app import env
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]

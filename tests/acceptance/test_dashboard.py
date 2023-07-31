@@ -12,7 +12,7 @@ from sentry.models import (
     Release,
     ReleaseProjectEnvironment,
 )
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 
 

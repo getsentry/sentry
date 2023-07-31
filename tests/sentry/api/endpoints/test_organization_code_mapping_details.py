@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.api.serializers import serialize
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

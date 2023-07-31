@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class SudoTest(APITestCase):

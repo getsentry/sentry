@@ -13,7 +13,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorType,
 )
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 

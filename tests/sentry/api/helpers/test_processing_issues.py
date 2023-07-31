@@ -8,7 +8,7 @@ from sentry.models import (
     RawEvent,
     ReprocessingReport,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class GetProcessingIssuesTest(TestCase):

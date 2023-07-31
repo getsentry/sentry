@@ -21,7 +21,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
-from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test

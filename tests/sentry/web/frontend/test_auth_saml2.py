@@ -13,7 +13,7 @@ from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
 from sentry.silo import SiloMode
-from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

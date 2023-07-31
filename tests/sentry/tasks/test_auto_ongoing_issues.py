@@ -18,7 +18,7 @@ from sentry.tasks.auto_ongoing_issues import (
     TRANSITION_AFTER_DAYS,
     schedule_auto_transition_to_ongoing,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus

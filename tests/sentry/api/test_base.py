@@ -13,7 +13,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_region_config
 from sentry.types.region import RegionCategory, clear_global_regions

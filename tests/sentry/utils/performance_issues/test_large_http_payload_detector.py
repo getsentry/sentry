@@ -6,7 +6,7 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import create_event, create_span
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.large_payload_detector import (

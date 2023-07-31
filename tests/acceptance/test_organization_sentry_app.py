@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 
 # from fixtures.page_objects.organization_integration_settings import (
 #     OrganizationIntegrationSettingsPage,

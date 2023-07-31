@@ -4,7 +4,7 @@ import responses
 from django.test import RequestFactory
 from django.urls import reverse
 
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.gitlab.plugin import GitLabPlugin
 

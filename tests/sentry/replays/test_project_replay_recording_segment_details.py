@@ -10,7 +10,7 @@ from sentry.replays.lib.storage import (
     make_filename,
 )
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

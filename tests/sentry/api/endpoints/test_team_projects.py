@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.models import Project, Rule
 from sentry.notifications.types import FallthroughChoiceType
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 

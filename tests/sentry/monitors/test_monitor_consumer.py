@@ -23,7 +23,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.services import build_instance_from_options

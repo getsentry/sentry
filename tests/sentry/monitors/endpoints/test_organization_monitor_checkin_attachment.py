@@ -1,7 +1,7 @@
 from django.core.files.base import ContentFile
 
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

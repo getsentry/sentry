@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import ProjectOption
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseTokenGetTest(APITestCase):

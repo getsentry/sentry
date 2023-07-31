@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.models import Activity
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 

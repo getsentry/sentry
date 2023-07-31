@@ -6,7 +6,7 @@ from sentry.models import (
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 

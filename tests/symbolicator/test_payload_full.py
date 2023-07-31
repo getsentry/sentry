@@ -17,10 +17,11 @@ from sentry.models import (
     ProjectDebugFile,
     SourceFileType,
 )
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.relay import RelayStoreHelper
 from sentry.utils import json
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 

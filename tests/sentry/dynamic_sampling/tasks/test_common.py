@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.tasks.common import (
 )
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0

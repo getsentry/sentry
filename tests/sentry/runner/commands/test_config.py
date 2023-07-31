@@ -5,7 +5,7 @@ import pytest
 from sentry import options
 from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
 from sentry.runner.commands.config import config
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 MSG = "Option: %s. Set: %r. Set in settings: %r. Last channel: %s. Value: %s"
 

@@ -5,7 +5,7 @@ import pytest
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations import InstallationNotifier
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 

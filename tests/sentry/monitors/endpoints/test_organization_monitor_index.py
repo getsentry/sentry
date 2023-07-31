@@ -9,7 +9,7 @@ from django.test.utils import override_settings
 from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 

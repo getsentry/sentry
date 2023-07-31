@@ -5,7 +5,7 @@ from fido2.webauthn import PublicKeyCredentialRpEntity
 
 from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

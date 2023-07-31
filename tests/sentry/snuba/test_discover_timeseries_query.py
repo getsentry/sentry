@@ -8,7 +8,7 @@ from sentry.models import ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 

@@ -7,7 +7,7 @@ from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 

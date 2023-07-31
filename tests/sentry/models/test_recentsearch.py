@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.hashlib import md5_text
 

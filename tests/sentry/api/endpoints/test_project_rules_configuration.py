@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"

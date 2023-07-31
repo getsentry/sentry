@@ -10,7 +10,7 @@ from snuba_sdk.function import Function
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import InvalidField, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.outcomes import Outcome
 

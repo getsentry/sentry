@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.models import Group, GroupStatus
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ScheduleAutoResolutionTest(TestCase):

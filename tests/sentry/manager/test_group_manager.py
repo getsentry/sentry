@@ -1,6 +1,6 @@
 from sentry.models import Group, Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SentryManagerTest(TestCase):

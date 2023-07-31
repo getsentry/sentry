@@ -4,7 +4,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 )
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import Integration, PagerDutyService
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 SERVICES = [

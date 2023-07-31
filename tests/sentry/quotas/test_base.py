@@ -3,7 +3,7 @@ import pytest
 from sentry.constants import DataCategory
 from sentry.models import OrganizationOption, ProjectKey
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

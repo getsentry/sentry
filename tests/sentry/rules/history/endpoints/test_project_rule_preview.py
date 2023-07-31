@@ -5,7 +5,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 

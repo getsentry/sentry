@@ -41,7 +41,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
 pytestmark = pytest.mark.sentry_metrics

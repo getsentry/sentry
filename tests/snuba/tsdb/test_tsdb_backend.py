@@ -6,7 +6,7 @@ from snuba_sdk import Limit
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import Environment, Group, GroupRelease, Release
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel

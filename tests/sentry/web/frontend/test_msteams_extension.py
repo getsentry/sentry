@@ -4,7 +4,7 @@ from django.core.signing import SignatureExpired
 
 from sentry.models import OrganizationMember
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView

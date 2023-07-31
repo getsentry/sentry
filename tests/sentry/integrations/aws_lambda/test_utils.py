@@ -18,7 +18,7 @@ from sentry.integrations.aws_lambda.utils import (
     parse_arn,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ParseArnTest(TestCase):

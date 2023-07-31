@@ -1,5 +1,5 @@
 from sentry.auth.system import SystemToken, get_system_token, is_system_auth
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
 

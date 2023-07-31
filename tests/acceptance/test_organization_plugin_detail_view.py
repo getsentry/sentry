@@ -3,7 +3,7 @@ from functools import cached_property
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationAbstractDetailViewPage,
 )
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 

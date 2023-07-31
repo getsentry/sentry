@@ -3,7 +3,7 @@ from django.core import mail
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.silo import SiloMode
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

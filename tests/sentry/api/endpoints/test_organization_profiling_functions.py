@@ -8,7 +8,7 @@ from sentry.api.endpoints.organization_profiling_functions import (
     get_rollup_from_range,
 )
 from sentry.constants import MAX_ROLLUP_POINTS
-from sentry.testutils import ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 

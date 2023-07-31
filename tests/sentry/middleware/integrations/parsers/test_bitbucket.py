@@ -10,7 +10,7 @@ from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestPar
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test

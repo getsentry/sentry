@@ -8,7 +8,7 @@ from sentry.models import Rule
 from sentry.models.actor import ActorTuple
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 

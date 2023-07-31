@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sentry.api.serializers import UserTagValueSerializer, serialize
 from sentry.tagstore.types import TagValue
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

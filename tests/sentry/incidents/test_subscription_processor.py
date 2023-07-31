@@ -45,8 +45,7 @@ from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp

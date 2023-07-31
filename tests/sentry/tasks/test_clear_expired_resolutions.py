@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.models import Activity, Group, GroupResolution, GroupStatus, Release
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 

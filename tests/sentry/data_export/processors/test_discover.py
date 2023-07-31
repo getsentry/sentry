@@ -3,7 +3,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):

@@ -10,7 +10,7 @@ from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 
 
 class DiscordIntegrationTest(IntegrationTestCase):

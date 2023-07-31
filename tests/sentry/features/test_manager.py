@@ -13,7 +13,7 @@ from sentry.features.base import (
     UserFeature,
 )
 from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class MockBatchHandler(features.BatchFeatureHandler):

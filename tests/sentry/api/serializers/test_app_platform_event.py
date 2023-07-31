@@ -1,5 +1,5 @@
 from sentry.api.serializers import AppPlatformEvent
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

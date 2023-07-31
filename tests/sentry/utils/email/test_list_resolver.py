@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.email import ListResolver
 from sentry.utils.email.message_builder import default_list_type_handlers
 

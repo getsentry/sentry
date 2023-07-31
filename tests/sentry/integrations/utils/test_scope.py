@@ -5,7 +5,7 @@ from sentry.integrations.utils.scope import (
     get_orgs_from_integration,
 )
 from sentry.models.integrations.integration import Integration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class GetOrgsFromIntegrationTest(TestCase):

@@ -7,7 +7,7 @@ from rest_framework import status
 
 from sentry import options as options_store
 from sentry.api.serializers.base import serialize
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

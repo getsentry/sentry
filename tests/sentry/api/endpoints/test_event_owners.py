@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -6,7 +6,7 @@ from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 

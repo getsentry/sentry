@@ -6,7 +6,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders

@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 

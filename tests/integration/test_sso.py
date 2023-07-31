@@ -1,5 +1,5 @@
 from sentry.models import AuthIdentity, AuthProvider
-from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.cases import AuthProviderTestCase
 from sentry.utils.auth import SsoSession
 
 

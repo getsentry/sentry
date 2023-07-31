@@ -8,7 +8,7 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models import AuditLogEntry
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -4,7 +4,7 @@ from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupSubscr
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 

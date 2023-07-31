@@ -10,7 +10,7 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.models import ActorTuple
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 

@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.testutils import mock_replay
-from sentry.testutils import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 

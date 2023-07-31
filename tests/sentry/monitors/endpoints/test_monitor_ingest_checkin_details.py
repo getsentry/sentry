@@ -14,7 +14,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import MonitorIngestTestCase
+from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 

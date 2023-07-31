@@ -19,7 +19,7 @@ from sentry.models import (
     Repository,
     User,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 

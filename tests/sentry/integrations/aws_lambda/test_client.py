@@ -19,7 +19,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 

@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.cache.redis import RedisCache, ValueTooLarge
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class RedisCacheTest(TestCase):

@@ -8,7 +8,7 @@ from sentry.dynamic_sampling.tasks.sliding_window import (
     fetch_projects_with_total_root_transactions_count,
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0

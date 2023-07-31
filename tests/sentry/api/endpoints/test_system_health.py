@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 
 class SystemHealthTest(APITestCase):

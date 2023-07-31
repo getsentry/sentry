@@ -3,7 +3,7 @@ from urllib.parse import quote
 from django.urls import reverse
 
 from sentry.models import Environment, EnvironmentProject
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

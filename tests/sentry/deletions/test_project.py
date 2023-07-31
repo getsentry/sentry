@@ -30,7 +30,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

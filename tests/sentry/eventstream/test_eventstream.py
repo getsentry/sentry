@@ -16,7 +16,7 @@ from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data

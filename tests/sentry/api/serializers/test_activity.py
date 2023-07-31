@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.models import Activity, Commit, GroupStatus, PullRequest
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 

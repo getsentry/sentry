@@ -5,7 +5,7 @@ import pytest
 from sentry.models import Integration, ProjectCodeOwners
 from sentry.silo import SiloMode
 from sentry.tasks.codeowners import update_code_owners_schema
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 

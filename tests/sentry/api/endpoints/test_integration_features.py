@@ -2,7 +2,7 @@ from rest_framework import status
 
 from sentry.models import IntegrationFeature
 from sentry.models.integrations.integration_feature import Feature
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

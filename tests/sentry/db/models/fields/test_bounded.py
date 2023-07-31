@@ -7,7 +7,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     Model,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 # There's a good chance this model wont get created in the db, so avoid

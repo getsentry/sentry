@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.models import Team
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 CREATE_TEAM_POST_DATA = {

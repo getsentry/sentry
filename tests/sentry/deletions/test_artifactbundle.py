@@ -8,7 +8,7 @@ from sentry.models import (
     SourceFileType,
 )
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 
 
 class DeleteArtifactBundleTest(TransactionTestCase):

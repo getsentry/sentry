@@ -8,7 +8,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"

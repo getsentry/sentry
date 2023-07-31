@@ -14,7 +14,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
-from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

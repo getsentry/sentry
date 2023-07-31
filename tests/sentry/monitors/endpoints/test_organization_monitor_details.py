@@ -3,7 +3,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
-from sentry.testutils import MonitorTestCase
+from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 

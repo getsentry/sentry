@@ -6,7 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models.apitoken import ApiToken
 from sentry.models.projectkey import ProjectKey
-from sentry.testutils import PermissionTestCase
+from sentry.testutils.cases import PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 

@@ -1,6 +1,6 @@
 from sentry.db.models.utils import slugify_instance
 from sentry.models import Organization
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SlugifyInstanceTest(TestCase):

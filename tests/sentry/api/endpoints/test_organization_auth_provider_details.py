@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, PermissionTestCase, SCIMTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase, SCIMTestCase
 from sentry.testutils.silo import region_silo_test
 
 

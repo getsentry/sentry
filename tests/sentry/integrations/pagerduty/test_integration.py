@@ -7,7 +7,7 @@ from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 

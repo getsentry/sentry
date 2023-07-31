@@ -10,7 +10,7 @@ from sentry.middleware.integrations.integration_control import IntegrationContro
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory

@@ -2,7 +2,7 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Identity, IdentityProvider
 from sentry.services.hybrid_cloud.identity.serial import serialize_identity
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class IntegrationTestCase(TestCase):

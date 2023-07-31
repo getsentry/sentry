@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.features.helpers import any_organization_has_feature, requires_feature
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class TestFeatureHelpers(TestCase):

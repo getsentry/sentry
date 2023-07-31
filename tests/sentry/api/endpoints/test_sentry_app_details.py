@@ -6,7 +6,7 @@ from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
 from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
