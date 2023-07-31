@@ -126,10 +126,10 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      (doEventsRequest as jest.Mock).mockClear();
+      doEventsRequest as jest.Mock;
 
       rerender(
-        <OnDemandMetricRequest {...DEFAULTS} period="7d">
+        <OnDemandMetricRequest {...DqEFAULTS} period="7d">
           {mock}
         </OnDemandMetricRequest>
       );
