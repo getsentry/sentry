@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [[ "$(sysctl -n machdep.cpu.brand_string)" != Intel* ]]; then
+    case "$(sw_vers -productVersion)" in
+        *12.*|*13.0*|*13.1*|*13.2*)
+            echo "Your ARM Mac is on a version incompatible with colima."
+            echo "Use Docker Desktop for now until you upgrade to at least 13.3."
+            exit 1
+            ;;
+    esac
+fi
+
 echo "Copying your postgres and clickhouse volume for use with colima. Will take a few minutes."
 tmpdir=$(mktemp -d)
 mkdir "${tmpdir}/postgres" "${tmpdir}/clickhouse"
