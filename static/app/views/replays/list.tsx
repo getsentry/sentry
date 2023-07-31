@@ -1,8 +1,11 @@
+import styled from '@emotion/styled';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
@@ -32,8 +35,10 @@ function ReplaysListContainer() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <ReplaysFilters />
-            <ReplaysErroneousDeadRageCards />
-            <ReplaysList />
+            <LayoutGap>
+              <ReplaysErroneousDeadRageCards />
+              <ReplaysList />
+            </LayoutGap>
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
@@ -41,4 +46,8 @@ function ReplaysListContainer() {
   );
 }
 
+const LayoutGap = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+`;
 export default ReplaysListContainer;

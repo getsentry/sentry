@@ -33,17 +33,17 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     def after(self, event, state):
         integration = self.get_integration()
         if not integration:
-            logger.exception("Integration removed, but the rule still refers to it")
+            logger.error("Integration removed, but the rule still refers to it")
             return
 
         org_integration = self.get_organization_integration()
         if not org_integration:
-            logger.exception("No associated org integration.")
+            logger.error("No associated org integration.")
             return
 
         team = get_team(self.get_option("team"), org_integration)
         if not team:
-            logger.exception(
+            logger.error(
                 "The Opsgenie team no longer exists, or the team does not belong to the selected account."
             )
             return
@@ -51,7 +51,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
         def send_notification(event, futures):
             org_integration = self.get_organization_integration()
             if not org_integration:
-                logger.exception("No associated org integration.")
+                logger.error("No associated org integration.")
                 return
             org_integration_id = org_integration.id
             client = OpsgenieClient(

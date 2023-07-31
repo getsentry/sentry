@@ -359,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
             },
             devServer: false,
+            // memorylimit is configured in package.json
           }),
         ]
       : []),

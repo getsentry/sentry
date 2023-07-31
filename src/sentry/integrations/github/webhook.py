@@ -225,9 +225,7 @@ class PushEventWebhook(Webhook):
         host: str | None = None,
     ) -> None:
         authors = {}
-        client = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).get_client()
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         for commit in event["commits"]:
