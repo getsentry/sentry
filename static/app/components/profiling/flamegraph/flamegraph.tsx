@@ -487,10 +487,11 @@ function Flamegraph(): ReactElement {
 
   const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChart> | null>(
     _previousView => {
-      if (!flamegraphView || !flamegraphCanvas || !CPUChart) {
+      if (!flamegraphView || !flamegraphCanvas || !CPUChart || !cpuChartCanvas) {
         return null;
       }
 
+      const PX_PADDING = flamegraphTheme.SIZES.CHART_PX_PADDING * window.devicePixelRatio;
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: CPUChart,
@@ -503,17 +504,33 @@ function Flamegraph(): ReactElement {
           barHeight: 0,
           depthOffset: 0,
           maxHeight: 100,
+          configSpaceTransform: new Rect(0, PX_PADDING, 0, 0),
         },
       });
 
-      // Initialize configView to whatever the flamegraph configView is
-      newView.setConfigView(flamegraphView.configView.withHeight(100), {
-        width: {min: 0},
-      });
+      // Compute the total size of the padding and stretch the view. This ensures that
+      // the total range is rendered and perfectly aligned from top to bottom.
+      const doublePaddingInConfigView = new Rect(0, 0, 1, PX_PADDING * 2).transformRect(
+        newView.fromConfigView(cpuChartCanvas.physicalSpace)
+      );
+      newView.maxHeight = newView.configView.height + doublePaddingInConfigView.height;
+      newView.setConfigView(
+        flamegraphView.configView.withHeight(newView.configView.height),
+        {
+          width: {min: 0},
+        }
+      );
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, CPUChart, uiFrames.minFrameDuration]
+    [
+      flamegraphView,
+      flamegraphCanvas,
+      CPUChart,
+      uiFrames.minFrameDuration,
+      cpuChartCanvas,
+      flamegraphTheme.SIZES.CHART_PX_PADDING,
+    ]
   );
 
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
@@ -992,14 +1009,7 @@ function Flamegraph(): ReactElement {
               cpuChartCanvasRef={cpuChartCanvasRef}
               cpuChartCanvas={cpuChartCanvas}
               setCpuChartCanvasRef={setCpuChartCanvasRef}
-<<<<<<< HEAD
-<<<<<<< HEAD
               canvasBounds={cpuChartCanvasBounds}
-=======
->>>>>>> f42ea5ce35 (feat(profiling): initialize canvases)
-=======
-              canvasBounds={cpuChartCanvasBounds}
->>>>>>> 9de3e27ecd (fix(profiling): remove todo comments and enable view syncing)
               cpuChartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}

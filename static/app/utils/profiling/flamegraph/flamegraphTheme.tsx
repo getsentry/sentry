@@ -90,6 +90,7 @@ export interface FlamegraphTheme {
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    CHART_PX_PADDING: number;
     CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
@@ -163,6 +164,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   TOOLTIP_FONT_SIZE: 12,
   TIMELINE_LABEL_HEIGHT: 20,
   UI_FRAMES_HEIGHT: 60,
+  CHART_PX_PADDING: 6,
 };
 
 const FONTS: FlamegraphTheme['FONTS'] = {

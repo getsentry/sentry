@@ -44,8 +44,8 @@ export class FlamegraphChartRenderer {
     this.context.strokeStyle = `red`;
     this.context.beginPath();
     const origin = new Rect(0, 0, 1, 1).transformRect(configViewToPhysicalSpace);
-    this.context.arc(origin.x, origin.y, 10, 0, 2 * Math.PI);
-    this.context.fill();
+    this.context.arc(origin.x, origin.y, 5 * window.devicePixelRatio, 0, 2 * Math.PI);
+    this.context.stroke();
 
     this.context.strokeStyle = `black`;
     for (const h of [0, 25, 50, 75, 100]) {
