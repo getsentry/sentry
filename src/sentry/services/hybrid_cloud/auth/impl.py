@@ -121,15 +121,17 @@ class DatabaseBackedAuthService(AuthService):
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
-        aps: Mapping[int, AuthProvider] = {
+        aps = {
             ap.organization_id: ap
             for ap in AuthProvider.objects.filter(organization_id__in=organization_ids)
         }
-        qs: Mapping[int, int] = {
+        qs = {
             row["organization_id"]: row["id__count"]
-            for row in ApiKey.objects.filter(organization_id__in=organization_ids)
-            .values("organization_id")
-            .annotate(Count("id"))
+            for row in (
+                ApiKey.objects.filter(organization_id__in=organization_ids)
+                .values("organization_id")
+                .annotate(Count("id"))
+            )
         }
         return [
             RpcOrganizationAuthConfig(
@@ -144,19 +146,17 @@ class DatabaseBackedAuthService(AuthService):
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
         fake_request = FakeAuthenticationRequest(request)
-        user: User | None = None
-        token: Any = None
 
         for authenticator_type in authenticator_types:
             t = authenticator_type.as_authenticator().authenticate(fake_request)  # type: ignore[arg-type]
             if t is not None:
                 user, token = t
-                break
+                return AuthenticationContext(
+                    auth=AuthenticatedToken.from_token(token),
+                    user=user_service.get_user(user_id=user.id),
+                )
 
-        return AuthenticationContext(
-            auth=AuthenticatedToken.from_token(token) if token else None,
-            user=user_service.get_user(user_id=user.id) if user else None,
-        )
+        return AuthenticationContext(auth=None, user=None)
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
         return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
@@ -164,7 +164,7 @@ class DatabaseBackedAuthService(AuthService):
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
         handler = RequestAuthenticationMiddleware(placeholder_get_response)
-        expired_user: User | None = None
+        expired_user = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
             # called, from slightly different, middleware.
@@ -174,7 +174,7 @@ class DatabaseBackedAuthService(AuthService):
         except Exception as e:
             raise Exception("Unexpected error processing handler") from e
 
-        auth: AuthenticatedToken | None = None
+        auth = None
         if fake_request.auth is not None:
             auth = AuthenticatedToken.from_token(fake_request.auth)
 
@@ -207,16 +207,15 @@ class DatabaseBackedAuthService(AuthService):
         sso_state = _query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
-        permissions: List[str] = list()
-        # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
-        # have them, you can only use them when you are acting, as a superuser.  This is intentional.
-        if is_superuser:
-            permissions.extend(get_permissions_for_user(user_id))
 
-        return RpcAuthState(
-            sso_state=sso_state,
-            permissions=permissions,
-        )
+        if is_superuser:
+            # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
+            # have them, you can only use them when you are acting, as a superuser.  This is intentional.
+            permissions = list(get_permissions_for_user(user_id))
+        else:
+            permissions = []
+
+        return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     def get_org_ids_with_scim(
         self,
@@ -255,7 +254,7 @@ class DatabaseBackedAuthService(AuthService):
     def disable_provider(self, *, provider_id: int) -> None:
         with outbox_context(transaction.atomic(router.db_for_write(AuthProvider))):
             try:
-                auth_provider: AuthProvider = AuthProvider.objects.get(id=provider_id)
+                auth_provider = AuthProvider.objects.get(id=provider_id)
             except AuthProvider.DoesNotExist:
                 return
 
