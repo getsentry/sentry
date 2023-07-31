@@ -30,7 +30,7 @@ class OrganizationForceAutoAssignmentEndpoint(OrganizationEndpoint):
     rate_limits = {"PUT": {RateLimitCategory.ORGANIZATION: RateLimit(1, 60)}}  # 1 rpm
 
     @extend_schema(
-        operation_id="Force Autoassignment of Issues",
+        operation_id="Force Auto-Assignment of Issues",
         parameters=[GlobalParams.ORG_SLUG, GroupIdsQueryParam.GROUP_IDS],
         request=None,
         responses={
@@ -48,8 +48,8 @@ class OrganizationForceAutoAssignmentEndpoint(OrganizationEndpoint):
     )
     def put(self, request: Request, organization: Organization) -> Response:
         """
-        Endpoint for forcing autoassignment to run for specified group ids.
-        This is for if a user incorrectly manually assigns a group and wants autoassignment to run.
+        Endpoint for forcing auto-assignment to run for specified group ids.
+        This is for if a user incorrectly manually assigns a group and wants auto-assignment to run.
         There is a rate limit of one request per organization per minute.
         """
         if ratelimiter.is_limited(  # type: ignore [attr-defined]
