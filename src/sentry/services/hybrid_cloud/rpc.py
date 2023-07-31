@@ -573,26 +573,5 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     return f"rpc0:{signature}"
 
 
-@dataclass(frozen=True)
-class RpcSenderCredentials:
-    """Credentials for sending remote procedure calls.
-
-    This implementation is for dev environments only, and presumes that the
-    credentials can be picked up from Django settings. A production implementation
-    will likely look different.
-    """
-
-    is_allowed: bool = False
-    control_silo_api_token: str | None = None
-    control_silo_address: str | None = None
-
-    @classmethod
-    def read_from_settings(cls) -> RpcSenderCredentials:
-        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER  # type: ignore[misc]
-        if isinstance(setting_values, str):
-            setting_values = json.loads(setting_values)
-        return cls(**setting_values) if setting_values else cls()
-
-
 class RpcSendException(RpcServiceUnimplementedException):
     """Indicates the system is not configured to send RPCs."""

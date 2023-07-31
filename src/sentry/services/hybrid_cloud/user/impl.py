@@ -94,12 +94,12 @@ class DatabaseBackedUserService(UserService):
         try:
             # First, assume username is an iexact match for username
             user = qs.get(username__iexact=username)
-            return [user]
+            return [serialize_rpc_user(user)]
         except User.DoesNotExist:
             # If not, we can take a stab at guessing it's an email address
             if "@" in username:
                 # email isn't guaranteed unique
-                return list(qs.filter(email__iexact=username))
+                return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
 
     def get_organizations(

@@ -43,7 +43,7 @@ class AuditLogEntrySerializerTest(TestCase):
         serializer = AuditLogEntrySerializer()
         result = serialize(log, serializer=serializer)
 
-        assert result["actor"]["name"] == "SCIM Internal Integration (" + uuid_prefix + ")"
+        assert result["actor"]["name"] == f"SCIM Internal Integration ({uuid_prefix})"
 
     def test_invalid_template(self):
         log = AuditLogEntry.objects.create(

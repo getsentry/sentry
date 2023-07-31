@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytz
@@ -36,7 +36,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(event_time),
+                "timestamp": iso_format(event_time - timedelta(hours=1)),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
