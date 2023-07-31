@@ -140,7 +140,7 @@ class EventStream(Service):
         group_states: Optional[GroupStates] = None,
     ) -> None:
         if event.get_tag("sample_event"):
-            logger.debug(
+            logger.info(
                 "inserting event",
                 extra={"event.id": event.event_id, "project_id": event.project_id},
             )

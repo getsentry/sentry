@@ -467,7 +467,7 @@ class EventManager:
         jobs = [job]
 
         if is_sample_event(job["event"]):
-            logger.debug(
+            logger.info(
                 "save_error_events: processing sample event",
                 extra={"event.id": job["event"].id, "project_id": project.id},
             )
@@ -590,7 +590,7 @@ class EventManager:
 
         if not group_info:
             if is_sample_event(job["event"]):
-                logger.debug(
+                logger.info(
                     "save_error_events: no groupinfo found, returning event",
                     extra={"event.id": job["event"].id, "project_id": project.id},
                 )
@@ -1302,7 +1302,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         if is_sample_event(job["event"]):
-            logger.debug(
+            logger.info(
                 "_eventstream_insert_many: attempting to insert event into eventstream",
                 extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
             )
@@ -1340,7 +1340,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
             ]
 
         if is_sample_event(job["event"]):
-            logger.debug(
+            logger.info(
                 "_eventstream_insert_many: inserting into evenstream",
                 extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
             )
