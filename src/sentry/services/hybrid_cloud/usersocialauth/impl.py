@@ -28,6 +28,26 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
             return None
         return auths[0]
 
+    def revoke_token(
+        self, *, filter: UserSocialAuthFilterArgs, drop_token: bool = True
+    ) -> List[RpcUserSocialAuth]:
+        """
+        Calls UserSocialAuth.revoke_token() on all matching results, returning the modified RpcUserSocialAuths.
+        """
+        db_auths = self._FQ._query_many(filter=filter)
+        for db_auth in db_auths:
+            db_auth.revoke_token(drop_token=drop_token)
+        return self.get_many(filter=filter)
+
+    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth:
+        """
+        Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
+        """
+        db_auths = self._FQ._query_many(filter=filter)
+        for db_auth in db_auths:
+            db_auth.refresh_token()
+        return self.get_many(filter=filter)
+
     def link_auth(self, *, usa: RpcUserSocialAuth, organization: RpcOrganization) -> bool:
         try:
             integration, _created = Integration.objects.get_or_create(
