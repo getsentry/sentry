@@ -502,6 +502,7 @@ function Flamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 0,
           depthOffset: 0,
+          maxHeight: 100,
         },
       });
 
