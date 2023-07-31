@@ -2,8 +2,8 @@
 Types to construct a metrics query request.
 """
 
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum, EnumMeta
 from typing import Any, Dict, FrozenSet, Iterable, Mapping, Optional, Sequence, Tuple
 
@@ -95,6 +95,55 @@ class MetricQueryScope:
     project_ids: Sequence[int]
 
 
+@dataclass(frozen=True)
+class MetricRange:
+    """
+    A time range for a metrics query.
+
+    :param start: The inclusive start of the time range to query.
+    :param end: The exclusive end of the time range to query.
+    :param interval: The interval in seconds for each of the data points in the
+        returned timeseries. Defaults to ``0``, which will infer an appropriate
+        interval from the time range.
+    """
+
+    start: datetime
+    end: datetime
+    interval: int = 0
+
+    @classmethod
+    def start_at(
+        cls, start: datetime, days=0, hours=0, minutes=0, seconds=0, interval: int = 0
+    ) -> "MetricRange":
+        """
+        Create a metric range that starts at the specified time and ends after
+        the specified duration.
+        """
+        delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        return cls(start, start + delta, interval)
+
+    @classmethod
+    def end_at(
+        cls, end: datetime, days=0, hours=0, minutes=0, seconds=0, interval: int = 0
+    ) -> "MetricRange":
+        """
+        Create a metric range that ends at the specified time and goes back for
+        the specified duration.
+        """
+        delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        return cls(end - delta, end, interval)
+
+    @classmethod
+    def last(cls, days=0, hours=0, minutes=0, seconds=0, interval: int = 0) -> "MetricRange":
+        """
+        Create a metric range that ends at the current time and goes back for
+        the specified duration.
+        """
+        end = datetime.utcnow()
+        delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        return cls(end - delta, end, interval)
+
+
 # Variables are currently supported only in tag value position. The only
 # supported values are strings, therefore.
 VariableMap = Mapping[str, str]
@@ -104,25 +153,22 @@ VariableMap = Mapping[str, str]
 class SeriesQuery:
     """
     A metrics query that resolves time series.
+
+    :param scope: The organization and projects to query metrics for.
+    :param range: The time range to query metrics for.
+    :param expressions: Metric expressions to resolve.
+    :param filters: A set of conditions to filter the time series specified by
+        `expressions` by. This is a shorthand for wrapping every one of the
+        expressions in the specified filters.
+    :param groups: A set of tag names to group the time series specified by
+        `expressions` by.
     """
 
-    # The organization and projects to query metrics for.
     scope: MetricQueryScope
-    # Metric expressions to resolve.
+    range: MetricRange
     expressions: Sequence[Expression]
-    # A set of conditions to filter the time series specified by expressions by.
-    # This is a shorthand for wrapping every one of the expressions in the
-    # specified filters.
-    filters: Sequence[Condition]
-    # A set of tag names to group the time series specified by expressions by.
-    groups: Sequence[Column]
-    # The inclusive start of the time range to query.
-    start: datetime
-    # The exclusive end of the time range to query.
-    end: datetime
-    # The interval in seconds for each of the data points in the returned timeseries.
-    # Defaults to ``0``, which will infer an appropriate interval from the time range.
-    interval: int = 0
+    filters: Sequence[Condition] = field(default_factory=list)
+    groups: Sequence[Column] = field(default_factory=list)
 
     @classmethod
     def parse(cls, dsl: str, params: Optional[VariableMap] = None) -> "SeriesQuery":

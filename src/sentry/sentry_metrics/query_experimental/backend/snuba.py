@@ -238,8 +238,8 @@ class SnubaQueryConverter:
         return [
             Condition(COLUMN_ORG_ID, Op.EQ, self.query.scope.org_id),
             Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids),
-            Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.start),
-            Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.end),
+            Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.range.start),
+            Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.range.end),
             *(self._convert_condition(c) for c in self.query.filters),
         ]
 

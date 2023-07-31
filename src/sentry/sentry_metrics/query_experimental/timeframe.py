@@ -8,7 +8,7 @@ from snuba_sdk import Granularity
 from sentry.sentry_metrics.use_case_id_registry import get_query_config
 
 from .pipeline import QueryLayer
-from .types import SeriesQuery
+from .types import MetricRange, SeriesQuery
 from .use_case import get_use_case
 
 
@@ -29,7 +29,7 @@ def resolve_granularity(query: SeriesQuery) -> Granularity:
     """
 
     config = get_query_config(get_use_case(query))
-    return config.granularity(query.interval)
+    return config.granularity(query.range.interval)
 
 
 def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
@@ -40,21 +40,16 @@ def normalize_timeframe(query: SeriesQuery) -> SeriesQuery:
 
     config = get_query_config(get_use_case(query))
 
-    interval = query.interval
+    interval = query.range.interval
     if interval == 0:
-        interval = _infer_interval(query.start, query.end, config.granularities)
+        interval = _infer_interval(query.range.start, query.range.end, config.granularities)
     granularity = config.granularity(interval).granularity
 
     # Ensure the interval is a multiple of the granularity and align the timeframe
     interval = round(interval / granularity) * granularity
-    (start, end) = _align_timeframe(query.start, query.end, interval)
+    (start, end) = _align_timeframe(query.range.start, query.range.end, interval)
 
-    return replace(
-        query,
-        start=start,
-        end=end,
-        interval=interval,
-    )
+    return replace(query, range=MetricRange(start=start, end=end, interval=interval))
 
 
 def _infer_interval(start: datetime, end: datetime, granularities: Sequence[int]) -> int:

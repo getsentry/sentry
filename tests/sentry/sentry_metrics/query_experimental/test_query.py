@@ -11,6 +11,7 @@ from sentry.sentry_metrics.query_experimental.types import (
     Condition,
     Function,
     MetricQueryScope,
+    MetricRange,
     Op,
     SeriesQuery,
 )
@@ -97,12 +98,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
-            filters=[],
-            groups=[],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)
@@ -132,12 +129,9 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
-            filters=[],
             groups=[Column("transaction")],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)
@@ -172,12 +166,9 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
             filters=[Condition(Column("transaction"), Op.EQ, "b")],
-            groups=[],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)
@@ -218,12 +209,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[expr],
-            filters=[],
-            groups=[],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)
@@ -267,12 +254,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[expr],
-            filters=[],
-            groups=[],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)
@@ -311,12 +294,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
             expressions=[expr],
-            filters=[],
-            groups=[],
-            start=self.now,
-            end=self.now + timedelta(hours=4),
-            interval=3600,
         )
 
         result = get_series(query)

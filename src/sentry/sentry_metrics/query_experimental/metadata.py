@@ -19,6 +19,8 @@ from .types import (
     Expression,
     Function,
     InvalidMetricsQuery,
+    MetricQueryScope,
+    MetricRange,
     Op,
     SeriesQuery,
     parse_mri,
@@ -172,8 +174,8 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         raise InvalidMetricsQuery(f"Expected metrics expression, received {type(node)}")
 
     def _visit_query(self, query: SeriesQuery) -> AnnotatedQuery:
-        self._validate_scope(query)
-        self._validate_timerange(query)
+        self._validate_scope(query.scope)
+        self._validate_timerange(query.range)
 
         # The use case is set when visiting a metric column, so if it is not
         # set at this point, there are no metrics in the query.
@@ -334,13 +336,13 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
     def _is_variable(self, column: Column) -> bool:
         return column.name.startswith("$")
 
-    def _validate_timerange(self, query: SeriesQuery) -> None:
-        if query.start > query.end:
+    def _validate_timerange(self, range_: MetricRange) -> None:
+        if range_.start > range_.end:
             raise InvalidMetricsQuery("Start must be before end.")
 
-        if query.interval <= 0:
+        if range_.interval <= 0:
             raise InvalidMetricsQuery("Interval must be positive.")
 
-    def _validate_scope(self, query: SeriesQuery) -> None:
-        if not query.scope.org_id or not query.scope.project_ids:
+    def _validate_scope(self, scope: MetricQueryScope) -> None:
+        if not scope.org_id or not scope.project_ids:
             raise InvalidMetricsQuery("Missing required organization or projects.")
