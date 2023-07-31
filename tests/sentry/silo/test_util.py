@@ -17,7 +17,7 @@ from sentry.silo.util import (
     trim_leading_slashes,
     verify_subnet_signature,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class SiloUtilityTest(TestCase):

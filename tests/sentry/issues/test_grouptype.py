@@ -16,7 +16,7 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
     get_group_types_by_category,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

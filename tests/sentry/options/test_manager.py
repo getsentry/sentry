@@ -20,7 +20,7 @@ from sentry.options.manager import (
     UpdateChannel,
 )
 from sentry.options.store import OptionsStore
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
 
