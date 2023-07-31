@@ -392,11 +392,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           {isExtrapolatedChartData && (
             <OnDemandMetricInfoAlert>
               <OnDemandMetricInfoIcon size="sm" />
-              <span>
-                {t(
-                  'The chart data is an estimate based on the stored transactions that match the filters specified.'
-                )}
-              </span>
+              {t(
+                'The chart data is an estimate based on the stored transactions that match the filters specified.'
+              )}
             </OnDemandMetricInfoAlert>
           )}
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
