@@ -173,6 +173,15 @@ export interface TeamMember extends Member {
 }
 
 /**
+ * Missing org members detected through commit authors
+ */
+export interface MissingMember {
+  commitCount: number;
+  email: string;
+  userId: string;
+}
+
+/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {
