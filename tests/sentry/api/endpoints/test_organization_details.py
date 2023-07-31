@@ -30,7 +30,7 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     OutboxFlushError,
-    ScheduledDeletion,
+    RegionScheduledDeletion,
     outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
@@ -757,13 +757,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        ScheduledDeletion.schedule(org, days=1)
+        RegionScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.ACTIVE
-        assert not ScheduledDeletion.objects.filter(
+        assert not RegionScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
 
@@ -871,7 +871,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = ScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
@@ -905,14 +905,14 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        ScheduledDeletion.schedule(org, days=1)
+        RegionScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        scheduled_deletions = ScheduledDeletion.objects.filter(
+        scheduled_deletions = RegionScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
         )
         assert scheduled_deletions.exists()

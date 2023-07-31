@@ -37,7 +37,7 @@ from sentry.models import (
     OrganizationOption,
     OrganizationStatus,
     OutboxFlushError,
-    ScheduledDeletion,
+    RegionScheduledDeletion,
     UserEmail,
 )
 from sentry.models.integrations import SentryApp
@@ -547,7 +547,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                ScheduledDeletion.cancel(organization)
+                RegionScheduledDeletion.cancel(organization)
             elif changed_data:
                 self.create_audit_entry(
                     request=request,
@@ -580,13 +580,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ).exists():
             return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
-        with transaction.atomic(router.db_for_write(ScheduledDeletion)):
+        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=organization.id
             )
 
             if updated_organization is not None:
-                schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
+                schedule = RegionScheduledDeletion.schedule(
+                    organization, days=1, actor=request.user
+                )
                 entry = self.create_audit_entry(
                     request=request,
                     organization=updated_organization,
