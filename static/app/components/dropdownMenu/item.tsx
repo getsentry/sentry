@@ -37,7 +37,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
-  /*
+  /**
    * Whether this menu item is a trigger for a nested sub-menu. Only works
    * when `children` is also defined.
    */
