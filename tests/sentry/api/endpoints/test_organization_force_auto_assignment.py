@@ -85,9 +85,9 @@ class OrganizationForceAutoAssignmentEndpointTest(APITestCase):
 
         # Force autoassignment of the group
         url = reverse(ENDPOINT, args=[self.organization.name])
-        response = self.client.put(url, {"group_ids": [event.group.id]})
+        response = self.client.put(url, {"groupIds": [event.group.id]})
         assert response.status_code == 200
-        assert response.data == [event.group_id]
+        assert response.data == {"updatedGroupIds": [event.group_id]}
         assignee = GroupAssignee.objects.get(group=event.group)
         assert assignee.team_id == self.team.id
 
@@ -132,18 +132,23 @@ class OrganizationForceAutoAssignmentEndpointTest(APITestCase):
 
         # Force autoassignment of the group
         url = reverse(ENDPOINT, args=[self.organization.name])
-        response = self.client.put(url, {"group_ids": group_ids})
+        response = self.client.put(url, {"groupIds": group_ids})
         assert response.status_code == 200
-        assert response.data == group_ids
+        assert response.data == {"updatedGroupIds": group_ids}
         assignees = GroupAssignee.objects.filter(group__in=groups)
         for assignee in assignees:
             assert assignee.team_id == self.team.id
+
+    def test_put_group_does_not_exist(self):
+        url = reverse(ENDPOINT, args=[self.organization.name])
+        response = self.client.put(url, {"groupIds": [1000]})
+        assert response.data == {"updatedGroupIds": []}
 
     def test_put_too_many_groups(self):
         # Force autoassignment of over 100 group ids
         group_ids = [i for i in range(101)]
         url = reverse(ENDPOINT, args=[self.organization.name])
-        response = self.client.put(url, {"group_ids": group_ids})
+        response = self.client.put(url, {"groupIds": group_ids})
         assert response.status_code == 431
         assert response.data == {
             "detail": "Too many group ids. Number of group ids should be <= 100."
@@ -153,19 +158,23 @@ class OrganizationForceAutoAssignmentEndpointTest(APITestCase):
         # Call force autoassignment
         group_ids = [1]
         url = reverse(ENDPOINT, args=[self.organization.name])
-        self.client.put(url, {"group_ids": group_ids})
+        self.client.put(url, {"groupIds": group_ids})
 
         # Call another force autoassignment for the same org within the minute
         group_ids = [1]
         url = reverse(ENDPOINT, args=[self.organization.name])
-        response = self.client.put(url, {"group_ids": group_ids})
+        response = self.client.put(url, {"groupIds": group_ids})
         assert response.status_code == 429
-        assert response.data == {"detail": "Rate limit of 1 request per org per minute exceeded."}
+        assert response.data == {
+            "detail": "Too many requests. Rate limit of 1 request per org per minute exceeded."
+        }
 
         # Call force assignment for another organization
         new_org = self.create_organization(name="new", owner=self.user)
         group_ids = [1]
         url = reverse(ENDPOINT, args=[new_org.name])
-        response = self.client.put(url, {"group_ids": group_ids})
+        response = self.client.put(url, {"groupIds": group_ids})
         assert response.status_code != 429
-        assert response.data != {"detail": "Rate limit of 1 request per org per minute exceeded."}
+        assert response.data != {
+            "detail": "Too many requests. Rate limit of 1 request per org per minute exceeded."
+        }

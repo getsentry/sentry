@@ -431,3 +431,13 @@ class ReplayParams:
         type=OpenApiTypes.UUID,
         description="""The id of the replay you'd like to retrieve.""",
     )
+
+
+class GroupIdsQueryParam:
+    GROUP_IDS = OpenApiParameter(
+        name="groupIds",
+        location="query",
+        required=True,
+        type=build_typed_list(OpenApiTypes.INT),
+        description="A list of group IDs to force autoassignment for. List length must be <= 100 and groups must be in the organization.",
+    )

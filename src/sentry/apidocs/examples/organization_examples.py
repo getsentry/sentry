@@ -67,3 +67,12 @@ class OrganizationExamples:
             response_only=True,
         ),
     ]
+
+    UPDATED_GROUP_IDS = [
+        OpenApiExample(
+            "Success",
+            value={"updatedGroupIds": [1, 2, 3]},
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
