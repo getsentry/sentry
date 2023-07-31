@@ -9,7 +9,7 @@ from django.db import router
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
-from sentry.debug_files.utils import size_in_mb
+from sentry.debug_files.utils import size_in_bytes
 from sentry.locks import locks
 from sentry.models.artifactbundle import (
     NULL_STRING,
@@ -346,13 +346,13 @@ class FlatFileIndex:
 
         if len(self._files_by_url) == 0:
             metrics.timing(
-                "artifact_bundle_flat_file_indexing.debug_id_index.size_in_mb",
-                value=size_in_mb(json_index),
+                "artifact_bundle_flat_file_indexing.debug_id_index.size_in_bytes",
+                value=size_in_bytes(json_index),
             )
         else:
             metrics.timing(
-                "artifact_bundle_flat_file_indexing.url_index.size_in_mb",
-                value=size_in_mb(json_index),
+                "artifact_bundle_flat_file_indexing.url_index.size_in_bytes",
+                value=size_in_bytes(json_index),
             )
 
         return json_index
