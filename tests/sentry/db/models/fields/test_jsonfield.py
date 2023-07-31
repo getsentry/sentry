@@ -3,7 +3,7 @@ from django import forms
 from django.db import models
 
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class JSONFieldTestModel(models.Model):

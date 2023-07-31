@@ -1477,7 +1477,7 @@ SENTRY_FEATURES = {
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enables inviting new members based on GitHub commit activity.
-    "organizations:gh-invite": False,
+    "organizations:integrations-gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable inviting members to organizations.

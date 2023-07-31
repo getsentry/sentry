@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.testutils import PermissionTestCase, TestCase
+from sentry.testutils.cases import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 

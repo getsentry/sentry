@@ -8,7 +8,7 @@ from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data

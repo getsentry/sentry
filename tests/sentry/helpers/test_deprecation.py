@@ -12,7 +12,7 @@ from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 replacement_api = "replacement-api"

@@ -7,7 +7,7 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 

@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 

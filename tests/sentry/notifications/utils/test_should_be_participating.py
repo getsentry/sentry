@@ -3,7 +3,7 @@ from sentry.notifications.helpers import should_be_participating, where_should_b
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.integrations import ExternalProviders
 

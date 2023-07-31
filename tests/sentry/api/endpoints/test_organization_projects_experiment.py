@@ -12,7 +12,7 @@ from sentry.api.endpoints.organization_projects_experiment import (
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 

@@ -1,5 +1,5 @@
 from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
