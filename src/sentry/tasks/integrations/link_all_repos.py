@@ -51,9 +51,7 @@ def link_all_repos(
         )
         return
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=organization_id
-    )
+    installation = integration.get_installation(organization_id=organization_id)
 
     client = installation.get_client()
 

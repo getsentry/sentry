@@ -6,7 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

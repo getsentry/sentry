@@ -32,8 +32,8 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.models import OptionMixin
 from sentry.models.grouplink import GroupLink
+from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -264,6 +264,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     def color(self):
         if self.forced_color is not None:
             return f"#{self.forced_color}"
+        assert self.slug is not None
         return get_hashed_color(self.slug.upper())
 
     @property
@@ -492,7 +493,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        from sentry.models import EnvironmentProject, ProjectOption, Rule
+        from sentry.models.projectownership import ProjectOwnership
         from sentry.models.projectteam import ProjectTeam
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]

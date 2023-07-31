@@ -471,7 +471,10 @@ class MonitorEnvironment(Model):
     status = BoundedPositiveIntegerField(
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
-    next_checkin = models.DateTimeField(null=True)
+    next_checkin = models.DateTimeField(null=True)  # the expected time of the next check-in
+    next_checkin_latest = models.DateTimeField(
+        null=True
+    )  # the latest expected time of the next check-in (includes check-in margin)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -481,6 +484,9 @@ class MonitorEnvironment(Model):
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment"),)
+        indexes = [
+            models.Index(fields=["status", "next_checkin_latest"]),
+        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -599,6 +605,7 @@ class MonitorEnvironment(Model):
                         "monitor.id": str(self.monitor.guid),
                         "monitor.slug": self.monitor.slug,
                     },
+                    "trace_id": occurrence_context.get("trace_id"),
                     "timestamp": current_timestamp.isoformat(),
                 },
             )

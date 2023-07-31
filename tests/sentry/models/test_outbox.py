@@ -28,7 +28,7 @@ from sentry.models import (
 )
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions

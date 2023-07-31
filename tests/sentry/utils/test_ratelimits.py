@@ -2,7 +2,7 @@ from random import randint
 
 from sentry import ratelimits
 from sentry.models import ApiToken, Organization, User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 # Produce faster tests by reducing the limits so we don't have to generate so many.

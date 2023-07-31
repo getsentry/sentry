@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 

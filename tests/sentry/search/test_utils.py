@@ -4,7 +4,7 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import EventUser, GroupStatus, Release, Team, User
+from sentry.models import EventUser, GroupStatus, Release, Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,
@@ -16,7 +16,10 @@ from sentry.search.utils import (
     parse_query,
     tokenize_query,
 )
-from sentry.testutils import TestCase
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
@@ -133,8 +136,18 @@ def test_get_numeric_field_value_invalid():
 
 @region_silo_test(stable=True)
 class ParseQueryTest(TestCase):
+    @property
+    def rpc_user(self):
+        return user_service.get_user(user_id=self.user.id)
+
+    @property
+    def current_rpc_user(self):
+        # This doesn't include useremails. Used in filters
+        # where the current user is passed back
+        return serialize_rpc_user(self.user)
+
     def parse_query(self, query):
-        return parse_query([self.project], query, self.user, None)
+        return parse_query([self.project], query, self.user, [])
 
     def test_simple(self):
         result = self.parse_query("foo bar")
@@ -335,7 +348,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_me(self):
         result = self.parse_query("assigned:me")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_none(self):
         result = self.parse_query("assigned:none")
@@ -343,11 +356,11 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_email(self):
         result = self.parse_query(f"assigned:{self.user.email}")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_to": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_unknown_user(self):
         result = self.parse_query("assigned:fake@example.com")
-        assert isinstance(result["assigned_to"], User)
+        assert isinstance(result["assigned_to"], RpcUser)
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
@@ -367,11 +380,11 @@ class ParseQueryTest(TestCase):
 
     def test_bookmarks_me(self):
         result = self.parse_query("bookmarks:me")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_email(self):
         result = self.parse_query(f"bookmarks:{self.user.email}")
-        assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
+        assert result == {"bookmarked_by": self.rpc_user, "tags": {}, "query": ""}
 
     def test_bookmarks_unknown_user(self):
         result = self.parse_query("bookmarks:fake@example.com")
@@ -589,7 +602,7 @@ class ParseQueryTest(TestCase):
 
     def test_assigned_or_suggested_me(self):
         result = self.parse_query("assigned_or_suggested:me")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.current_rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_none(self):
         result = self.parse_query("assigned_or_suggested:none")
@@ -601,11 +614,11 @@ class ParseQueryTest(TestCase):
 
     def test_owner_email(self):
         result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
-        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
+        assert result == {"assigned_or_suggested": self.rpc_user, "tags": {}, "query": ""}
 
     def test_assigned_or_suggested_unknown_user(self):
         result = self.parse_query("assigned_or_suggested:fake@example.com")
-        assert isinstance(result["assigned_or_suggested"], User)
+        assert isinstance(result["assigned_or_suggested"], RpcUser)
         assert result["assigned_or_suggested"].id == 0
 
     def test_owner_valid_team(self):
