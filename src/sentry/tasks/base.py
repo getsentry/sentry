@@ -111,7 +111,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
                 metrics.timing(
-                    "jobs.queue_time",
+                    "jobs.delay",
                     duration,
                     instance=instance,
                 )
