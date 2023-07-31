@@ -26,7 +26,7 @@ from sentry.models import (
 )
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 

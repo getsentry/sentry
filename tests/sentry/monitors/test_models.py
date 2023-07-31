@@ -27,7 +27,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.tasks import SUBTITLE_DATETIME_FORMAT
 from sentry.monitors.validators import ConfigValidator
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 

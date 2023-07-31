@@ -5,11 +5,11 @@ from django.urls import reverse
 from sentry import options as options_store
 from sentry.models import UserAvatar
 from sentry.models.files import ControlFile
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserAvatarTest(APITestCase):
     def test_get(self):
         user = self.create_user(email="a@example.com")

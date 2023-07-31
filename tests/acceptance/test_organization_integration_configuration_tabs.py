@@ -1,7 +1,7 @@
 from selenium.webdriver.common.by import By
 
 from sentry.models import Integration
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 

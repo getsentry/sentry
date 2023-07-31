@@ -14,6 +14,8 @@ import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
+import {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
+import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
   downloadRole: string;
@@ -21,9 +23,11 @@ type Props = {
   mapping: DebugFile;
   onDelete: (id: string) => void;
   orgSlug: string;
+  associations?: ProguardMappingAssociation;
 };
 
 function ProjectProguardRow({
+  associations = {releases: []},
   mapping,
   onDelete,
   downloadUrl,
@@ -40,6 +44,7 @@ function ProjectProguardRow({
     <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
+        <ProguardAssociations associations={associations} />
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />

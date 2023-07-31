@@ -19,7 +19,7 @@ from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import AuditLogEntry, OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase

@@ -10,9 +10,7 @@ import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
 jest.mock('sentry/utils/usePageFilters');
 
-const usePageFilters = importedUsePageFilters as jest.MockedFunction<
-  typeof importedUsePageFilters
->;
+const usePageFilters = jest.mocked(importedUsePageFilters);
 
 const makeFilterProps = (
   filters: Partial<PageFilters>
