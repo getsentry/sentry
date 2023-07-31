@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.region import override_region_config
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import RegionCategory, clear_global_regions

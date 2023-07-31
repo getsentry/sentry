@@ -1,7 +1,7 @@
 from sentry.db.models.query import in_iexact
 from sentry.models import Organization, User
 from sentry.models.userreport import UserReport
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.query import (
     RangeQuerySetWrapper,

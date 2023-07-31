@@ -77,7 +77,7 @@ class ProcessingIssueManager(BaseManager):
             has_more = False
 
         rv = list(rv)
-        eventstore.bind_nodes(rv, "data")
+        eventstore.backend.bind_nodes(rv, "data")
         return rv, has_more
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):

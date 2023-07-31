@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.stacktraces.processing import find_stacktraces_in_data, get_crash_frame_from_event_data
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class FindStacktracesTest(TestCase):

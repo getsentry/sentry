@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
-from typing import Any, List, Optional, Set, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union
 
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import TOTAL_COUNT_ALIAS, TOTAL_TRANSACTION_DURATION_ALIAS
@@ -37,7 +40,7 @@ class ArithmeticValidationError(ArithmeticError):
 
 
 OperandType = Union["Operation", float, str]
-JsonQueryType = List[Union[str, float, List[Any]]]
+JsonQueryType = List[Union[str, List[Union[str, float, None, "JsonQueryType"]]]]
 
 
 class Operation:
@@ -69,7 +72,7 @@ class Operation:
         if isinstance(lhs, str):
             lhs = ["toFloat64", [lhs]]
         rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
-        result = [self.operator, [lhs, rhs]]
+        result: JsonQueryType = [self.operator, [lhs, rhs]]
         if alias:
             result.append(alias)
         return result
@@ -187,7 +190,7 @@ class ArithmeticVisitor(NodeVisitor):
         "percentile_range",
     }
 
-    def __init__(self, max_operators: int, custom_measurements: Optional[Set[str]]):
+    def __init__(self, max_operators: int | None, custom_measurements: Optional[Set[str]]):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
@@ -320,7 +323,7 @@ def resolve_equation_list(
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
     custom_measurements: Optional[Set[str]] = None,
-) -> Tuple[List[str], List[Operation], List[bool]]:
+) -> Tuple[List[str], List[ParsedEquation]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates

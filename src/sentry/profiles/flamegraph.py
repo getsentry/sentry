@@ -57,10 +57,10 @@ def get_profile_ids(
 
 
 def get_span_intervals(
-    project_id: str,
+    project_id: int,
     span_filter: Condition,
     transaction_ids: List[str],
-    organization_id: str,
+    organization_id: int,
     params: ParamsType,
 ) -> List[Dict[str, Any]]:
     query = Query(
@@ -111,7 +111,7 @@ def get_span_intervals(
 
 
 def get_span_intervals_from_nodestore(
-    project_id: str,
+    project_id: int,
     span_group: str,
     transaction_ids: List[str],
 ) -> List[Dict[str, Any]]:
@@ -138,8 +138,8 @@ def get_span_intervals_from_nodestore(
 
 
 def get_profile_ids_with_spans(
-    organization_id: str,
-    project_id: str,
+    organization_id: int,
+    project_id: int,
     params: ParamsType,
     span_group: str,
     backend: str,
@@ -191,8 +191,8 @@ def get_profile_ids_with_spans(
 
 
 def get_profile_ids_for_span_op(
-    organization_id: str,
-    project_id: str,
+    organization_id: int,
+    project_id: int,
     params: ParamsType,
     span_op: str,
     backend: str,

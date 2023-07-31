@@ -15,7 +15,10 @@ import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
 
 interface ListBoxProps
-  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'onBlur' | 'onFocus'>,
+  extends Omit<
+      React.HTMLAttributes<HTMLUListElement>,
+      'onBlur' | 'onFocus' | 'autoFocus'
+    >,
     Omit<
       AriaListBoxOptions<any>,
       | 'children'
@@ -24,6 +27,7 @@ interface ListBoxProps
       | 'selectedKeys'
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
+      | 'autoFocus'
     > {
   /**
    * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly

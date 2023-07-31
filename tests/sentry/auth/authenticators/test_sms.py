@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from freezegun import freeze_time
 
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
 
