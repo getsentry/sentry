@@ -928,17 +928,6 @@ register(
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# A slow rollout option for writing "new" cache keys
-# as the transition from UseCaseKey to UseCaseID occurs
-register(
-    "sentry-metrics.indexer.cache-key-rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# A option for double writing old and new cache keys
-# for the same transition
-register(
-    "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
