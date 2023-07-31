@@ -3,9 +3,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-
 const PANEL_WIDTH = '50vw';
 
 type SlideOverPanelProps = {
@@ -20,13 +17,11 @@ function SlideOverPanel(
   {collapsed, children, onOpen}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
-  const {query} = useLocation();
-  const organization = useOrganization();
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
     }
-  }, [query, collapsed, organization, onOpen]);
+  }, [collapsed, onOpen]);
   return (
     <_SlideOverPanel
       ref={ref}

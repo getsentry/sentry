@@ -50,9 +50,9 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
-        onOpen={() => {
+        onOpen={useCallback(() => {
           trackAnalytics('starfish.panel.open', {organization});
-        }}
+        }, [organization])}
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />
