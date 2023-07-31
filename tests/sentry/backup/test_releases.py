@@ -63,12 +63,12 @@ from sentry.monitors.models import (
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.testutils import TransactionTestCase
-from sentry.utils.json import JSONData
-from tests.sentry.backup import (
+from sentry.testutils.helpers.backups import (
     get_exportable_final_derivations_of,
     import_export_then_validate,
-    targets,
 )
+from sentry.utils.json import JSONData
+from tests.sentry.backup import targets
 
 RELEASE_TESTED_MODELS = set()
 

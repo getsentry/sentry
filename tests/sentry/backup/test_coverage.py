@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from sentry.db.models import BaseModel
-from tests.sentry.backup import get_exportable_final_derivations_of, get_final_derivations_of
+from sentry.testutils.helpers.backups import (
+    get_exportable_final_derivations_of,
+    get_final_derivations_of,
+)
 from tests.sentry.backup.test_models import UNIT_TESTED_MODELS
 from tests.sentry.backup.test_releases import RELEASE_TESTED_MODELS
 
