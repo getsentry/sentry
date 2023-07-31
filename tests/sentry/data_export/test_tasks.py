@@ -169,7 +169,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested issue does not exist"
 
-    @patch("sentry.tagstore.get_tag_key")
+    @patch("sentry.tagstore.backend.get_tag_key")
     @patch("sentry.utils.snuba.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):

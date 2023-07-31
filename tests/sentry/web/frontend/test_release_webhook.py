@@ -11,6 +11,8 @@ from sentry.utils import json
 
 
 class ReleaseWebhookTestBase(TestCase):
+    plugin_id: str
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
