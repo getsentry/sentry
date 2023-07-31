@@ -40,9 +40,17 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         # projects where the user has project membership
         projects = self.get_projects(request, organization)
 
-        # org admins can modify projects and not have direct project access
-        if not projects and not request.access.has_scope("project:write"):
-            raise PermissionDenied
+        if not request.access.has_scope("project:write"):
+            if (
+                projects
+                and not all(
+                    [
+                        request.access.has_project_scope(project, "project:write")
+                        for project in projects
+                    ]
+                )
+            ) or not projects:
+                raise PermissionDenied
 
         try:
             # It must either have no project affiliation, or be accessible to the user...

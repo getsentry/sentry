@@ -83,9 +83,17 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
 
-        # org admins can modify projects and not have direct project access
-        if not projects and not request.access.has_scope("project:write"):
-            raise PermissionDenied
+        if not request.access.has_scope("project:write"):
+            if (
+                projects
+                and not all(
+                    [
+                        request.access.has_project_scope(project, "project:write")
+                        for project in projects
+                    ]
+                )
+            ) or not projects:
+                raise PermissionDenied
 
         serializer = NotificationActionSerializer(
             context={"access": request.access, "organization": organization, "projects": projects},

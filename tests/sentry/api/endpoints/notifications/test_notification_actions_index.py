@@ -229,6 +229,21 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
 
+    def test_post_org_member(self):
+        user = self.create_user("hornet@hk.com")
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user)
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects],
+        }
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
     @patch.dict(NotificationAction._registry, {})
     def test_post_raises_validation_from_registry(self):
         error_message = "oops-idea-installed"

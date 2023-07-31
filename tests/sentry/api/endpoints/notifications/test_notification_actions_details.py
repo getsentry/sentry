@@ -215,7 +215,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    def test_post_with_slack_validation(self):
+    def test_put_with_slack_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -263,7 +263,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_PUT_with_pagerduty_validation(self):
+    def test_put_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -357,6 +357,21 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert not NotificationActionProject.objects.filter(action_id=self.notif_action.id).exists()
 
     @patch.dict(NotificationAction._registry, {})
+    def test_put_org_member(self):
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[self.team])
+        self.login_as(user)
+
+        data = {**self.base_data}
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="PUT",
+            **data,
+        )
+
+    @patch.dict(NotificationAction._registry, {})
     def test_put_org_admin(self):
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, role="admin")
@@ -407,6 +422,18 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user)
 
         self.test_delete_simple()
+
+    def test_delete_org_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.notif_action.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="DELETE",
+        )
 
     def test_delete_org_admin(self):
         user = self.create_user()
