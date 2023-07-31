@@ -497,6 +497,7 @@ function Flamegraph(): ReactElement {
         return null;
       }
 
+      const PX_PADDING = flamegraphTheme.SIZES.CHART_PX_PADDING * window.devicePixelRatio;
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: CPUChart,
@@ -1008,14 +1009,7 @@ function Flamegraph(): ReactElement {
               cpuChartCanvasRef={cpuChartCanvasRef}
               cpuChartCanvas={cpuChartCanvas}
               setCpuChartCanvasRef={setCpuChartCanvasRef}
-<<<<<<< HEAD
-<<<<<<< HEAD
               canvasBounds={cpuChartCanvasBounds}
-=======
->>>>>>> f42ea5ce35 (feat(profiling): initialize canvases)
-=======
-              canvasBounds={cpuChartCanvasBounds}
->>>>>>> 9de3e27ecd (fix(profiling): remove todo comments and enable view syncing)
               cpuChartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
