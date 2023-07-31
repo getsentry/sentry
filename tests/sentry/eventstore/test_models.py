@@ -13,9 +13,9 @@ from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
-from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 

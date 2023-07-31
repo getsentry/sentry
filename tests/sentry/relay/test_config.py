@@ -25,9 +25,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """

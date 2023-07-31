@@ -4,8 +4,8 @@ import pytest
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @region_silo_test(stable=True)

@@ -6,7 +6,7 @@ from django.db import connections
 
 from sentry.silo import SiloMode
 
-pytest_plugins = ["sentry.utils.pytest"]
+pytest_plugins = ["sentry.testutils.pytest"]
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures

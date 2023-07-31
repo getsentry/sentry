@@ -8,8 +8,8 @@ from sentry.services.hybrid_cloud.auth import (
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)
