@@ -361,14 +361,18 @@ class ConvertActorOrNoneValueTest(TestCase):
 @region_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
-        assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
+        result = convert_user_value(["me"], [self.project], self.user, None)
+        assert result[0].id == self.user.id
+        assert result[0].username == self.user.username
 
     def test_specified_user(self):
         user = self.create_user()
-        assert convert_user_value([user.username], [self.project], self.user, None) == [user]
+        result = convert_user_value([user.username], [self.project], self.user, None)
+        assert result[0].id == user.id
+        assert result[0].username == user.username
 
     def test_invalid_user(self):
-        assert convert_user_value(["fake-user"], [], None, None)[0].id == 0
+        assert convert_user_value(["fake-user"], [], self.user, None)[0].id == 0
 
 
 @region_silo_test(stable=True)

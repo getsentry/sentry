@@ -183,7 +183,6 @@ class ActorTuple(namedtuple("Actor", "id type")):
     @classmethod
     def from_actor_identifier(cls, actor_identifier: int | str | None) -> ActorTuple | None:
         from sentry.models import Team, User
-        from sentry.utils.auth import find_users
 
         """
         Returns an Actor tuple corresponding to a User or Team associated with
@@ -217,7 +216,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
             return cls(int(actor_identifier[5:]), Team)
 
         try:
-            return cls(find_users(actor_identifier)[0].id, User)
+            user = user_service.get_by_username(username=actor_identifier)[0]
+            return cls(user.id, User)
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 

@@ -20,6 +20,9 @@ from typing import (
 from django.db import DataError, connections, router
 from django.utils import timezone
 
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
@@ -37,8 +40,8 @@ from sentry.models import (
 )
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
-from sentry.utils.auth import find_users
 
 
 class InvalidQuery(Exception):
@@ -312,7 +315,7 @@ def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, Uni
     return result
 
 
-def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: User) -> Team:
+def parse_team_value(projects: Sequence[Project], value: Sequence[str]) -> Team:
     return Team.objects.filter(
         slug__iexact=value[1:], projectteam__project__in=projects
     ).first() or Team(id=0)
@@ -331,30 +334,34 @@ def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> l
     return list(teams)
 
 
-def parse_actor_value(projects: Sequence[Project], value: str, user: User) -> Union[User, Team]:
+def parse_actor_value(
+    projects: Sequence[Project], value: str, user: RpcUser | User
+) -> Union[RpcUser, Team]:
     if value.startswith("#"):
-        return parse_team_value(projects, value, user)
+        return parse_team_value(projects, value)
     return parse_user_value(value, user)
 
 
 def parse_actor_or_none_value(
     projects: Sequence[Project], value: str, user: User
-) -> Optional[Union[User, Team]]:
+) -> Optional[Union[RpcUser, Team]]:
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)
 
 
-def parse_user_value(value: str, user: User) -> User:
+def parse_user_value(value: str, user: User | RpcUser) -> RpcUser:
     if value == "me":
+        if isinstance(user, User):
+            return serialize_rpc_user(user)
         return user
 
     try:
-        return find_users(value)[0]
+        return user_service.get_by_username(username=value)[0]
     except IndexError:
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
-        return User(id=0)
+        return serialize_rpc_user(User(id=0))
 
 
 class LatestReleaseOrders(Enum):
