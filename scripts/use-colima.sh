@@ -48,7 +48,7 @@ python3 -uS scripts/start-colima.py
 
 # The context will be colima, we just want to double make sure.
 docker context use colima
-echo "Recreating your postgres volume for use with colima."
+echo "Recreating your postgres volume for use with colima. May take a few minutes."
 docker volume create --name sentry_postgres
 docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
 rm -rf "$tmpdir"
