@@ -230,5 +230,4 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return ""
 
     def _disable(self):
-        self.events = set()
-        self.is_alertable = False
+        self.update(events=[])

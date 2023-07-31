@@ -1343,6 +1343,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Allow disabling integrations when broken is detected
     "organizations:slack-disable-on-broken": False,
+    # Allow disabling sentryapps when broken is detected
+    "organizations:disable-sentryapps-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
