@@ -1251,7 +1251,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
-                assert response.status_code == 504
+                assert response.status_code == 400
                 assert (
                     response.content
                     == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
