@@ -57,8 +57,7 @@ def is_response_success(resp: Response) -> bool:
     return False
 
 
-def record_timeout(sentry_app: SentryApp, resp: Response):
-    redis_key = sentry_app._get_redis_key()
+def record_timeout(redis_key: str, resp: Response):
     if not len(redis_key):
         return
     if is_timeout(resp):
@@ -80,8 +79,7 @@ def record_request_success(redis_key: str, resp: Response):
     buffer.record_success()
 
 
-def record_response(sentryapp: SentryApp, response: Response):
-    redis_key = sentryapp._get_redis_key()
+def record_response(redis_key: str, response: Response):
     if not len(redis_key):
         return
     if is_response_error(response):
@@ -115,6 +113,7 @@ def send_and_save_webhook_request(
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
     response = None
+    redis_key = sentry_app._get_redis_key(org_id)
     try:
         response = safe_urlopen(
             url=url,
@@ -155,7 +154,7 @@ def send_and_save_webhook_request(
         response=response,
         headers=app_platform_event.headers,
     )
-    record_response(sentry_app, response)
+    record_response(redis_key, response)
 
     if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
         raise ApiHostError.from_request(response.request)
