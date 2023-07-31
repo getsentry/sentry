@@ -7,7 +7,7 @@ from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.issues.attributes import _retrieve_group_values, _retrieve_snapshot_values
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import json, snuba
 from sentry.utils.snuba import _snql_query
 
