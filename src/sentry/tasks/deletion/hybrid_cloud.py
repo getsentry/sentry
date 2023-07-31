@@ -60,7 +60,7 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
             return result
         lower, transaction_id = json.loads(v)
         if not (isinstance(lower, int) and isinstance(transaction_id, str)):
-            raise TypeError
+            raise TypeError("Expected watermarks data to be a tuple of (int, str)")
         return lower, transaction_id
 
 
