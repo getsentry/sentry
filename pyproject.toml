@@ -779,7 +779,6 @@ module = [
     "sentry.services.hybrid_cloud.log.impl",
     "sentry.services.hybrid_cloud.notifications.impl",
     "sentry.services.hybrid_cloud.organizationmember_mapping.impl",
-    "sentry.services.hybrid_cloud.rpc",
     "sentry.services.hybrid_cloud.user.impl",
     "sentry.services.smtp",
     "sentry.shared_integrations.client.base",
