@@ -11,15 +11,16 @@ provider_types = {
 
 
 def get_url(organization: Organization, provider_type: str, provider: str) -> str:
-    if not provider_type:
-        return str(organization.absolute_url("/settings/integrations/"))
+    if provider_type:
+        type_name = provider_types.get(provider_type, "")
+        if type_name:
+            return str(
+                organization.absolute_url(
+                    f"/settings/{type_name}/{provider}/",
+                )
+            )
 
-    type_name = provider_types.get(provider_type, "")
-    return str(
-        organization.absolute_url(
-            f"/settings/{type_name}/{provider}/",
-        )
-    )
+    return str(organization.absolute_url("/settings/integrations/"))
 
 
 def get_provider_type(redis_key: str) -> str:
