@@ -16,6 +16,7 @@ interface Props {
   end: Date;
   timeWindow: TimeWindow;
   width: number;
+  className?: string;
   showCursor?: boolean;
 }
 
