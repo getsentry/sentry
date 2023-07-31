@@ -47,7 +47,7 @@ describe('Incident Rules Create', () => {
         resolveThreshold={null}
         thresholdType={AlertRuleThresholdType.BELOW}
         newAlertOrQuery
-        handleMEPAlertDataset={() => {}}
+        onDataLoaded={() => {}}
         isQueryValid
       />
     );

@@ -1,4 +1,9 @@
-import type {AxisPointerComponentOption, ECharts, LineSeriesOption} from 'echarts';
+import type {
+  AxisPointerComponentOption,
+  ECharts,
+  LineSeriesOption,
+  PatternObject,
+} from 'echarts';
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
@@ -15,7 +20,7 @@ export type Series = {
   data: SeriesDataUnit[];
   seriesName: string;
   areaStyle?: {
-    color: string;
+    color: string | PatternObject;
     opacity: number;
   };
   color?: string;

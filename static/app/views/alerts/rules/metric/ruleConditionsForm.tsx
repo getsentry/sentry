@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -16,6 +17,7 @@ import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
@@ -70,6 +72,7 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isExtrapolatedChartData?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -364,8 +367,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, dataset} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      dataset,
+      isExtrapolatedChartData,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -380,6 +389,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     return (
       <Fragment>
         <ChartPanel>
+          {isExtrapolatedChartData && (
+            <OnDemandMetricInfoAlert>
+              <OnDemandMetricInfoIcon size="sm" />
+              {t(
+                'The chart data is an estimate based on the stored transactions that match the filters specified.'
+              )}
+            </OnDemandMetricInfoAlert>
+          )}
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
         {this.renderInterval()}
@@ -529,8 +546,25 @@ const StyledSearchBar = styled(SearchBar)`
   `}
 `;
 
+const OnDemandMetricInfoAlert = styled(Alert)`
+  border-radius: ${space(0.5)} ${space(0.5)} 0 0;
+  border: none;
+  border-bottom: 1px solid ${p => p.theme.blue400};
+  margin-bottom: 0;
+
+  & > span {
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const OnDemandMetricInfoIcon = styled(IconInfo)`
+  color: ${p => p.theme.blue400};
+  margin-right: ${space(1.5)};
+`;
+
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1.3;
 `;

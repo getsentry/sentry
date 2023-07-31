@@ -251,6 +251,7 @@ export type EventsStatsData = [number, {count: number; comparisonCount?: number}
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;

@@ -117,6 +117,7 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   comparisonDelta?: number;
+  isExtrapolatedChartData?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -796,23 +797,23 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     }
   };
 
+  handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
+    const {isExtrapolatedData} = data ?? {};
+
+    this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+    if (!isOnDemandMetricAlert(this.state.dataset, this.state.query)) {
+      this.handleMEPAlertDataset(data);
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
-  renderBody() {
+  renderTriggerChart() {
+    const {organization, ruleId, rule} = this.props;
+
     const {
-      organization,
-      ruleId,
-      rule,
-      onSubmitSuccess,
-      router,
-      disableProjectSelector,
-      eventView,
-      location,
-    } = this.props;
-    const {
-      name,
       query,
       project,
       timeWindow,
@@ -820,16 +821,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
-      thresholdPeriod,
       comparisonDelta,
       comparisonType,
       resolveThreshold,
-      loading,
       eventTypes,
       dataset,
       alertType,
       isQueryValid,
+      location,
     } = this.state;
+
+    const onDemandMetricsAlert = isOnDemandMetricAlert(dataset, query);
 
     const chartProps = {
       organization,
@@ -840,7 +842,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
-      handleMEPAlertDataset: this.handleMEPAlertDataset,
       timeWindow,
       environment,
       resolveThreshold,
@@ -848,11 +849,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
+      isOnDemandMetricAlert: onDemandMetricsAlert,
+      onDataLoaded: this.handleTimeSeriesDataFetched,
     };
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
-        isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
@@ -867,6 +870,40 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         }
       />
     );
+
+    return wizardBuilderChart;
+  }
+
+  renderBody() {
+    const {
+      organization,
+      ruleId,
+      rule,
+      onSubmitSuccess,
+      router,
+      disableProjectSelector,
+      eventView,
+    } = this.props;
+    const {
+      name,
+      query,
+      project,
+      timeWindow,
+      triggers,
+      aggregate,
+      thresholdType,
+      thresholdPeriod,
+      comparisonDelta,
+      comparisonType,
+      resolveThreshold,
+      loading,
+      eventTypes,
+      dataset,
+      alertType,
+      isExtrapolatedChartData,
+    } = this.state;
+
+    const wizardBuilderChart = this.renderTriggerChart();
 
     const triggerForm = (disabled: boolean) => (
       <Triggers
@@ -977,6 +1014,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               }
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
+              isExtrapolatedChartData={isExtrapolatedChartData}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
