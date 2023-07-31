@@ -45,35 +45,13 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
-                    cpus = int(
-                        subprocess.run(
-                            ("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True
-                        ).stdout
-                    )
-                    memsize_bytes = int(
-                        subprocess.run(
-                            ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
-                        ).stdout
-                    )
-                    args = [
-                        "--cpu",
-                        f"{cpus//2}",
-                        "--memory",
-                        f"{memsize_bytes//(2*1024**3)}",
-                    ]
-                    if APPLE_ARM64:
-                       args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
                     subprocess.check_call(
                         (
-                            "colima",
-                            "start",
-                            f"--mount=/private/tmp/colima:w,{os.path.expanduser('~')}:r",
-                            *args,
+                            "python3",
+                            "-uS",
+                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
-                    # check_call not working?
-                    # we're continuing in python after
-                    # FATA[0065] error starting vm: error at 'starting': exit status 1
                 else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
