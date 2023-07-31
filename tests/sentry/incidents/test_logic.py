@@ -639,7 +639,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -962,7 +962,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_custom_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -1009,6 +1009,15 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+    @patch("sentry.incidents.logic.schedule_update_project_config")
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+        alert_rule = self.create_alert_rule(query="transaction.duration:>=100")
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
 
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):

@@ -5,7 +5,6 @@ from typing import Literal, Type
 from uuid import uuid4
 
 from django.core.management import call_command
-from django.db import router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
@@ -89,12 +88,12 @@ from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TransactionTestCase
-from sentry.utils.json import JSONData
-from tests.sentry.backup import (
+from sentry.testutils.helpers.backups import (
     get_exportable_final_derivations_of,
     import_export_then_validate,
-    targets,
 )
+from sentry.utils.json import JSONData
+from tests.sentry.backup import targets
 
 UNIT_TESTED_MODELS = set()
 
@@ -127,7 +126,7 @@ class ModelBackupTests(TransactionTestCase):
 
     def setUp(self):
         # TODO(Hybrid-Cloud): Review whether this is the correct route to apply in this case.
-        with unguarded_write(using=router.db_for_write(Organization)):
+        with unguarded_write(using="default"):
             # Reset the Django database.
             call_command("flush", verbosity=0, interactive=False)
 
