@@ -17,7 +17,7 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  missingMembers: MissingMember[];
+  missingMembers: {integration: string; users: MissingMember[]};
   onSendInvite: (email: string) => void;
   organization: Organization;
 };
@@ -26,23 +26,25 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
   const [showBanner, setShowBanner] = useState<boolean>(false);
 
   const api = useApi();
+  const integrationName = missingMembers.integration;
+  const promptsFeature = integrationName + '_missing_members';
 
   const snoozePrompt = useCallback(async () => {
     await promptsUpdate(api, {
       organizationId: organization.id,
-      feature: 'github_missing_members',
+      feature: promptsFeature,
       status: 'snoozed',
     });
 
     setShowBanner(false);
-  }, [api, organization]);
+  }, [api, organization, promptsFeature]);
 
   useEffect(() => {
     let isUnmounted = false;
 
     promptsCheck(api, {
       organizationId: organization.id,
-      feature: 'github_missing_members',
+      feature: promptsFeature,
     }).then(prompt => {
       if (isUnmounted) {
         return;
@@ -75,7 +77,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     },
   ];
 
-  const cards = missingMembers.slice(0, 4).map(member => (
+  const cards = missingMembers.users.slice(0, 4).map(member => (
     <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
       <MemberCardContent>
         <MemberCardContentRow>
@@ -107,13 +109,13 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
         <MemberCardContentRow>
           <SeeMoreContainer>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingMembers.length,
+              missingMembersCount: missingMembers.users.length,
             })}
           </SeeMoreContainer>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] missing commits', {
-            totalCommits: missingMembers?.reduce(
+            totalCommits: missingMembers.users.reduce(
               (acc, curr) => acc + curr.commitCount,
               0
             ),
@@ -139,7 +141,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
             {tct('[missingMemberCount] missing members that are active in your GitHub', {
-              missingMemberCount: missingMembers.length,
+              missingMemberCount: missingMembers.users.length,
             })}
             <Tooltip title="Based on the last 30 days of commit data">
               <IconInfo size="xs" />

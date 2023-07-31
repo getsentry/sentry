@@ -51,7 +51,7 @@ interface State extends AsyncComponentState {
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-  missingMembers: MissingMember[];
+  missingMembers: {integration: string; users: MissingMember[]}[];
 }
 
 const MemberListHeader = HookOrDefault({
@@ -67,29 +67,34 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       invited: {},
       missingMembers: [
         {
-          commitCount: 1,
-          email: 'hello@sentry.io',
-          userId: 'hello',
-        },
-        {
-          commitCount: 2,
-          email: 'abcd@sentry.io',
-          userId: 'abcd',
-        },
-        {
-          commitCount: 3,
-          email: 'hola@sentry.io',
-          userId: 'hola',
-        },
-        {
-          commitCount: 4,
-          email: 'test@sentry.io',
-          userId: 'test',
-        },
-        {
-          commitCount: 5,
-          email: 'five@sentry.io',
-          userId: 'five',
+          integration: 'github',
+          users: [
+            {
+              commitCount: 1,
+              email: 'hello@sentry.io',
+              userId: 'hello',
+            },
+            {
+              commitCount: 2,
+              email: 'abcd@sentry.io',
+              userId: 'abcd',
+            },
+            {
+              commitCount: 3,
+              email: 'hola@sentry.io',
+              userId: 'hola',
+            },
+            {
+              commitCount: 4,
+              email: 'test@sentry.io',
+              userId: 'test',
+            },
+            {
+              commitCount: 5,
+              email: 'five@sentry.io',
+              userId: 'five',
+            },
+          ],
         },
       ],
     };
@@ -124,6 +129,7 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       ],
 
       ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
+      // ['missingMembers', `/organizations/${organization.slug}/missing-members/`, {}],
     ];
   }
 
@@ -209,7 +215,10 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       addSuccessMessage(tct('Sent invite to [email]', {email}));
       this.setState({members: [...this.state.members, data]});
       this.setState(state => ({
-        missingMembers: state.missingMembers.filter(member => member.email !== email),
+        missingMembers: state.missingMembers.map(integrationMissingMembers => ({
+          ...integrationMissingMembers,
+          users: integrationMissingMembers.users.filter(member => member.email !== email),
+        })),
       }));
     } catch {
       addErrorMessage(t('Error sending invite'));
@@ -336,12 +345,16 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
+    const githubMissingMembers = missingMembers.filter(
+      integrationMissingMembers => integrationMissingMembers.integration === 'github'
+    )[0];
+
     return (
       <Fragment>
-        <Feature organization={organization} features={['gh-invite']}>
+        <Feature organization={organization} features={['integrations-gh-invite']}>
           <Access access={['org:write']}>
             <InviteBanner
-              missingMembers={missingMembers}
+              missingMembers={githubMissingMembers}
               onSendInvite={this.handleInviteMissingMember}
             />
           </Access>
