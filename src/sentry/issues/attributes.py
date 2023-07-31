@@ -11,6 +11,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
+from sentry import options
 from sentry.models import Group, GroupAssignee, GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
 from sentry.utils import json, metrics
@@ -67,7 +68,7 @@ def _log_group_attributes_changed(
 def send_snapshot_values(
     group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
 ) -> None:
-    if not settings.SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA:
+    if not (options.get("issues.group_attributes.send_kafka") or False):
         return
 
     if group_id is None and group is None:

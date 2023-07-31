@@ -2411,9 +2411,6 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
-# The flag activates whether to send group attributes messages to kafka
-SENTRY_SEND_GROUP_ATTRIBUTES_KAFKA = False
-
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = False
 
