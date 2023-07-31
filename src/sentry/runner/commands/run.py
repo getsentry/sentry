@@ -687,6 +687,11 @@ def profiles_consumer(**options):
     default=45000,
 )
 @click.option(
+    "--group-instance-id",
+    type=int,
+    default=None,
+)
+@click.option(
     "--synchronize-commit-log-topic",
     help="Topic that the Snuba writer is publishing its committed offsets to.",
 )
