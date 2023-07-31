@@ -7,7 +7,7 @@ from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 from . import FireTest
