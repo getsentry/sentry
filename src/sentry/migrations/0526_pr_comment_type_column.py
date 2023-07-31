@@ -26,6 +26,19 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_pullrequest_comment" ADD COLUMN "comment_type" NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_pullrequest_comment" DROP COLUMN "comment_type";
+                    """,
+                    hints={"tables": ["sentry_pullrequest_comment"]},
+                )
+            ]
+        ),
         migrations.AddField(
             model_name="pullrequestcomment",
             name="comment_type",
