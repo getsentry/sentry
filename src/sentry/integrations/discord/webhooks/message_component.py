@@ -23,8 +23,20 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 
 from ..utils import logger
 
-NO_IDENTITY_MESSAGE = "Sorry! You need to link your Discord account to your Sentry account to do that. You can do this with `/link`!"
+NO_IDENTITY = "Sorry! You need to link your Discord account to your Sentry account to do that. You can do this with `/link`!"
 NOT_IN_ORG = "Sorry! You must be a member of the org this issue belongs to in order to act on it."
+ASSIGNEE_UPDATED = "Assignee has been updated."
+RESOLVE_DIALOG_OPTIONS = [
+    DiscordSelectMenuOption("Immediately", ""),
+    DiscordSelectMenuOption("In the next release", "inNextRelease"),
+    DiscordSelectMenuOption("In the current release", "inCurrentRelease"),
+]
+RESOLVED = "The issue has been resolved."
+RESOLVED_IN_NEXT_RELEASE = "The issue will be resolved in the next release."
+RESOLVED_IN_CURRENT_RELEASE = "The issue will be resolved in the current release."
+UNRESOLVED = "The issue has been unresolved."
+MARKED_ONGOING = "The issue has been marked as Ongoing."
+IGNORE_UNTIL_ESCALATES = "The issue will be ignored until it escalates."
 
 
 class DiscordMessageComponentHandler(DiscordInteractionHandler):
@@ -47,7 +59,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
         if self.request.user is None:
             logger.info("discord.interaction.component.not_linked", extra={**logging_data})
-            return self.send_message(NO_IDENTITY_MESSAGE)
+            return self.send_message(NO_IDENTITY)
         self.user = self.request.user
 
         if not self.group.organization.has_access(self.user):
@@ -114,7 +126,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         )
 
         message = DiscordMessageBuilder(
-            content="Assignee has been updated.",
+            content=ASSIGNEE_UPDATED,
             flags=DiscordMessageFlags().set_ephemeral(),
         )
         return self.send_message(message, update=True)
@@ -123,11 +135,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         resolve_selector = DiscordSelectMenu(
             custom_id=f"{CustomIds.RESOLVE}:{self.group_id}",
             placeholder="Select the resolution target",
-            options=[
-                DiscordSelectMenuOption("Immediately", ""),
-                DiscordSelectMenuOption("In the next release", "inNextRelease"),
-                DiscordSelectMenuOption("In the current release", "inCurrentRelease"),
-            ],
+            options=RESOLVE_DIALOG_OPTIONS,
         )
         message = DiscordMessageBuilder(
             components=[DiscordActionRow([resolve_selector])],
@@ -139,7 +147,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         status: dict[str, object] = {
             "status": "resolved",
         }
-        message = "The issue has been resolved."
+        message = RESOLVED
 
         selected_option = ""
         if self.request.is_select_component():
@@ -147,10 +155,10 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
         if selected_option == "inNextRelease":
             status["statusDetails"] = {"inNextRelease": True}
-            message = "The issue will be resolved in the next release."
+            message = RESOLVED_IN_NEXT_RELEASE
         elif selected_option == "inCurrentRelease":
             status["statusDetails"] = {"inRelease": "latest"}
-            message = "The issue will be resolved in the current release."
+            message = RESOLVED_IN_CURRENT_RELEASE
 
         self.update_group(status)
         return self.send_message(message, update=self.request.is_select_component())
@@ -164,8 +172,8 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         )
 
         if from_mark_ongoing:
-            return self.send_message("The issue has been marked as Ongoing.")
-        return self.send_message("The issue has been unresolved.")
+            return self.send_message(MARKED_ONGOING)
+        return self.send_message(UNRESOLVED)
 
     def archive(self) -> Response:
         self.update_group(
@@ -174,7 +182,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 "substatus": "until_escalating",
             }
         )
-        return self.send_message("The issue will be ignored until it escalates.")
+        return self.send_message(IGNORE_UNTIL_ESCALATES)
 
     def update_group(self, data: Mapping[str, object]) -> None:
         update_groups(
