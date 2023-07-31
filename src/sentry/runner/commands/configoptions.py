@@ -257,6 +257,7 @@ def sync(ctx):
                 else:
                     presenter_delegator.drift(opt.name, None)
                     drift_found = True
+
     presenter_delegator.flush()
 
     metrics.incr(

@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import List, Tuple
 
 import click
 
@@ -19,12 +19,12 @@ class ConsolePresenter(OptionsPresenter):
     ERROR_MSG = "Invalid option. %s cannot be updated. Reason %s"
 
     def __init__(self) -> None:
-        self.drifted_options = List[(str, Any)]
-        self.channel_updated_options = List[str]
-        self.updated_options = List[(str, Any, Any)]
-        self.set_options = List[(str, Any)]
-        self.unset_options = List[str]
-        self.error_options = List[(str, Any)]
+        self.drifted_options: List[Tuple[str, str]] = []
+        self.channel_updated_options: List[str] = []
+        self.updated_options: List[Tuple[str, str, str]] = []
+        self.set_options: List[Tuple[str, str]] = []
+        self.unset_options: List[str] = []
+        self.error_options: List[Tuple[str, str]] = []
 
     def flush(self) -> None:
         import logging
@@ -35,6 +35,7 @@ class ConsolePresenter(OptionsPresenter):
             click.echo(self.DRIFT_MSG % key)
             logger.error(self.DRIFT_MSG % key)
             if db_value:
+                click.echo(self.DB_VALUE % key)
                 # This is yaml instead of the python representation as the
                 # expected flow, in this case, is to use the output of this
                 # line to copy paste it in the config map.
@@ -55,20 +56,20 @@ class ConsolePresenter(OptionsPresenter):
         for key, reason in self.error_options:
             click.echo(self.ERROR_MSG % (key, reason))
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: str) -> None:
         self.set_options.append((key, value))
 
     def unset(self, key: str) -> None:
         self.unset_options.append(key)
 
-    def update(self, key: str, db_value: Any, value: Any) -> None:
-        self.update_options.append((key, db_value, value))
+    def update(self, key: str, db_value: str, value: str) -> None:
+        self.updated_options.append((key, db_value, value))
 
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: Any) -> None:
-        self.drifted_options((key, db_value))
+    def drift(self, key: str, db_value: str) -> None:
+        self.drifted_options.append((key, db_value))
 
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))

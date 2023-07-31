@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 
 class OptionsPresenter(ABC):
@@ -20,7 +19,7 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: str) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -28,7 +27,7 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, key: str, db_value: Any, value: Any) -> None:
+    def update(self, key: str, db_value: str, value: str) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -36,7 +35,7 @@ class OptionsPresenter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def drift(self, key: str, db_value: Any) -> None:
+    def drift(self, key: str, db_value: str) -> None:
         raise NotImplementedError
 
     @abstractmethod

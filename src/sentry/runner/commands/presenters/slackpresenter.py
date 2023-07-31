@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import List, Tuple
 
 import requests
 
@@ -8,12 +8,12 @@ from sentry.utils import json
 
 class SlackPresenter(OptionsPresenter):
     def __init__(self) -> None:
-        self.drifted_options = List[(str, Any)]
-        self.channel_updated_options = List[str]
-        self.updated_options = List[(str, Any, Any)]
-        self.set_options = List[(str, Any)]
-        self.unset_options = List[str]
-        self.error_options = List[(str, Any)]
+        self.drifted_options: List[Tuple[str, str]] = []
+        self.channel_updated_options: List[str] = []
+        self.updated_options: List[Tuple[str, str, str]] = []
+        self.set_options: List[Tuple[str, str]] = []
+        self.unset_options: List[str] = []
+        self.error_options: List[Tuple[str, str]] = []
 
     def flush(self) -> None:
         json_data = {
@@ -39,19 +39,21 @@ class SlackPresenter(OptionsPresenter):
     def channel_update(self, key: str) -> None:
         self.channel_updated_options.append(key)
 
-    def drift(self, key: str, db_value: Any) -> None:
+    def drift(self, key: str, db_value: str) -> None:
         self.drifted_options.append((key, db_value))
 
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))
 
-    def send_to_webhook(json_data: dict) -> None:
+    def send_to_webhook(self, json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
         # todo: change webhook url (pass in as k8s secret? eng pipes is public)
         # send http post request to engpipes webhook
         # figure out how to add env var k8s secrets?
         # how to pass along which region (as part of secrets)
-        requests.post("url", data=json.dumps(json_data), headers=headers)
+        if self.check_slack_webhook_config():
+            requests.post("url", data=json.dumps(json_data), headers=headers)
 
     def check_slack_webhook_config(self):
-        pass
+        # todo: check if webhook url is being passed in.
+        return False
