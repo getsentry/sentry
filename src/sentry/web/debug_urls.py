@@ -26,6 +26,7 @@ from sentry.web.frontend.debug.debug_new_processing_issues_email import (
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+from sentry.web.frontend.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,
@@ -149,4 +150,5 @@ urlpatterns = [
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
+    re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
 ]
