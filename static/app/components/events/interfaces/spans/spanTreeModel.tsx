@@ -29,6 +29,8 @@ import {
   parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  SpanSubTimingMark,
+  subTimingMarkToTime,
 } from './utils';
 
 export const MIN_SIBLING_GROUP_SIZE = 5;
@@ -745,15 +747,21 @@ class SpanTreeModel {
               parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
               parsedTrace.traceEndTimestamp > this.span.timestamp
             ) {
-              const startTimeDelta =
-                this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+              const responseStart = subTimingMarkToTime(
+                this.span,
+                SpanSubTimingMark.HTTP_RESPONSE_START
+              ); // Response start is a better approximation
 
-              parsedTrace.traceStartTimestamp += startTimeDelta;
-              parsedTrace.traceEndTimestamp += startTimeDelta;
+              const spanTimeOffset = responseStart
+                ? responseStart - parsedTrace.traceEndTimestamp
+                : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+
+              parsedTrace.traceStartTimestamp += spanTimeOffset;
+              parsedTrace.traceEndTimestamp += spanTimeOffset;
 
               parsedTrace.spans.forEach(span => {
-                span.start_timestamp += startTimeDelta;
-                span.timestamp += startTimeDelta;
+                span.start_timestamp += spanTimeOffset;
+                span.timestamp += spanTimeOffset;
               });
 
               this.isEmbeddedTransactionTimeAdjusted = true;
