@@ -39,13 +39,14 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
-from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    ret = indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    assert ret is not None
+    return ret
 
 
 perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
@@ -70,8 +71,8 @@ MOCKED_DERIVED_METRICS.update(
             metric_mri="crash_free_fake",
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ERRORED_SET.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: complement(
-                division_float(*args, metric_ids, alias="crash_free_fake")
+            snql=lambda arg1_snql, org_id, metric_ids, alias=None: complement(
+                division_float(arg1_snql, metric_ids, alias="crash_free_fake")
             ),
         ),
         "random_composite": CompositeEntityDerivedMetric(
@@ -414,7 +415,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         of SingleEntityDerivedMetric, we are still validating that they exist
         """
         assert self.sessions_errored.get_entity(
-            projects=[PseudoProject(1, 1)], use_case_id=UseCaseID.SESSIONS
+            projects=[self.project], use_case_id=UseCaseID.SESSIONS
         ) == {
             "metrics_counters": [
                 SessionMRI.ERRORED_PREAGGREGATED.value,
@@ -429,7 +430,9 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
     def test_get_entity_and_validate_dependency_tree_of_single_entity_constituents(self):
         use_case_id = UseCaseID.SESSIONS
 
-        assert self.sessions_errored.get_entity(projects=[1], use_case_id=use_case_id) == {
+        assert self.sessions_errored.get_entity(
+            projects=[self.project], use_case_id=use_case_id
+        ) == {
             "metrics_counters": [
                 SessionMRI.ERRORED_PREAGGREGATED.value,
                 SessionMRI.CRASHED_AND_ABNORMAL.value,
@@ -437,9 +440,10 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             "metrics_sets": [SessionMRI.ERRORED_SET.value],
         }
         component_entities = DERIVED_METRICS[SessionMRI.HEALTHY.value].get_entity(
-            projects=[1], use_case_id=use_case_id
+            projects=[self.project], use_case_id=use_case_id
         )
 
+        assert isinstance(component_entities, dict)
         assert sorted(component_entities["metrics_counters"]) == [
             SessionMRI.ALL.value,
             SessionMRI.ERRORED_PREAGGREGATED.value,
@@ -448,12 +452,14 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
 
     def test_generate_metric_ids(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):
-            self.sessions_errored.generate_metric_ids(projects=[1], use_case_id=UseCaseID.SESSIONS)
+            self.sessions_errored.generate_metric_ids(
+                projects=[self.project], use_case_id=UseCaseID.SESSIONS
+            )
 
     def test_generate_select_snql_of_derived_metric(self):
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_select_statements(
-                projects=[1],
+                projects=[self.project],
                 use_case_id=UseCaseID.SESSIONS,
                 alias="test",
             )
@@ -462,7 +468,7 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_orderby_clause(
                 direction=Direction.ASC,
-                projects=[1],
+                projects=[self.project],
                 use_case_id=UseCaseID.SESSIONS,
                 alias="test",
             )

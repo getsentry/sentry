@@ -7,6 +7,7 @@ from django.urls import reverse
 from sentry import audit_log, auth
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models import (
     AuditLogEntry,
@@ -140,7 +141,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             with receivers_raise_on_send():
                 resp = self.client.post(configure_path, {"provider": "dummy", "init": True})
             assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+            assert PLACEHOLDER_TEMPLATE in resp.content.decode("utf-8")
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 path = reverse("sentry-auth-sso")
@@ -199,7 +200,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {"provider": "dummy", "init": True})
 
         assert resp.status_code == 200
-        assert resp.content.decode("utf-8") == self.provider.TEMPLATE
+        assert resp.content.decode("utf-8") == PLACEHOLDER_TEMPLATE
 
     def test_cannot_start_auth_flow_feature_missing(self):
         organization = self.create_organization(name="foo", owner=self.user)
@@ -491,15 +492,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(auth_provider.flags, "scim_enabled")
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert auth_provider.get_scim_token() is not None
-        assert (
-            get_scim_url(
-                auth_provider,
-                organization_service.get_organization_by_id(
-                    id=auth_provider.organization_id
-                ).organization,
-            )
-            is not None
-        )
+        org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
+        assert org_member is not None
+        assert get_scim_url(auth_provider, org_member.organization) is not None
 
         # "add" some scim users
         u1 = self.create_user()
@@ -535,15 +530,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
-        assert (
-            get_scim_url(
-                auth_provider,
-                organization_service.get_organization_by_id(
-                    id=auth_provider.organization_id
-                ).organization,
-            )
-            is None
-        )
+        org_member = organization_service.get_organization_by_id(id=auth_provider.organization_id)
+        assert org_member is not None
+        assert get_scim_url(auth_provider, org_member.organization) is None
         with assume_test_silo_mode(SiloMode.CONTROL), pytest.raises(
             SentryAppInstallationForProvider.DoesNotExist
         ):

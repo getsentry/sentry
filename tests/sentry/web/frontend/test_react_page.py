@@ -94,7 +94,7 @@ class ReactPageViewTest(TestCase):
         ]:
             resp = self.client.get(path)
             assert resp.status_code == 302
-            assert resp.url == f"/auth/login/{org.slug}/"
+            assert resp.headers["Location"] == f"/auth/login/{org.slug}/"
 
     def test_redirect_to_customer_domain(self):
         user = self.create_user("bar@example.com")

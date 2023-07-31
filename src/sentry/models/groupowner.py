@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
 from datetime import timedelta
@@ -41,7 +43,7 @@ GROUP_OWNER_TYPE = {
 
 
 class OwnersSerialized(TypedDict):
-    type: GroupOwnerType
+    type: str
     owner: str
     date_added: models.DateTimeField
 
@@ -74,7 +76,7 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        keys = list(filter(None, [self.user_id, self.team_id]))
+        keys = [k for k in (self.user_id, self.team_id) if k is not None]
         assert len(keys) != 2, "Must have team or user or neither, not both"
         super().save(*args, **kwargs)
 
@@ -215,7 +217,7 @@ class GroupOwner(Model):
             cache.delete_many(cache_keys)
 
 
-def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
+def get_owner_details(group_list: List[Group], user: Any) -> dict[int, List[OwnersSerialized]]:
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids).exclude(
         user_id__isnull=True, team_id__isnull=True
