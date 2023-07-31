@@ -37,22 +37,24 @@ class Migration(CheckedMigration):
                     """,
                     hints={"tables": ["sentry_pullrequest_comment"]},
                 )
-            ]
-        ),
-        migrations.AddField(
-            model_name="pullrequestcomment",
-            name="comment_type",
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-        ),
-        migrations.AlterField(
-            model_name="pullrequestcomment",
-            name="pull_request",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
-            ),
-        ),
-        migrations.AlterUniqueTogether(
-            name="pullrequestcomment",
-            unique_together={("pull_request", "comment_type")},
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="pullrequestcomment",
+                    name="comment_type",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
+                ),
+                migrations.AlterField(
+                    model_name="pullrequestcomment",
+                    name="pull_request",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
+                    ),
+                ),
+                migrations.AlterUniqueTogether(
+                    name="pullrequestcomment",
+                    unique_together={("pull_request", "comment_type")},
+                ),
+            ],
         ),
     ]
