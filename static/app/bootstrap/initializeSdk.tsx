@@ -136,11 +136,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        */
       'AbortError: Fetch is aborted',
       /**
-       * Thrown when firefox prevents an add-on from refrencing a DOM element
-       * that has been removed.
-       */
-      "TypeError: can't access dead object",
-      /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
        */
