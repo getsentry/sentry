@@ -110,7 +110,7 @@ jobs:
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
-        uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38 # main
+        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: apply eslint style fixes'
