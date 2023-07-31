@@ -29,7 +29,7 @@ APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 USE_COLIMA = bool(shutil.which("colima"))
 
 if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/docker.sock")
+    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
