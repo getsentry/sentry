@@ -54,7 +54,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
           </SeeMoreContainer>
         </MemberCardContentRow>
         <Subtitle>
-          {tct('Accounting for [totalCommits] missing commits', {
+          {tct('Accounting for [totalCommits] recent commits', {
             totalCommits: missingMembers?.users?.reduce(
               (acc, curr) => acc + curr.commitCount,
               0
