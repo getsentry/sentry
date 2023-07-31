@@ -8,6 +8,7 @@ from requests.exceptions import Timeout
 
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
@@ -634,19 +635,22 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self):
+        self.organization = self.create_organization(id=1)
         self.sentry_app = self.create_sentry_app(
             name="Test App",
-            organization=self.project.organization,
+            organization=self.organization,
             events=["issue.resolved", "issue.ignored", "issue.assigned"],
         )
         self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
 
         self.install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=self.sentry_app.slug
+            organization=self.organization, slug=self.sentry_app.slug
         )
-
         self.issue = self.create_group(project=self.project)
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        self.integration_buffer = IntegrationRequestBuffer(
+            self.sentry_app._get_redis_key(self.organization.id)
+        )
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
@@ -667,6 +671,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
+        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -690,6 +696,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["response_body"] == html_content
+        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -713,6 +721,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
         assert json.loads(first_request["response_body"]) == json_content
+        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
@@ -728,6 +738,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 200
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
+        assert (self.integration_buffer._get()[0]["success_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
@@ -747,6 +759,8 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
+        assert (self.integration_buffer._get()[0]["timeout_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -770,3 +784,18 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
+    def test_does_not_raise_error_if_unpublished(self, safe_urlopen):
+        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        data = {"issue": serialize(self.issue)}
+        # we don't log errors for unpublished and internal apps
+        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert (self.integration_buffer._get()[0]["timeout_count"]) == 1
+        assert self.integration_buffer.is_integration_broken() is False

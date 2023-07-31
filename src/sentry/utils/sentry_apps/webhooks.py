@@ -38,7 +38,7 @@ def ignore_unpublished_app_errors(func):
 
 
 def is_timeout(e: Exception) -> bool:
-    if e is Timeout or e is ConnectionError:
+    if type(e) is Timeout or type(e) is ConnectionError:
         return True
     return False
 
@@ -139,7 +139,7 @@ def send_and_save_webhook_request(
             url=url,
             headers=app_platform_event.headers,
         )
-        record_timeout(sentry_app, e)
+        record_timeout(redis_key, e)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
