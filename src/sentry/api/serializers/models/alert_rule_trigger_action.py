@@ -30,7 +30,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         ]:
             return int(action.target_identifier)
         if action.type == AlertRuleTriggerAction.Type.OPSGENIE.value:
-            # return team ID
+            # return team ID: opsgenie team IDs are strings
             return action.target_identifier
         # if an input_channel_id is provided, we flip these to display properly
         return (

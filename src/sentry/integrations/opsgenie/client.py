@@ -92,7 +92,7 @@ class OpsgenieClient(IntegrationProxyClient):
             event = data
             payload = self._get_issue_alert_payload(data, rules, event, group)
         else:
-            # if we're acknowledging the alert
+            # if we're acknowledging the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
                 alias = data["identifier"]
                 resp = self.post(

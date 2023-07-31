@@ -41,6 +41,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -1332,9 +1333,9 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
-    target_value,
-    organization,
-    integration_id,
+    target_value: Optional[str],
+    organization: RpcOrganizationIntegration,
+    integration_id: int,
     use_async_lookup=False,
     input_channel_id=None,
     integrations=None,

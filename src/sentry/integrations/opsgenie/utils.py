@@ -12,7 +12,7 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 from .client import OpsgenieClient
 
 
-def build_incident_attachment(incident, new_status: IncidentStatus, metric_value=None):
+def build_incident_attachment(incident: Incident, new_status: IncidentStatus, metric_value=None):
     data = incident_attachment_info(incident, new_status, metric_value)
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
@@ -20,17 +20,16 @@ def build_incident_attachment(incident, new_status: IncidentStatus, metric_value
     priority = "P1"
     if new_status == IncidentStatus.WARNING:
         priority = "P2"
-    else:
-        payload = {
-            "message": incident.alert_rule.name,
-            "alias": alert_key,
-            "description": data["text"],
-            "source": "Sentry",
-            "priority": priority,
-            "details": {
-                "URL": data["title_link"],  # type: ignore
-            },
-        }
+    payload = {
+        "message": incident.alert_rule.name,
+        "alias": alert_key,
+        "description": data["text"],
+        "source": "Sentry",
+        "priority": priority,
+        "details": {
+            "URL": data["title_link"],  # type: ignore
+        },
+    }
     return payload
 
 
