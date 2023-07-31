@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Any, Sequence
+from typing import Any, Container
 from uuid import uuid4
 
 from django.db.models import F, Field, Model
@@ -52,7 +52,7 @@ def resolve_combined_expression(instance: Model, node: BaseExpression) -> BaseEx
 def slugify_instance(
     inst: Model,
     label: str,
-    reserved: Sequence[str] = (),
+    reserved: Container[str] = (),
     max_length: int = 30,
     field_name: str = "slug",
     *args: Any,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.utils.crypto import get_random_string
@@ -18,7 +20,7 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 class SetupWizard(Endpoint):
     permission_classes = ()
 
-    def delete(self, request: Request, wizard_hash=None) -> Response:
+    def delete(self, request: Request, wizard_hash=None) -> Response | None:
         """
         This removes the cache content for a specific hash
         """
@@ -26,6 +28,7 @@ class SetupWizard(Endpoint):
             key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
             default_cache.delete(key)
             return Response(status=200)
+        return None
 
     def get(self, request: Request, wizard_hash=None) -> Response:
         """

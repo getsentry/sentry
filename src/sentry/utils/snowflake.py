@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.conf import settings
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
@@ -19,6 +21,8 @@ class MaxSnowflakeRetryError(APIException):
 
 
 class SnowflakeIdMixin:
+    id: models.Field[int, int]
+
     def save_with_snowflake_id(self, snowflake_redis_key, save_callback):
         for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
             if not self.id:

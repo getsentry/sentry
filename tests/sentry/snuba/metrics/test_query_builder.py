@@ -1,6 +1,8 @@
 import re
-from dataclasses import dataclass, replace
+import types
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 
 import freezegun
@@ -76,11 +78,8 @@ from sentry.utils.pytest.fixtures import django_db_all
 pytestmark = pytest.mark.sentry_metrics
 
 
-@dataclass
-class PseudoProject:
-    organization_id: int
-    id: int
-    slug: str = "project-slug"
+def PseudoProject(organization_id: int, id: int) -> Any:  # TODO: use real projects
+    return types.SimpleNamespace(organization_id=organization_id, id=id, slug="project-slug")
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)

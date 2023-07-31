@@ -242,7 +242,8 @@ def record_group_history_from_activity_type(
     # Substatus-based GroupHistory should override activity-based GroupHistory since it's more specific.
     if group.substatus:
         status_str = GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS.get(group.substatus, None)
-        status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
+        if status_str is not None:
+            status = STRING_TO_STATUS_LOOKUP.get(status_str, status)
 
     if status is not None:
         return record_group_history(group, status, actor, release)

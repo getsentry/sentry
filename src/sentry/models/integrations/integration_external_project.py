@@ -1,18 +1,15 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    DefaultFieldsModel,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, Model, control_silo_only_model
 
 
 @control_silo_only_model
-class IntegrationExternalProject(DefaultFieldsModel):
+class IntegrationExternalProject(Model):
     __include_in_export__ = False
 
     organization_integration_id = BoundedPositiveIntegerField(db_index=True)
+    date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=128)
     external_id = models.CharField(max_length=64)

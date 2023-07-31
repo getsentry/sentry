@@ -3,13 +3,15 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Optional
 
+from django.db import models
+
 from sentry import features
 from sentry.app import env
 from sentry.utils.http import is_using_customer_domain
 
 
 class OrganizationAbsoluteUrlMixin:
-    slug: str
+    slug: str | models.Field[str, str]
 
     @cached_property
     def __has_customer_domain(self) -> bool:

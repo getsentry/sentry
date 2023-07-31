@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -309,9 +309,8 @@ def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = cast(int, project.id)
 
-    detection_settings = get_detection_settings(project_id)
+    detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
@@ -334,7 +333,7 @@ def _detect_performance_problems(
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
-    organization = cast(Organization, project.organization)
+    organization = project.organization
     if project is None or organization is None:
         return []
 

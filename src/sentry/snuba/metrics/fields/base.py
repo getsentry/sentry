@@ -21,7 +21,6 @@ from typing import (
     Set,
     Tuple,
     Union,
-    cast,
 )
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
@@ -152,7 +151,7 @@ def run_metrics_query(
         tenant_ids={"organization_id": org_id},
     )
     result = raw_snql_query(request, referrer, use_cache=True)
-    return cast(List[SnubaDataType], result["data"])
+    return result["data"]
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
@@ -225,7 +224,7 @@ def _get_entity_of_metric_mri(
 
 def org_id_from_projects(projects: Sequence[Project]) -> int:
     assert len({p.organization_id for p in projects}) == 1
-    return cast(int, projects[0].organization_id)
+    return projects[0].organization_id
 
 
 @dataclass

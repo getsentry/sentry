@@ -67,10 +67,10 @@ class VercelExtensionConfigurationTest(TestCase):
 
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        assert resp.url.startswith(
+        assert resp.headers["Location"].startswith(
             f"http://testserver/settings/{self.org.slug}/integrations/vercel/"
         )
-        assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
+        assert resp.headers["Location"].endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
         with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
@@ -84,13 +84,13 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
-        assert resp.url.startswith("/extensions/vercel/link/?")
+        assert resp.headers["Location"].startswith("/extensions/vercel/link/?")
         expected_query_string = {
             "configurationId": ["config_id"],
             "code": ["my-code"],
             "next": ["https://example.com"],
         }
-        parsed_url = urlparse(resp.url)
+        parsed_url = urlparse(resp.headers["Location"])
         assert parse_qs(parsed_url.query) == expected_query_string
 
     def test_logged_in_many_orgs(self):
@@ -103,13 +103,13 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
-        assert resp.url.startswith("/extensions/vercel/link/?")
+        assert resp.headers["Location"].startswith("/extensions/vercel/link/?")
         expected_query_string = {
             "configurationId": ["config_id"],
             "code": ["my-code"],
             "next": ["https://example.com"],
         }
-        parsed_url = urlparse(resp.url)
+        parsed_url = urlparse(resp.headers["Location"])
         assert parse_qs(parsed_url.query) == expected_query_string
 
     @responses.activate
@@ -124,14 +124,14 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(self.path, self.params)
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        assert resp.url.startswith("/extensions/vercel/link/?")
+        assert resp.headers["Location"].startswith("/extensions/vercel/link/?")
         expected_query_string = {
             "configurationId": ["config_id"],
             "code": ["my-code"],
             "next": ["https://example.com"],
             "orgSlug": [org.slug],
         }
-        parsed_url = urlparse(resp.url)
+        parsed_url = urlparse(resp.headers["Location"])
         assert parse_qs(parsed_url.query) == expected_query_string
 
     def test_logged_out(self):
@@ -139,11 +139,11 @@ class VercelExtensionConfigurationTest(TestCase):
 
         assert resp.status_code == 302
         # URL encoded post-login redirect URL=
-        assert resp.url.startswith("/auth/login/?")
+        assert resp.headers["Location"].startswith("/auth/login/?")
         # URL encoded post-login redirect URL=
         assert (
             "next=%2Fextensions%2Fvercel%2Fconfigure%2F%3FconfigurationId%3Dconfig_id%26code%3Dmy-code%26next%3Dhttps%253A%252F%252Fexample.com"
-            in resp.url
+            in resp.headers["Location"]
         )
 
     @responses.activate
@@ -163,7 +163,7 @@ class VercelExtensionConfigurationTest(TestCase):
 
         # Goes straight to Vercel OAuth
         assert resp.status_code == 302
-        assert resp.url.startswith(
+        assert resp.headers["Location"].startswith(
             f"http://{self.org.slug}.testserver/settings/integrations/vercel/"
         )
-        assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
+        assert resp.headers["Location"].endswith("?next=https%3A%2F%2Fexample.com")

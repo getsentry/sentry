@@ -27,7 +27,7 @@ class IssuesByTagProcessor:
         self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
-            tagstore.get_tag_key(
+            tagstore.backend.get_tag_key(
                 self.project.id, environment_id, self.lookup_key, tenant_ids=tenant_ids
             )
         except tagstore.TagKeyNotFound:
@@ -70,7 +70,7 @@ class IssuesByTagProcessor:
 
     @staticmethod
     def get_lookup_key(key):
-        return str(f"sentry:{key}") if tagstore.is_reserved_key(key) else key
+        return str(f"sentry:{key}") if tagstore.backend.is_reserved_key(key) else key
 
     @staticmethod
     def get_eventuser_callback(project_id):
@@ -105,7 +105,7 @@ class IssuesByTagProcessor:
         """
         Returns list of GroupTagValues
         """
-        return tagstore.get_group_tag_value_iter(
+        return tagstore.backend.get_group_tag_value_iter(
             group=self.group,
             environment_ids=[self.environment_id],
             key=self.lookup_key,

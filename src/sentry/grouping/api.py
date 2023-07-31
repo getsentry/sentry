@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import re
 from typing import TypedDict
 
 from sentry import options
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, InvalidEnhancerConfig
+from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -14,6 +17,7 @@ from sentry.grouping.utils import (
 )
 from sentry.grouping.variants import (
     HIERARCHICAL_VARIANTS,
+    BaseVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -145,7 +149,7 @@ def get_grouping_config_dict_for_event_data(data, project):
 
 
 def get_default_enhancements(config_id=None):
-    base = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements(rules=[], bases=[base]).dumps()
@@ -221,9 +225,9 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 
 def _get_calculated_grouping_variants_for_event(event, context):
-    winning_strategy = None
-    precedence_hint = None
-    per_variant_components = {}
+    winning_strategy: str | None = None
+    precedence_hint: str | None = None
+    per_variant_components: dict[str, list[BaseVariant]] = {}
 
     for strategy in context.config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, context=context)
@@ -253,7 +257,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
     return rv
 
 
-def get_grouping_variants_for_event(event, config=None):
+def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -262,7 +266,7 @@ def get_grouping_variants_for_event(event, config=None):
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
 
-        rv = {
+        rv: dict[str, BaseVariant] = {
             "hashed-checksum": ChecksumVariant(hash_from_values(checksum), hashed=True),
         }
 

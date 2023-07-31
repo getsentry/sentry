@@ -6,13 +6,13 @@ from django.db import models, router, transaction
 from django.db.models import CASCADE
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 @control_silo_only_model
-class PagerDutyService(DefaultFieldsModel):
+class PagerDutyService(Model):
     __include_in_export__ = False
 
     organization_integration = FlexibleForeignKey(
@@ -25,6 +25,7 @@ class PagerDutyService(DefaultFieldsModel):
     integration_id = BoundedBigIntegerField(db_index=False)
     integration_key = models.CharField(max_length=255)
     service_name = models.CharField(max_length=255)
+    date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

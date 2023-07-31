@@ -98,7 +98,7 @@ class BaseModel(models.Model):
 
 
 class Model(BaseModel):
-    id = BoundedBigAutoField(primary_key=True)
+    id: models.Field[int, int] = BoundedBigAutoField(primary_key=True)
 
     class Meta:
         abstract = True

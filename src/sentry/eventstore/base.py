@@ -269,7 +269,7 @@ class EventStorage(Service):
             if not node_ids:
                 return
 
-            node_results = nodestore.get_multi(node_ids)
+            node_results = nodestore.backend.get_multi(node_ids)
 
             for item, node in object_node_list:
                 data = node_results.get(node.id) or {}

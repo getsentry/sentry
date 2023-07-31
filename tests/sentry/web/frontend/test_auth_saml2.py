@@ -193,6 +193,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         def side_effect(request):
             helper = original_get_for_request(request)
+            assert helper is not None
             # This could occur if redis state has expired
             helper.state.step_index = None
             return helper

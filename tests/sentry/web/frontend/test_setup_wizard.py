@@ -125,7 +125,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
         assert (
-            resp.url
+            resp.headers["Location"]
             == "https://sentry.io/signup/?next=http%3A%2F%2Ftestserver%2Faccount%2Fsettings%2Fwizard%2Fxyz%2F&test=other"
         )
 
@@ -136,4 +136,4 @@ class SetupWizard(PermissionTestCase):
         resp = self.client.get(url)
 
         assert resp.status_code == 302
-        assert resp.url == "/auth/login/"
+        assert resp.headers["Location"] == "/auth/login/"

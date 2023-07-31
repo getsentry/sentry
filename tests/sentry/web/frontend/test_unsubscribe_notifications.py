@@ -5,48 +5,49 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.linksign import generate_signed_link
 
 
-class UnsubscribeNotificationsBaseTest:
-    def create_instance(self):
-        raise NotImplementedError()
+class Base:
+    class UnsubscribeNotificationsBase(TestCase):
+        def create_instance(self):
+            raise NotImplementedError()
 
-    def view_name(self):
-        raise NotImplementedError()
+        def view_name(self):
+            raise NotImplementedError()
 
-    def assert_unsubscribed(self):
-        raise NotImplementedError()
+        def assert_unsubscribed(self, instance, user):
+            raise NotImplementedError()
 
-    def test_renders(self):
-        instance = self.create_instance()
-        path = generate_signed_link(user=self.user, viewname=self.view_name, args=[instance.id])
+        def test_renders(self):
+            instance = self.create_instance()
+            path = generate_signed_link(user=self.user, viewname=self.view_name, args=[instance.id])
 
-        resp = self.client.get(path)
-        assert resp.status_code == 200
+            resp = self.client.get(path)
+            assert resp.status_code == 200
 
-    def test_process(self):
-        instance = self.create_instance()
-        path = generate_signed_link(user=self.user, viewname=self.view_name, args=[instance.id])
+        def test_process(self):
+            instance = self.create_instance()
+            path = generate_signed_link(user=self.user, viewname=self.view_name, args=[instance.id])
 
-        resp = self.client.post(path, data={"op": "unsubscribe"})
-        assert resp.status_code == 302
-        self.assert_unsubscribed(instance, self.user)
+            resp = self.client.post(path, data={"op": "unsubscribe"})
+            assert resp.status_code == 302
+            self.assert_unsubscribed(instance, self.user)
 
-    def test_no_access(self):
-        user = self.create_user("foo@example.com")
-        instance = self.create_instance()
-        path = generate_signed_link(user=user, viewname=self.view_name, args=[instance.id])
+        def test_no_access(self):
+            user = self.create_user("foo@example.com")
+            instance = self.create_instance()
+            path = generate_signed_link(user=user, viewname=self.view_name, args=[instance.id])
 
-        resp = self.client.get(path)
-        assert resp.status_code == 404
+            resp = self.client.get(path)
+            assert resp.status_code == 404
 
-    def test_invalid_issue(self):
-        path = generate_signed_link(user=self.user, viewname=self.view_name, args=[13413434])
+        def test_invalid_issue(self):
+            path = generate_signed_link(user=self.user, viewname=self.view_name, args=[13413434])
 
-        resp = self.client.get(path)
-        assert resp.status_code == 404
+            resp = self.client.get(path)
+            assert resp.status_code == 404
 
 
 @region_silo_test(stable=True)
-class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCase):
+class UnsubscribeIssueNotificationsTest(Base.UnsubscribeNotificationsBase):
     view_name = "sentry-account-email-unsubscribe-issue"
 
     def create_instance(self):
@@ -63,7 +64,7 @@ class UnsubscribeIssueNotificationsTest(UnsubscribeNotificationsBaseTest, TestCa
 
 
 @region_silo_test(stable=True)
-class UnsubscribeIncidentNotificationsTest(UnsubscribeNotificationsBaseTest, TestCase):
+class UnsubscribeIncidentNotificationsTest(Base.UnsubscribeNotificationsBase):
     view_name = "sentry-account-email-unsubscribe-incident"
 
     def create_instance(self):

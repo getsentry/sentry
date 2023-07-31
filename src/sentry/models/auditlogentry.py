@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any, Mapping
 
 from django.db import models
 from django.utils import timezone
@@ -29,8 +32,9 @@ def format_scim_token_actor_name(actor):
         r".*([0-9a-fA-F]{6})\-[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{7}"
     )
     scim_match = re.match(scim_regex, actor.get_display_name())
-    uuid_prefix = scim_match.groups()[0]
-    return "SCIM Internal Integration (" + uuid_prefix + ")"
+    assert scim_match is not None
+    uuid_prefix = scim_match[1]
+    return f"SCIM Internal Integration ({uuid_prefix})"
 
 
 @control_silo_only_model
@@ -56,7 +60,7 @@ class AuditLogEntry(Model):
     # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField()
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
-    data = GzippedDictField()
+    data: models.Field[Mapping[str, Any] | None, dict[str, Any]] = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -110,7 +114,7 @@ class AuditLogEntry(Model):
         )
 
     @classmethod
-    def from_event(cls, event: AuditLogEvent) -> "AuditLogEntry":
+    def from_event(cls, event: AuditLogEvent) -> AuditLogEntry:
         """
         Deserializes a kafka event object into a control silo database item.  Keep in mind that these event objects
         could have been created from previous code versions -- the events are stored on an async queue for indefinite

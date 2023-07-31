@@ -316,12 +316,12 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
         assert location == "https://example.com"
-        fragment = parse_qs(fragment)
-        assert fragment["access_token"] == [token.token]
-        assert fragment["token_type"] == ["bearer"]
-        assert "refresh_token" not in fragment
-        assert fragment["expires_in"]
-        assert fragment["token_type"] == ["bearer"]
+        fragment_d = parse_qs(fragment)
+        assert fragment_d["access_token"] == [token.token]
+        assert fragment_d["token_type"] == ["bearer"]
+        assert "refresh_token" not in fragment_d
+        assert fragment_d["expires_in"]
+        assert fragment_d["token_type"] == ["bearer"]
 
     def test_minimal_params_code_deny_flow(self):
         self.login_as(self.user)
@@ -339,7 +339,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
         assert location == "https://example.com"
-        fragment = parse_qs(fragment)
-        assert fragment == {"error": ["access_denied"]}
+        fragment_d = parse_qs(fragment)
+        assert fragment_d == {"error": ["access_denied"]}
 
         assert not ApiToken.objects.filter(user=self.user).exists()

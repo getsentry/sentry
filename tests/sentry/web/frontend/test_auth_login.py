@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import newsletter
-from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import AuthProvider, OrganizationMember, User
 from sentry.models.organization import Organization
@@ -184,7 +184,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         )
         frontend_events = {"event_name": "Sign Up"}
         marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
-        assert marketing_query in resp.url
+        assert marketing_query in resp.headers["Location"]
 
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
         assert user.email == "test-a-really-long-email-address@example.com"
@@ -450,7 +450,7 @@ class AuthLoginNewsletterTest(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
-        assert newsletter.get_subscriptions(user) == {"subscriptions": []}
+        assert newsletter.backend.get_subscriptions(user) == {"subscriptions": []}
 
     def test_registration_subscribe_to_newsletter(self):
         with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
@@ -471,9 +471,9 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
 
-        results = newsletter.get_subscriptions(user)["subscriptions"]
+        results = newsletter.backend.get_subscriptions(user)["subscriptions"]
         assert len(results) == 1
-        assert results[0].list_id == newsletter.get_default_list_id()
+        assert results[0].list_id == newsletter.backend.get_default_list_id()
         assert results[0].subscribed
         assert not results[0].verified
 

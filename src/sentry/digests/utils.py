@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import Any
-from typing import Counter as CounterType
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from django.db.models import Q
 
@@ -21,7 +19,7 @@ from sentry.types.integrations import ExternalProviders
 
 def get_digest_metadata(
     digest: Digest,
-) -> tuple[datetime | None, datetime | None, CounterType[str]]:
+) -> tuple[datetime | None, datetime | None, Counter[Group]]:
     """
     Inspect a digest down to its events and return three pieces of data:
      - the timestamp of the FIRST event chronologically
@@ -31,7 +29,7 @@ def get_digest_metadata(
     start: datetime | None = None
     end: datetime | None = None
 
-    counts: CounterType[str] = Counter()
+    counts: Counter[Group] = Counter()
     for rule, groups in digest.items():
         counts.update(groups.keys())
 

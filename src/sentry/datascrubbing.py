@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import copy
+from typing import Any
 
 import sentry_relay
 from rest_framework import serializers
@@ -7,7 +10,7 @@ from sentry.utils import json, metrics
 from sentry.utils.safe import safe_execute
 
 
-def _escape_key(key):
+def _escape_key(key: str) -> str:
     """
     Attempt to escape the key for PII config path selectors.
 
@@ -100,14 +103,14 @@ def scrub_data(project, event):
     return event
 
 
-def _merge_pii_configs(prefixes_and_configs):
+def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
     """
     Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
 
     This is used to apply organization and project configs at once,
     and still get unique references to rule names.
     """
-    merged_config = {}
+    merged_config: dict[str, Any] = {}
 
     for prefix, partial_config in prefixes_and_configs:
         if not partial_config:
@@ -142,7 +145,7 @@ def validate_pii_config_update(organization, value):
     try:
         sentry_relay.validate_pii_config(value)
     except ValueError as e:
-        raise serializers.ValidationError(e)
+        raise serializers.ValidationError(str(e))
 
     return value
 

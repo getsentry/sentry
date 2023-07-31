@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Sequence
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -8,13 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
-from sentry.db.models import (
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    JSONField,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model, sane_repr
 from sentry.models.organization import Organization
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
@@ -24,7 +19,7 @@ READ_CACHE_DURATION = 3600
 
 
 @region_silo_only_model
-class ProjectCodeOwners(DefaultFieldsModel):
+class ProjectCodeOwners(Model):
 
     __include_in_export__ = False
     # no db constraint to prevent locks on the Project table
@@ -37,7 +32,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
     raw = models.TextField(null=True)
     # schema ⇒ transformed into IssueOwner syntax
     schema = JSONField(null=True)
-    # override date_added from DefaultFieldsModel
+    date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -47,11 +42,11 @@ class ProjectCodeOwners(DefaultFieldsModel):
     __repr__ = sane_repr("project_id", "id")
 
     @classmethod
-    def get_cache_key(self, project_id):
+    def get_cache_key(self, project_id: int) -> str:
         return f"projectcodeowners_project_id:1:{project_id}"
 
     @classmethod
-    def get_codeowners_cached(self, project_id):
+    def get_codeowners_cached(self, project_id: int) -> ProjectCodeOwners | None:
         """
         Cached read access to sentry_projectcodeowners.
 
@@ -62,19 +57,21 @@ class ProjectCodeOwners(DefaultFieldsModel):
         cache_key = self.get_cache_key(project_id)
         code_owners = cache.get(cache_key)
         if code_owners is None:
-            query = self.objects.filter(project_id=project_id).order_by("-date_added") or False
+            query = self.objects.filter(project_id=project_id).order_by("-date_added") or ()
             code_owners = self.merge_code_owners_list(code_owners_list=query) if query else query
             cache.set(cache_key, code_owners, READ_CACHE_DURATION)
 
         return code_owners or None
 
     @classmethod
-    def merge_code_owners_list(self, code_owners_list):
+    def merge_code_owners_list(
+        self, code_owners_list: Sequence[ProjectCodeOwners]
+    ) -> ProjectCodeOwners | None:
         """
         Merge list of code_owners into a single code_owners object concatenating
         all the rules. We assume schema version is constant.
         """
-        merged_code_owners = None
+        merged_code_owners: ProjectCodeOwners | None = None
         for code_owners in code_owners_list:
             if code_owners.schema:
                 if merged_code_owners is None:

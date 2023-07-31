@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from sentry.integrations.bitbucket import BitbucketWebhookEndpoint
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -22,7 +23,7 @@ class BitbucketRequestParser(BaseRequestParser):
         # The organization is provided in the path, so we can skip inferring organizations
         # from the integration credentials
         organization_id = self.match.kwargs.get("organization_id")
-        logging_extra = {"path": self.request.path}
+        logging_extra: dict[str, Any] = {"path": self.request.path}
         if not organization_id:
             logger.info("no_organization_id", extra=logging_extra)
             return self.get_response_from_control_silo()

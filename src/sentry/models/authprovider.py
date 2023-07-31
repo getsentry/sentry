@@ -37,7 +37,7 @@ class AuthProviderDefaultTeams(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = tuple()
+        unique_together = ()
 
 
 @control_silo_only_model

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from datetime import timedelta
-from typing import Generator
+from typing import Any, Generator
 from uuid import uuid4
 
 from django.db import connections, router
@@ -80,7 +80,7 @@ class BulkDeleteQuery:
         dbc = connections[self.using]
         quote_name = dbc.ops.quote_name
 
-        position = None
+        position: object | None = None
         cutoff = timezone.now() - timedelta(days=self.days)
 
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
@@ -94,7 +94,9 @@ class BulkDeleteQuery:
                 # large quantity of rows from postgres incrementally, without
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
-                    where = [(f"{quote_name(self.dtfield)} < %s", [cutoff])]
+                    where: list[tuple[str, list[Any]]] = [
+                        (f"{quote_name(self.dtfield)} < %s", [cutoff])
+                    ]
 
                     if self.project_id:
                         where.append(("project_id = %s", [self.project_id]))

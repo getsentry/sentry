@@ -4,7 +4,7 @@ BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 
-def _encode(number, alphabet):
+def _encode(number: int, alphabet: str) -> str:
     if number == 0:
         return alphabet[0]
 
@@ -26,7 +26,7 @@ def _encode(number, alphabet):
     return "".join(rv)
 
 
-def _decode(number, alphabet):
+def _decode(number: str, alphabet: str) -> int:
     rv = 0
     inverse = False
 
@@ -44,20 +44,20 @@ def _decode(number, alphabet):
     return rv
 
 
-def base32_encode(number):
+def base32_encode(number: int) -> str:
     return _encode(number, BASE32_ALPHABET)
 
 
-def base32_decode(number):
+def base32_decode(number: str) -> int:
     number = number.upper().replace("O", "0").replace("I", "1").replace("L", "1")
     return _decode(number, BASE32_ALPHABET)
 
 
-def base36_encode(number):
+def base36_encode(number: int) -> str:
     return _encode(number, BASE36_ALPHABET)
 
 
-def base36_decode(s):
+def base36_decode(s: str) -> int:
     return int(s, 36)
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework import status
 
@@ -60,8 +60,8 @@ class SlackActionRequest(SlackRequest):
     def get_logging_data(
         self,
         group: Group | None = None,
-    ) -> Mapping[str, str | None]:
-        logging_data: MutableMapping[str, str | None] = {
+    ) -> dict[str, Any]:
+        logging_data: dict[str, Any] = {
             **self.logging_data,
             "response_url": self.response_url,
         }

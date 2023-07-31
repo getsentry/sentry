@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import hmac
 import logging
@@ -154,7 +156,7 @@ class VercelWebhookEndpoint(Endpoint):
         except Exception:
             return self.parse_old_external_id(request)
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> Response | None:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
@@ -197,6 +199,8 @@ class VercelWebhookEndpoint(Endpoint):
 
                 if event_type == "deployment":
                     return self._deployment_created(external_id, request)
+
+        return None
 
     def delete(self, request: Request):
         with configure_scope() as scope:

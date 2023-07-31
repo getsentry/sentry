@@ -58,8 +58,8 @@ _short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
-def parse_short_id(short_id: str) -> ShortId:
-    match = _short_id_re.match(short_id.strip())
+def parse_short_id(short_id_s: str) -> ShortId | None:
+    match = _short_id_re.match(short_id_s.strip())
     if match is None:
         return None
     slug, id = match.groups()
@@ -277,7 +277,7 @@ def get_helpful_event_for_environments(
     end = group.last_seen + timedelta(minutes=1)
     start = end - timedelta(days=7)
 
-    events = eventstore.get_events_snql(
+    events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
         start=start,
@@ -303,10 +303,15 @@ class GroupManager(BaseManager):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
     def by_qualified_short_id_bulk(
-        self, organization_id: int, short_ids: list[str]
+        self, organization_id: int, short_ids_raw: list[str]
     ) -> Sequence[Group]:
-        short_ids = [parse_short_id(short_id) for short_id in short_ids]
-        if not short_ids or any(short_id is None for short_id in short_ids):
+        short_ids = []
+        for short_id_raw in short_ids_raw:
+            parsed_short_id = parse_short_id(short_id_raw)
+            if parsed_short_id is None:
+                raise Group.DoesNotExist()
+            short_ids.append(parsed_short_id)
+        if not short_ids:
             raise Group.DoesNotExist()
 
         project_short_id_lookup = defaultdict(list)
@@ -736,12 +741,6 @@ class Group(Model):
         et = eventtypes.get(self.get_event_type())()
         return et.get_location(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn("Group.error is deprecated, use Group.title", DeprecationWarning)
-        return self.title
-
-    error.short_description = _("error")
-
     @property
     def message_short(self):
         warnings.warn("Group.message_short is deprecated, use Group.title", DeprecationWarning)
@@ -760,7 +759,7 @@ class Group(Model):
         return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(self):
-        return tagstore.get_groups_user_counts(
+        return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,

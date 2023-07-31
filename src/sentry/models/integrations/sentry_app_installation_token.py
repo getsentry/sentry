@@ -24,10 +24,9 @@ class SentryAppInstallationTokenManager(BaseManager):
         return sentry_app_installation_tokens[0].api_token.token
 
     def _get_token(self, token: ApiToken | AuthenticatedToken) -> SentryAppInstallationToken | None:
-        id: int
         if isinstance(token, ApiToken):
             id = token.id
-        elif token.kind == "api_token":
+        elif token.kind == "api_token" and token.entity_id is not None:
             id = token.entity_id
         else:
             return None
