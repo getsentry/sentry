@@ -34,20 +34,3 @@ export function addOrUpdateRule(
     includeAllArgs: true,
   });
 }
-
-/**
- * Delete an existing rule
- *
- * @param api API Client
- * @param orgId Organization slug
- * @param rule Saved or Unsaved Metric Rule
- */
-export function deleteRule(
-  api: Client,
-  orgId: string,
-  rule: SavedMetricRule
-): Promise<void> {
-  return api.requestPromise(`/organizations/${orgId}/alert-rules/${rule.id}/`, {
-    method: 'DELETE',
-  });
-}
