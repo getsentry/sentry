@@ -671,6 +671,10 @@ describe('OrganizationMembersList', function () {
         context: TestStubs.routerContext([{organization: org}]),
       });
 
+      expect(screen.getByTestId('invite-banner')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(5);
+      expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
+
       const inviteButton = screen.queryAllByTestId('invite-missing-member')[0];
       await userEvent.click(inviteButton);
       expect(screen.queryAllByTestId('invite-missing-member')).toHaveLength(4);

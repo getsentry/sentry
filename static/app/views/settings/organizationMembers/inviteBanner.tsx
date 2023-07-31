@@ -17,7 +17,7 @@ type Props = {
 export function InviteBanner({missingMembers, onSendInvite}: Props) {
   // TODO(cathy): include snoozing, docs link
 
-  const cards = missingMembers?.users?.slice(0, 5).map(member => (
+  const cards = missingMembers?.users.slice(0, 5).map(member => (
     <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
       <MemberCardContent>
         <MemberCardContentRow>
@@ -49,13 +49,13 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
         <MemberCardContentRow>
           <SeeMoreContainer>
             {tct('See all [missingMembersCount] missing members', {
-              missingMembersCount: missingMembers?.users?.length,
+              missingMembersCount: missingMembers?.users.length,
             })}
           </SeeMoreContainer>
         </MemberCardContentRow>
         <Subtitle>
           {tct('Accounting for [totalCommits] recent commits', {
-            totalCommits: missingMembers?.users?.reduce(
+            totalCommits: missingMembers?.users.reduce(
               (acc, curr) => acc + curr.commitCount,
               0
             ),
@@ -66,7 +66,6 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
         size="sm"
         priority="primary"
         // TODO(cathy): open up invite modal
-        // onClick={}
         data-test-id="view-all-missing-members"
       >
         {t('View All')}
@@ -81,7 +80,7 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
           <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
           <Subtitle>
             {tct('[missingMemberCount] missing members that are active in your GitHub', {
-              missingMemberCount: missingMembers?.users?.length,
+              missingMemberCount: missingMembers?.users.length,
             })}
             <Tooltip title="Based on the last 30 days of commit data">
               <IconInfo size="xs" />
@@ -93,7 +92,6 @@ export function InviteBanner({missingMembers, onSendInvite}: Props) {
             priority="primary"
             size="xs"
             // TODO(cathy): open up invite modal
-            // onClick={}
             data-test-id="view-all-missing-members"
           >
             {t('View All')}
