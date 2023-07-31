@@ -209,6 +209,10 @@ function renderMockRequests() {
 }
 
 describe('Results', function () {
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+  });
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
@@ -1131,6 +1135,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1195,6 +1200,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1263,6 +1269,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       const {rerender} = render(
         <Results
@@ -1314,6 +1321,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1343,6 +1351,7 @@ describe('Results', function () {
           location: {query: {id: '1'}},
         },
       });
+      renderMockRequests();
 
       render(
         <Results
@@ -1382,6 +1391,7 @@ describe('Results', function () {
       });
 
       ProjectsStore.loadInitialData([TestStubs.Project()]);
+      renderMockRequests();
 
       render(
         <Results
@@ -1415,6 +1425,7 @@ describe('Results', function () {
           },
         },
       });
+      renderMockRequests();
 
       render(
         <Results

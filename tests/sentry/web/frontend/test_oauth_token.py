@@ -276,29 +276,30 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "authorization_code",
-                "redirect_uri": self.application.get_default_redirect_uri(),
-                "code": open_id_grant.code,
-                "client_id": self.application.client_id,
-                "client_secret": self.client_secret,
-            },
-        )
-        assert resp.status_code == 200
+        with self.options({"codecov.client-secret": "signing_secret"}):
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": open_id_grant.code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+            assert resp.status_code == 200
 
-        data = json.loads(resp.content)
-        token = ApiToken.objects.get(token=data["access_token"])
+            data = json.loads(resp.content)
+            token = ApiToken.objects.get(token=data["access_token"])
 
-        assert token.get_scopes() == ["openid"]
-        assert data["refresh_token"] == token.refresh_token
-        assert data["access_token"] == token.token
-        assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
+            assert token.get_scopes() == ["openid"]
+            assert data["refresh_token"] == token.refresh_token
+            assert data["access_token"] == token.token
+            assert isinstance(data["expires_in"], int)
+            assert data["token_type"] == "bearer"
+            assert data["user"]["id"] == str(token.user_id)
 
-        assert data["id_token"].count(".") == 2
+            assert data["id_token"].count(".") == 2
 
     def test_valid_params_id_token_additional_scopes(self):
         self.login_as(self.user)
@@ -308,29 +309,30 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        resp = self.client.post(
-            self.path,
-            {
-                "grant_type": "authorization_code",
-                "redirect_uri": self.application.get_default_redirect_uri(),
-                "code": open_id_grant.code,
-                "client_id": self.application.client_id,
-                "client_secret": self.client_secret,
-            },
-        )
-        assert resp.status_code == 200
+        with self.options({"codecov.client-secret": "signing_secret"}):
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": open_id_grant.code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+            assert resp.status_code == 200
 
-        data = json.loads(resp.content)
-        token = ApiToken.objects.get(token=data["access_token"])
+            data = json.loads(resp.content)
+            token = ApiToken.objects.get(token=data["access_token"])
 
-        assert token.get_scopes() == ["openid", "profile", "email"]
-        assert data["refresh_token"] == token.refresh_token
-        assert data["access_token"] == token.token
-        assert isinstance(data["expires_in"], int)
-        assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == str(token.user_id)
+            assert token.get_scopes() == ["openid", "profile", "email"]
+            assert data["refresh_token"] == token.refresh_token
+            assert data["access_token"] == token.token
+            assert isinstance(data["expires_in"], int)
+            assert data["token_type"] == "bearer"
+            assert data["user"]["id"] == str(token.user_id)
 
-        assert data["id_token"].count(".") == 2
+            assert data["id_token"].count(".") == 2
 
 
 @control_silo_test(stable=True)

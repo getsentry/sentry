@@ -414,6 +414,11 @@ class EventManager:
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
 
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+
         projects = {project.id: project}
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
@@ -454,17 +459,9 @@ class EventManager:
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
-        with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
         jobs = [job]
 
         is_reprocessed = is_reprocessed_event(job["data"])
-
-        # This metric can be used to track how many error events there are per platform
-        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -869,8 +866,8 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
             integration = integration_service.get_integration(integration_id=oi.integration_id)
             if not integration:
                 continue
-            integration_installation = integration_service.get_installation(
-                integration=integration, organization_id=oi.organization_id
+            integration_installation = integration.get_installation(
+                organization_id=oi.organization_id
             )
             if not integration_installation:
                 continue
@@ -2280,7 +2277,7 @@ def _calculate_event_grouping(
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
+        # event. If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
             hashes = event.get_hashes(grouping_config)

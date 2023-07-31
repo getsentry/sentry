@@ -123,9 +123,7 @@ class IssueDefaultTest(TestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        self.installation = integration_service.get_installation(
-            integration=integration, organization_id=self.group.organization.id
-        )
+        self.installation = integration.get_installation(organization_id=self.group.organization.id)
 
     def test_get_repository_choices(self):
         default_repo, repo_choice = self.installation.get_repository_choices(self.group)

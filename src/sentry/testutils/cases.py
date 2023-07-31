@@ -78,6 +78,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -246,6 +247,8 @@ class BaseTestCase(Fixtures):
         path="/",
         secure_scheme=False,
         subdomain=None,
+        *,
+        GET: dict[str, str] | None = None,
     ) -> HttpRequest:
         request = HttpRequest()
         if subdomain:
@@ -256,6 +259,9 @@ class BaseTestCase(Fixtures):
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
+        if GET is not None:
+            for k, v in GET.items():
+                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -286,7 +292,7 @@ class BaseTestCase(Fixtures):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         request.user = user
 
@@ -751,7 +757,7 @@ class TwoFactorAPITestCase(APITestCase):
 
 
 class AuthProviderTestCase(TestCase):
-    provider = DummyProvider
+    provider: type[Provider] = DummyProvider
     provider_name = "dummy"
 
     def setUp(self):

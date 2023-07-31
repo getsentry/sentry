@@ -42,12 +42,12 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.models import NotificationSetting, Organization, Project
+    from sentry.models import NotificationSetting, Organization, Project  # noqa: F401
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
 
-class NotificationsManager(BaseManager["NotificationSetting"]):
+class NotificationsManager(BaseManager["NotificationSetting"]):  # noqa: F821
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
@@ -97,7 +97,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_id: Optional[int] = None,
     ) -> None:
         """Save a NotificationSettings row."""
-        from sentry.models.notificationsetting import NotificationSetting
+        from sentry.models.notificationsetting import NotificationSetting  # noqa: F811
 
         defaults = {"value": value.value}
         with configure_scope() as scope:
@@ -402,7 +402,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def update_settings_bulk(
         self,
-        notification_settings: Sequence[NotificationSetting],
+        notification_settings: Sequence[
+            tuple[
+                ExternalProviders,
+                NotificationSettingTypes,
+                NotificationScopeType,
+                int,
+                NotificationSettingOptionValues,
+            ]
+        ],
         team: Team | None = None,
         user: User | None = None,
     ) -> None:

@@ -69,6 +69,7 @@ class ProjectCodeOwnersTestCase(TestCase):
 
         code_owners = ProjectCodeOwners.objects.filter(project=self.project)
         merged = ProjectCodeOwners.merge_code_owners_list(code_owners_list=code_owners)
+        assert merged is not None
 
         assert merged.schema == {
             "$version": 1,

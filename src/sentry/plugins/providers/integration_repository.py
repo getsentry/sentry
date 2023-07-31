@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import timezone
 from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -72,9 +72,7 @@ class IntegrationRepositoryProvider:
         if rpc_org_integration is None:
             raise Integration.DoesNotExist("Integration matching query does not exist.")
 
-        return integration_service.get_installation(
-            integration=rpc_integration, organization_id=organization_id
-        )
+        return rpc_integration.get_installation(organization_id=organization_id)
 
     def create_repository(
         self,

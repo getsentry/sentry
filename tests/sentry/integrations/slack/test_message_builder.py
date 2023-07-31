@@ -244,7 +244,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert (
             attachments["text"]
-            == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|⏵ View Replays>"
+            == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
         )
 
     def test_build_performance_issue_color_no_event_passed(self):

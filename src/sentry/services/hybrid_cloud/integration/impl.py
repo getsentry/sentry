@@ -42,7 +42,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration = Integration.objects.filter(id=integration_id).first()
         if integration is None:
             return False
-        install = self.get_installation(integration=integration, organization_id=organization_id)
+        install = integration.get_installation(organization_id=organization_id)
         if isinstance(install, NotifyBasicMixin):
             install.send_message(channel_id=channel, message=message)
             return True

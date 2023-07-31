@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Set, cast
+from typing import Any, Optional, Set
 
 import sentry_sdk
 from django.core.cache import cache
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint, resolve_region
@@ -66,7 +67,7 @@ class OrganizationPermission(SentryPermission):
         # logic for checking valid SSO
         if not request.access.requires_sso:
             return False
-        if not auth.has_completed_sso(request, cast(int, organization.id)):
+        if not auth.has_completed_sso(request, organization.id):
             return True
         if not request.access.sso_is_valid:
             return True
@@ -180,10 +181,10 @@ class OrganizationDataExportPermission(OrganizationPermission):
 
 class OrganizationAlertRulePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "alert_rule:read"],
-        "POST": ["org:write", "org:admin", "alert_rule:write"],
-        "PUT": ["org:write", "org:admin", "alert_rule:write"],
-        "DELETE": ["org:write", "org:admin", "alert_rule:write"],
+        "GET": ["org:read", "org:write", "org:admin", "alert_rule:read", "alerts:read"],
+        "POST": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
+        "PUT": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
+        "DELETE": ["org:write", "org:admin", "alert_rule:write", "alerts:write"],
     }
 
 
@@ -238,7 +239,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
 
 class OrganizationEndpoint(Endpoint):
-    permission_classes = (OrganizationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def get_projects(
         self,
@@ -425,7 +426,7 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         set_measurement("query.num_projects", len_projects)
 
-        params = {
+        params: dict[str, Any] = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],

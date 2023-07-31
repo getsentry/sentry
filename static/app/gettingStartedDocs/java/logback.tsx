@@ -7,13 +7,17 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'The sentry-logback library provides Logback support for Sentry using an [link:Appender] that sends logged exceptions to Sentry.',
-  {
-    link: (
-      <ExternalLink href="https://logback.qos.ch/apidocs/ch/qos/logback/core/Appender.html" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      'The sentry-logback library provides Logback support for Sentry using an [link:Appender] that sends logged exceptions to Sentry.',
+      {
+        link: (
+          <ExternalLink href="https://logback.qos.ch/apidocs/ch/qos/logback/core/Appender.html" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({

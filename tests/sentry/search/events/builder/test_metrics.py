@@ -1,10 +1,10 @@
 import datetime
 import math
+from datetime import timezone
 from typing import List
 from unittest import mock
 
 import pytest
-from django.utils import timezone
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -2111,9 +2111,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         meta = result["meta"]
 
-        assert len(meta) == 2
-        assert meta[0]["name"] == "bucketed_time"
-        assert meta[1]["name"] == "d:transactions/on_demand@none"
+        assert len(meta) == 1
+        assert meta[0]["name"] == "d:transactions/on_demand@none"
 
     def test_get_snql_query(self):
         query = AlertMetricsQueryBuilder(

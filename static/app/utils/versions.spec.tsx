@@ -1,6 +1,6 @@
-/* Taken from https://gist.github.com/iwill/a83038623ba4fef6abb9efca87ae9ccb
- * returns -1 for smaller, 0 for equals, and 1 for greater than
- */
+// Taken from https://gist.github.com/iwill/a83038623ba4fef6abb9efca87ae9ccb
+// returns -1 for smaller, 0 for equals, and 1 for greater than
+
 import {semverCompare} from './versions';
 
 function testVersion(v1: string, operator: '<' | '>' | '=', v2: string) {

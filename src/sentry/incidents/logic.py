@@ -39,7 +39,7 @@ from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
@@ -267,8 +267,11 @@ def create_incident_activity(
                     for mentioned_user_id in user_ids_to_subscribe
                 ]
             )
-    tasks.send_subscriber_notifications.apply_async(
-        kwargs={"activity_id": activity.id}, countdown=10
+    transaction.on_commit(
+        lambda: tasks.send_subscriber_notifications.apply_async(
+            kwargs={"activity_id": activity.id}, countdown=10
+        ),
+        router.db_for_write(IncidentSubscription),
     )
     if activity_type == IncidentActivityType.COMMENT:
         analytics.record(
@@ -848,8 +851,12 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
+        subscriptions = alert_rule.snuba_query.subscriptions.all()
+        bulk_delete_snuba_subscriptions(subscriptions)
+
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
-        bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
@@ -1324,6 +1331,9 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
     from sentry.services.hybrid_cloud.app import app_service
 
     if installations is None:
+        # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
+        # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
+        # which we would like to avoid. We should refactor to obviate the need for this watermark
         installations = app_service.get_installed_for_organization(organization_id=organization.id)
 
     for installation in installations:
@@ -1433,6 +1443,9 @@ def get_slack_actions_with_async_lookups(organization, user, data):
                         "access": SystemAccess(),
                         "user": user,
                         "input_channel_id": action.get("inputChannelId"),
+                        "installations": app_service.get_installed_for_organization(
+                            organization_id=organization.id
+                        ),
                     },
                     data=action,
                 )

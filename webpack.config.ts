@@ -359,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
-              memoryLimit: 3072,
             },
             devServer: false,
+            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -566,6 +566,8 @@ if (
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = {
+        '/auth/**': controlSiloAddress,
+        '/account/**': controlSiloAddress,
         '/api/0/users/**': controlSiloAddress,
         '/api/0/sentry-apps/**': controlSiloAddress,
         '/api/0/organizations/*/audit-logs/**': controlSiloAddress,

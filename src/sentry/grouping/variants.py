@@ -3,7 +3,7 @@ from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 class BaseVariant:
     # The type of the variant that is reported to the UI.
-    type = None
+    type: str
 
     # This is true if `get_hash` does not return `None`.
     contributes = True
@@ -75,9 +75,6 @@ class PerformanceProblemVariant(BaseVariant):
 
     def get_hash(self):
         return self.problem.fingerprint
-
-    def _get_span_by_id(self, span_id):
-        return self.spans_by_id.get(span_id)
 
     def _get_metadata_as_dict(self):
         problem_data = self.problem.to_dict()

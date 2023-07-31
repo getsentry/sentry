@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
 from sentry.testutils import APITestCase
