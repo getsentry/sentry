@@ -5,9 +5,11 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import {Alert} from 'sentry/components/alert';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
@@ -131,9 +133,7 @@ function SimilarStackTrace({params, location, project}: Props) {
   }, [params, location.query, items]);
 
   const hasSimilarItems =
-    hasSimilarityFeature &&
-    (items.similar.length > 0 || items.filtered.length > 0) &&
-    status === 'ready';
+    hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
 
   const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
 
@@ -155,7 +155,14 @@ function SimilarStackTrace({params, location, project}: Props) {
             onRetry={fetchData}
           />
         )}
-        {hasSimilarItems && (
+        {status === 'ready' && !hasSimilarItems && (
+          <Panel>
+            <EmptyStateWarning>
+              <p>{t("There don't seem to be any similar issues.")}</p>
+            </EmptyStateWarning>
+          </Panel>
+        )}
+        {status === 'ready' && hasSimilarItems && (
           <IssuesReplayCountProvider groupIds={groupsIds}>
             <List
               items={items.similar}

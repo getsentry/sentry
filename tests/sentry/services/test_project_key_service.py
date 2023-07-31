@@ -1,7 +1,7 @@
 from django.test import override_settings
 
 from sentry.testutils.factories import Factories
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.web.client_config import get_client_config
 
 
