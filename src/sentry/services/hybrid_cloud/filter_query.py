@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar, Union
 
-from django.db.models import QuerySet
+from django.db.models import Model, QuerySet
+
+from sentry.services.hybrid_cloud import RpcModel
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
@@ -12,9 +15,9 @@ if TYPE_CHECKING:
 
 
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
-RPC_RESPONSE = TypeVar("RPC_RESPONSE")
-SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM")
-BASE_MODEL = TypeVar("BASE_MODEL")
+RPC_RESPONSE = TypeVar("RPC_RESPONSE", bound=RpcModel)
+SERIALIZER_ENUM = TypeVar("SERIALIZER_ENUM", bound=Union[Enum, None])
+BASE_MODEL = TypeVar("BASE_MODEL", bound=Model)
 
 # In the future, this ought to be a pass through type that does not get double serializer, and which cannot be
 # inspected by code.
