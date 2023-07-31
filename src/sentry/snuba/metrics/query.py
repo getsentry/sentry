@@ -41,7 +41,6 @@ class MetricField:
         Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
     ] = None
     alias: Optional[str] = None
-    allow_private: bool = False
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -50,10 +49,7 @@ class MetricField:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
         # Validates that the MRI requested is an MRI the metrics layer exposes
-        metric_name = f"pm_{self.metric_mri}"
-        if not self.allow_private:
-            metric_name = get_public_name_from_mri(self.metric_mri)
-
+        metric_name = get_public_name_from_mri(self.metric_mri)
         if not self.alias:
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
