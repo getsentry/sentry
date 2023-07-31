@@ -391,7 +391,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           {isExtrapolatedChartData && (
             <OnDemandMetricInfoAlert>
-              <IconInfo size="sm" color="blue400" style={{marginRight: '10px'}} />
+              <OnDemandMetricInfoIcon size="sm" />
               <span>
                 {t(
                   'The chart data is an estimate based on the stored transactions that match the filters specified.'
@@ -558,6 +558,11 @@ const OnDemandMetricInfoAlert = styled(Alert)`
     display: flex;
     align-items: center;
   }
+`;
+
+const OnDemandMetricInfoIcon = styled(IconInfo)`
+  color: ${p => p.theme.blue400};
+  margin-right: ${space(1.5)};
 `;
 
 const StyledListItem = styled(ListItem)`

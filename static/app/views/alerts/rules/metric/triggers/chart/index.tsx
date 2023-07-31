@@ -11,7 +11,7 @@ import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import OnDemandMetricRequest from 'sentry/components/charts/onDemandMetricRequest';
+import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequest';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {

@@ -24,13 +24,11 @@ function applySampleRate(timeseriesData, sampleRate = 1) {
   };
 }
 
-class OnDemandMetricRequest extends EventsRequest {
+export class OnDemandMetricRequest extends EventsRequest {
   fetchMetricsData = async () => {
     const {api, ...props} = this.props;
 
     try {
-      api.clear();
-
       const timeseriesData = await doEventsRequest(api, {
         ...props,
         useOnDemandMetrics: true,
@@ -120,5 +118,3 @@ class OnDemandMetricRequest extends EventsRequest {
     }
   };
 }
-
-export default OnDemandMetricRequest;
