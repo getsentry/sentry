@@ -39,7 +39,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
             db_auth.revoke_token(drop_token=drop_token)
         return self.get_many(filter=filter)
 
-    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth:
+    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         """
         Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
         """

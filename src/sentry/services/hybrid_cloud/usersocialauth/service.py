@@ -52,7 +52,7 @@ class UserSocialAuthService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth:
+    def refresh_token(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         """
         Calls UserSocialAuth.refresh_token() on all matching results, returning the modified RpcUserSocialAuths.
         """
