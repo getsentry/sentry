@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from .webhooks import GithubIntegrationsWebhookEndpoint, GithubPluginWebhookEndpoint
+from .webhooks import GithubPluginIntegrationsWebhookEndpoint, GithubPluginWebhookEndpoint
 
 urlpatterns = [
     re_path(
@@ -9,6 +9,6 @@ urlpatterns = [
     ),
     re_path(
         r"^installations/webhook/$",
-        GithubIntegrationsWebhookEndpoint.as_view(),
+        GithubPluginIntegrationsWebhookEndpoint.as_view(),
     ),
 ]
