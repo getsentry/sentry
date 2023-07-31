@@ -9,7 +9,7 @@ from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.region import override_region_config
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.types.region import RegionCategory, clear_global_regions
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
@@ -201,7 +201,7 @@ def provision_middleware():
     return middleware
 
 
-@control_silo_test(stable=True)
+@no_silo_test(stable=True)
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,

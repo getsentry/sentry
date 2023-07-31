@@ -99,7 +99,7 @@ class RpcMethodSignature:
         object to (de)serialize something.
         """
         if isinstance(token, str):
-            raise RpcServiceSetupException(
+            raise ValueError(
                 "Type annotations on RPC methods must be actual type tokens, not strings"
             )
 
@@ -109,7 +109,12 @@ class RpcMethodSignature:
         def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise RpcServiceSetupException("Type annotations are required on RPC methods")
-            self._validate_type_token(param.annotation)
+            try:
+                self._validate_type_token(param.annotation)
+            except ValueError as e:
+                raise RpcServiceSetupException(
+                    f"Type annotations param '{param.name}' of {self._base_service_cls.__name__}.{self._base_method.__name__} must be actual type tokens, not strings"
+                ) from e
 
             default_value = ... if param.default is param.empty else param.default
             return param.annotation, default_value

@@ -23,7 +23,6 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
@@ -329,14 +328,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return ois[0] if len(ois) > 0 else None
 
     def add_organization(
-        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+        self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
         integration = Integration.objects.filter(id=integration_id).first()
         if not integration:
             return
-        for org in rpc_organizations:
-            integration.add_organization(organization=org)
-        return integration
+        for org_id in org_ids:
+            integration.add_organization(organization_id=org_id)
+        return serialize_integration(integration)
 
     def send_incident_alert_notification(
         self,
