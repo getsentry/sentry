@@ -5,10 +5,9 @@ Types to construct a metrics query request.
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, EnumMeta
-from typing import Any, Dict, FrozenSet, Iterable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, Literal, Mapping, Optional, Sequence, Tuple
 
 from snuba_sdk.column import Column
-from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Expression
 from snuba_sdk.function import Function
 
@@ -20,18 +19,18 @@ __all__ = (
     "AggregationFn",
     "ArithmeticFn",
     "Column",
-    "Condition",
+    "ConditionFn",
     "Expression",
-    "FILTER",
+    "Filter",
     "Function",
     "InvalidMetricsQuery",
     "MetricQueryScope",
-    "Op",
     "parse_mri",
     "ParsedMRI",
     "SeriesQuery",
     "SeriesResult",
     "VariableMap",
+    "MetricRange",
 )
 
 
@@ -77,8 +76,36 @@ class ArithmeticFn(Enum, metaclass=IndexableEnumMeta):
     DIVIDE = "divide"
 
 
-# Function name used for filtering.
-FILTER = "filter"
+@dataclass(frozen=True)
+class Filter(Function):
+    function: Literal["filter"] = field(init=False, default="filter")
+
+
+class ConditionFn(Enum, metaclass=IndexableEnumMeta):
+    """
+    Valid filter conditions for metrics queries to be used with ``Function`` and
+    inside query filters.
+    """
+
+    EQ = "equals"
+    NEQ = "notEquals"
+    LIKE = "like"
+    NOT_LIKE = "notLike"
+    IN = "in"
+    NOT_IN = "notIn"
+
+    @property
+    def value_type(self) -> Literal["scalar", "tuple", "none"]:
+        """
+        Return the type of value expected for this condition.
+        """
+        if self in (ConditionFn.IN, ConditionFn.NOT_IN):
+            return "tuple"
+        elif self in (ConditionFn.EQ, ConditionFn.NEQ, ConditionFn.LIKE, ConditionFn.NOT_LIKE):
+            return "scalar"
+        else:
+            # NB: This is in case we add IS NULL or IS NOT NULL in the future.
+            return "none"
 
 
 class InvalidMetricsQuery(Exception):
@@ -167,7 +194,7 @@ class SeriesQuery:
     scope: MetricQueryScope
     range: MetricRange
     expressions: Sequence[Expression]
-    filters: Sequence[Condition] = field(default_factory=list)
+    filters: Sequence[Function] = field(default_factory=list)
     groups: Sequence[Column] = field(default_factory=list)
 
     @classmethod
@@ -211,7 +238,7 @@ class SeriesResult:
     intervals: Sequence[datetime]
     groups: Mapping[GroupKey, SeriesMap]
     # TODO: Better way to identify expressions?
-    # TODO: Start / end? -> add query?
+    # TODO: Do we need start / end? -> add query?
     # TODO: Meta data?
 
     def iter_groups(self) -> Iterable[Dict[str, str]]:

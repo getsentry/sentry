@@ -8,7 +8,7 @@ from typing import Set
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 from .transform import QueryVisitor
-from .types import Column, Condition, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
+from .types import Column, Filter, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
 
 
 def get_use_case(query: SeriesQuery) -> UseCaseID:
@@ -35,13 +35,19 @@ class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
             use_cases |= self.visit(expression)
         return use_cases
 
-    def _visit_filter(self, filt: Function) -> Set[UseCaseID]:
+    def _visit_filter(self, filt: Filter) -> Set[UseCaseID]:
         if len(filt.parameters) > 0:
             return self.visit(filt.parameters[0])
         else:
             return set()
 
-    def _visit_condition(self, condition: Condition) -> Set[UseCaseID]:
+    def _visit_aggregation(self, aggregation: Function) -> Set[UseCaseID]:
+        return self._visit_function(aggregation)
+
+    def _visit_arithmetic(self, arithmetic: Function) -> Set[UseCaseID]:
+        return self._visit_function(arithmetic)
+
+    def _visit_condition(self, condition: Function) -> Set[UseCaseID]:
         return set()
 
     def _visit_function(self, function: Function) -> Set[UseCaseID]:

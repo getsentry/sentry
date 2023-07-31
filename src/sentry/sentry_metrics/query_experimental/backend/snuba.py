@@ -1,3 +1,4 @@
+import math
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Sequence, Set, Tuple, Type, Union
@@ -5,7 +6,6 @@ from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Sequence, Set,
 from snuba_sdk import AliasedExpression, Column, Condition, Entity, Function, Op
 from snuba_sdk import Query as SnubaQuery
 from snuba_sdk import Request as SnubaRequest
-from snuba_sdk.conditions import OPERATOR_TO_FUNCTION
 from snuba_sdk.query import SelectableExpression
 
 from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_config
@@ -14,10 +14,11 @@ from sentry.utils.snuba import bulk_snql_query
 from ..timeframe import resolve_granularity
 from ..transform import QueryVisitor
 from ..types import (
-    FILTER,
     AggregationFn,
     ArithmeticFn,
+    ConditionFn,
     Expression,
+    Filter,
     InvalidMetricsQuery,
     SeriesQuery,
     SeriesResult,
@@ -119,6 +120,9 @@ class SnubaQueryConverter:
         Generate a Snuba request from a metric series query.
         """
 
+        # Global filters are applied to every aggregate in _convert_aggregate.
+        self.global_filters = [self._convert_condition(c) for c in self.query.filters]
+
         snuba_query = SnubaQuery(
             match=self._resolve_entity(),
             select=self._build_select(),
@@ -165,21 +169,16 @@ class SnubaQueryConverter:
 
     def _convert_function(self, function: Function) -> SelectableExpression:
         if function.function in ArithmeticFn:
-            return Function(
-                function=function.function,
-                parameters=[self._convert_expression(p) for p in function.parameters],
-            )
+            parameters = [self._convert_expression(p) for p in function.parameters]
+            return Function(function.function, parameters)
 
         if function.function in AggregationFn:
             return self._convert_aggregate(function)
 
-        if function.function == FILTER:
-            # Query transforms should previously have pushed filters inside
-            # aggregate calls. If this hasn't happened, there's likely a bug in
-            # the execution pipeline.
-            raise ValueError("Unexpected filter function in SnQL generation")
-
-        raise InvalidMetricsQuery(f"Unknown function {function.function}")
+        # Query transforms should previously have pushed filters inside
+        # aggregate calls. If this hasn't happened, there's likely a bug in the
+        # execution pipeline. All other functions are illegal here.
+        raise InvalidMetricsQuery(f"Unexpected function {function.function}")
 
     def _convert_aggregate(self, function: Function) -> SelectableExpression:
         if len(function.parameters) != 1:
@@ -188,11 +187,7 @@ class SnubaQueryConverter:
         (metric_type, filters) = self._collect_aggregate(function.parameters[0])
         aggregate = self._map_aggregation_fn(metric_type, AggregationFn(function.function))
         parameter = filters[0] if len(filters) == 1 else Function("and", filters)
-
-        return Function(
-            function=aggregate,
-            parameters=[COLUMN_VALUE, parameter],
-        )
+        return Function(aggregate, [COLUMN_VALUE, parameter])
 
     def _map_aggregation_fn(self, metric_type: str, function: AggregationFn) -> str:
         if metric_type not in SNQL_AGGREGATES:
@@ -213,9 +208,10 @@ class SnubaQueryConverter:
             if not node.key.isnumeric():
                 raise InvalidMetricsQuery("Metric name must be a resolved index")
             mri = parse_mri(node.name)
-            return (mri.entity, [Function("equals", [COLUMN_METRIC_ID, node.key])])
+            filters = self.global_filters + [Function("equals", [COLUMN_METRIC_ID, node.key])]
+            return (mri.entity, filters)
 
-        if isinstance(node, Function) and node.function == FILTER:
+        if isinstance(node, Filter):
             if not node.parameters:
                 raise InvalidMetricsQuery("Missing filter parameters")
 
@@ -223,12 +219,7 @@ class SnubaQueryConverter:
             (metric_type, conditions) = self._collect_aggregate(inner)
 
             for filt in filters:
-                if filt.op not in OPERATOR_TO_FUNCTION:
-                    raise InvalidMetricsQuery(f"Unsupported filter condition {filt.op}")
-
-                lhs = self._convert_tag_key(filt.lhs)
-                rhs = self._convert_condition_value(filt.op, filt.rhs)
-                conditions.append(Function(OPERATOR_TO_FUNCTION[filt.op].value, [lhs, rhs]))
+                conditions.append(self._convert_condition(filt))
 
             return (metric_type, conditions)
 
@@ -240,16 +231,7 @@ class SnubaQueryConverter:
             Condition(COLUMN_PROJECT_ID, Op.IN, self.query.scope.project_ids),
             Condition(COLUMN_TIMESTAMP_FILTER, Op.GTE, self.query.range.start),
             Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.range.end),
-            *(self._convert_condition(c) for c in self.query.filters),
         ]
-
-    def _convert_condition(self, condition: Condition) -> Condition:
-        # Conditions have a rigid structure at this moment. LHS must be a column,
-        # operator must be a comparison operator, and RHS must be a scalar.
-
-        lhs = self._convert_tag_key(condition.lhs)
-        rhs = self._convert_condition_value(condition.op, condition.rhs)
-        return Condition(lhs=lhs, op=condition.op, rhs=rhs)
 
     def _convert_tag_key(self, column: Any) -> str:
         if not isinstance(column, Column):
@@ -261,16 +243,23 @@ class SnubaQueryConverter:
             raise InvalidMetricsQuery("Tag key must be a resolved index")
         return Column(name=f"tags_raw[{column.key}]")
 
-    def _convert_condition_value(self, op: Op, value: Any) -> Union[str, int, List]:
-        if op in (Op.EQ, Op.NEQ, Op.LIKE, Op.NOT_LIKE):
-            return self._convert_primitive(value)
+    def _convert_condition(self, condition: Function) -> Function:
+        op = ConditionFn(condition.function)
+        lhs = self._convert_tag_key(condition.parameters[0])
+        rhs = self._convert_condition_value(op, condition.parameters[1])
+        return Function(op.value, [lhs, rhs])
 
-        if op in (Op.IN, Op.NOT_IN):
+    def _convert_condition_value(self, op: ConditionFn, value: Any) -> Union[str, int, List]:
+        value_type = op.value_type
+
+        if value_type == "scalar":
+            return self._convert_primitive(value)
+        elif value_type == "tuple":
             if not isinstance(value, (list, tuple)):
                 raise InvalidMetricsQuery("RHS of IN condition must be a list or tuple")
             return [self._convert_primitive(value) for value in value]
-
-        raise InvalidMetricsQuery(f"Unsupported filter condition {op}")
+        else:
+            raise InvalidMetricsQuery(f"Unsupported filter condition {op}")
 
     def _convert_primitive(self, value: Any) -> Union[str, int]:
         tag_type: Type = str
@@ -321,7 +310,8 @@ class SnubaResultConverter:
 
         for k, v in entry.items():
             if expr_id := self._parse_expression_id(k):
-                values[expr_id - 1] = float(v)
+                if not math.isnan(v):
+                    values[expr_id - 1] = float(v)
             else:
                 self.tags.setdefault(k, set()).add(str(v))
                 tags[k] = str(v)
@@ -353,7 +343,13 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
             entities |= self.visit(expression)
         return entities
 
-    def _visit_filter(self, filt: Function) -> Set[Entity]:
+    def _visit_aggregation(self, aggregation: Function) -> Set[Entity]:
+        return self._visit_function(aggregation)
+
+    def _visit_arithmetic(self, arithmetic: Function) -> Set[Entity]:
+        return self._visit_function(arithmetic)
+
+    def _visit_filter(self, filt: Filter) -> Set[Entity]:
         if len(filt.parameters) > 0:
             return self.visit(filt.parameters[0])
         else:

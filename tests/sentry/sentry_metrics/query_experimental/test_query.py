@@ -4,15 +4,11 @@ import pytest
 
 from sentry.sentry_metrics.query_experimental import get_series
 from sentry.sentry_metrics.query_experimental.types import (
-    FILTER,
-    AggregationFn,
-    ArithmeticFn,
     Column,
-    Condition,
+    Filter,
     Function,
     MetricQueryScope,
     MetricRange,
-    Op,
     SeriesQuery,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -57,7 +53,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
+            expressions=[Function("avg", [Column(MRI)])],
         )
 
         result = get_series(query)
@@ -88,7 +84,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
+            expressions=[Function("avg", [Column(MRI)])],
             groups=[Column("transaction")],
         )
 
@@ -125,20 +121,18 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function(AggregationFn.AVG.value, [Column(MRI)])],
-            filters=[Condition(Column("transaction"), Op.EQ, "b")],
+            expressions=[Function("avg", [Column(MRI)])],
+            filters=[Function("equals", [Column("transaction"), "b"])],
         )
 
         result = get_series(query)
         assert list(result.iter_series()) == [
-            # TODO: Include all intervals in series
-            # (self.now + timedelta(hours=0), None),
-            # (self.now + timedelta(hours=1), None),
-            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=0), None),
+            (self.now + timedelta(hours=1), None),
+            (self.now + timedelta(hours=2), None),
             (self.now + timedelta(hours=3), 100.0),
         ]
 
-    @pytest.mark.skip(reason="TODO: refactor filter, conditions not allowed")
     def test_filter_expression(self):
         MRI = "d:transactions/duration@millisecond"
         VALUES = [
@@ -161,8 +155,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         expr = Function(
-            AggregationFn.AVG.value,
-            [Function(FILTER, [Column(MRI), Condition(Column("transaction"), Op.EQ, "b")])],
+            "avg", [Filter([Column(MRI), Function("equals", [Column("transaction"), "b"])])]
         )
 
         query = SeriesQuery(
@@ -173,10 +166,9 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         result = get_series(query)
         assert list(result.iter_series()) == [
-            # TODO: Include all intervals in series
-            # (self.now + timedelta(hours=0), None),
-            # (self.now + timedelta(hours=1), None),
-            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=0), None),
+            (self.now + timedelta(hours=1), None),
+            (self.now + timedelta(hours=2), None),
             (self.now + timedelta(hours=3), 100.0),
         ]
 
@@ -202,12 +194,11 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-        expr = Function(
-            FILTER,
+        expr = Filter(
             [
-                Function(AggregationFn.AVG.value, [Column(MRI)]),
-                Condition(Column("transaction"), Op.EQ, "b"),
-            ],
+                Function("avg", [Column(MRI)]),
+                Function("equals", [Column("transaction"), "b"]),
+            ]
         )
 
         query = SeriesQuery(
@@ -218,10 +209,9 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         result = get_series(query)
         assert list(result.iter_series()) == [
-            # TODO: Include all intervals in series
-            # (self.now + timedelta(hours=0), None),
-            # (self.now + timedelta(hours=1), None),
-            # (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=0), None),
+            (self.now + timedelta(hours=1), None),
+            (self.now + timedelta(hours=2), None),
             (self.now + timedelta(hours=3), 100.0),
         ]
 
@@ -246,14 +236,10 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-        expr = Function(
-            ArithmeticFn.MULTIPLY.value, [Function(AggregationFn.AVG.value, [Column(MRI)]), 2]
-        )
-
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[expr],
+            expressions=[Function("multiply", [Function("avg", [Column(MRI)]), 2])],
         )
 
         result = get_series(query)

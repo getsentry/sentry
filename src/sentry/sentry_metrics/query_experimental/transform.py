@@ -6,7 +6,17 @@ from abc import ABC, abstractmethod
 from dataclasses import replace
 from typing import Generic, TypeVar, Union
 
-from .types import FILTER, Column, Condition, Expression, Function, InvalidMetricsQuery, SeriesQuery
+from .types import (
+    AggregationFn,
+    ArithmeticFn,
+    Column,
+    ConditionFn,
+    Expression,
+    Filter,
+    Function,
+    InvalidMetricsQuery,
+    SeriesQuery,
+)
 
 QueryNode = Union[SeriesQuery, Expression]
 TVisited = TypeVar("TVisited")
@@ -23,12 +33,17 @@ class QueryVisitor(ABC, Generic[TVisited]):
     def visit(self, node: QueryNode) -> TVisited:
         if isinstance(node, SeriesQuery):
             return self._visit_query(node)
+        elif isinstance(node, Filter):
+            return self._visit_filter(node)
         elif isinstance(node, Function):
-            if node.function == FILTER:
-                return self._visit_filter(node)
-            return self._visit_function(node)
-        elif isinstance(node, Condition):
-            return self._visit_condition(node)
+            if node.function in AggregationFn:
+                return self._visit_aggregation(node)
+            elif node.function in ArithmeticFn:
+                return self._visit_arithmetic(node)
+            elif node.function in ConditionFn:
+                return self._visit_condition(node)
+            else:
+                return self._visit_function(node)
         elif isinstance(node, Column):
             return self._visit_column(node)
         elif isinstance(node, str):
@@ -45,11 +60,19 @@ class QueryVisitor(ABC, Generic[TVisited]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _visit_filter(self, filt: Function) -> TVisited:
+    def _visit_filter(self, filt: Filter) -> TVisited:
         raise NotImplementedError()
 
     @abstractmethod
-    def _visit_condition(self, condition: Condition) -> TVisited:
+    def _visit_aggregation(self, aggregation: Function) -> TVisited:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _visit_arithmetic(self, arithmetic: Function) -> TVisited:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _visit_condition(self, condition: Function) -> TVisited:
         raise NotImplementedError()
 
     @abstractmethod
@@ -90,31 +113,28 @@ class QueryTransform(QueryVisitor[QueryNode]):
             groups=[self.visit(group) for group in query.groups],
         )
 
-    def _visit_filter(self, filt: Function) -> Function:
+    def _visit_filter(self, filt: Filter) -> Function:
         if not filt.parameters:
             raise InvalidMetricsQuery("Missing filter parameters")
 
         (inner, *conditions) = filt.parameters
         visited_inner = self.visit(inner)
-        visited_conditions = (self.visit(cond) for cond in conditions)
+        visited_conditions = (self._visit_condition(cond) for cond in conditions)
 
-        return Function(
-            function=filt.function,
-            parameters=[visited_inner, *visited_conditions],
-        )
+        return replace(filt, parameters=[visited_inner, *visited_conditions])
 
-    def _visit_condition(self, condition: Condition) -> Condition:
-        return Condition(
-            lhs=self.visit(condition.lhs),
-            op=condition.op,
-            rhs=self.visit(condition.rhs),
-        )
+    def _visit_aggregation(self, aggregation: Function) -> Function:
+        return self._visit_function(aggregation)
+
+    def _visit_arithmetic(self, arithmetic: Function) -> Function:
+        return self._visit_function(arithmetic)
+
+    def _visit_condition(self, condition: Function) -> Function:
+        return self._visit_function(condition)
 
     def _visit_function(self, function: Function) -> Function:
-        return Function(
-            function=function.function,
-            parameters=[self.visit(param) for param in function.parameters],
-        )
+        visited = [self.visit(param) for param in function.parameters]
+        return replace(function, parameters=visited)
 
     def _visit_column(self, column: Column) -> QueryNode:
         return column

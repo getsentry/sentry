@@ -11,17 +11,16 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from .pipeline import QueryLayer
 from .transform import QueryNode, QueryVisitor
 from .types import (
-    FILTER,
     AggregationFn,
     ArithmeticFn,
     Column,
-    Condition,
+    ConditionFn,
     Expression,
+    Filter,
     Function,
     InvalidMetricsQuery,
     MetricQueryScope,
     MetricRange,
-    Op,
     SeriesQuery,
     parse_mri,
 )
@@ -156,12 +155,17 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         self._use_case = None
 
     def _visit_expression(self, node: Expression) -> AnnotatedExpression:
-        if isinstance(node, Function):
-            if node.function == FILTER:
-                return self._visit_filter(node)
-            return self._visit_function(node)
-        elif isinstance(node, Condition):
-            return self._visit_condition(node)
+        if isinstance(node, Filter):
+            return self._visit_filter(node)
+        elif isinstance(node, Function):
+            if node.function in AggregationFn:
+                return self._visit_aggregation(node)
+            elif node.function in ArithmeticFn:
+                return self._visit_arithmetic(node)
+            elif node.function in ConditionFn:
+                return self._visit_condition(node)
+            else:
+                return self._visit_function(node)
         elif isinstance(node, Column):
             return self._visit_column(node)
         elif isinstance(node, str):
@@ -192,42 +196,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             use_case=self._use_case,
         )
 
-    def _visit_filter(self, filt: Function) -> AnnotatedExpression:
-        return self._annotate_filter(filt)
-
-    def _visit_condition(self, condition: Condition) -> AnnotatedExpression:
-        raise NotImplementedError()
-
-    def _visit_function(self, function: Function) -> AnnotatedExpression:
-        if function.function in ArithmeticFn:
-            return self._annotate_arithmetic(function)
-        elif function.function in AggregationFn:
-            return self._annotate_aggregation(function)
-        else:
-            raise InvalidMetricsQuery(f"Unsupported function {function.function}")
-
-    def _visit_column(self, column: Column) -> AnnotatedExpression:
-        # This is called from an expression tree but not from a condition.
-        #
-        # TODO: Change the Visitor ABC so that there are different methods.
-        return self._annotate_metric(column)
-
-    def _visit_str(self, value: str) -> AnnotatedExpression:
-        return AnnotatedExpression(node=value, type_=ScalarType())
-
-    def _visit_int(self, value: int) -> AnnotatedExpression:
-        return AnnotatedExpression(node=value, type_=ScalarType())
-
-    def _visit_float(self, value: float) -> AnnotatedExpression:
-        return AnnotatedExpression(node=value, type_=ScalarType())
-
-    def _check_use_case(self, use_case: UseCaseID):
-        if self._use_case is None:
-            self._use_case = use_case
-        elif self._use_case != use_case:
-            raise InvalidMetricsQuery("All metrics in a query must belong to the same use case")
-
-    def _annotate_filter(self, filt: Function) -> AnnotatedExpression:
+    def _visit_filter(self, filt: Filter) -> AnnotatedExpression:
         """
         Annotate a filter function.
 
@@ -249,30 +218,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             type_=annotated_inner.type_,
         )
 
-    def _annotate_arithmetic(self, function: Function) -> AnnotatedExpression:
-        """
-        Annotate an arithmetic function.
-
-        Arithmetic functions require vectors as parameters and return vectors.
-        """
-
-        name = function.function
-        if len(function.parameters) != 2:
-            raise InvalidMetricsQuery(f"`{name}` must have two parameters")
-
-        lhs = self._visit_expression(function.parameters[0])
-        rhs = self._visit_expression(function.parameters[1])
-
-        allowed_types = (VectorType, ScalarType)  # TODO: Check scalar is not a string
-        if not isinstance(lhs.type_, allowed_types) or not isinstance(rhs.type_, allowed_types):
-            raise InvalidMetricsQuery(f"Cannot apply `{name}` to a metric, aggregation needed")
-
-        return AnnotatedExpression(
-            node=function,
-            type_=VectorType(),
-        )
-
-    def _annotate_aggregation(self, function: Function) -> AnnotatedExpression:
+    def _visit_aggregation(self, function: Function) -> AnnotatedExpression:
         try:
             aggregation_fn = AggregationFn(function.function)
         except ValueError:
@@ -295,6 +241,56 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             type_=VectorType(),
         )
 
+    def _visit_arithmetic(self, function: Function) -> AnnotatedExpression:
+        """
+        Annotate an arithmetic function.
+
+        Arithmetic functions require vectors as parameters and return vectors.
+        """
+
+        name = function.function
+        if len(function.parameters) != 2:
+            raise InvalidMetricsQuery(f"`{name}` must have two parameters")
+
+        lhs = self._visit_expression(function.parameters[0])
+        rhs = self._visit_expression(function.parameters[1])
+
+        allowed_types = (VectorType, ScalarType)  # TODO: Check scalar is not a string
+        if not isinstance(lhs.type_, allowed_types) or not isinstance(rhs.type_, allowed_types):
+            raise InvalidMetricsQuery(f"Cannot apply `{name}` to a metric, aggregation needed")
+
+        return AnnotatedExpression(
+            node=function,
+            type_=VectorType(),
+        )
+
+    def _visit_condition(self, condition: Function) -> AnnotatedExpression:
+        raise InvalidMetricsQuery("Unexpected condition function")
+
+    def _visit_function(self, function: Function) -> AnnotatedExpression:
+        raise InvalidMetricsQuery(f"Unsupported function {function.function}")
+
+    def _visit_column(self, column: Column) -> AnnotatedExpression:
+        # This is called from an expression tree but not from a condition.
+        #
+        # TODO: Change the Visitor ABC so that there are different methods.
+        return self._annotate_metric(column)
+
+    def _visit_str(self, value: str) -> AnnotatedExpression:
+        return AnnotatedExpression(node=value, type_=ScalarType())
+
+    def _visit_int(self, value: int) -> AnnotatedExpression:
+        return AnnotatedExpression(node=value, type_=ScalarType())
+
+    def _visit_float(self, value: float) -> AnnotatedExpression:
+        return AnnotatedExpression(node=value, type_=ScalarType())
+
+    def _check_use_case(self, use_case: UseCaseID):
+        if self._use_case is None:
+            self._use_case = use_case
+        elif self._use_case != use_case:
+            raise InvalidMetricsQuery("All metrics in a query must belong to the same use case")
+
     def _annotate_metric(self, column: Column) -> AnnotatedExpression:
         mri = parse_mri(column.name)
         if mri.entity not in MRI_TYPES:
@@ -307,22 +303,33 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             type_=MRI_TYPES[mri.entity],
         )
 
-    def _validate_filter_condition(self, condition: Condition) -> None:
+    def _validate_filter_condition(self, condition: Function) -> None:
         # Conditions have a rigid structure at this moment. LHS must be a column,
-        # operator must be a comparison operator, and RHS must be a scalar.
+        # and RHS must be a scalar.
 
-        if not isinstance(condition.lhs, Column):
+        try:
+            op = ConditionFn(condition.function)
+        except ValueError:
+            raise InvalidMetricsQuery(f"Unsupported filter condition {condition.function}")
+
+        value_type = op.value_type
+        params = 1 if value_type == "none" else 2
+        if len(condition.parameters) != params:
+            raise InvalidMetricsQuery(f"Filter {op} condition must have {params} parameters")
+
+        if not isinstance(condition.parameters[0], Column):
             raise InvalidMetricsQuery("LHS of filter condition must be a column")
 
-        if condition.op in (Op.EQ, Op.NEQ, Op.LIKE, Op.NOT_LIKE):
-            self._validate_condition_value(condition.rhs)
-        elif condition.op in (Op.IN, Op.NOT_IN):
-            if not isinstance(condition.rhs, (list, tuple)):
+        if value_type == "scalar":
+            self._validate_condition_value(condition.parameters[1])
+        elif value_type == "tuple":
+            rhs = condition.parameters[1]
+            if not isinstance(rhs, (list, tuple)):
                 raise InvalidMetricsQuery("RHS of IN condition must be a list or tuple")
-            for value in condition.rhs:
+            for value in rhs:
                 self._validate_condition_value(value)
         else:
-            raise InvalidMetricsQuery(f"Unsupported filter condition {condition.op}")
+            assert value_type == "none"
 
     def _validate_condition_value(self, value: Any) -> None:
         if isinstance(value, Column):

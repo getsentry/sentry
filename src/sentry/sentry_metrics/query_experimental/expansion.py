@@ -6,7 +6,7 @@ from typing import Dict, Optional, Union
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
-from .types import Column, Condition, Expression, InvalidMetricsQuery, SeriesQuery, parse_mri
+from .types import Column, Expression, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
 
 
 class ExpressionRegistry:
@@ -85,7 +85,7 @@ class ExpandTransform(QueryTransform):
     def __init__(self, registry: ExpressionRegistry):
         self.registry = registry
 
-    def _visit_condition(self, condition: Condition) -> Condition:
+    def _visit_condition(self, condition: Function) -> Function:
         # Do not process filter conditions, as neither the tag keys nor tag
         # value expressions can contain derived metrics.
         return condition
