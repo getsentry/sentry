@@ -25,3 +25,9 @@ EOF
 
 echo "Unlinking colima."
 brew unlink colima
+
+echo "Starting Docker."
+open -a /Applications/Docker.app --args --unattended
+
+echo "-----------------------------------------------"
+echo "All done. Start devservices at your discretion."

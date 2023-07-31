@@ -40,3 +40,8 @@ EOF
 echo "Installing colima."
 brew install colima
 brew link colima
+
+# Colima is not started here; devservices up will start it properly.
+
+echo "-----------------------------------------------"
+echo "All done. Start devservices at your discretion."
