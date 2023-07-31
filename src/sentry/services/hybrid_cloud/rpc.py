@@ -642,24 +642,3 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     secret = settings.RPC_SHARED_SECRET[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
     return f"rpc0:{signature}"
-
-
-@dataclass(frozen=True)
-class RpcSenderCredentials:
-    """Credentials for sending remote procedure calls.
-
-    This implementation is for dev environments only, and presumes that the
-    credentials can be picked up from Django settings. A production implementation
-    will likely look different.
-    """
-
-    is_allowed: bool = False
-    control_silo_api_token: str | None = None
-    control_silo_address: str | None = None
-
-    @classmethod
-    def read_from_settings(cls) -> RpcSenderCredentials:
-        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER
-        if isinstance(setting_values, str):
-            setting_values = json.loads(setting_values)
-        return cls(**setting_values) if setting_values else cls()

@@ -21,7 +21,7 @@ from sentry.receivers.outbox.control import (
 )
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.silo.base import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 

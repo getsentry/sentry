@@ -2,15 +2,17 @@ from datetime import datetime, timedelta
 
 import pytest
 import responses
+from django.core import mail
 from django.test import override_settings
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 
@@ -26,6 +28,8 @@ class SlackClientDisable(TestCase):
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
+
+        self.organization = self.create_organization(owner=self.user)
 
         self.integration = Integration.objects.create(
             provider="slack",
@@ -48,6 +52,7 @@ class SlackClientDisable(TestCase):
         """
         fatal fast shut off with disable flag on, integration should be broken and disabled
         """
+
         bodydict = {"ok": False, "error": "account_inactive"}
         self.resp.add(
             method=responses.POST,
@@ -57,12 +62,24 @@ class SlackClientDisable(TestCase):
             body=json.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
-        with pytest.raises(ApiError):
+
+        with self.tasks() and pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         assert buffer.is_integration_broken() is True
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    @with_feature("organizations:disable-on-broken")
+    def test_email(self):
+        client = SlackClient(integration_id=self.integration.id)
+        with self.tasks():
+            notify_disable(self.organization, self.integration.provider, client._get_redis_key())
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Action required: re-authenticate or fix your Slack integration"
+        assert (f"/settings/integrations/{self.integration.provider}") in msg.body
 
     @responses.activate
     def test_fatal_integration(self):

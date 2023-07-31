@@ -39,7 +39,7 @@ class AuthProviderDefaultTeams(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = tuple()
+        unique_together = ()
 
 
 @control_silo_only_model
@@ -182,7 +182,7 @@ class AuthProvider(Model):
         ]
 
 
-def get_scim_token(scim_enabled: bool, organization_id: id, provider: str) -> str | None:
+def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
     from sentry.services.hybrid_cloud.app import app_service
 
     if scim_enabled:

@@ -22,7 +22,7 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.pytest.fixtures import django_db_all
