@@ -19,6 +19,8 @@ const getPlaceholderForType = (type: ActionType) => {
       return 'username or channel';
     case ActionType.PAGERDUTY:
       return 'service';
+    case ActionType.OPSGENIE:
+      return 'team';
     default:
       throw Error('Not implemented');
   }

@@ -49,6 +49,7 @@ class ActionService(FlexibleIntEnum):
     MSTEAMS = 3
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -56,6 +57,7 @@ class ActionService(FlexibleIntEnum):
         assert ExternalProviders.PAGERDUTY.name is not None
         assert ExternalProviders.SLACK.name is not None
         assert ExternalProviders.MSTEAMS.name is not None
+        assert ExternalProviders.OPSGENIE.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
@@ -63,6 +65,7 @@ class ActionService(FlexibleIntEnum):
             (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
+            (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
         )
 
 
