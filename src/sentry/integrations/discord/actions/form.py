@@ -4,6 +4,7 @@ from typing import Any
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms.fields import ChoiceField
 
 from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -20,7 +21,7 @@ class DiscordNotifyServiceForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         if server_list:
-            assert isinstance(self.fields["server"], forms.Select)
+            assert isinstance(self.fields["server"], ChoiceField)
             self.fields["server"].initial = server_list[0][0]
             self.fields["server"].choices = server_list
             self.fields["server"].widget.choices = server_list

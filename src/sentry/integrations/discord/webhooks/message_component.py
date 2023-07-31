@@ -114,7 +114,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         )
 
         message = DiscordMessageBuilder(
-            content="Assignee has been updated!",
+            content="Assignee has been updated.",
             flags=DiscordMessageFlags().set_ephemeral(),
         )
         return self.send_message(message, update=True)
