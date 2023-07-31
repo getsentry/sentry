@@ -393,8 +393,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <OnDemandMetricInfoAlert>
               <IconInfo size="sm" color="blue400" style={{marginRight: '10px'}} />
               <span>
-                The chart data is an estimate based on the stored transactions that match
-                the filters specified.
+               {t("The chart data is an estimate based on the stored transactions that match the filters specified.")}
               </span>
             </OnDemandMetricInfoAlert>
           )}
