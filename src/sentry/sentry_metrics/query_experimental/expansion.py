@@ -2,7 +2,7 @@
 Expansion for derived metrics in query expressions.
 """
 
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
@@ -81,9 +81,10 @@ def expand_derived_metrics(
     return transform.visit(query)
 
 
-class ExpandTransform(QueryTransform):
+class ExpandTransform(QueryTransform[Expression]):
     def __init__(self, registry: ExpressionRegistry):
         self.registry = registry
+        self._resolved_columns: List[str] = []
 
     def _visit_condition(self, condition: Condition) -> Condition:
         # Do not process filter conditions, as neither the tag keys nor tag
@@ -95,9 +96,18 @@ class ExpandTransform(QueryTransform):
         if column.name.startswith("$"):
             return column
 
+        if column.name in self._resolved_columns:
+            raise InvalidMetricsQuery(f"A cycling expression has been defined with {column.name}")
+
         expression = self.registry.try_resolve(column.name)
         if expression is None:
             return column
 
+        self._resolved_columns.append(column.name)
+
         # Recurse into the resolved expression to resolve nested derived metrics
-        return self.visit(expression)
+        expression = self.visit(expression)
+
+        self._resolved_columns.pop()
+
+        return expression
