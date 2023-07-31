@@ -361,6 +361,12 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
+      - name: Update environment for silo databases
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
