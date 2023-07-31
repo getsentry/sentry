@@ -102,37 +102,18 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    replay_click_post_processor(message, headers, recording_segment, transaction)
+    replay_click_post_processor(message, headers["segment_id"], recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
-    if headers["segment_id"] == 0:
-        try:
-            project = Project.objects.get_from_cache(id=message.project_id)
-        except Project.DoesNotExist:
-            logger.warning(
-                "Recording segment was received for a project that does not exist.",
-                extra={
-                    "project_id": message.project_id,
-                    "replay_id": message.replay_id,
-                },
-            )
-            return None
-
-        if not project.flags.has_replays:
-            first_replay_received.send_robust(project=project, sender=Project)
-
-        track_outcome(
-            org_id=message.org_id,
-            project_id=message.project_id,
-            key_id=message.key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.utcfromtimestamp(message.received).replace(tzinfo=timezone.utc),
-            event_id=message.replay_id,
-            category=DataCategory.REPLAY,
-            quantity=1,
-        )
+    recording_billing_outcome(
+        message.key_id,
+        message.org_id,
+        message.project_id,
+        message.received,
+        message.replay_id,
+        headers["segment_id"],
+    )
 
     transaction.finish()
 
@@ -170,7 +151,7 @@ def _report_size_metrics(
 
 def replay_click_post_processor(
     message: RecordingIngestMessage,
-    headers: RecordingSegmentHeaders,
+    segment_id: int,
     segment_bytes: bytes,
     transaction: Span,
 ) -> None:
@@ -205,6 +186,43 @@ def replay_click_post_processor(
                 message.org_id,
                 message.project_id,
                 message.replay_id,
-                headers["segment_id"],
+                segment_id,
             )
+        )
+
+
+def recording_billing_outcome(
+    key_id: int | None,
+    org_id: int,
+    project_id: int,
+    received: int,
+    replay_id: str,
+    segment_id: int,
+) -> None:
+    if segment_id == 0:
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            logger.warning(
+                "Recording segment was received for a project that does not exist.",
+                extra={
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                },
+            )
+            return None
+
+        if not project.flags.has_replays:
+            first_replay_received.send_robust(project=project, sender=Project)
+
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY,
+            quantity=1,
         )
