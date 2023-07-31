@@ -53,7 +53,7 @@ class DiscordRequest:
     def __init__(self, request: Request):
         self.request = request
         self._integration: RpcIntegration | None = None
-        self._data: Mapping[str, object] = {}
+        self._data: Mapping[str, object] = self.request.data
         self._identity: RpcIdentity | None = None
         self.user: RpcUser | None = None
 
@@ -107,7 +107,6 @@ class DiscordRequest:
         return {k: v for k, v in data.items() if v}
 
     def validate(self) -> None:
-        self._validate_data()
         self._log_request()
         self.authorize()
         self.validate_integration()
@@ -123,12 +122,6 @@ class DiscordRequest:
             return
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
-
-    def _validate_data(self) -> None:
-        try:
-            self._data = self.request.data
-        except (ValueError, TypeError):
-            raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()

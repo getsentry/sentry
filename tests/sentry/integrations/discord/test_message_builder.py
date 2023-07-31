@@ -24,7 +24,11 @@ class TestDiscordMessageBuilder(TestCase):
     def test_empty(self):
         message = DiscordMessageBuilder()
         result = message.build()
-        assert result == {}
+        assert result == {
+            "content": "",
+            "components": [],
+            "embeds": [],
+        }
 
     def test_some(self):
         flags = DiscordMessageFlags().set_ephemeral()
@@ -35,6 +39,8 @@ class TestDiscordMessageBuilder(TestCase):
         result = message.build()
         assert result == {
             "content": "message content",
+            "components": [],
+            "embeds": [],
             "flags": 1 << 6,
         }
 
