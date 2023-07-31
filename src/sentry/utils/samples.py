@@ -1,3 +1,4 @@
+import logging
 import os.path
 import random
 import time
@@ -6,7 +7,6 @@ from uuid import uuid4
 
 from django.core.exceptions import SuspiciousFileOperation
 
-from sentry import logging
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
@@ -411,7 +411,13 @@ def create_sample_event(
     )
 
     if not data:
-        logger.debug("create_sample_event: no data loaded", extra={"project_id": project.id})
+        logger.info(
+            "create_sample_event: no data loaded",
+            extra={
+                "project_id": project.id,
+                "sample_event": True,
+            },
+        )
         return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:

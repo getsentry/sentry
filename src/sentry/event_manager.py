@@ -469,7 +469,11 @@ class EventManager:
         if is_sample_event(job["event"]):
             logger.info(
                 "save_error_events: processing sample event",
-                extra={"event.id": job["event"].id, "project_id": project.id},
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": project.id,
+                    "sample_event": True,
+                },
             )
 
         is_reprocessed = is_reprocessed_event(job["data"])
@@ -592,7 +596,11 @@ class EventManager:
             if is_sample_event(job["event"]):
                 logger.info(
                     "save_error_events: no groupinfo found, returning event",
-                    extra={"event.id": job["event"].id, "project_id": project.id},
+                    extra={
+                        "event.id": job["event"].event_id,
+                        "project_id": project.id,
+                        "sample_event": True,
+                    },
                 )
             return job["event"]
 
@@ -1304,7 +1312,11 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         if is_sample_event(job["event"]):
             logger.info(
                 "_eventstream_insert_many: attempting to insert event into eventstream",
-                extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
             )
 
         if job["event"].project_id == settings.SENTRY_PROJECT:
@@ -1342,7 +1354,11 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         if is_sample_event(job["event"]):
             logger.info(
                 "_eventstream_insert_many: inserting into evenstream",
-                extra={"event.id": job["event"].id, "project_id": job["event"].project_id},
+                extra={
+                    "event.id": job["event"].event_id,
+                    "project_id": job["event"].project_id,
+                    "sample_event": True,
+                },
             )
         eventstream.backend.insert(
             event=job["event"],
