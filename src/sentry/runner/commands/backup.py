@@ -57,6 +57,9 @@ class ComparatorFindings:
     def append(self, finding: ComparatorFinding) -> None:
         self.findings.append(finding)
 
+    def extend(self, findings: list[ComparatorFinding]) -> None:
+        self.findings += findings
+
     def pretty(self) -> str:
         return "\n".join(f.pretty() for f in self.findings)
 
@@ -67,8 +70,9 @@ class JSONScrubbingComparator(ABC):
     otherwise equivalent JSON instances of the same model.
 
     Each class inheriting from `JSONScrubbingComparator` should override the abstract `compare`
-    method with its own comparison logic. The `scrub` method is universal (it merely moves the
-    compared fields from the `fields` dictionary to the non-diffed `scrubbed` dictionary).
+    method with its own comparison logic. The `scrub` method merely moves the compared fields from
+    the `fields` dictionary to the non-diffed `scrubbed` dictionary, and may optionally be wrapped
+    if extra scrubbing logic is necessary.
 
     If multiple comparators are used sequentially on a single model (see the `SCRUBBING_COMPARATORS`
     dict below for specific mappings), all of the `compare(...)` methods are called before any of
@@ -89,20 +93,44 @@ class JSONScrubbingComparator(ABC):
             raise RuntimeError(f"The {side} input must have a `fields` dictionary.")
 
     @abstractmethod
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> ComparatorFinding | None:
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         """An abstract method signature, to be implemented by inheriting classes with their own
         comparison logic. Implementations of this method MUST take care not to mutate the method's
         inputs!"""
 
         pass
 
+    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        """Ensure that all tracked fields on either both models or neither."""
+
+        findings = []
+        for f in self.fields:
+            if f not in left["fields"] and f not in right["fields"]:
+                continue
+            if f not in left["fields"]:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        reason=f"the left {f} value on `{on}` was missing",
+                    )
+                )
+            if f not in right["fields"]:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        reason=f"the right {f} value on `{on}` was missing",
+                    )
+                )
+        return findings
+
     def scrub(self, on: InstanceID, left: JSONData, right: JSONData) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality.
 
         Parameters:
-        - on: An `InstanceID` that must be shared by both versions of the JSON model being
-            compared.
+        - on: An `InstanceID` that must be shared by both versions of the JSON model being compared.
         - left: One of the models being compared (usually the "before") version.
         - right: The other model it is being compared against (usually the "after" or
             post-processed version).
@@ -135,17 +163,23 @@ class DateUpdatedComparator(JSONScrubbingComparator):
         super().__init__([field])
         self.field = field
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> ComparatorFinding | None:
-        left_date_updated = left["fields"][self.field]
-        right_date_updated = right["fields"][self.field]
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        f = self.field
+        if f not in left["fields"] and f not in right["fields"]:
+            return []
+
+        left_date_updated = left["fields"][f]
+        right_date_updated = right["fields"][f]
         if parser.parse(left_date_updated) > parser.parse(right_date_updated):
-            return ComparatorFinding(
-                kind=self.get_kind(),
-                on=on,
-                reason=f"""the left date_updated value on `{on}` ({left_date_updated}) was not less
-                than or equal to the right ({right_date_updated})""",
-            )
-        return None
+            return [
+                ComparatorFinding(
+                    kind=self.get_kind(),
+                    on=on,
+                    reason=f"""the left date_updated value on `{on}` ({left_date_updated}) was not
+                            less than or equal to the right ({right_date_updated})""",
+                )
+            ]
+        return []
 
 
 ComparatorList = List[JSONScrubbingComparator]
@@ -211,15 +245,20 @@ def validate(
         # Try comparators applicable for this specific model.
         if id.model in comparators:
             # We take care to run ALL of the `compare()` methods on each comparator before calling
-            # any `scrub()` methods. This ensures tha, in cases where a single model uses multiple
+            # any `scrub()` methods. This ensures that, in cases where a single model uses multiple
             # comparators that touch the same fields, one comparator does not accidentally scrub the
             # inputs for its follower. If `compare()` functions are well-behaved (that is, they
             # don't mutate their inputs), this should be sufficient to ensure that the order in
             # which comparators are applied does not change the final output.
             for cmp in comparators[id.model]:
+                ex = cmp.existence(id, exp, act)
+                if ex:
+                    findings.extend(ex)
+                    continue
+
                 res = cmp.compare(id, exp, act)
                 if res:
-                    findings.append(res)
+                    findings.extend(res)
             for cmp in comparators[id.model]:
                 cmp.scrub(id, exp, act)
 
