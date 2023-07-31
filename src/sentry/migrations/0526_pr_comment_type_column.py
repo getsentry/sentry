@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_pullrequest_comment" ADD COLUMN "comment_type" NOT NULL DEFAULT 0;
+                    ALTER TABLE "sentry_pullrequest_comment" ADD COLUMN "comment_type" integer NOT NULL DEFAULT 0;
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_pullrequest_comment" DROP COLUMN "comment_type";
