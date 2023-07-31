@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from difflib import unified_diff
 from io import StringIO
-from typing import Dict, List, NamedTuple
+from typing import Callable, Dict, List, Literal, NamedTuple
 
 import click
 from dateutil import parser
@@ -79,7 +79,7 @@ class JSONScrubbingComparator(ABC):
     the `scrub(...)` methods are. This ensures that comparators that touch the same fields do not
     have their inputs mangled by one another."""
 
-    def __init__(self, fields: list[str]):
+    def __init__(self, *fields: str):
         self.fields = fields
 
     def check(self, side: str, data: JSONData) -> None:
@@ -125,15 +125,22 @@ class JSONScrubbingComparator(ABC):
                 )
         return findings
 
-    def scrub(self, on: InstanceID, left: JSONData, right: JSONData) -> None:
+    def __scrub__(
+        self,
+        left: JSONData,
+        right: JSONData,
+        f: Callable[[list[str]], list[str]] | Callable[[list[str]], Literal[True]] = lambda _: True,
+    ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
-        remaining fields may be compared for equality.
+        remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
 
         Parameters:
         - on: An `InstanceID` that must be shared by both versions of the JSON model being compared.
         - left: One of the models being compared (usually the "before") version.
         - right: The other model it is being compared against (usually the "after" or
             post-processed version).
+        - f: Optional helper method that populates the RHS of the scrubbed entry. If this is
+            omitted, the scrubbed entry defaults to `True`.
         """
 
         self.check("left", left)
@@ -142,11 +149,24 @@ class JSONScrubbingComparator(ABC):
             left["scrubbed"] = {}
         if "scrubbed" not in right:
             right["scrubbed"] = {}
+
         for field in self.fields:
-            del left["fields"][field]
-            left["scrubbed"][f"{self.get_kind()}::{field}"] = True
-            del right["fields"][field]
-            right["scrubbed"][f"{self.get_kind()}::{field}"] = True
+            for side in [left, right]:
+                if field not in side["fields"]:
+                    continue
+                value = side["fields"][field]
+                if not value:
+                    continue
+                value = [value] if isinstance(value, str) else value
+                del side["fields"][field]
+                side["scrubbed"][f"{self.get_kind()}::{field}"] = f(value)
+
+    def scrub(
+        self,
+        left: JSONData,
+        right: JSONData,
+    ) -> None:
+        self.__scrub__(left, right)
 
     def get_kind(self) -> str:
         """A unique identifier for this particular derivation of JSONScrubbingComparator, which will
@@ -160,7 +180,7 @@ class DateUpdatedComparator(JSONScrubbingComparator):
     date that is greater than (ie, occurs after) the specified field's left input."""
 
     def __init__(self, field: str):
-        super().__init__([field])
+        super().__init__(field)
         self.field = field
 
     def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
@@ -182,14 +202,79 @@ class DateUpdatedComparator(JSONScrubbingComparator):
         return []
 
 
+class EmailObfuscatingComparator(JSONScrubbingComparator):
+    """Comparator that compares emails, but then safely truncates them to ensure that they
+    do not leak out in logs, stack traces, etc."""
+
+    def __init__(self, *fields: str):
+        super().__init__(*fields)
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        for f in self.fields:
+            if f not in left["fields"] and f not in right["fields"]:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv != rv:
+                lv = self.truncate([lv] if isinstance(lv, str) else lv)[0]
+                rv = self.truncate([rv] if isinstance(rv, str) else rv)[0]
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        reason=f"""the left `{f}` value ("{lv}") on `{on}` was not equal to the
+                                right value ("{rv}")""",
+                    )
+                )
+        return findings
+
+    def scrub(
+        self,
+        left: JSONData,
+        right: JSONData,
+    ) -> None:
+        super().__scrub__(left, right, self.truncate)
+
+    @staticmethod
+    def truncate(data: list[str]) -> list[str]:
+        truncated = []
+        for d in data:
+            parts = d.split("@")
+            if len(parts) == 2:
+                username = parts[0]
+                domain = parts[1]
+                truncated.append(f"{username[0]}...@...{domain[-6:]}")
+            else:
+                truncated.append(d)
+        return truncated
+
+
 ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 DEFAULT_COMPARATORS: ComparatorMap = {
+    "sentry.apitoken": [EmailObfuscatingComparator("user")],
+    "sentry.apiapplication": [EmailObfuscatingComparator("owner")],
+    "sentry.apiauthorization": [EmailObfuscatingComparator("user")],
+    "sentry.authidentity": [EmailObfuscatingComparator("user")],
+    "sentry.authenticator": [EmailObfuscatingComparator("user")],
+    "sentry.email": [EmailObfuscatingComparator("email")],
     "sentry.alertrule": [DateUpdatedComparator("date_modified")],
     "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
+    "sentry.organizationmember": [EmailObfuscatingComparator("user_email")],
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
+    "sentry.sentryapp": [EmailObfuscatingComparator("creator_user", "creator_label", "proxy_user")],
+    "sentry.user": [EmailObfuscatingComparator("email", "username")],
+    "sentry.useremail": [EmailObfuscatingComparator("email", "user")],
+    "sentry.userip": [EmailObfuscatingComparator("user")],
+    "sentry.useroption": [EmailObfuscatingComparator("user")],
+    "sentry.userpermission": [EmailObfuscatingComparator("user")],
     "sentry.userrole": [DateUpdatedComparator("date_updated")],
-    "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+    "sentry.userroleuser": [
+        DateUpdatedComparator("date_updated"),
+        EmailObfuscatingComparator("user"),
+    ],
 }
 
 
@@ -260,7 +345,7 @@ def validate(
                 if res:
                     findings.extend(res)
             for cmp in comparators[id.model]:
-                cmp.scrub(id, exp, act)
+                cmp.scrub(exp, act)
 
         # Finally, perform a diff on the remaining JSON.
         diff = list(unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3))
