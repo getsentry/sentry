@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -172,11 +173,12 @@ function EventNavigationDropdown({group}: {group: Group}) {
             });
             break;
           case EventNavDropdownOption.ALL:
+            const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/issues/${group.id}/events/`
               ),
-              query: location.query,
+              query: searchTermWithoutQuery,
             });
             break;
           default:

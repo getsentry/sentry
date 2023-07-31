@@ -133,9 +133,11 @@ class MetricsQueryBuilder(QueryBuilder):
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
             alias = "count"
+            include_series = True
         else:
-            limit = self.limit
+            limit = self.limit or Limit(1)
             alias = spec.mri
+            include_series = False
 
         granularity = snuba_query.granularity or self.resolve_granularity()
 
@@ -154,7 +156,7 @@ class MetricsQueryBuilder(QueryBuilder):
             is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
-            include_series=True,
+            include_series=include_series,
             start=self.params.start,
             end=self.params.end,
         )

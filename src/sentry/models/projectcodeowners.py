@@ -133,7 +133,8 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
 
 def process_resource_change(instance, change, **kwargs):
-    from sentry.models import GroupOwner, ProjectOwnership
+    from sentry.models import GroupOwner
+    from sentry.models.projectownership import ProjectOwnership
 
     cache.set(
         ProjectCodeOwners.get_cache_key(instance.project_id),

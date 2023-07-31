@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
@@ -31,7 +31,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
-        parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
+        parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("data", ReplayDetailsResponse),
             400: RESPONSE_BAD_REQUEST,
