@@ -29,7 +29,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         (
             "colima",
             "start",
-            f"--mount=/private/tmp/colima:w,{os.path.expanduser('~')}:r",
+            f"--mount=/var/folders:w,/private/tmp/colima:w,{os.path.expanduser('~')}:r",
             *args,
         )
     )

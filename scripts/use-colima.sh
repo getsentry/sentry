@@ -1,11 +1,13 @@
 #!/bin/bash
 
-echo "Stopping Docker.app. You may ignore a 'process terminated unexpectedly' dialog."
+echo "Copying your postgres volume for use with colima. Will take a few minutes."
+tmpdir=$(mktemp -d)
+docker context use desktop-linux
+docker run --rm -v sentry_postgres:/from -v "${tmpdir}:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
 
+echo "Stopping Docker.app. If a 'process terminated unexpectedly' dialog appears, dismiss it."
 osascript - <<'EOF' || exit
-tell application "Docker"
-  if it is running then quit it
-end tell
+quit application "Docker"
 EOF
 
 # We aren't uninstalling for now - this makes rolling back to docker desktop faster.
@@ -43,6 +45,13 @@ brew link colima
 
 echo "Starting colima."
 python3 -uS scripts/start-colima.py
+
+# The context will be colima, we just want to double make sure.
+docker context use colima
+echo "Recreating your postgres volume for use with colima."
+docker volume create --name sentry_postgres
+docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
+rm -rf "$tmpdir"
 
 echo "-----------------------------------------------"
 echo "All done. Start devservices at your discretion."
