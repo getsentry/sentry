@@ -11,9 +11,7 @@ import ReplayPreview from './replayPreview';
 
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 
-const mockUseReplayReader = useReplayReader as jest.MockedFunction<
-  typeof useReplayReader
->;
+const mockUseReplayReader = jest.mocked(useReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';

@@ -57,7 +57,7 @@ function FocusArea({}: Props) {
     default: {
       return (
         <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
+          frames={replay?.getConsoleFrames()}
           startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
         />
       );

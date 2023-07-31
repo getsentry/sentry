@@ -4,7 +4,11 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from rest_framework.authentication import BasicAuthentication, get_authorization_header
+from rest_framework.authentication import (
+    BasicAuthentication,
+    SessionAuthentication,
+    get_authorization_header,
+)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay import UnpackError
@@ -155,6 +159,14 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             scope.set_tag("api_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class SessionNoAuthTokenAuthentication(SessionAuthentication):
+    def authenticate(self, request: Request):
+        auth = get_authorization_header(request)
+        if auth:
+            return None
+        return super().authenticate(request)
 
 
 class ClientIdSecretAuthentication(QuietBasicAuthentication):

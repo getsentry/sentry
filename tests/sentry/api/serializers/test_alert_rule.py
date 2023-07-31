@@ -8,7 +8,7 @@ from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.models import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 NOT_SET = object()

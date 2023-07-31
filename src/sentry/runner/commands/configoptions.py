@@ -143,7 +143,9 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
             click.echo(
                 f"Invalid option. {key} cannot be updated. Reason {not_writable_reason.value}"
             )
-            metrics.incr("options_automator.run", tags={"status": "invalid_option"})
+            metrics.incr(
+                "options_automator.run", tags={"status": "invalid_option"}, sample_rate=1.0
+            )
             exit(-1)
         elif not_writable_reason == options.NotWritableReason.DRIFTED:
             drifted_options.add(key)
@@ -176,12 +178,14 @@ def patch(ctx) -> None:
             metrics.incr(
                 "options_automator.run",
                 tags={"status": "update_failed"},
+                sample_rate=1.0,
             )
             raise
 
     metrics.incr(
         "options_automator.run",
         tags={"status": "drift" if not ctx.obj["drifted_options"] else "success"},
+        sample_rate=1.0,
     )
 
 
@@ -220,6 +224,7 @@ def sync(ctx):
                 metrics.incr(
                     "options_automator.run",
                     tags={"status": "update_failed"},
+                    sample_rate=1.0,
                 )
                 raise
         else:
@@ -232,6 +237,7 @@ def sync(ctx):
                             metrics.incr(
                                 "options_automator.run",
                                 tags={"status": "update_failed"},
+                                sample_rate=1.0,
                             )
                             raise
                     click.echo(UNSET_MSG % opt.name)
@@ -242,4 +248,5 @@ def sync(ctx):
     metrics.incr(
         "options_automator.run",
         tags={"status": "drift" if not drift_found else "success"},
+        sample_rate=1.0,
     )

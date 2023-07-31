@@ -2,7 +2,7 @@ from sentry.issues.update_inbox import update_inbox
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.group import GroupSubStatus
 
