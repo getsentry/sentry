@@ -31,6 +31,13 @@ class ApiTokensListTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
+    def test_deny_token_access(self):
+        token = ApiToken.objects.create(user=self.user, scope_list=[])
+
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        assert response.status_code == 403, response.content
+
 
 @control_silo_test(stable=True)
 class ApiTokensCreateTest(APITestCase):
