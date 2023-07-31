@@ -1,5 +1,6 @@
 declare const __LOADER__PUBLIC_KEY__: any;
 declare const __LOADER_SDK_URL__: any;
+declare const __LOADER_SDK_URL_ES5__: any;
 declare const __LOADER__CONFIG__: any;
 declare const __LOADER__IS_LAZY__: any;
 
@@ -11,6 +12,7 @@ declare const __LOADER__IS_LAZY__: any;
   _namespace,
   _publicKey,
   _sdkBundleUrl,
+  _sdkBundleEs5Url,
   _config,
   _lazy
 ) {
@@ -60,6 +62,22 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
+  // We detect ES6 support by checking if module scripts are supported
+  let _hasEs6Support: boolean | undefined;
+  function hasEs6Support(): boolean {
+    // Cache this so we only check once
+    if (typeof _hasEs6Support === 'boolean') {
+      return _hasEs6Support;
+    }
+    const script = document.createElement('script');
+    script.setAttribute('nomodule', '');
+    script.innerHTML = 'window.__sentry_nomodules = true;';
+    document.head.insertBefore(script, document.head.firstChild);
+    document.head.removeChild(script);
+
+    return (_hasEs6Support = !(window as any).__sentry_nomodules);
+  }
+
   function onUnhandledRejection(e) {
     queue({
       p:
@@ -85,7 +103,7 @@ declare const __LOADER__IS_LAZY__: any;
     // https://www.html5rocks.com/en/tutorials/speed/script-loading/
     const _currentScriptTag = _document.scripts[0];
     const _newScriptTag = _document.createElement('script') as HTMLScriptElement;
-    _newScriptTag.src = _sdkBundleUrl;
+    _newScriptTag.src = hasEs6Support() ? _sdkBundleUrl : _sdkBundleEs5Url;
     _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
@@ -140,6 +158,7 @@ declare const __LOADER__IS_LAZY__: any;
     }
 
     if (
+      hasEs6Support() &&
       (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
       integrationNames.indexOf('Replay') === -1
     ) {
@@ -265,6 +284,7 @@ declare const __LOADER__IS_LAZY__: any;
   'Sentry' as const,
   __LOADER__PUBLIC_KEY__,
   __LOADER_SDK_URL__,
+  __LOADER_SDK_URL_ES5__,
   __LOADER__CONFIG__,
   __LOADER__IS_LAZY__
 );

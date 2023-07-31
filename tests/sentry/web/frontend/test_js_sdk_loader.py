@@ -135,13 +135,14 @@ class JavaScriptSdkLoaderTest(TestCase):
 
         dsn = self.projectkey.get_dsn(public=True)
 
-        for data, expected_bundle, expected_options in [
+        for data, expected_bundle, expected_bundle_es5, expected_options in [
             (
                 {
                     "dynamicSdkLoaderOptions": {
                         DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
                     }
                 },
+                b"/7.37.0/bundle.tracing.min.js",
                 b"/7.37.0/bundle.tracing.es5.min.js",
                 {"dsn": dsn, "tracesSampleRate": 1},
             ),
@@ -151,6 +152,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_DEBUG.value: True,
                     }
                 },
+                b"/7.37.0/bundle.debug.min.js",
                 b"/7.37.0/bundle.es5.debug.min.js",
                 {"dsn": dsn, "debug": True},
             ),
@@ -161,6 +163,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.replay.min.js",
+                b"/7.37.0/bundle.es5.min.js",
                 {"dsn": dsn, "replaysSessionSampleRate": 0.1, "replaysOnErrorSampleRate": 1},
             ),
             (
@@ -171,6 +174,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.replay.min.js",
+                b"/7.37.0/bundle.tracing.es5.min.js",
                 {
                     "dsn": dsn,
                     "tracesSampleRate": 1,
@@ -186,6 +190,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.replay.debug.min.js",
+                b"/7.37.0/bundle.es5.debug.min.js",
                 {
                     "dsn": dsn,
                     "replaysSessionSampleRate": 0.1,
@@ -200,6 +205,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                         DynamicSdkLoaderOption.HAS_DEBUG.value: True,
                     }
                 },
+                b"/7.37.0/bundle.tracing.debug.min.js",
                 b"/7.37.0/bundle.tracing.es5.debug.min.js",
                 {"dsn": dsn, "tracesSampleRate": 1, "debug": True},
             ),
@@ -212,6 +218,7 @@ class JavaScriptSdkLoaderTest(TestCase):
                     }
                 },
                 b"/7.37.0/bundle.tracing.replay.debug.min.js",
+                b"/7.37.0/bundle.tracing.es5.debug.min.js",
                 {
                     "dsn": dsn,
                     "tracesSampleRate": 1,
@@ -227,6 +234,7 @@ class JavaScriptSdkLoaderTest(TestCase):
             assert resp.status_code == 200
             self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
             assert expected_bundle in resp.content
+            assert expected_bundle_es5 in resp.content
 
             for key in expected_options:
                 # Convert to e.g. "option_name": 0.1

@@ -29,6 +29,7 @@ class SdkConfig(TypedDict):
 
 class LoaderInternalConfig(TypedDict):
     bundleKindModifier: str
+    bundleKindModifierEs5: str
     isLazy: bool
     hasPerformance: bool
     hasReplay: bool
@@ -38,6 +39,7 @@ class LoaderInternalConfig(TypedDict):
 class LoaderContext(TypedDict):
     config: SdkConfig
     jsSdkUrl: Optional[str]
+    jsSdkUrlEs5: Optional[str]
     publicKey: Optional[str]
     isLazy: bool
 
@@ -59,6 +61,7 @@ class JavaScriptSdkLoader(BaseView):
         if not key or not sdk_version:
             return {
                 "bundleKindModifier": "",
+                "bundleKindModifierEs5": "",
                 "isLazy": True,
                 "hasPerformance": False,
                 "hasReplay": False,
@@ -69,6 +72,7 @@ class JavaScriptSdkLoader(BaseView):
 
         is_lazy = True
         bundle_kind_modifier = ""
+        bundle_kind_modifier_es5 = ""
         has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
         has_performance = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
         has_debug = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
@@ -80,6 +84,7 @@ class JavaScriptSdkLoader(BaseView):
         # We depend on fixes in the tracing bundle that are only available in v7
         if is_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
+            bundle_kind_modifier_es5 += ".tracing"
             is_lazy = False
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
@@ -89,17 +94,16 @@ class JavaScriptSdkLoader(BaseView):
 
         # From JavaScript SDK version 7 onwards, the default bundle code is ES6, however, in the loader we
         # want to provide the ES5 version. This is why we need to modify the requested bundle name here.
-        #
-        # If we are loading replay, do not add the es5 modifier, as those bundles are
-        # ES6 only.
-        if is_v7_sdk and not has_replay:
-            bundle_kind_modifier += ".es5"
+        if is_v7_sdk:
+            bundle_kind_modifier_es5 += ".es5"
 
         if has_debug:
             bundle_kind_modifier += ".debug"
+            bundle_kind_modifier_es5 += ".debug"
 
         return {
             "bundleKindModifier": bundle_kind_modifier,
+            "bundleKindModifierEs5": bundle_kind_modifier_es5,
             "isLazy": is_lazy,
             "hasPerformance": has_performance,
             "hasReplay": has_replay,
@@ -131,12 +135,19 @@ class JavaScriptSdkLoader(BaseView):
                     sdk_version,
                     loader_config["bundleKindModifier"],
                 )
+                sdk_url_es5 = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (
+                    sdk_version,
+                    loader_config["bundleKindModifierEs5"],
+                )
             elif js_sdk_loader_default_sdk_url_template_slot_count == 1:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version,)
+                sdk_url_es5 = sdk_url
             else:
                 sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
+                sdk_url_es5 = sdk_url
         except TypeError:
             sdk_url = ""  # It fails if it cannot inject the version in the string
+            sdk_url_es5 = ""
 
         config: SdkConfig = {"dsn": key.dsn_public}
 
@@ -154,6 +165,7 @@ class JavaScriptSdkLoader(BaseView):
             {
                 "config": config,
                 "jsSdkUrl": sdk_url,
+                "jsSdkUrlEs5": sdk_url_es5,
                 "publicKey": key.public_key,
                 "isLazy": loader_config["isLazy"],
             },

@@ -1,4 +1,4 @@
-{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _config, _lazy) {
+{% load sentry_helpers %}(function sentryLoader(_window, _document, _errorEvent, _unhandledrejectionEvent, _namespace, _publicKey, _sdkBundleUrl, _sdkBundleEs5Url, _config, _lazy) {
     var lazy = _lazy;
     var forceLoad = false;
     for (var i = 0; i < document.scripts.length; i++) {
@@ -38,6 +38,20 @@
             e: [].slice.call(arguments),
         });
     }
+    // We detect ES6 support by checking if module scripts are supported
+    var _hasEs6Support;
+    function hasEs6Support() {
+        // Cache this so we only check once
+        if (typeof _hasEs6Support === 'boolean') {
+            return _hasEs6Support;
+        }
+        var script = document.createElement('script');
+        script.setAttribute('nomodule', '');
+        script.innerHTML = 'window.__sentry_nomodules = true;';
+        document.head.insertBefore(script, document.head.firstChild);
+        document.head.removeChild(script);
+        return (_hasEs6Support = !window.__sentry_nomodules);
+    }
     function onUnhandledRejection(e) {
         queue({
             p: 'reason' in e
@@ -60,7 +74,7 @@
         // https://www.html5rocks.com/en/tutorials/speed/script-loading/
         var _currentScriptTag = _document.scripts[0];
         var _newScriptTag = _document.createElement('script');
-        _newScriptTag.src = _sdkBundleUrl;
+        _newScriptTag.src = hasEs6Support() ? _sdkBundleUrl : _sdkBundleEs5Url;
         _newScriptTag.crossOrigin = 'anonymous';
         // Once our SDK is loaded
         _newScriptTag.addEventListener('load', function () {
@@ -102,7 +116,8 @@
         if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
             integrations.push(new SDK.BrowserTracing());
         }
-        if ((config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
+        if (hasEs6Support() &&
+            (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
             integrationNames.indexOf('Replay') === -1) {
             integrations.push(new SDK.Replay());
         }
@@ -202,4 +217,4 @@
             injectSdk(onLoadCallbacks);
         });
     }
-})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
+})(window, document, 'error', 'unhandledrejection', 'Sentry', '{{ publicKey|safe }}', '{{ jsSdkUrl|safe }}', '{{ jsSdkUrlEs5|safe }}', {{ config|to_json|safe }}, {{ isLazy|safe|lower }});
