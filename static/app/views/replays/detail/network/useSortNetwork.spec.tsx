@@ -1,4 +1,6 @@
-import {act, reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act} from 'react-test-renderer';
+
+import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
