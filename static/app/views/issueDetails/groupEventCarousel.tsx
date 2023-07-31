@@ -8,6 +8,7 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
@@ -68,7 +69,12 @@ const BUTTON_ICON_SIZE = 'sm';
 const EVENT_NAV_DROPDOWN_OPTIONS = [
   {
     value: EventNavDropdownOption.RECOMMENDED,
-    label: t('Recommended'),
+    label: (
+      <div>
+        {t('Recommended')}
+        <FeatureBadge type="new" />
+      </div>
+    ),
     details: t('Event with the most content'),
   },
   {
