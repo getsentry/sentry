@@ -163,4 +163,5 @@ class ActivityIntegration(Enum):
     PROJECT_OWNERSHIP = "projectOwnership"
     SLACK = "slack"
     MSTEAMS = "msteams"
+    DISCORD = "discord"
     SUSPECT_COMMITTER = "suspectCommitter"

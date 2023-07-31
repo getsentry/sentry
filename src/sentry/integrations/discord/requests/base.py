@@ -33,6 +33,13 @@ class DiscordRequestTypes:
     MODAL_SUBMIT = 5
 
 
+class DiscordMessageComponentTypes:
+    ACTION_ROW = 1
+    BUTTON = 2
+    SELECT = 3
+    TEXT_INPUT = 4
+
+
 class DiscordRequest:
     """
     A Request from Discord to our interactions endpoint.
@@ -56,24 +63,25 @@ class DiscordRequest:
 
     @property
     def data(self) -> Mapping[str, object]:
+        """This is the data object nested within request.data"""
         if not self._data:
             self._validate_data()
-        return self._data
+        return self._data.get("data") or {}  # type: ignore
 
     @property
     def guild_id(self) -> str | None:
-        guild_id = self.data.get("guild_id")
+        guild_id = self._data.get("guild_id")
         return str(guild_id) if guild_id else None
 
     @property
     def channel_id(self) -> str | None:
-        channel_id = self.data.get("channel_id")
+        channel_id = self._data.get("channel_id")
         return str(channel_id) if channel_id else None
 
     @property
     def user_id(self) -> str | None:
         try:
-            return self.data.get("member")["user"]["id"]  # type: ignore
+            return self._data.get("member")["user"]["id"]  # type: ignore
         except (AttributeError, TypeError):
             return None
 
@@ -89,6 +97,12 @@ class DiscordRequest:
             data["integration_id"] = self.integration.id
         if self.user_id:
             data["discord_user_id"] = self.user_id
+        if self.has_identity():
+            data["identity"] = self.get_identity_str()
+        if self.is_command():
+            data["command"] = self.get_command_name()
+        if self.is_message_component():
+            data["component_custom_id"] = self.get_component_custom_id()
 
         return {k: v for k, v in data.items() if v}
 
@@ -174,9 +188,14 @@ class DiscordRequest:
     def get_command_name(self) -> str:
         if not self.is_command():
             return ""
-        return self._data.get("data")["name"]  # type: ignore
+        return self.data["name"]  # type: ignore
 
     def get_component_custom_id(self) -> str:
         if not self.is_message_component():
             return ""
-        return self._data.get("data")["custom_id"]  # type: ignore
+        return self.data["custom_id"]  # type: ignore
+
+    def get_selected_options(self) -> list[str]:
+        if self.data["component_type"] != DiscordMessageComponentTypes.SELECT:
+            return []
+        return self.data["values"]  # type: ignore

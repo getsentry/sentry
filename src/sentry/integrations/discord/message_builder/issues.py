@@ -7,9 +7,6 @@ from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
 from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
-from sentry.integrations.discord.message_builder.base.component.select_menu import (
-    DiscordSelectMenuOption,
-)
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
@@ -143,35 +140,3 @@ def build_components(
     return [
         DiscordActionRow(components=[resolve_button, ignore_button, assign_button]),
     ]
-
-
-def get_assign_selector_options(group: Group) -> list[DiscordSelectMenuOption]:
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
-
-    assignee = group.get_assignee()
-
-    options = []
-    # We don't have the luxury of option groups like Slack has, so we will just
-    # list all the teams and then all the members.
-    if teams:
-        team_options = [
-            DiscordSelectMenuOption(
-                label=f"#{team.slug}", value=f"team:{team.id}", default=(team == assignee)
-            )
-            for team in teams
-        ]
-        options.extend(sorted(team_options, key=lambda t: t.label))
-    if members:
-        member_options = [
-            DiscordSelectMenuOption(
-                label=member.get_display_name(),
-                value=f"user:{member.id}",
-                default=(member == assignee),
-            )
-            for member in members
-        ]
-        options.extend(sorted(member_options, key=lambda m: m.label))
-
-    return options
