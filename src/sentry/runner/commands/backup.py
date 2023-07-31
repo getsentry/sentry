@@ -202,8 +202,8 @@ class DateUpdatedComparator(JSONScrubbingComparator):
         return []
 
 
-class EmailObfuscatingComparator(JSONScrubbingComparator):
-    """Comparator that compares emails, but then safely truncates them to ensure that they
+class ObfuscatingComparator(JSONScrubbingComparator, ABC):
+    """Comparator that compares private values, but then safely truncates them to ensure that they
     do not leak out in logs, stack traces, etc."""
 
     def __init__(self, *fields: str):
@@ -237,8 +237,19 @@ class EmailObfuscatingComparator(JSONScrubbingComparator):
     ) -> None:
         super().__scrub__(left, right, self.truncate)
 
-    @staticmethod
-    def truncate(data: list[str]) -> list[str]:
+    @abstractmethod
+    def truncate(self, data: list[str]) -> list[str]:
+        """An abstract method signature which implements a specific truncation algorithm to do the
+        actual obfuscation."""
+
+        pass
+
+
+class EmailObfuscatingComparator(ObfuscatingComparator):
+    """Comparator that compares emails, but then safely truncates them to ensure that they
+    do not leak out in logs, stack traces, etc."""
+
+    def truncate(self, data: list[str]) -> list[str]:
         truncated = []
         for d in data:
             parts = d.split("@")
@@ -251,22 +262,63 @@ class EmailObfuscatingComparator(JSONScrubbingComparator):
         return truncated
 
 
+class HashObfuscatingComparator(ObfuscatingComparator):
+    """Comparator that compares hashed values like keys and passwords, but then safely truncates
+    them to ensure that they do not leak out in logs, stack traces, etc."""
+
+    def truncate(self, data: list[str]) -> list[str]:
+        truncated = []
+        for d in data:
+            if len(d) >= 16:
+                truncated.append(f"{d[:3]}...{d[-3:]}")
+            elif len(d) >= 8:
+                truncated.append(f"{d[:1]}...{d[-1:]}")
+            elif len(d):
+                truncated.append("...")
+        return truncated
+
+
 ComparatorList = List[JSONScrubbingComparator]
 ComparatorMap = Dict[str, ComparatorList]
 DEFAULT_COMPARATORS: ComparatorMap = {
-    "sentry.apitoken": [EmailObfuscatingComparator("user")],
-    "sentry.apiapplication": [EmailObfuscatingComparator("owner")],
-    "sentry.apiauthorization": [EmailObfuscatingComparator("user")],
-    "sentry.authidentity": [EmailObfuscatingComparator("user")],
+    "sentry.apitoken": [
+        EmailObfuscatingComparator("user"),
+        HashObfuscatingComparator("refresh_token", "token"),
+    ],
+    "sentry.apiapplication": [
+        EmailObfuscatingComparator("owner"),
+        HashObfuscatingComparator("client_id", "client_secret"),
+    ],
+    "sentry.apiauthorization": [
+        EmailObfuscatingComparator("user"),
+    ],
+    "sentry.authidentity": [
+        EmailObfuscatingComparator("user"),
+        HashObfuscatingComparator("ident", "token"),
+    ],
     "sentry.authenticator": [EmailObfuscatingComparator("user")],
     "sentry.email": [EmailObfuscatingComparator("email")],
     "sentry.alertrule": [DateUpdatedComparator("date_modified")],
     "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
-    "sentry.organizationmember": [EmailObfuscatingComparator("user_email")],
+    "sentry.orgauthtoken": [HashObfuscatingComparator("token_hashed", "token_last_characters")],
+    "sentry.organizationmember": [
+        EmailObfuscatingComparator("user_email"),
+        HashObfuscatingComparator("token"),
+    ],
+    "sentry.projectkey": [HashObfuscatingComparator("public_key", "secret_key")],
     "sentry.querysubscription": [DateUpdatedComparator("date_updated")],
+    "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
+    "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
     "sentry.sentryapp": [EmailObfuscatingComparator("creator_user", "creator_label", "proxy_user")],
-    "sentry.user": [EmailObfuscatingComparator("email", "username")],
-    "sentry.useremail": [EmailObfuscatingComparator("email", "user")],
+    "sentry.servicehook": [HashObfuscatingComparator("secret")],
+    "sentry.user": [
+        EmailObfuscatingComparator("email", "username"),
+        HashObfuscatingComparator("password"),
+    ],
+    "sentry.useremail": [
+        EmailObfuscatingComparator("email", "user"),
+        HashObfuscatingComparator("validation_hash"),
+    ],
     "sentry.userip": [EmailObfuscatingComparator("user")],
     "sentry.useroption": [EmailObfuscatingComparator("user")],
     "sentry.userpermission": [EmailObfuscatingComparator("user")],

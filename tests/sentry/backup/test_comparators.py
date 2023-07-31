@@ -1,6 +1,7 @@
 from sentry.runner.commands.backup import (
     DateUpdatedComparator,
     EmailObfuscatingComparator,
+    HashObfuscatingComparator,
     InstanceID,
 )
 from sentry.utils.json import JSONData
@@ -164,7 +165,7 @@ def test_bad_email_obfuscating_comparator():
     assert "b...@...ng.com" in res[1].reason
 
 
-def test_goo_email_obfuscating_comparator_scrubbed():
+def test_good_email_obfuscating_comparator_scrubbed():
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
     left: JSONData = {
         "model": "test",
@@ -201,4 +202,102 @@ def test_goo_email_obfuscating_comparator_scrubbed():
     assert right["scrubbed"]["EmailObfuscatingComparator::many_emails"] == [
         "b...@...ng.com",
         "c...@...le.com",
+    ]
+
+
+def test_good_hash_obfuscating_comparator():
+    cmp = HashObfuscatingComparator("one_hash", "many_hashes")
+    id = InstanceID("test", 1)
+    model: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "one_hash": "1239fe0ab0afc39b",
+            "many_hashes": [
+                "190dae4e",
+                "1234",
+            ],
+        },
+    }
+    assert not cmp.compare(id, model, model)
+
+
+def test_bad_hash_obfuscating_comparator():
+    cmp = HashObfuscatingComparator("one_hash", "many_hashes")
+    id = InstanceID("test", 1)
+    left: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "one_hash": "1239fe0ab0afc39b",
+            "many_hashes": [
+                "190dae4e",
+                "1234",
+            ],
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "one_hash": "1249fe0ab0afc39c",
+            "many_hashes": [
+                "290dae4f",
+                "1234",
+            ],
+        },
+    }
+    res = cmp.compare(id, left, right)
+    assert res
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == "HashObfuscatingComparator"
+    assert "123...39b" in res[0].reason
+    assert "124...39c" in res[0].reason
+
+    assert res[1]
+    assert res[1].on == id
+    assert res[1].kind == "HashObfuscatingComparator"
+    assert "1...e" in res[1].reason
+    assert "2...f" in res[1].reason
+
+
+def test_good_hash_obfuscating_comparator_scrubbed():
+    cmp = HashObfuscatingComparator("one_hash", "many_hashes")
+    left: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "one_hash": "1239fe0ab0afc39b",
+            "many_hashes": [
+                "190dae4e",
+                "1234",
+            ],
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "pk": 1,
+        "fields": {
+            "one_hash": "1249fe0ab0afc39c",
+            "many_hashes": [
+                "290dae4f",
+                "1234",
+            ],
+        },
+    }
+    cmp.scrub(left, right)
+    assert left["scrubbed"]
+    assert left["scrubbed"]["HashObfuscatingComparator::one_hash"] == ["123...39b"]
+    assert left["scrubbed"]["HashObfuscatingComparator::many_hashes"] == [
+        "1...e",
+        "...",
+    ]
+
+    assert right["scrubbed"]
+    assert right["scrubbed"]["HashObfuscatingComparator::one_hash"] == ["124...39c"]
+    assert right["scrubbed"]["HashObfuscatingComparator::many_hashes"] == [
+        "2...f",
+        "...",
     ]
