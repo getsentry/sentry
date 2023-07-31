@@ -42,7 +42,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
-    index_tag_values_option_name: Optional[str] = None
+    should_index_tag_values: bool = False
     is_output_sliced: Optional[bool] = False
 
 
@@ -73,6 +73,7 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
             )
         )
 
@@ -88,7 +89,6 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
             )
         )
@@ -106,6 +106,7 @@ def get_ingest_config(
                 writes_limiter_namespace="test-namespace",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                should_index_tag_values=True,
             )
         )
 
