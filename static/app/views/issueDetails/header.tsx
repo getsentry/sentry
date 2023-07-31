@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
@@ -14,14 +13,11 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import ShortId from 'sentry/components/shortId';
 import {TabList} from 'sentry/components/tabs';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupActions from './actions';
+import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
 import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
@@ -227,26 +224,8 @@ function GroupHeader({
 
   const disableActions = !!disabledTabs.length;
 
-  const shortIdBreadCrumb = group.shortId && (
-    <GuideAnchor target="issue_number" position="bottom">
-      <ShortIdBreadrcumb>
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-        <Tooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId shortId={group.shortId} />
-        </Tooltip>
-      </ShortIdBreadrcumb>
-    </GuideAnchor>
+  const shortIdBreadcrumb = (
+    <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
   return (
@@ -259,7 +238,7 @@ function GroupHeader({
                 label: 'Issues',
                 to: `/organizations/${organization.slug}/issues/${location.search}`,
               },
-              {label: shortIdBreadCrumb},
+              {label: shortIdBreadcrumb},
             ]}
           />
           <GroupActions
@@ -333,18 +312,6 @@ const BreadcrumbActionWrapper = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   align-items: center;
-`;
-
-const ShortIdBreadrcumb = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const StyledShortId = styled(ShortId)`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;
 
 const HeaderRow = styled('div')`
