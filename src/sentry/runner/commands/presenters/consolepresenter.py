@@ -56,13 +56,6 @@ class ConsolePresenter(OptionsPresenter):
         for key, reason in self.error_options:
             click.echo(self.ERROR_MSG % (key, reason))
 
-        self.drifted_options.clear()
-        self.channel_updated_options.clear()
-        self.updated_options.clear()
-        self.set_options.clear()
-        self.unset_options.clear()
-        self.error_options.clear()
-
     def set(self, key: str, value: str) -> None:
         self.set_options.append((key, value))
 
