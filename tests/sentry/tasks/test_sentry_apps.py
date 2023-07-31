@@ -8,6 +8,7 @@ from django.urls import reverse
 from freezegun import freeze_time
 from requests.exceptions import Timeout
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
@@ -830,7 +831,7 @@ class TestWebhookRequests(TestCase):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
-
+        assert features.has("organizations:disable-sentryapps-on-broken", self.organization)
         assert safe_urlopen.called
         assert (self.integration_buffer._get()[0]["timeout_count"]) == 1000
         assert self.integration_buffer.is_integration_broken() is True
