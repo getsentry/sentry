@@ -29,7 +29,7 @@ APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 USE_COLIMA = bool(shutil.which("colima"))
 
 if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/docker.sock")
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
@@ -62,7 +62,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                         f"{memsize_bytes//(2*1024**3)}",
                     ]
                     if APPLE_ARM64:
-                        args = [*args, "--vm-type=vz", "--vz-rosetta"]
+                       args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
                     subprocess.check_call(
                         (
                             "colima",
@@ -71,6 +71,9 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             *args,
                         )
                     )
+                    # check_call not working?
+                    # we're continuing in python after
+                    # FATA[0065] error starting vm: error at 'starting': exit status 1
                 else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
