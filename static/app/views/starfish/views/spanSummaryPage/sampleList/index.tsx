@@ -7,6 +7,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -39,6 +40,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
   );
 
   const organization = useOrganization();
+  const {query} = useLocation();
 
   return (
     <PageErrorProvider>
@@ -51,8 +53,10 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
           });
         }}
         onOpen={useCallback(() => {
-          trackAnalytics('starfish.panel.open', {organization});
-        }, [organization])}
+          if (query.transaction) {
+            trackAnalytics('starfish.panel.open', {organization});
+          }
+        }, [organization, query.transaction])}
       >
         <h3>{`${transactionMethod} ${transactionName}`}</h3>
         <PageErrorAlert />
