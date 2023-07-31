@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.authentication import CookieAuthentication
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
@@ -22,7 +22,7 @@ class ApiTokenSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiTokensEndpoint(Endpoint):
-    authentication_classes = (CookieAuthentication,)
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     @method_decorator(never_cache)

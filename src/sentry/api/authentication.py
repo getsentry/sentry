@@ -161,7 +161,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         return (AnonymousUser(), key)
 
 
-class CookieAuthentication(SessionAuthentication):
+class SessionNoAuthTokenAuthentication(SessionAuthentication):
     def authenticate(self, request: Request):
         auth = get_authorization_header(request)
         if auth:
