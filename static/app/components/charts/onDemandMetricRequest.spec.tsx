@@ -82,13 +82,15 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      (doEventsRequest as jest.Mock).mockClear();
+      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} project={[123]}>
           {mock}
         </OnDemandMetricRequest>
       );
+
+      expect(doEventsRequest).toHaveBeenCalledTimes(2);
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -102,7 +104,7 @@ describe('OnDemandMetricRequest', function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      (doEventsRequest as jest.Mock).mockClear();
+      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} environment={['dev']}>
@@ -110,7 +112,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(1);
+      expect(doEventsRequest).toHaveBeenCalledTimes(2);
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
