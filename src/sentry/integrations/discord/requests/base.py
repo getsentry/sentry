@@ -29,6 +29,8 @@ class DiscordRequestError(Exception):
 class DiscordRequestTypes:
     PING = 1
     COMMAND = 2
+    MESSAGE_COMPONENT = 3
+    MODAL_SUBMIT = 5
 
 
 class DiscordRequest:
@@ -163,7 +165,18 @@ class DiscordRequest:
     def is_command(self) -> bool:
         return self._data.get("type", 0) == DiscordRequestTypes.COMMAND
 
+    def is_message_component(self) -> bool:
+        return self._data.get("type", 0) == DiscordRequestTypes.MESSAGE_COMPONENT
+
+    def is_modal_submit(self) -> bool:
+        return self._data.get("type", 0) == DiscordRequestTypes.MODAL_SUBMIT
+
     def get_command_name(self) -> str:
         if not self.is_command():
             return ""
         return self._data.get("data")["name"]  # type: ignore
+
+    def get_component_custom_id(self) -> str:
+        if not self.is_message_component():
+            return ""
+        return self._data.get("data")["custom_id"]  # type: ignore

@@ -1,0 +1,177 @@
+from __future__ import annotations
+
+from sentry import tagstore
+from sentry.eventstore.models import GroupEvent
+from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
+from sentry.integrations.discord.message_builder.base.component.base import DiscordMessageComponent
+from sentry.integrations.discord.message_builder.base.component.button import DiscordButton
+from sentry.integrations.discord.message_builder.base.component.select_menu import (
+    DiscordSelectMenuOption,
+)
+from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
+from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
+from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
+from sentry.integrations.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+    build_footer,
+    get_title_link,
+    has_releases,
+)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.notifications.notifications.base import ProjectNotification
+from sentry.types.integrations import ExternalProviders
+
+
+class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
+    def __init__(
+        self,
+        group: Group,
+        event: GroupEvent | None = None,
+        tags: set[str] | None = None,
+        rules: list[Rule] | None = None,
+        link_to_event: bool = False,
+        issue_details: bool = False,
+        notification: ProjectNotification | None = None,
+    ) -> None:
+        self.group = group
+        self.event = event
+        self.tags = tags
+        self.rules = rules
+        self.link_to_event = link_to_event
+        self.issue_details = issue_details
+        self.notification = notification
+
+    def build(self) -> dict[str, object]:
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+        event_for_tags = self.event or self.group.get_latest_event()
+        timestamp = (
+            max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
+        )
+        obj = self.event if self.event is not None else self.group
+        rule_id = None
+        if self.rules:
+            rule_id = self.rules[0].id
+
+        embeds = [
+            DiscordMessageEmbed(
+                title=build_attachment_title(obj),
+                description=build_attachment_text(self.group, self.event) or None,
+                url=get_title_link(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.DISCORD,
+                    rule_id,
+                ),
+                color=LEVEL_TO_COLOR["info"],
+                # We can't embed urls in Discord embed footers.
+                footer=DiscordMessageEmbedFooter(
+                    build_footer(self.group, project, self.rules, "{text}")
+                ),
+                fields=build_tag_fields(event_for_tags, self.tags),
+                timestamp=timestamp,
+            )
+        ]
+
+        components = build_components(self.group, project)
+
+        return self._build(embeds=embeds, components=components)
+
+
+def build_tag_fields(
+    event_for_tags: GroupEvent | None, tags: set[str] | None = None
+) -> list[DiscordMessageEmbedField]:
+    fields: list[DiscordMessageEmbedField] = []
+    if tags:
+        event_tags = event_for_tags.tags if event_for_tags else []
+        for key, value in event_tags:
+            std_key = tagstore.get_standardized_key(key)
+            if std_key not in tags:
+                continue
+
+            labeled_value = tagstore.get_tag_value_label(key, value)
+            fields.append(
+                DiscordMessageEmbedField(
+                    std_key,
+                    labeled_value,
+                    inline=True,
+                )
+            )
+    return fields
+
+
+def build_components(
+    group: Group,
+    project: Project,
+) -> list[DiscordMessageComponent]:
+    ignore_button = DiscordButton(
+        custom_id="ignored:until_escalating",
+        label="Archive",
+    )
+
+    resolve_button = DiscordButton(custom_id="resolve_dialog", label="Resolve...")
+
+    assign_button = DiscordButton(custom_id=f"assign:{group.id}", label="Assign...")
+
+    status = group.get_status()
+
+    if not has_releases(project):
+        resolve_button = DiscordButton(
+            custom_id="resolved",
+            label="Resolve",
+        )
+
+    if status == GroupStatus.RESOLVED:
+        resolve_button = DiscordButton(
+            custom_id="unresolved:ongoing",
+            label="Unresolve",
+        )
+
+    if status == GroupStatus.IGNORED:
+        ignore_button = DiscordButton(
+            custom_id="unresolved:ongoing",
+            label="Mark as Ongoing",
+        )
+
+    return [
+        DiscordActionRow(components=[resolve_button, ignore_button, assign_button]),
+    ]
+
+
+def get_assign_selector_options(group: Group) -> list[DiscordSelectMenuOption]:
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+
+    assignee = group.get_assignee()
+
+    options = []
+    # We don't have the luxury of option groups like Slack has, so we will just
+    # list all the teams and then all the members.
+    if teams:
+        team_options = [
+            DiscordSelectMenuOption(
+                label=f"#{team.slug}", value=f"team:{team.id}", default=(team == assignee)
+            )
+            for team in teams
+        ]
+        options.extend(sorted(team_options, key=lambda t: t.label))
+    if members:
+        member_options = [
+            DiscordSelectMenuOption(
+                label=member.get_display_name(),
+                value=f"user:{member.id}",
+                default=(member == assignee),
+            )
+            for member in members
+        ]
+        options.extend(sorted(member_options, key=lambda m: m.label))
+
+    return options

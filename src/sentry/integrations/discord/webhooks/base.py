@@ -10,9 +10,13 @@ from sentry.integrations.discord.message_builder.base import (
     DiscordMessageBuilder,
     DiscordMessageFlags,
 )
+from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
+from sentry.integrations.discord.message_builder.base.component.select_menu import DiscordSelectMenu
+from sentry.integrations.discord.message_builder.issues import get_assign_selector_options
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
+from sentry.models.group import Group
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
@@ -61,6 +65,9 @@ class DiscordInteractionsEndpoint(Endpoint):
             elif self.discord_request.is_command():
                 return self.handle_command()
 
+            elif self.discord_request.is_message_component():
+                return self.handle_message_component()
+
         except DiscordRequestError as e:
             return self.respond(status=e.status)
 
@@ -68,7 +75,7 @@ class DiscordInteractionsEndpoint(Endpoint):
         # just return 200
         return self.respond(status=200)
 
-    def reply(self, message: DiscordMessageBuilder) -> Response:
+    def send_message(self, message: DiscordMessageBuilder) -> Response:
         return self.respond(
             {"type": 4, "data": message.build()},
             headers={"Content-Type": "application/json"},
@@ -102,7 +109,7 @@ class DiscordInteractionsEndpoint(Endpoint):
                 ),
                 flags=DiscordMessageFlags().set_ephemeral(),
             )
-            return self.reply(message)
+            return self.send_message(message)
 
         if not self.discord_request.integration or not self.discord_request.user_id:
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
@@ -116,14 +123,14 @@ class DiscordInteractionsEndpoint(Endpoint):
             content=LINK_USER_MESSAGE.format(url=link_url),
             flags=DiscordMessageFlags().set_ephemeral(),
         )
-        return self.reply(message)
+        return self.send_message(message)
 
     def unlink_user(self) -> Response:
         if not self.discord_request.has_identity():
             message = DiscordMessageBuilder(
                 content=NOT_LINKED_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
             )
-            return self.reply(message)
+            return self.send_message(message)
 
         # if self.discord_request.has_identity() then these must not be None
         assert self.discord_request.integration is not None
@@ -138,10 +145,31 @@ class DiscordInteractionsEndpoint(Endpoint):
             content=UNLINK_USER_MESSAGE.format(url=unlink_url),
             flags=DiscordMessageFlags().set_ephemeral(),
         )
-        return self.reply(message)
+        return self.send_message(message)
 
     def help(self) -> Response:
         message = DiscordMessageBuilder(
             content=HELP_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
         )
-        return self.reply(message)
+        return self.send_message(message)
+
+    def handle_message_component(self) -> Response:
+        custom_id = self.discord_request.get_component_custom_id()
+
+        if custom_id.startswith("assign:"):
+            # everything after the ':' is the group id
+            group_id = custom_id.split(":")[1]
+            group = Group.objects.get(id=group_id)
+
+            assign_selector = DiscordSelectMenu(
+                custom_id="assign_to",
+                placeholder="Select Assignee...",
+                options=get_assign_selector_options(group),
+            )
+            message = DiscordMessageBuilder(
+                components=[DiscordActionRow([assign_selector])],
+                flags=DiscordMessageFlags().set_ephemeral(),
+            )
+            return self.send_message(message)
+
+        return self.help()

@@ -3,7 +3,7 @@ from typing import Any, Generator, Sequence
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture, EventState
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
@@ -33,7 +33,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
     def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
         channel_id = self.get_option("channel_id")
-        # tags = set(self.get_tags_list())
+        tags = set(self.get_tags_list())
 
         integration = self.get_integration()
         if not integration:
@@ -43,8 +43,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         integration: RpcIntegration = integration
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            # rules = [f.rule for f in futures]
-            message = DiscordMessageBuilder(content="issue alert notification test")
+            rules = [f.rule for f in futures]
+            message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 
             client = DiscordClient(integration_id=integration.id)
             try:
