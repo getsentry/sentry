@@ -30,6 +30,33 @@ priority = {EventError.JS_INVALID_SOURCEMAP: 2, EventError.JS_NO_COLUMN: 3}
 
 fileNameBlocklist = ["@webkit-masked-url"]
 
+errors_to_hide = [
+    EventError.JS_MISSING_SOURCE,
+    EventError.JS_INVALID_SOURCEMAP,
+    EventError.JS_INVALID_SOURCEMAP_LOCATION,
+    EventError.JS_TOO_MANY_REMOTE_SOURCES,
+    EventError.JS_INVALID_SOURCE_ENCODING,
+    EventError.UNKNOWN_ERROR,
+    EventError.MISSING_ATTRIBUTE,
+    EventError.NATIVE_NO_CRASHED_THREAD,
+    EventError.NATIVE_INTERNAL_FAILURE,
+    EventError.NATIVE_MISSING_SYSTEM_DSYM,
+    EventError.NATIVE_MISSING_SYMBOL,
+    EventError.NATIVE_SIMULATOR_FRAME,
+    EventError.NATIVE_UNKNOWN_IMAGE,
+    EventError.NATIVE_SYMBOLICATOR_FAILED,
+]
+
+deprecated_event_errors = [
+    EventError.FETCH_TOO_LARGE,
+    EventError.FETCH_INVALID_ENCODING,
+    EventError.FETCH_TIMEOUT,
+    EventError.FETCH_INVALID_HTTP_CODE,
+    EventError.JS_INVALID_CONTENT,
+    EventError.TOO_LARGE_FOR_CACHE,
+    EventError.JS_NO_COLUMN,
+]
+
 
 @region_silo_endpoint
 @extend_schema(tags=["Events"])
@@ -82,6 +109,8 @@ class ActionableItemsEndpoint(ProjectEndpoint):
                 errors.append(response)
 
         for event_error in event.errors:
+            if event_error.type in errors_to_hide or event_error.type in deprecated_event_errors:
+                continue
             response = EventError(event_error).get_api_context()
             errors.append(response)
 
