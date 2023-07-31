@@ -186,8 +186,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         ],
     ):
         def apply_filters(
-            self, query: QuerySet, filters: NotificationSettingFilterArgs
-        ) -> QuerySet:
+            self, query: QuerySet[NotificationSetting], filters: NotificationSettingFilterArgs
+        ) -> QuerySet[NotificationSetting]:
             if "provider" in filters and filters["provider"] is not None:
                 query = query.filter(provider=filters["provider"])
             if "type" in filters and filters["type"] is not None:
@@ -202,7 +202,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 query = query.filter(team_id__in=filters["team_ids"])
             return query.all()
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[NotificationSetting]:
             return NotificationSetting.objects
 
         def filter_arg_validator(self) -> Callable[[NotificationSettingFilterArgs], Optional[str]]:

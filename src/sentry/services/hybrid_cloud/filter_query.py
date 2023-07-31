@@ -48,7 +48,7 @@ class FilterQueryDatabaseImpl(
     # Required Overrides
 
     @abc.abstractmethod
-    def base_query(self, ids_only: bool = False) -> QuerySet:
+    def base_query(self, ids_only: bool = False) -> QuerySet[BASE_MODEL]:
         # This should return a QuerySet for the model in question along with any other required data
         # that is not a filter
         pass
@@ -66,7 +66,9 @@ class FilterQueryDatabaseImpl(
         pass
 
     @abc.abstractmethod
-    def apply_filters(self, query: QuerySet, filters: FILTER_ARGS) -> QuerySet:
+    def apply_filters(
+        self, query: QuerySet[BASE_MODEL], filters: FILTER_ARGS
+    ) -> QuerySet[BASE_MODEL]:
         pass
 
     @abc.abstractmethod

@@ -155,7 +155,7 @@ class DatabaseBackedUserService(UserService):
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):
-        def apply_filters(self, query: QuerySet, filters: UserFilterArgs) -> QuerySet:
+        def apply_filters(self, query: QuerySet[User], filters: UserFilterArgs) -> QuerySet[User]:
             if "user_ids" in filters:
                 query = query.filter(id__in=filters["user_ids"])
             if "is_active" in filters:
@@ -182,7 +182,7 @@ class DatabaseBackedUserService(UserService):
 
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[User]:
             if ids_only:
                 return User.objects
 
