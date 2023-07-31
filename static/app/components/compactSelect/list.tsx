@@ -26,11 +26,19 @@ interface BaseListProps<Value extends React.Key>
   extends ListProps<any>,
     Omit<
       AriaListBoxOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     >,
     Omit<
       AriaGridListOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     > {
   items: SelectOptionOrSectionWithKey<Value>[];
   /**

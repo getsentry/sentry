@@ -23,6 +23,7 @@ import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 
 import SystemAlerts from './systemAlerts';
 
@@ -30,7 +31,9 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
+const InstallWizard: React.FC<InstallWizardProps> = lazy(
+  () => import('sentry/views/admin/installWizard')
+);
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 
 /**
