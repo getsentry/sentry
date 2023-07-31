@@ -4,6 +4,9 @@ from rest_framework.response import Response
 
 from sentry.api.helpers.group_index.update import update_groups
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.integrations.discord.message_builder.base.component import (
+    DiscordComponentCustomIds as CustomIds,
+)
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.select_menu import (
     DiscordSelectMenu,
@@ -52,22 +55,23 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             )
             return self.send_error(NOT_IN_ORG)
 
-        if self.custom_id.startswith("assign:"):
+        if self.custom_id.startswith(CustomIds.ASSIGN_DIALOG):
             logger.info("discord.interaction.component.assign_dialog", extra={**logging_data})
             return self.assign_dialog()
 
-        elif self.custom_id.startswith("assign_to:"):
+        elif self.custom_id.startswith(CustomIds.ASSIGN):
             logger.info(
                 "discord.interaction.component.assign",
                 extra={**logging_data, "assign_to": self.request.get_selected_options()[0]},
             )
             return self.assign_to()
 
-        return Response(status=400)
+        logger.info("discord.interaction.component.unknown_custom_id", extra={**logging_data})
+        return Response(status=404)
 
     def assign_dialog(self) -> Response:
         assign_selector = DiscordSelectMenu(
-            custom_id=f"assign_to:{self.group_id}",
+            custom_id=f"{CustomIds.ASSIGN}:{self.group_id}",
             placeholder="Select Assignee...",
             options=get_assign_selector_options(self.group),
         )

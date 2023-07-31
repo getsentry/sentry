@@ -23,6 +23,8 @@ from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.types.integrations import ExternalProviders
 
+from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
+
 
 class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
     def __init__(
@@ -108,35 +110,40 @@ def build_components(
     group: Group,
     project: Project,
 ) -> list[DiscordMessageComponent]:
-    ignore_button = DiscordButton(
-        custom_id="ignored:until_escalating",
+
+    archive_button = DiscordButton(
+        custom_id=f"{CustomIds.ARCHIVE}:{group.id}",
         label="Archive",
     )
 
-    resolve_button = DiscordButton(custom_id="resolve_dialog", label="Resolve...")
+    resolve_button = DiscordButton(
+        custom_id=f"{CustomIds.RESOLVE_DIALOG}:{group.id}", label="Resolve..."
+    )
 
-    assign_button = DiscordButton(custom_id=f"assign:{group.id}", label="Assign...")
+    assign_button = DiscordButton(
+        custom_id=f"{CustomIds.ASSIGN_DIALOG}:{group.id}", label="Assign..."
+    )
 
     status = group.get_status()
 
     if not has_releases(project):
         resolve_button = DiscordButton(
-            custom_id="resolved",
+            custom_id=f"{CustomIds.RESOLVE}:{group.id}",
             label="Resolve",
         )
 
     if status == GroupStatus.RESOLVED:
         resolve_button = DiscordButton(
-            custom_id="unresolved:ongoing",
+            custom_id=f"{CustomIds.UNRESOLVE}:{group.id}",
             label="Unresolve",
         )
 
     if status == GroupStatus.IGNORED:
-        ignore_button = DiscordButton(
-            custom_id="unresolved:ongoing",
+        archive_button = DiscordButton(
+            custom_id=f"{CustomIds.UNRESOLVE}:{group.id}",
             label="Mark as Ongoing",
         )
 
     return [
-        DiscordActionRow(components=[resolve_button, ignore_button, assign_button]),
+        DiscordActionRow(components=[resolve_button, archive_button, assign_button]),
     ]
