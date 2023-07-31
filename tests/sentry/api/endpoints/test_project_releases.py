@@ -730,7 +730,9 @@ class ReleaseSerializerTest(TestCase):
 
         result = serializer.validated_data
         assert result["version"] == self.version
-        assert result["owner"] == self.user
+        assert result["owner"]
+        assert result["owner"].id == self.user.id
+        assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
         assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
