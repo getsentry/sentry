@@ -1,4 +1,3 @@
-# TODO(mark) Remove once getsentry has been updated.
 pytest_plugins = [
     "sentry.testutils.pytest.sentry",
     "sentry.testutils.pytest.selenium",

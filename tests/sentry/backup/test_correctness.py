@@ -5,7 +5,7 @@ from sentry.testutils.helpers.backups import (
     ValidationError,
     import_export_from_fixture_then_validate,
 )
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True, reset_sequences=True)
