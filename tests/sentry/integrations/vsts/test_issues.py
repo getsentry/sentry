@@ -24,7 +24,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json

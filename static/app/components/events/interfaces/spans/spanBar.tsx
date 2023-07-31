@@ -621,35 +621,31 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     this.disconnectObservers();
 
-    /**
-
-    We track intersections events between the span bar's DOM element
-    and the viewport's (root) intersection area. the intersection area is sized to
-    exclude the minimap. See below.
-
-    By default, the intersection observer's root intersection is the viewport.
-    We adjust the margins of this root intersection area to exclude the minimap's
-    height. The minimap's height is always fixed.
-
-      VIEWPORT (ancestor element used for the intersection events)
-    +--+-------------------------+--+
-    |  |                         |  |
-    |  |       MINIMAP           |  |
-    |  |                         |  |
-    |  +-------------------------+  |  ^
-    |  |                         |  |  |
-    |  |       SPANS             |  |  | ROOT
-    |  |                         |  |  | INTERSECTION
-    |  |                         |  |  | OBSERVER
-    |  |                         |  |  | HEIGHT
-    |  |                         |  |  |
-    |  |                         |  |  |
-    |  |                         |  |  |
-    |  +-------------------------+  |  |
-    |                               |  |
-    +-------------------------------+  v
-
-     */
+    // We track intersections events between the span bar's DOM element
+    // and the viewport's (root) intersection area. the intersection area is sized to
+    // exclude the minimap. See below.
+    //
+    // By default, the intersection observer's root intersection is the viewport.
+    // We adjust the margins of this root intersection area to exclude the minimap's
+    // height. The minimap's height is always fixed.
+    //
+    // VIEWPORT (ancestor element used for the intersection events)
+    // +--+-------------------------+--+
+    // |  |                         |  |
+    // |  |       MINIMAP           |  |
+    // |  |                         |  |
+    // |  +-------------------------+  |  ^
+    // |  |                         |  |  |
+    // |  |       SPANS             |  |  | ROOT
+    // |  |                         |  |  | INTERSECTION
+    // |  |                         |  |  | OBSERVER
+    // |  |                         |  |  | HEIGHT
+    // |  |                         |  |  |
+    // |  |                         |  |  |
+    // |  |                         |  |  |
+    // |  +-------------------------+  |  |
+    // |                               |  |
+    // +-------------------------------+  v
 
     this.intersectionObserver = new IntersectionObserver(
       entries =>

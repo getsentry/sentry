@@ -15,7 +15,7 @@ import {MergedToolbar} from './mergedToolbar';
 
 type Props = {
   groupId: Group['id'];
-  /*
+  /**
    * From GroupingStore.onToggleCollapseFingerprints
    */
   onToggleCollapse: () => void;

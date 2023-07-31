@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
-from sentry.testutils import PluginTestCase
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 from social_auth.models import UserSocialAuth
 

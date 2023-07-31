@@ -4,7 +4,7 @@ from typing import Any
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.bitbucket.testutils import REFS_CHANGED_EXAMPLE
 

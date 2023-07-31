@@ -19,7 +19,7 @@ from sentry.models.releasefile import (
     read_artifact_index,
     update_artifact_index,
 )
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

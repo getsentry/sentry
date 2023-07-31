@@ -12,8 +12,7 @@ jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
 
-const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
-mockUseProjects.mockReturnValue({
+jest.mocked(useProjects).mockReturnValue({
   fetching: false,
   projects: [project],
   fetchError: null,
