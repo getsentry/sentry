@@ -17,12 +17,21 @@ class SlackPresenter(OptionsPresenter):
 
     def flush(self) -> None:
         json_data = {
-            "drifted_options": self.drifted_options,
+            "drifted_options": [
+                {"option_name": key, "option_value": value} for key, value in self.drifted_options
+            ],
             "channel_updated_options": self.channel_updated_options,
-            "updated_options": self.updated_options,
-            "set_options": self.set_options,
+            "updated_options": [
+                {"option_name": key, "db_value": db_value, "value": value}
+                for key, db_value, value in self.updated_options
+            ],
+            "set_options": [
+                {"option_name": key, "option_value": value} for key, value in self.set_options
+            ],
             "unset_options": self.unset_options,
-            "error_options": self.error_options,
+            "error_options": [
+                {"option_name": key, "error_msg": msg} for key, msg in self.error_options
+            ],
         }
 
         self.send_to_webhook(json_data)
