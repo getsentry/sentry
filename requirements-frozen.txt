@@ -79,7 +79,7 @@ parsimonious==0.8.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
-pillow==9.2.0
+pillow==9.3.0
 planout==0.6.0
 progressbar2==3.41.0
 proto-plus==1.22.1
