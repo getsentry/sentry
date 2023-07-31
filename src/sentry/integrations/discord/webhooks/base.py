@@ -10,6 +10,8 @@ from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
 from sentry.web.decorators import transaction_start
 
+from .types import DiscordResponseTypes
+
 
 @region_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
@@ -36,7 +38,7 @@ class DiscordInteractionsEndpoint(Endpoint):
 
             if discord_request.is_ping():
                 # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
-                return self.respond({"type": 1}, status=200)
+                return self.respond({"type": DiscordResponseTypes.PONG}, status=200)
 
             elif discord_request.is_command():
                 return DiscordCommandHandler(discord_request).handle()
@@ -48,5 +50,5 @@ class DiscordInteractionsEndpoint(Endpoint):
             return self.respond(status=e.status)
 
         # This isn't an interaction type that we need to worry about, so we'll
-        # just return 200
+        # just return 200.
         return self.respond(status=200)

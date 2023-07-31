@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from rest_framework.response import Response
 
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequest
 
+from .types import DiscordResponseTypes
+
 
 class DiscordInteractionHandler:
     """
-    Abstract class defining the shared interface of interaction handlers.
+    Abstract class defining the shared interface of interaction handlers, along with some helper methods!
     """
 
     def __init__(self, request: DiscordRequest) -> None:
@@ -16,37 +20,19 @@ class DiscordInteractionHandler:
         """
         self.request: DiscordRequest = request
 
-    def send_message(self, message: DiscordMessageBuilder) -> Response:
+    def send_message(self, message: str | DiscordMessageBuilder, update: bool = False) -> Response:
         """Sends a new follow up message."""
-        return Response(
-            {"type": 4, "data": message.build()},
-            status=200,
-        )
+        response_type = DiscordResponseTypes.UPDATE if update else DiscordResponseTypes.MESSAGE
 
-    def update_message(self, message: DiscordMessageBuilder) -> Response:
-        """Replaces the message that triggered this interaction."""
+        if isinstance(message, str):
+            message = DiscordMessageBuilder(
+                content=message, flags=DiscordMessageFlags().set_ephemeral()
+            )
         return Response(
-            {"type": 7, "data": message.build()},
-            status=200,
-        )
-
-    def send_error(self, text: str) -> Response:
-        message = DiscordMessageBuilder(
-            content=text,
-            flags=DiscordMessageFlags().set_ephemeral(),
-        )
-        return Response(
-            {"type": 4, "data": message.build()},
-            status=200,
-        )
-
-    def update_error(self, text: str) -> Response:
-        message = DiscordMessageBuilder(
-            content=text,
-            flags=DiscordMessageFlags().set_ephemeral(),
-        )
-        return Response(
-            {"type": 7, "data": message.build()},
+            {
+                "type": response_type,
+                "data": message.build(),
+            },
             status=200,
         )
 

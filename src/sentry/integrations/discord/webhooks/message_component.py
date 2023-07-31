@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from rest_framework.response import Response
 
 from sentry.api.helpers.group_index.update import update_groups
@@ -45,7 +47,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
         if self.request.user is None:
             logger.info("discord.interaction.component.not_linked", extra={**logging_data})
-            return self.send_error(NO_IDENTITY_MESSAGE)
+            return self.send_message(NO_IDENTITY_MESSAGE)
         self.user = self.request.user
 
         if not self.group.organization.has_access(self.user):
@@ -53,7 +55,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 "discord.interaction.component.not_in_org",
                 extra={"org_slug": self.group.organization.slug, **logging_data},
             )
-            return self.send_error(NOT_IN_ORG)
+            return self.send_message(NOT_IN_ORG)
 
         if self.custom_id.startswith(CustomIds.ASSIGN_DIALOG):
             logger.info("discord.interaction.component.assign_dialog", extra={**logging_data})
@@ -65,6 +67,10 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 extra={**logging_data, "assign_to": self.request.get_selected_options()[0]},
             )
             return self.assign_to()
+
+        elif self.custom_id.startswith(CustomIds.RESOLVE):
+            logger.info("discord.interaction.component.resolve", extra={**logging_data})
+            return self.resolve()
 
         logger.info("discord.interaction.component.unknown_custom_id", extra={**logging_data})
         return Response(status=404)
@@ -84,6 +90,24 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
     def assign_to(self) -> Response:
         assignee = self.request.get_selected_options()[0]
 
+        self.update_group(
+            {
+                "assignedTo": assignee,
+                "integration": ActivityIntegration.DISCORD.value,
+            }
+        )
+
+        message = DiscordMessageBuilder(
+            content="Assignee has been updated!",
+            flags=DiscordMessageFlags().set_ephemeral(),
+        )
+        return self.send_message(message, update=True)
+
+    def resolve(self) -> Response:
+        self.update_group({"status": "resolved"})
+        return self.send_message("Issue has been resolved!")
+
+    def update_group(self, data: Mapping[str, str]) -> None:
         update_groups(
             request=self.request.request,
             group_ids=[self.group.id],
@@ -91,24 +115,13 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             organization_id=self.group.organization.id,
             search_fn=None,
             user=self.user,
-            data={
-                "assignedTo": assignee,
-                "integration": ActivityIntegration.DISCORD.value,
-            },
+            data=data,
         )
-
-        message = DiscordMessageBuilder(
-            content="Assignee has been updated!",
-            flags=DiscordMessageFlags().set_ephemeral(),
-        )
-        return self.update_message(message)
 
 
 def get_assign_selector_options(group: Group) -> list[DiscordSelectMenuOption]:
     """
     Helper function for building the new assignee dropdown.
-
-    Placeholder in the dropdown will be the current assignee.
     """
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())

@@ -1,8 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequestError
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
@@ -57,11 +55,9 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 
     def link_user(self) -> Response:
         if self.request.has_identity():
-            message = DiscordMessageBuilder(
-                content=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
-                flags=DiscordMessageFlags().set_ephemeral(),
+            return self.send_message(
+                ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str())
             )
-            return self.send_message(message)
 
         if not self.request.integration or not self.request.user_id:
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
@@ -71,18 +67,11 @@ class DiscordCommandHandler(DiscordInteractionHandler):
             discord_id=self.request.user_id,
         )
 
-        message = DiscordMessageBuilder(
-            content=LINK_USER_MESSAGE.format(url=link_url),
-            flags=DiscordMessageFlags().set_ephemeral(),
-        )
-        return self.send_message(message)
+        return self.send_message(LINK_USER_MESSAGE.format(url=link_url))
 
     def unlink_user(self) -> Response:
         if not self.request.has_identity():
-            message = DiscordMessageBuilder(
-                content=NOT_LINKED_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
-            )
-            return self.send_message(message)
+            return self.send_message(NOT_LINKED_MESSAGE)
 
         # if self.request.has_identity() then these must not be None
         assert self.request.integration is not None
@@ -93,14 +82,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
             discord_id=self.request.user_id,
         )
 
-        message = DiscordMessageBuilder(
-            content=UNLINK_USER_MESSAGE.format(url=unlink_url),
-            flags=DiscordMessageFlags().set_ephemeral(),
-        )
-        return self.send_message(message)
+        return self.send_message(UNLINK_USER_MESSAGE.format(url=unlink_url))
 
     def help(self) -> Response:
-        message = DiscordMessageBuilder(
-            content=HELP_MESSAGE, flags=DiscordMessageFlags().set_ephemeral()
-        )
-        return self.send_message(message)
+        return self.send_message(HELP_MESSAGE)
