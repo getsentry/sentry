@@ -221,7 +221,7 @@ class TriggersChart extends PureComponent<Props, State> {
         `/api/0/projects/${organization.slug}/${projects[0].slug}/dynamic-sampling/rate/`
       );
       this.setState({sampleRate});
-    } catch (err) {
+    } catch {
       this.setState({sampleRate: 1});
     }
   }
