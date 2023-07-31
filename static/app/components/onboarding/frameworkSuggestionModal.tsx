@@ -33,7 +33,18 @@ export enum SupportedLanguages {
   NODE = 'node',
   DOTNET = 'dotnet',
   JAVA = 'java',
+  GO = 'go',
 }
+
+export const topGoFrameworks = [
+  'go-echo',
+  'go-fasthttp',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
+];
 
 export const topJavascriptFrameworks = [
   'javascript-react',
@@ -111,6 +122,12 @@ export const languageDetails = {
     ),
     topFrameworksImage: onboardingFrameworkSelectionJava,
   },
+  [SupportedLanguages.GO]: {
+    description: t(
+      'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
+    ),
+    topFrameworksImage: onboardingFrameworkSelectionJava, // TODO: need a go image
+  },
 };
 
 type Props = ModalRenderProps & {
@@ -154,6 +171,9 @@ export function FrameworkSuggestionModal({
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.includes(framework.id);
     }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.includes(framework.id);
+    }
     return topJavascriptFrameworks.includes(framework.id);
   });
 
@@ -170,6 +190,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.GO) {
+      return topGoFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);
   });

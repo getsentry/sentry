@@ -51,7 +51,17 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
-MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
+MIGRATED_GETTING_STARTD_DOCS = [
+    "javascript-react",
+    "javascript-remix",
+    "go-echo",
+    "go-fasthttp",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+]
 
 
 class ProjectManager(BaseManager):
