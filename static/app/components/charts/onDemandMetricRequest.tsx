@@ -20,6 +20,7 @@ function applySampleRate(timeseriesData, sampleRate = 1) {
   return {
     ...timeseriesData,
     isExtrapolatedData: true,
+    isMetricsData: false,
     data: scaledData,
   };
 }
