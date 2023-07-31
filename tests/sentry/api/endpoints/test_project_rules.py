@@ -249,6 +249,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
+        with self.feature("organizations:more-slow-alerts"):
+            self.run_test(conditions=conditions, actions=actions)
+
     def test_owner_perms(self):
         other_user = self.create_user()
         response = self.get_error_response(
