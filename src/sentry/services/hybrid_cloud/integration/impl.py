@@ -330,7 +330,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> Optional[RpcIntegration]:
         integration = Integration.objects.filter(id=integration_id).first()
         if not integration:
-            return
+            return None
         for org in rpc_organizations:
             integration.add_organization(organization=org)
         return integration
