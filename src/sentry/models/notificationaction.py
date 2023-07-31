@@ -57,6 +57,7 @@ class ActionService(FlexibleIntEnum):
         assert ExternalProviders.PAGERDUTY.name is not None
         assert ExternalProviders.SLACK.name is not None
         assert ExternalProviders.MSTEAMS.name is not None
+        assert ExternalProviders.OPSGENIE.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
