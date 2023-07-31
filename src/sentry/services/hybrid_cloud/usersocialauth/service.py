@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import List, cast
 
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.usersocialauth.model import (
     RpcUserSocialAuth,
@@ -36,6 +37,15 @@ class UserSocialAuthService(RpcService):
     def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
         """
         Returns the first RpcUserSocialAuth based on the given filters.
+        """
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def link_auth(self, *, usa: RpcUserSocialAuth, organization: RpcOrganization) -> bool:
+        """
+        Uses a UserSocialAuth to create/link an integration to an organization.
+        Returns True if successful.
         """
         pass
 

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional
 
+import sentry_sdk
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.usersocialauth.model import (
     RpcUserSocialAuth,
     UserSocialAuthFilterArgs,
@@ -24,6 +27,17 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
         if len(auths) == 0:
             return None
         return auths[0]
+
+    def link_auth(self, *, usa: RpcUserSocialAuth, organization: RpcOrganization) -> bool:
+        try:
+            integration, _created = Integration.objects.get_or_create(
+                provider=usa.provider, external_id=usa.uid
+            )
+            integration.add_organization(organization, None, default_auth_id=usa.id)
+        except Exception as error:
+            sentry_sdk.capture_exception(error=error)
+            return False
+        return True
 
     class _UserSocialAuthFilterQuery(
         FilterQueryDatabaseImpl[UserSocialAuth, UserSocialAuthFilterArgs, RpcUserSocialAuth, None]

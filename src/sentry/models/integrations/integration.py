@@ -25,38 +25,8 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
-    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 logger = logging.getLogger(__name__)
-
-
-class HybridIntegrationUtility:
-    """
-    Class storing shared methods across Integration and RpcIntegrations
-    """
-
-    @classmethod
-    def get_provider(cls, instance: Integration | RpcIntegration) -> IntegrationProvider:
-        from sentry import integrations
-
-        return integrations.get(instance.provider)
-
-    @classmethod
-    def get_installation(
-        cls, instance: Integration | RpcIntegration, organization_id: int, **kwargs: Any
-    ) -> IntegrationInstallation:
-        installation = instance.get_provider().get_installation(
-            model=instance,
-            organization_id=organization_id,
-            **kwargs,
-        )
-        return installation
-
-    @classmethod
-    def has_feature(
-        cls, instance: Integration | RpcIntegration, feature: IntegrationFeatures
-    ) -> bool:
-        return feature in instance.get_provider().features
 
 
 class IntegrationManager(BaseManager):
@@ -96,15 +66,19 @@ class Integration(DefaultFieldsModel):
         unique_together = (("provider", "external_id"),)
 
     def get_provider(self) -> IntegrationProvider:
-        return HybridIntegrationUtility.get_provider(instance=self)
+        from .utils import get_provider
+
+        return get_provider(instance=self)
 
     def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return HybridIntegrationUtility.get_installation(
-            instance=self, organization_id=organization_id, **kwargs
-        )
+        from .utils import get_installation
+
+        return get_installation(instance=self, organization_id=organization_id, **kwargs)
 
     def has_feature(self, feature: IntegrationFeatures) -> bool:
-        return HybridIntegrationUtility.has_feature(instance=self, feature=feature)
+        from .utils import has_feature
+
+        return has_feature(instance=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(
