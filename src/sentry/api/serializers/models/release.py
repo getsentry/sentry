@@ -21,6 +21,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     ReleaseStatus,
 )
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
@@ -262,7 +263,7 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, A
                 "organization_id": organization_id,
                 "is_active": True,
             },
-            as_user=user,
+            as_user=serialize_generic_user(user),
         )
         # Figure out which email address matches to a user
         users_by_email = {}

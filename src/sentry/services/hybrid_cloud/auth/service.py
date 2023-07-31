@@ -96,7 +96,9 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def change_scim(self, *, user_id: int, provider_id: int, enabled: bool) -> None:
+    def change_scim(
+        self, *, user_id: int, provider_id: int, enabled: bool, allow_unlinked: bool
+    ) -> None:
         pass
 
 

@@ -328,6 +328,11 @@ class RpcAuthProvider(RpcModel):
 
         return manager.get(self.provider, **self.config)
 
+    def get_scim_token(self) -> Optional[str]:
+        from sentry.models import get_scim_token
+
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
+
 
 class RpcAuthIdentity(RpcModel):
     id: int = -1
