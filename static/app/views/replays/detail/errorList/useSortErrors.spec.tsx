@@ -1,6 +1,4 @@
-import {act} from 'react-test-renderer';
-
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
