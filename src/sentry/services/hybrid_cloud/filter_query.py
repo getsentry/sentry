@@ -110,6 +110,10 @@ class FilterQueryDatabaseImpl(
     ) -> List[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
 
+        if as_user is not None and not isinstance(as_user, RpcUser):
+            # Frequent cause of bugs that type-checking doesn't always catch
+            raise TypeError("`as_user` must be serialized first")
+
         if as_user is None and auth_context:
             as_user = auth_context.user
 
