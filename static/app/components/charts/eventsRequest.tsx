@@ -198,7 +198,7 @@ type EventsRequestPartialProps = {
    */
   referrer?: string;
   /**
-   * Sample rate used for data extrapolation in OnDemnadMetricsRequest
+   * Sample rate used for data extrapolation in OnDemandMetricsRequest
    */
   sampleRate?: number;
   /**
