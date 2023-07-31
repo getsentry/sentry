@@ -3,24 +3,36 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Union
 
-import sentry_kafka_schemas
 import urllib3
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 from django.core.cache import cache
 
 from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
+from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json, snuba
 
-ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-    "ingest-metrics"
-)
+# ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
+#     "ingest-metrics"
+# )
 
 _METRIC_TYPE_TO_ENTITY: Mapping[str, str] = {
     "c": "generic_metrics_counters",
     "s": "generic_metrics_sets",
     "d": "generic_metrics_distributions",
 }
+
+
+_broker_timestamp = datetime.now() - datetime.timedelta(seconds=5)
+
+
+def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
+    mri_unit = "none" if unit is None else unit
+    return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
 def get_retention_from_org_id(org_id: int) -> int:
@@ -46,8 +58,9 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 class SnubaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
-        self.fake_mapping_meta = {1: "a"}
-        self.metric_id = 2
+        self._message_processor = MessageProcessor(
+            get_ingest_config(UseCaseKey.PERFORMANCE, IndexerStorage.MOCK)
+        )
 
     def counter(
         self,
@@ -67,20 +80,19 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
 
+        # the message that the indexer receives
         counter_metric = {
-            "mapping_meta": self.fake_mapping_meta,
-            "metric_id": self.metric_id,
             "org_id": org_id,
             "project_id": project_id,
+            "name": build_mri(metric_name, "c", use_case_id, unit),
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "c",
-            "use_case_id": use_case_id.value,
         }
 
-        self.__send_request(counter_metric)
+        self.__build_and_send_request(counter_metric)
 
     def set(
         self,
@@ -101,19 +113,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         """
 
         set_metric = {
-            "mapping_meta": self.fake_mapping_meta,
-            "metric_id": self.metric_id,
             "org_id": org_id,
             "project_id": project_id,
+            "name": build_mri(metric_name, "s", use_case_id, unit),
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "s",
-            "use_case_id": use_case_id.value,
         }
 
-        self.__send_request(set_metric)
+        self.__build_and_send_request(set_metric)
 
     def distribution(
         self,
@@ -133,31 +143,60 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         produced to the broker yet.
         """
         dist_metric = {
-            "mapping_meta": self.fake_mapping_meta,
-            "metric_id": self.metric_id,
             "org_id": org_id,
             "project_id": project_id,
+            "name": build_mri(metric_name, "d", use_case_id, unit),
             "value": value,
             "timestamp": int(datetime.now().timestamp()),
             "tags": tags,
             "retention_days": get_retention_from_org_id(org_id),
             "type": "d",
-            "use_case_id": use_case_id.value,
         }
 
-        self.__send_request(dist_metric)
+        self.__build_and_send_request(dist_metric)
 
-    def __send_request(self, metric: Mapping[str, Any]):
-        # schema validation here
-        serialized_metric = json.dumps(metric)
+    def __build_payload(self, metric) -> Sequence[Any]:
+        # build message batch for the MessageProcessor
+        message_batch = [
+            Message(
+                BrokerValue(
+                    KafkaPayload(None, json.dumps(metric).encode("utf-8"), []),
+                    Partition(Topic("topic"), 0),
+                    0,
+                    _broker_timestamp,
+                )
+            ),
+        ]
+
+        last = message_batch[-1]
+        outer_message = Message(Value(message_batch, last.committable))
+
+        # index message via the MessageProcessor
+        new_batch = self._message_processor.process_messages(outer_message=outer_message)
+
+        json_payloads = []
+        for message in new_batch:
+            payload = message.payload
+            if type(payload) == RoutingPayload:
+                payload = payload.routing_message
+            # decode bytes into json
+            json_payloads.append(payload.value.decode("utf-8"))
+
+        return json_payloads
+
+    def __build_and_send_request(self, metric):
         metric_type = metric["type"]
         headers = {}
         entity = _METRIC_TYPE_TO_ENTITY[metric_type]
+
+        json_payloads = self.__build_payload(metric)
+        payload = json_payloads[0]
+
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 f"/tests/{entity}/eventstream",
-                body=serialized_metric,
+                body=payload,
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
@@ -170,7 +209,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
 
     def close(self) -> None:
         """
-        Calling this is required once we are done emitting metrics
-        using the current instance of the KafkaMetricsBackend.
+            Calling this is required once we are done emitting metrics
+        using the current instance of the KafkaMetricsBackend
         """
         pass
