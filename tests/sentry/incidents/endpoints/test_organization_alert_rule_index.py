@@ -492,12 +492,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 404
 
     def test_no_perms(self):
-        # Downgrade user from "owner" to "member".
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
-
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 403
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
 
         member_user = self.create_user()
         self.create_member(
@@ -507,6 +506,21 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         self.login_as(member_user)
         resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 403
+
+        self.login_as(self.user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
+
+    def test_member_create(self):
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(member_user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
 
     def test_no_owner(self):
         self.login_as(self.user)
