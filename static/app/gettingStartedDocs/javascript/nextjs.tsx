@@ -51,7 +51,7 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard -i nextjs`,
+        code: `npx @sentry/wizard@latest -i nextjs`,
       },
     ],
   },
