@@ -3,7 +3,7 @@ from time import time
 from freezegun import freeze_time
 
 from sentry.ratelimits.redis import RedisRateLimiter
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

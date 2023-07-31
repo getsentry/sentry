@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models import OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 

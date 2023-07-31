@@ -5,7 +5,7 @@ from django.test import RequestFactory, override_settings
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class IntegrationControlMiddlewareTest(TestCase):
