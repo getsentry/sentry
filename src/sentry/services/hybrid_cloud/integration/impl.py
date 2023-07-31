@@ -232,10 +232,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (
-            serialize_integration(integration),
-            organization_integrations,
-        )
+        return (integration, organization_integrations)
 
     def update_integrations(
         self,
@@ -278,7 +275,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=status,
             metadata=metadata,
         )
-        return serialize_integration(integrations[0]) if len(integrations) > 0 else None
+        return integrations[0] if len(integrations) > 0 else None
 
     def update_organization_integrations(
         self,
@@ -333,7 +330,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> Optional[RpcIntegration]:
         integration = Integration.objects.filter(id=integration_id).first()
         if not integration:
-            return
+            return None
         for org in rpc_organizations:
             integration.add_organization(organization=org)
         return integration
@@ -397,7 +394,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             )
 
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
+        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
     ) -> None:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)

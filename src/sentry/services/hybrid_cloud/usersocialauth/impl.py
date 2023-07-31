@@ -42,7 +42,9 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
     class _UserSocialAuthFilterQuery(
         FilterQueryDatabaseImpl[UserSocialAuth, UserSocialAuthFilterArgs, RpcUserSocialAuth, None]
     ):
-        def apply_filters(self, query: QuerySet, filters: UserSocialAuthFilterArgs) -> QuerySet:
+        def apply_filters(
+            self, query: QuerySet[UserSocialAuth], filters: UserSocialAuthFilterArgs
+        ) -> QuerySet[UserSocialAuth]:
             if "id" in filters:
                 query = query.filter(id=filters["id"])
             if "user_id" in filters:
@@ -53,7 +55,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
                 query = query.filter(uid=filters["uid"])
             return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[UserSocialAuth]:
             return UserSocialAuth.objects.filter()
 
         def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], Optional[str]]:

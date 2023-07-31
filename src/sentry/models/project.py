@@ -4,7 +4,7 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
@@ -78,7 +78,7 @@ class ProjectManager(BaseManager):
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 

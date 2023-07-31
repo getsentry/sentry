@@ -19,7 +19,7 @@ class DatabaseBackedLogService(LogService):
             if '"auth_user"' in error_message:
                 # It is possible that a user existed at the time of serialization but was deleted by the time of consumption
                 # in which case we follow the database's SET NULL on delete handling.
-                entry.actor_user_id = None
+                event.actor_user_id = None
                 return self.record_audit_log(event=event)
             else:
                 raise
@@ -59,22 +59,24 @@ class DatabaseBackedLogService(LogService):
 
 class OutboxBackedLogService(LogService):
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
-        RegionOutbox(
+        outbox = RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
             payload=event.__dict__,
-        ).save()
+        )  # type: ignore
+        outbox.save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
-        RegionOutbox(
+        outbox = RegionOutbox(
             shard_scope=OutboxScope.USER_IP_SCOPE,
             shard_identifier=event.user_id,
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
             payload=event.__dict__,
-        ).save()
+        )  # type: ignore
+        outbox.save()
 
     def find_last_log(
         self, *, organization_id: int | None, target_object_id: int | None, event: int | None

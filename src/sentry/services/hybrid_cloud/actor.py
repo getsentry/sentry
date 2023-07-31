@@ -21,7 +21,7 @@ class ActorType(str, Enum):
     TEAM = "Team"
 
 
-ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
+ActorTarget = Union["Actor", "RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):

@@ -138,7 +138,7 @@ class DatabaseBackedAppService(AppService):
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[SentryAppInstallation]:
             if ids_only:
                 return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
@@ -154,8 +154,8 @@ class DatabaseBackedAppService(AppService):
             raise NotImplementedError("Serialization not supported for AppService")
 
         def apply_filters(
-            self, query: QuerySet, filters: SentryAppInstallationFilterArgs
-        ) -> QuerySet:
+            self, query: QuerySet[SentryAppInstallation], filters: SentryAppInstallationFilterArgs
+        ) -> QuerySet[SentryAppInstallation]:
             # filters["status"] = SentryAppInstallationStatus.INSTALLED
             if "installation_ids" in filters:
                 query = query.filter(id__in=filters["installation_ids"])

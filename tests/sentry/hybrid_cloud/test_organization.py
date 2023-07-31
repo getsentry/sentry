@@ -28,7 +28,7 @@ from sentry.testutils.silo import all_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
 
 
-def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
+def basic_filled_out_org() -> Tuple[Organization, List[User]]:
     owner = Factories.create_user()
     other_user = Factories.create_user()
     Factories.create_organization()  # unrelated org that shouldn't be in the result set
@@ -144,7 +144,7 @@ def assert_organization_member_equals(
     assert set(organization_member.project_ids) == {
         p.id
         for p in Project.objects.get_for_team_ids(
-            omt.team_id for omt in organization_member.member_teams
+            [omt.team_id for omt in organization_member.member_teams]
         )
     }
 
@@ -182,12 +182,14 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
     org_context = organization_service.get_organization_by_id(
         id=orm_org.id, user_id=user_context.id if user_context else None
     )
+    assert org_context is not None
     assert_orgs_equal(orm_org, org_context.organization)
     if user_context is None:
         assert org_context.user_id is None
         assert org_context.member is None
     else:
         assert org_context.user_id == user_context.id
+        assert org_context.member is not None
         assert_organization_member_equals(
             OrganizationMember.objects.get(user_id=user_context.id, organization_id=orm_org.id),
             org_context.member,
