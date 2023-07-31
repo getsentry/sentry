@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
 import {
@@ -27,12 +28,20 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
       ? `${groupId}:${transactionName}:${transactionMethod}`
       : undefined;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debounceSetHighlightedSpanId = useCallback(
+    debounce(id => {
+      setHighlightedSpanId(id);
+    }, 10),
+    []
+  );
+
   return (
     <PageErrorProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
-          router.push({
+          router.replace({
             pathname: router.location.pathname,
             query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
@@ -55,8 +64,8 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
               `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
             );
           }}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
+          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
           highlightedSpanId={highlightedSpanId}
         />
 

@@ -229,13 +229,13 @@ function ActionSet({
                 onUpdate={onUpdate}
                 anySelected={anySelected}
                 params={{
-                  hasReleases: selectedProject.hasOwnProperty('features')
+                  hasRelease: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
                     : false,
                   latestRelease: selectedProject.hasOwnProperty('latestRelease')
                     ? (selectedProject as Project).latestRelease
                     : undefined,
-                  projectId: selectedProject.slug,
+                  projectSlug: selectedProject.slug,
                   confirm,
                   label,
                   loadingProjects: !initiallyLoaded,
@@ -251,7 +251,7 @@ function ActionSet({
           onUpdate={onUpdate}
           anySelected={anySelected}
           params={{
-            hasReleases: false,
+            hasRelease: false,
             confirm,
             label,
           }}

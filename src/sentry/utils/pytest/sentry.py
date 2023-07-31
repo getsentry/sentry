@@ -3,6 +3,8 @@ from __future__ import annotations
 import collections
 import os
 import random
+import shutil
+import sys
 from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
@@ -36,6 +38,12 @@ def pytest_configure(config):
     )
 
     config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+
+    if sys.platform == "darwin" and shutil.which("colima"):
+        # This is the only way other than pytest --basetemp to change
+        # the temproot. We'd like to keep invocations to just "pytest".
+        # See source code for pytest's TempPathFactory.
+        os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
@@ -114,7 +122,6 @@ def pytest_configure(config):
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
-    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
     settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 
@@ -192,6 +199,10 @@ def pytest_configure(config):
     settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
+
+    # Configure control backend settings for storage
+    settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
+    settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
 
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False

@@ -105,6 +105,7 @@ from sentry.models import (
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.release import follows_semver_versioning_scheme
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -413,6 +414,11 @@ class EventManager:
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
 
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project.set_cached_field_value(
+                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+            )
+
         projects = {project.id: project}
 
         job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
@@ -453,17 +459,9 @@ class EventManager:
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
-        with metrics.timer("event_manager.save.organization.get_from_cache"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
         jobs = [job]
 
         is_reprocessed = is_reprocessed_event(job["data"])
-
-        # This metric can be used to track how many error events there are per platform
-        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -868,8 +866,8 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
             integration = integration_service.get_integration(integration_id=oi.integration_id)
             if not integration:
                 continue
-            integration_installation = integration_service.get_installation(
-                integration=integration, organization_id=oi.organization_id
+            integration_installation = integration.get_installation(
+                organization_id=oi.organization_id
             )
             if not integration_installation:
                 continue
@@ -1473,7 +1471,7 @@ def _save_aggregate(
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     migrate_off_hierarchical: Optional[bool] = False,
-    **kwargs: dict[str, Any],
+    **kwargs: Any,
 ) -> Optional[GroupInfo]:
     project = event.project
 
@@ -1732,7 +1730,7 @@ def _find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
-def _create_group(project: Project, event: Event, **kwargs: dict[str, Any]) -> Group:
+def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
@@ -1822,6 +1820,8 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             update_fields=["last_seen", "active_at", "status", "substatus"],
         )
 
+    follows_semver = False
+    resolved_in_activity = None
     if is_regression and release:
         resolution = None
 
@@ -1842,7 +1842,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             # the queue to handling this) then we need to also record
             # the corresponding event
             try:
-                activity = Activity.objects.filter(
+                resolved_in_activity = Activity.objects.filter(
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     ident=resolution.id,
@@ -1857,17 +1857,40 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
                     # We also should not override the `data` attribute here because it might have
                     # a `current_release_version` for semver releases and we wouldn't want to
                     # lose that
-                    if activity.data["version"] == "":
-                        activity.update(data={**activity.data, "version": release.version})
+                    if resolved_in_activity.data["version"] == "":
+                        resolved_in_activity.update(
+                            data={**resolved_in_activity.data, "version": release.version}
+                        )
                 except KeyError:
                     # Safeguard in case there is no "version" key. However, should not happen
-                    activity.update(data={"version": release.version})
+                    resolved_in_activity.update(data={"version": release.version})
+
+            # Record how we compared the two releases
+            follows_semver = follows_semver_versioning_scheme(
+                project_id=group.project.id,
+                org_id=group.organization.id,
+                release_version=release.version,
+            )
 
     if is_regression:
+        activity_data: dict[str, str | bool] = {
+            "event_id": event.event_id,
+            "version": release.version if release else "",
+        }
+        if resolved_in_activity and release:
+            activity_data.update(
+                {
+                    "follows_semver": follows_semver,
+                    "resolved_in_version": resolved_in_activity.data.get(
+                        "version", release.version
+                    ),
+                }
+            )
+
         Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
-            data={"version": release.version if release else "", "event_id": event.event_id},
+            data=activity_data,
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 
@@ -2254,7 +2277,7 @@ def _calculate_event_grouping(
 
     with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
         # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
+        # event. If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
             hashes = event.get_hashes(grouping_config)
@@ -2310,7 +2333,10 @@ class PerformanceJob(TypedDict, total=False):
 
 
 def _save_grouphash_and_group(
-    project: Project, event: Event, new_grouphash: str, **group_kwargs: dict[str, Any]
+    project: Project,
+    event: Event,
+    new_grouphash: str,
+    **group_kwargs: Any,
 ) -> Tuple[Group, bool]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):

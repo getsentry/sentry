@@ -31,6 +31,7 @@ def query(
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ):
     metrics_compatible = not equations
 
@@ -105,6 +106,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    on_demand_metrics_enabled: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.

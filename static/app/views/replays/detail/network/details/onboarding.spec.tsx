@@ -1,24 +1,27 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
-const mockUseProjectSdkNeedsUpdate = useProjectSdkNeedsUpdate as jest.MockedFunction<
-  typeof useProjectSdkNeedsUpdate
->;
-
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
-const MOCK_ITEM = TestStubs.ReplaySpanPayload({
-  op: 'resource.fetch',
-  description: '/api/0/issues/1234',
-});
+const [MOCK_ITEM] = hydrateSpans(TestStubs.ReplayRecord(), [
+  TestStubs.Replay.RequestFrame({
+    op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
+    description: '/api/0/issues/1234',
+  }),
+]);
 
 describe('Setup', () => {
-  mockUseProjectSdkNeedsUpdate.mockReturnValue({isFetching: false, needsUpdate: false});
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isFetching: false, needsUpdate: false});
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {

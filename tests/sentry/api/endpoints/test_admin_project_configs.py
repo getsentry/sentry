@@ -31,7 +31,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         self.p1_pk = self.create_project_key(self.proj1)
         self.p2_pk = self.create_project_key(self.proj2)
 
-        projectconfig_cache.set_many(
+        projectconfig_cache.backend.set_many(
             {
                 self.p1_pk.public_key: "proj1 config",
             }

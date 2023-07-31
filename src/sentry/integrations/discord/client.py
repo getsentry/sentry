@@ -20,6 +20,9 @@ class DiscordClient(IntegrationProxyClient):
     # https://discord.com/developers/docs/resources/user#leave-guild
     USERS_GUILD_URL = "/users/@me/guilds/{guild_id}"
 
+    # https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
+    APPLICATION_COMMANDS = "/applications/{application_id}/commands"
+
     def __init__(
         self,
         integration_id: int | None = None,
@@ -34,7 +37,7 @@ class DiscordClient(IntegrationProxyClient):
             org_integration_id = infer_org_integration(
                 integration_id=integration_id, ctx_logger=logger
             )
-        super().__init__(org_integration_id, verify_ssl, logging_context)
+        super().__init__(integration_id, org_integration_id, verify_ssl, logging_context)
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -52,3 +55,9 @@ class DiscordClient(IntegrationProxyClient):
         Leave the given guild_id, if the bot is currently a member.
         """
         self.delete(self.USERS_GUILD_URL.format(guild_id=guild_id))
+
+    def overwrite_application_commands(self, commands: list[object]) -> None:
+        self.put(
+            self.APPLICATION_COMMANDS.format(application_id=self.application_id),
+            data=commands,
+        )

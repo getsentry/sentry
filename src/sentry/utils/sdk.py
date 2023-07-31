@@ -130,7 +130,8 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.monitors.tasks.check_monitors": 1.0,
+    "sentry.monitors.tasks.check_missing": 1.0,
+    "sentry.monitors.tasks.check_timeout": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
 }
 
@@ -421,6 +422,14 @@ def configure_sdk():
                         tags={"reason": "unsafe"},
                     )
 
+        def record_lost_event(self, *args, **kwargs):
+            # pass through client report recording to sentry_saas_transport
+            # not entirely accurate for some cases like rate limiting but does the job
+            if sentry_saas_transport:
+                record = getattr(sentry_saas_transport, "record_lost_event", None)
+                if record:
+                    record(*args, **kwargs)
+
         def is_healthy(self):
             if sentry4sentry_transport:
                 if not sentry4sentry_transport.is_healthy():
@@ -436,6 +445,13 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    # exclude monitors with sub-minute schedules from using crons
+    exclude_beat_tasks = [
+        "flush-buffers",
+        "sync-options",
+        "schedule-digests",
+    ]
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -444,7 +460,7 @@ def configure_sdk():
         integrations=[
             DjangoAtomicIntegration(),
             DjangoIntegration(signals_spans=False),
-            CeleryIntegration(monitor_beat_tasks=True),
+            CeleryIntegration(monitor_beat_tasks=True, exclude_beat_tasks=exclude_beat_tasks),
             # This makes it so all levels of logging are recorded as breadcrumbs,
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set

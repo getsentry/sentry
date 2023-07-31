@@ -276,6 +276,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.require_2fa_for_organization()
         self.assertFalse(self.user.has_2fa())
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)

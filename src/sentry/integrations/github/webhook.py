@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from datetime import timezone
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -20,7 +20,10 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.plugins.providers.integration_repository import get_integration_repository_provider
+from sentry.plugins.providers.integration_repository import (
+    RepoExistsError,
+    get_integration_repository_provider,
+)
 from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegration,
@@ -103,7 +106,11 @@ class Webhook:
 
                 for org in orgs.values():
                     if features.has("organizations:auto-repo-linking", org):
-                        provider.create_repository(config, org)
+                        try:
+                            provider.create_repository(config, org)
+                        except RepoExistsError:
+                            metrics.incr("sentry.integration_repo_provider.repo_exists")
+                            continue
                         metrics.incr("github.webhook.create_repository")
 
                 repos = repos.all()
@@ -218,9 +225,7 @@ class PushEventWebhook(Webhook):
         host: str | None = None,
     ) -> None:
         authors = {}
-        client = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
-        ).get_client()
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
         for commit in event["commits"]:

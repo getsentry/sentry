@@ -19,6 +19,7 @@ class SharedIssueTest(AcceptanceTestCase):
         data = load_data(platform="python")
         data["timestamp"] = iso_format(before_now(days=1))
         event = self.store_event(data=data, project_id=self.project.id)
+        assert event.group is not None
 
         GroupShare.objects.create(project_id=event.group.project_id, group=event.group)
 

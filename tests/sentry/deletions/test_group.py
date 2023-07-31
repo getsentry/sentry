@@ -85,9 +85,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self):
         EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
-        assert nodestore.get(self.node_id)
-        assert nodestore.get(self.node_id2)
-        assert nodestore.get(self.node_id3)
+        assert nodestore.backend.get(self.node_id)
+        assert nodestore.backend.get(self.node_id2)
+        assert nodestore.backend.get(self.node_id3)
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
@@ -99,9 +99,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.get(self.node_id)
-        assert not nodestore.get(self.node_id2)
-        assert nodestore.get(self.node_id3), "Does not remove from second group"
+        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(self.node_id2)
+        assert nodestore.backend.get(self.node_id3), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
     def test_simple_multiple_groups(self):
@@ -122,11 +122,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.get(self.node_id)
-        assert not nodestore.get(other_node_id)
+        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
-        assert nodestore.get(keep_node_id)
+        assert nodestore.backend.get(keep_node_id)
 
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")

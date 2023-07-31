@@ -1,8 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
-
-from django.utils import timezone
 
 from fixtures.github import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
@@ -162,6 +160,7 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker/public-repo",
         )
         repo.status = ObjectStatus.HIDDEN
+        repo.external_id = "35129377"
         repo.save()
 
         self._setup_repo_test(project)
@@ -453,6 +452,7 @@ class PullRequestEventWebhook(APITestCase):
             name="baxterthehacker/public-repo",
         )
         repo.status = ObjectStatus.HIDDEN
+        repo.external_id = "35129377"
         repo.save()
 
         self._setup_repo_test(project)

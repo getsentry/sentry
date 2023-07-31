@@ -24,45 +24,18 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
-const StyledTooltip = styled(Tooltip)`
-  display: block;
-`;
-
-function ChangeHeader(title: string) {
-  return (
-    <StyledTooltip showUnderline title={title}>
-      {t('Change')}
-    </StyledTooltip>
-  );
-}
-
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  ChangeHeader(
-    t(
-      'The change in throughput from the first half v. second half of the selected time range'
-    )
-  ),
-  DataTitles.p95,
-  ChangeHeader(
-    t(
-      'The change in P95 duration from the first half v. second half of the selected time range'
-    )
-  ),
+  DataTitles.avg,
   DataTitles.errorCount,
-  ChangeHeader(
-    t(
-      'The change in 5XX responses from the first half v. second half of the selected time range'
-    )
-  ),
   DataTitles.timeSpent,
 ];
 
@@ -142,17 +115,16 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       const cumulativeTime = Number(dataRow['sum(transaction.duration)']);
       const cumulativeTimePercentage = Number(dataRow[TIME_SPENT_IN_SERVICE]);
       return (
-        <TimeSpentCell
-          timeSpentPercentage={cumulativeTimePercentage}
-          totalSpanTime={cumulativeTime}
-        />
+        <TimeSpentCell percentage={cumulativeTimePercentage} total={cumulativeTime} />
       );
     }
 
     // TODO: This can be removed if/when the backend returns this field's type
     // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
+      return (
+        <ThroughputCell rate={dataRow[field] as number} unit={RateUnits.PER_SECOND} />
+      );
     }
 
     if (field === 'project') {
@@ -185,7 +157,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p95()'] = col;
+          deltaColumnMap['avg()'] = col;
         }
       });
     }

@@ -4,12 +4,13 @@ import abc
 import contextlib
 import functools
 import itertools
-import sys
 import threading
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
 from django.conf import settings
+
+from sentry.utils.env import in_test_environment
 
 
 class SiloMode(Enum):
@@ -49,7 +50,7 @@ class SiloMode(Enum):
         cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
         silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
         """
-        if "pytest" in sys.argv[0]:
+        if in_test_environment():
             assert (
                 single_process_silo_mode_state.mode is None
             ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."

@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from unittest import mock
 
 from django.urls import reverse
 
@@ -13,6 +14,7 @@ from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
+from sentry.utils.snuba import QueryMemoryLimitExceeded
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -546,6 +548,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:1",
+                "count_dead_clicks:0",
+                "count_rage_clicks:0",
                 "platform:javascript",
                 "releases:version@1.3",
                 "releases:[a,version@1.3]",
@@ -620,6 +624,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
+                "count_dead_clicks:>0",
+                "count_rage_clicks:>0",
                 f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
                 "id:b OR duration:>1000",
@@ -902,10 +908,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "urls": None,
                     "started_at": None,
                     "count_errors": None,
+                    "count_dead_clicks": None,
+                    "count_rage_clicks": None,
                     "activity": None,
                     "finished_at": None,
                     "duration": None,
                     "is_archived": True,
+                    "releases": None,
+                    "platform": None,
+                    "dist": None,
+                    "count_segments": None,
+                    "count_urls": None,
+                    "clicks": None,
                 }
             ]
 
@@ -1163,6 +1177,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     == b'{"detail":"Only attribute, class, id, and tag name selectors are supported."}'
                 ), query
 
+    def test_get_replays_filter_clicks_unsupported_attribute_selector(self):
+        """Assert replays only supports a subset of selector syntax."""
+        project = self.create_project(teams=[self.team])
+        self.store_replays(mock_replay(datetime.datetime.now(), project.id, uuid.uuid4().hex))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = ["click.selector:div[xyz=test]"]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400, query
+                assert response.content == (
+                    b'{"detail":"Invalid attribute specified. Only alt, aria-label, role, '
+                    b'data-testid, data-test-id, and title are supported."}'
+                ), query
+
     def test_get_replays_filter_clicks_unsupported_operators(self):
         """Assert replays only supports a subset of selector syntax."""
         project = self.create_project(teams=[self.team])
@@ -1204,3 +1233,26 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response = self.client.get(self.url + "?field=browser&field=count_urls")
             assert response.status_code == 200
+
+    def test_get_replays_memory_error(self):
+        """Test replay response with fields requested in production."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            # Invalid field-names error regardless of ordering.
+            with mock.patch(
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection",
+                side_effect=QueryMemoryLimitExceeded("mocked error"),
+            ):
+                response = self.client.get(self.url)
+                assert response.status_code == 504
+                assert (
+                    response.content
+                    == b'{"detail":"Replay search query limits exceeded. Please narrow the time-range."}'
+                )

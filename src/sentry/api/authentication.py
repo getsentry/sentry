@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -13,6 +13,7 @@ from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.models import ApiApplication, ApiKey, ApiToken, OrgAuthToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.utils.sdk import configure_scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -282,3 +283,26 @@ class DSNAuthentication(StandardAuthentication):
             scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
+
+
+class RpcSignatureAuthentication(StandardAuthentication):
+    """
+    Authentication for cross-region RPC requests.
+    Requests are sent with an HMAC signed by a shared private key.
+    """
+
+    token_name = b"rpcsignature"
+
+    def accepts_auth(self, auth: List[bytes]) -> bool:
+        if not auth or len(auth) < 2:
+            return False
+        return auth[0].lower() == self.token_name
+
+    def authenticate_credentials(self, request: Request, token: str):
+        if not compare_signature(request.path_info, request.body, token):
+            raise AuthenticationFailed("Invalid signature")
+
+        with configure_scope() as scope:
+            scope.set_tag("rpc_auth", True)
+
+        return (AnonymousUser(), token)

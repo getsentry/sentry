@@ -112,3 +112,16 @@ export function MutationFrame(
     type: '',
   };
 }
+
+export function NavFrame(fields: TestableFrame<'navigation'>): MockFrame<'navigation'> {
+  return {
+    category: 'navigation',
+    data: fields.data ?? {
+      from: '',
+      to: '',
+    },
+    message: fields.message ?? '',
+    timestamp: fields.timestamp.getTime() / 1000,
+    type: '',
+  };
+}

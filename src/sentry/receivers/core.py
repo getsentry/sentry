@@ -111,7 +111,9 @@ def set_sentry_version(latest=None, **kwargs):
     if latest == version:
         return
 
-    options.set("sentry:latest_version", (latest or current))
+    options.set(
+        "sentry:latest_version", (latest or current), channel=options.UpdateChannel.APPLICATION
+    )
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):

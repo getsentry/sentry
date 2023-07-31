@@ -59,6 +59,7 @@ class PagerDutyPluginTest(PluginTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")

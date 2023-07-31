@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
-from sentry_sdk import capture_message, set_extra
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -26,13 +25,13 @@ from sentry.dynamic_sampling.rules.base import (
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-    MAX_SECONDS,
+    MAX_TASK_SECONDS,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -41,13 +40,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_sample_rate_source,
-    log_task_execution,
-    log_task_timeout,
-)
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models import Organization
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -95,8 +93,8 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     soft_time_limit=2 * 60 * 60,
     time_limit=2 * 60 * 60 + 5,
 )
-@dynamic_sampling_task
-def boost_low_volume_transactions() -> None:
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_transactions(context: TaskContext) -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )
@@ -104,62 +102,41 @@ def boost_low_volume_transactions() -> None:
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
     )
 
-    context = TaskContext(
-        "sentry.dynamic_sampling.tasks.boost_low_volume_transactions", MAX_SECONDS
-    )
-
-    # create global timers for the internal iterators since they are created multiple times,
-    # and we are interested in the total time.
-    get_totals_timer = Timer()
-    get_small_transactions_timer = Timer()
-    get_big_transactions_timer = Timer()
     get_totals_name = "GetTransactionTotals"
     get_volumes_small = "GetTransactionVolumes(small)"
     get_volumes_big = "GetTransactionVolumes(big)"
 
-    try:
-        orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
-        for orgs in orgs_iterator:
-            # get the low and high transactions
-            totals_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionTotals(orgs),
-                name=get_totals_name,
-                timer=get_totals_timer,
-            )
-            small_transactions_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionVolumes(
-                    orgs,
-                    large_transactions=False,
-                    max_transactions=num_small_trans,
-                ),
-                name=get_volumes_small,
-                timer=get_small_transactions_timer,
-            )
-            big_transactions_it = TimedIterator(
-                context=context,
-                inner=FetchProjectTransactionVolumes(
-                    orgs,
-                    large_transactions=True,
-                    max_transactions=num_big_trans,
-                ),
-                name=get_volumes_big,
-                timer=get_big_transactions_timer,
-            )
+    orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
+    for orgs in orgs_iterator:
+        # get the low and high transactions
+        totals_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionTotals(orgs),
+            name=get_totals_name,
+        )
+        small_transactions_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionVolumes(
+                orgs,
+                large_transactions=False,
+                max_transactions=num_small_trans,
+            ),
+            name=get_volumes_small,
+        )
+        big_transactions_it = TimedIterator(
+            context=context,
+            inner=FetchProjectTransactionVolumes(
+                orgs,
+                large_transactions=True,
+                max_transactions=num_big_trans,
+            ),
+            name=get_volumes_big,
+        )
 
-            for project_transactions in transactions_zip(
-                totals_it, big_transactions_it, small_transactions_it
-            ):
-                boost_low_volume_transactions_of_project.delay(project_transactions)
-    except TimeoutException:
-        set_extra("context-data", context.to_dict())
-        log_task_timeout(context)
-        raise
-    else:
-        set_extra("context-data", context.to_dict())
-        capture_message("sentry.dynamic_sampling.tasks.boost_low_volume_transactions")
-        log_task_execution(context)
+        for project_transactions in transactions_zip(
+            totals_it, big_transactions_it, small_transactions_it
+        ):
+            boost_low_volume_transactions_of_project.delay(project_transactions)
 
 
 @instrumented_task(
@@ -291,6 +268,8 @@ class FetchProjectTransactionTotals:
 
         self._ensure_log_state()
         assert self.log_state is not None
+
+        self.log_state.num_iterations += 1
 
         if not self._cache_empty():
             return self._get_from_cache()
@@ -447,7 +426,12 @@ class FetchProjectTransactionVolumes:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> ProjectTransactions:
+
+        self._ensure_log_state()
+        assert self.log_state is not None
+
+        self.log_state.num_iterations += 1
 
         if self.max_transactions == 0:
             # the user is not interested in transactions of this type, return nothing.
@@ -506,12 +490,16 @@ class FetchProjectTransactionVolumes:
                 request,
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
+
             count = len(data)
             self.has_more_results = count > CHUNK_SIZE
             self.offset += CHUNK_SIZE
 
             if self.has_more_results:
                 data = data[:-1]
+
+            self.log_state.num_rows_total += count
+            self.log_state.num_db_calls += 1
 
             self._add_results_to_cache(data)
 
@@ -522,6 +510,9 @@ class FetchProjectTransactionVolumes:
         transaction_counts: List[Tuple[str, float]] = []
         current_org_id: Optional[int] = None
         current_proj_id: Optional[int] = None
+
+        self._ensure_log_state()
+        assert self.log_state is not None
 
         for row in data:
             proj_id = row["project_id"]
@@ -543,6 +534,11 @@ class FetchProjectTransactionVolumes:
                             "total_num_classes": None,
                         }
                     )
+                    if current_proj_id != proj_id:
+                        self.log_state.num_projects += 1
+                    if current_org_id != org_id:
+                        self.log_state.num_orgs += 1
+
                 transaction_counts = []
                 current_org_id = org_id
                 current_proj_id = proj_id

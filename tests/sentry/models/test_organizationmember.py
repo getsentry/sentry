@@ -5,6 +5,7 @@ import pytest
 from django.core import mail
 from django.db import router
 from django.utils import timezone
+from rest_framework.serializers import ValidationError
 
 from sentry import roles
 from sentry.auth import manager
@@ -208,12 +209,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(
@@ -512,3 +513,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert roles[0][1].id == "owner"
         assert roles[-1][0] == manager_team.slug
         assert roles[-1][1].id == "manager"
+
+    def test_cannot_demote_last_owner(self):
+        org = self.create_organization()
+
+        with pytest.raises(ValidationError):
+            member = self.create_member(organization=org, role="owner", user=self.create_user())
+
+            member.role = "manager"
+            member.save()

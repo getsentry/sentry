@@ -1,6 +1,6 @@
 import abc
 
-from django.db import transaction
+from django.db import router, transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -16,10 +16,10 @@ signed_auth_required_m = method_decorator(signed_auth_required)
 class UnsubscribeBaseView(BaseView, metaclass=abc.ABCMeta):
     auth_required = False
 
-    @never_cache
+    @method_decorator(never_cache)
     @signed_auth_required_m
     def handle(self, request: Request, **kwargs) -> HttpResponse:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(OrganizationMember)):
             if not getattr(request, "user_from_signed_request", False):
                 raise Http404
 

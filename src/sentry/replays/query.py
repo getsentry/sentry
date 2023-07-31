@@ -298,13 +298,12 @@ def query_replays_dataset_with_subquery(
 
 
 def query_replays_count(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     replay_ids: List[str],
     tenant_ids: dict[str, Any],
 ):
-
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -512,7 +511,15 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
 # Filter
 
 replay_url_parser_config = SearchConfig(
-    numeric_keys={"duration", "count_errors", "count_segments", "count_urls", "activity"},
+    numeric_keys={
+        "duration",
+        "count_errors",
+        "count_segments",
+        "count_urls",
+        "count_dead_clicks",
+        "count_rage_clicks",
+        "activity",
+    },
 )
 
 

@@ -1,5 +1,4 @@
 import logging
-import sys
 from datetime import timedelta
 from typing import TYPE_CHECKING, Iterable, Tuple, Type
 
@@ -12,6 +11,7 @@ from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")
 
@@ -153,5 +153,5 @@ def run_deletion(deletion_id, first_pass=True, silo_mode="CONTROL"):
             },
         )
         sentry_sdk.capture_exception(err)
-        if "pytest" in sys.argv[0]:
+        if in_test_environment():
             raise err

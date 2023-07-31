@@ -42,7 +42,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration = Integration.objects.filter(id=integration_id).first()
         if integration is None:
             return False
-        install = self.get_installation(integration=integration, organization_id=organization_id)
+        install = integration.get_installation(organization_id=organization_id)
         if isinstance(install, NotifyBasicMixin):
             install.send_message(channel_id=channel, message=message)
             return True
@@ -187,7 +187,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs)
+        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
 
         if limit is not None:
             ois = ois[:limit]
@@ -233,7 +233,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return (
             serialize_integration(integration),
-            [serialize_organization_integration(oi) for oi in organization_integrations],
+            organization_integrations,
         )
 
     def update_integrations(
@@ -325,7 +325,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             grace_period_end=grace_period_end,
             set_grace_period_end_null=set_grace_period_end_null,
         )
-        return serialize_organization_integration(ois[0]) if len(ois) > 0 else None
+        return ois[0] if len(ois) > 0 else None
 
     def send_incident_alert_notification(
         self,

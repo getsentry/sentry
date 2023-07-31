@@ -228,9 +228,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         metrics.incr("github_pr_comment.error", tags={"type": "missing_integration"})
         return
 
-    installation = integration_service.get_installation(
-        integration=integration, organization_id=org_id
-    )
+    installation = integration.get_installation(organization_id=org_id)
 
     # GitHubAppsClient (GithubClientMixin)
     # TODO(cathy): create helper function to fetch client for repo
@@ -254,13 +252,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except ApiError as e:
         cache.delete(cache_key)
 
-        if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.issue_locked_error")
-            return
+        if e.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.issue_locked_error")
+                return
 
-        elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github_pr_comment.rate_limited_error")
-            return
+            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.rate_limited_error")
+                return
 
         metrics.incr("github_pr_comment.api_error")
         raise e
@@ -291,9 +290,7 @@ def github_comment_reactions():
             metrics.incr("github_pr_comment.comment_reactions.missing_integration")
             return
 
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=pr.organization_id
-        )
+        installation = integration.get_installation(organization_id=pr.organization_id)
 
         # GitHubAppsClient (GithubClientMixin)
         # TODO(cathy): create helper function to fetch client for repo
@@ -309,6 +306,11 @@ def github_comment_reactions():
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
                 break
 
-            metrics.incr("github_pr_comment.comment_reactions.api_error")
-            sentry_sdk.capture_exception(e)
+            if e.code == 404:
+                metrics.incr("github_pr_comment.comment_reactions.not_found_error")
+            else:
+                metrics.incr("github_pr_comment.comment_reactions.api_error")
+                sentry_sdk.capture_exception(e)
             continue
+
+        metrics.incr("github_pr_comment.comment_reactions.success")

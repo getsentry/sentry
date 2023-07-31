@@ -3,101 +3,75 @@ import {useEffect, useState} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
+import type {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-// Documents already migrated from sentry-docs to main sentry repository
-export const migratedDocs = [
-  'javascript-react',
-  'javascript-remix',
-  'javascript-angular',
-  'javascript-vue',
-  'javascript-gatsby',
-  'javascript-ember',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-nextjs',
-  'javascript',
-  'python-django',
-  'python',
-  'python-flask',
-  'python-wsgi',
-  'python-tryton',
-  'python-tornado',
-  'python-starlette',
-  'python-serverless',
-  'python-sanic',
-  'python-quart',
-  'python-pyramid',
-  'python-pylons',
-  'python-gcpfunctions',
-  'python-falcon',
-  'python-chalice',
-  'python-bottle',
-  'python-fastapi',
-  'python-asgi',
-  'python-aiohttp',
-  'python-awslambda',
-  'react-native',
-  'java-spring-boot',
-  'php',
-  'php-laravel',
-  'php-symfony',
-  'go',
-  'rust',
-  'minidump',
-  'native',
-  'native-qt',
-  'ruby',
-  'ruby-rails',
-  'ruby-rack',
-  'kotlin',
-  'node',
-  'node-express',
-  'electron',
-];
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
-  orgSlug: Organization['slug'];
+  organization: Organization;
   platform: PlatformIntegration | null;
   projectSlug: Project['slug'];
   newOrg?: boolean;
+  projectId?: Project['id'];
 };
 
 export type ModuleProps = {
   dsn: string;
   activeProductSelection?: ProductSolution[];
   newOrg?: boolean;
+  organization?: Organization;
   platformKey?: PlatformKey;
+  projectId?: Project['id'];
 };
 
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({
   platform,
-  orgSlug,
   projectSlug,
   activeProductSelection,
   newOrg,
+  organization,
+  projectId,
 }: SdkDocumentationProps) {
   const [module, setModule] = useState<null | {
     default: React.ComponentType<ModuleProps>;
   }>(null);
 
+  // TODO: This will be removed once we no longer rely on sentry-docs to load platform icons
   const platformPath =
     platform?.type === 'framework'
       ? platform.language === 'minidump'
         ? `minidump/minidump`
         : platform?.id === 'native-qt'
         ? `native/native-qt`
+        : platform?.id === 'android'
+        ? `android/android`
+        : platform?.id === 'ionic'
+        ? `ionic/ionic`
+        : platform?.id === 'unity'
+        ? `unity/unity`
+        : platform?.id === 'unreal'
+        ? `unreal/unreal`
+        : platform?.id === 'capacitor'
+        ? `capacitor/capacitor`
+        : platform?.id === 'flutter'
+        ? `flutter/flutter`
+        : platform?.id === 'dart'
+        ? `dart/dart`
         : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+      : platform?.id === 'python-celery'
+      ? `python/celery`
+      : platform?.id === 'python-rq'
+      ? `python/rq`
+      : platform?.id === 'python-pymongo'
+      ? `python/mongo`
       : `${platform?.language}/${platform?.id}`;
 
   const {
     data: projectKeys = [],
     isError: projectKeysIsError,
     isLoading: projectKeysIsLoading,
-  } = useApiQuery<ProjectKey[]>([`/projects/${orgSlug}/${projectSlug}/keys/`], {
+  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
@@ -127,6 +101,8 @@ export function SdkDocumentation({
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform?.id}
+      organization={organization}
+      projectId={projectId}
     />
   );
 }
