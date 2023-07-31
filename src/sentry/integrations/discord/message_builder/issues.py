@@ -51,7 +51,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         timestamp = (
             max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
         )
-        obj = self.event if self.event is not None else self.group
+        obj: Group | GroupEvent = self.event if self.event is not None else self.group
         rule_id = None
         if self.rules:
             rule_id = self.rules[0].id
@@ -91,11 +91,11 @@ def build_tag_fields(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)
+            std_key = tagstore.get_standardized_key(key)  # type: ignore
             if std_key not in tags:
                 continue
 
-            labeled_value = tagstore.get_tag_value_label(key, value)
+            labeled_value = tagstore.get_tag_value_label(key, value)  # type: ignore
             fields.append(
                 DiscordMessageEmbedField(
                     std_key,

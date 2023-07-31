@@ -64,8 +64,6 @@ class DiscordRequest:
     @property
     def data(self) -> Mapping[str, object]:
         """This is the data object nested within request.data"""
-        if not self._data:
-            self._validate_data()
         return self._data.get("data") or {}  # type: ignore
 
     @property

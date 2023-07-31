@@ -6,7 +6,6 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture, EventState
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -39,8 +38,6 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         if not integration:
             # Integration removed, but rule still active
             return
-
-        integration: RpcIntegration = integration
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
