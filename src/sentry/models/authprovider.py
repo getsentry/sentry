@@ -182,7 +182,7 @@ class AuthProvider(Model):
         ]
 
 
-def get_scim_token(scim_enabled: bool, organization_id: id, provider: str) -> str | None:
+def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
     from sentry.services.hybrid_cloud.app import app_service
 
     if scim_enabled:
