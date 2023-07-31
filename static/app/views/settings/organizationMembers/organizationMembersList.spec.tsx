@@ -13,7 +13,6 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {MissingMember} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
@@ -43,7 +42,7 @@ const roles = [
   },
 ];
 
-const missingMembers: {integration: string; users: MissingMember[]} = [
+const missingMembers = [
   {
     integration: 'github',
     users: [
