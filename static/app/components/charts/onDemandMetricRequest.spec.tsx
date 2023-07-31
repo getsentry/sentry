@@ -134,6 +134,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
+      expect(doEventsRequest).toHaveBeenCalledTimes(2);
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
