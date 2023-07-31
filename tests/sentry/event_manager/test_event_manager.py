@@ -75,9 +75,13 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.eventuser import EventUser
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import (
+    PerformanceIssueTestCase,
+    SnubaTestCase,
+    TestCase,
+    TransactionTestCase,
+)
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event

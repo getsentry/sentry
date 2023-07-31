@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json

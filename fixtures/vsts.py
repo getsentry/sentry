@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):

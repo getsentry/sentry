@@ -83,7 +83,7 @@ class SiloModeTestDecorator:
 
     @staticmethod
     def _is_acceptance_test(test_class: type) -> bool:
-        from sentry.testutils import AcceptanceTestCase
+        from sentry.testutils.cases import AcceptanceTestCase
 
         return issubclass(test_class, AcceptanceTestCase)
 

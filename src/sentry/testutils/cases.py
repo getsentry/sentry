@@ -165,7 +165,7 @@ from ..snuba.metrics import (
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
-from . import assert_status_code
+from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries

@@ -371,7 +371,7 @@ def pytest_collection_modifyitems(config, items):
         if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
             import inspect
 
-            from sentry.testutils import SnubaTestCase
+            from sentry.testutils.cases import SnubaTestCase
 
             if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
                 # No need to group if we are deselecting this

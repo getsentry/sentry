@@ -2,7 +2,7 @@ from time import time
 
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
