@@ -453,41 +453,23 @@ class BaseApiClient(TrackResponseMixin):
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
+
+        extra = {"integration_id": self.integration_id}
         if len(rpc_org_integration) == 0 and rpc_integration is None:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": "provider is None",
-                    "organization_id": "rpc_org_integration is empty",
-                },
-            )
-            return
-        if len(rpc_org_integration) == 0:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": rpc_integration.provider,
-                    "organization_id": "rpc_org_integration is empty",
-                },
-            )
-            return
-        if rpc_integration is None:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": "provider is None",
-                    "organization_id": rpc_org_integration[0].organization_id,
-                },
-            )
-            return
+            extra["provider"] = "unknown"
+            extra["organization_id"] = "unknown"
+        elif len(rpc_org_integration) == 0:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = "unknown"
+        elif rpc_integration is None:
+            extra["provider"] = "unknown"
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+        else:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+
         self.logger.info(
             "integration.disabled",
-            extra={
-                "integration_id": self.integration_id,
-                "provider": rpc_integration.provider,
-                "organization_id": rpc_org_integration[0].organization_id,
-            },
+            extra=extra,
         )
+        return
