@@ -62,20 +62,22 @@ declare const __LOADER__IS_LAZY__: any;
     });
   }
 
-  // We detect ES6 support by checking if module scripts are supported
+  // We detect ES6 support by checking if Symbol is supported
   let _hasEs6Support: boolean | undefined;
   function hasEs6Support(): boolean {
     // Cache this so we only check once
     if (typeof _hasEs6Support === 'boolean') {
       return _hasEs6Support;
     }
-    const script = document.createElement('script');
-    script.setAttribute('nomodule', '');
-    script.innerHTML = 'window.__sentry_nomodules = true;';
-    document.head.insertBefore(script, document.head.firstChild);
-    document.head.removeChild(script);
 
-    return (_hasEs6Support = !(window as any).__sentry_nomodules);
+    try {
+      Symbol('x');
+      _hasEs6Support = true;
+    } catch (error) {
+      _hasEs6Support = false;
+    }
+
+    return _hasEs6Support;
   }
 
   function onUnhandledRejection(e) {
