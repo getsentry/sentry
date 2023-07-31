@@ -12,8 +12,7 @@ from fixtures.sdk_crash_detection.crash_event import (
 )
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.testutils import TestCase
-from sentry.testutils.cases import BaseTestCase, SnubaTestCase
+from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.pytest.fixtures import django_db_all

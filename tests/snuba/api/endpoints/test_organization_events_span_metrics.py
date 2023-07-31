@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.search.events import constants
-from sentry.testutils import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 

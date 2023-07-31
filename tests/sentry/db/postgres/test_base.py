@@ -1,5 +1,5 @@
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CursorWrapperTestCase(TestCase):

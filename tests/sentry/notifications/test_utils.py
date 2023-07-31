@@ -30,7 +30,7 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_rules,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 

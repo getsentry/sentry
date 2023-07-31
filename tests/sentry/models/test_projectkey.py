@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.pytest.fixtures import django_db_all
 

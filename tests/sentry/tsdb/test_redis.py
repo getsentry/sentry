@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from django.test import override_settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
 from sentry.utils.dates import to_datetime, to_timestamp

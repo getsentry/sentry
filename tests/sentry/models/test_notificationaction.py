@@ -5,7 +5,7 @@ from django.forms import ValidationError
 
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.notificationaction import logger as NotificationActionLogger
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

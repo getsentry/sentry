@@ -1,7 +1,7 @@
 import responses
 
 from sentry.models import Integration, OrganizationIntegration, Rule
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 EXTERNAL_ID = "test-app"

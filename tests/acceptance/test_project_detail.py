@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.incidents.models import IncidentStatus
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
 
 FEATURE_NAME = ["organizations:incidents"]

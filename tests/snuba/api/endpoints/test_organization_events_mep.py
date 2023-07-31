@@ -14,7 +14,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
-from sentry.testutils import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
