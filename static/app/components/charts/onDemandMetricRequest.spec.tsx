@@ -129,7 +129,7 @@ describe('OnDemandMetricRequest', function () {
       doEventsRequest as jest.Mock;
 
       rerender(
-        <OnDemandMetricRequest {...DqEFAULTS} period="7d">
+        <OnDemandMetricRequest {...DEFAULTS} period="7d">
           {mock}
         </OnDemandMetricRequest>
       );
