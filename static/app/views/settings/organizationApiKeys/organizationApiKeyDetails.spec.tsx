@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeyDetails from 'sentry/views/settings/organizationApiKeys/organizationApiKeyDetails';
@@ -13,10 +14,14 @@ describe('OrganizationApiKeyDetails', function () {
   });
 
   it('renders', function () {
-    const wrapper = render(<OrganizationApiKeyDetails params={{apiKey: 1}} />, {
-      context: TestStubs.routerContext(),
-      organization: TestStubs.Organization(),
-    });
+    const {organization, routerContext, routerProps} = initializeOrg();
+    const wrapper = render(
+      <OrganizationApiKeyDetails {...routerProps} params={{apiKey: '1'}} />,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(wrapper.container).toSnapshot();
