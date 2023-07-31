@@ -99,7 +99,6 @@ describe('withIssueTags HoC', function () {
         ))}
       </div>
     ));
-    const organization = TestStubs.Organization({features: ['issue-search-shortcuts']});
     TeamStore.loadInitialData([
       TestStubs.Team({id: 1, slug: 'best-team', name: 'Best Team', isMember: true}),
       TestStubs.Team({id: 2, slug: 'worst-team', name: 'Worst Team', isMember: false}),
@@ -108,9 +107,7 @@ describe('withIssueTags HoC', function () {
       TestStubs.User(),
       TestStubs.User({username: 'joe@example.com'}),
     ]);
-    render(<Container organization={organization} forwardedValue="value" />, {
-      organization,
-    });
+    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
 
     expect(screen.getByTestId('Suggested Values')).toHaveTextContent(
       'me, my_teams, [me, my_teams, none], #best-team'
