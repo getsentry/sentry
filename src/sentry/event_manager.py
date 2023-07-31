@@ -177,8 +177,7 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 
 def is_sample_event(job):
-    data = job["data"]
-    return get_tag(data, "sample_event") == "yes"
+    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -466,7 +465,7 @@ class EventManager:
     ) -> Event:
         jobs = [job]
 
-        if is_sample_event(job["event"]):
+        if is_sample_event(job):
             logger.info(
                 "save_error_events: processing sample event",
                 extra={
@@ -593,7 +592,7 @@ class EventManager:
             raise
 
         if not group_info:
-            if is_sample_event(job["event"]):
+            if is_sample_event(job):
                 logger.info(
                     "save_error_events: no groupinfo found, returning event",
                     extra={
@@ -1309,7 +1308,7 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
 @metrics.wraps("save_event.eventstream_insert_many")
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        if is_sample_event(job["event"]):
+        if is_sample_event(job):
             logger.info(
                 "_eventstream_insert_many: attempting to insert event into eventstream",
                 extra={
@@ -1351,7 +1350,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        if is_sample_event(job["event"]):
+        if is_sample_event(job):
             logger.info(
                 "_eventstream_insert_many: inserting into evenstream",
                 extra={
