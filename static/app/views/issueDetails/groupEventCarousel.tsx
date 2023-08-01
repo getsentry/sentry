@@ -75,7 +75,7 @@ const EVENT_NAV_DROPDOWN_OPTIONS = [
         <FeatureBadge type="new" />
       </div>
     ),
-    details: t('Event with the most content'),
+    details: t('Event with the most context'),
   },
   {
     value: EventNavDropdownOption.LATEST,
@@ -178,7 +178,14 @@ function EventNavigationDropdown({group}: {group: Group}) {
       size="sm"
       options={EVENT_NAV_DROPDOWN_OPTIONS}
       value={selectedValue}
-      triggerLabel={!selectedValue ? 'Navigate Events' : undefined}
+      triggerLabel={
+        !selectedValue
+          ? t('Navigate Events')
+          : selectedValue === EventNavDropdownOption.RECOMMENDED
+          ? t('Recommended')
+          : undefined
+      }
+      menuWidth={232}
       onChange={selectedOption => {
         switch (selectedOption.value) {
           case EventNavDropdownOption.RECOMMENDED:
