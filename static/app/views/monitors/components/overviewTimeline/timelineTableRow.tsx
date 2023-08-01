@@ -55,11 +55,9 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
           return (
             <TimelineEnvOuterContainer key={name}>
               {!bucketedData ? (
-                <TimelineEnvContainer key="timeline">
-                  <TimelinePlaceholder />
-                </TimelineEnvContainer>
+                <TimelinePlaceholder />
               ) : (
-                <TimelineEnvContainer key="placeholder">
+                <TimelineEnvContainer>
                   <CheckInTimeline
                     {...timelineProps}
                     bucketedData={bucketedData}
