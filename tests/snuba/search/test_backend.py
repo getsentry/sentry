@@ -39,9 +39,10 @@ from sentry.search.snuba.backend import (
 )
 from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin

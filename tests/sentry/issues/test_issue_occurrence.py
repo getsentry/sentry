@@ -1,5 +1,5 @@
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 

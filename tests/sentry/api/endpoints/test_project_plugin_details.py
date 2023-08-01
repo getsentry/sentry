@@ -3,7 +3,7 @@ from unittest import mock
 from sentry.models import AuditLogEntry, ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

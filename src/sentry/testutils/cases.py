@@ -4,7 +4,6 @@ import responses
 import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils.dates import to_timestamp
 
 __all__ = (
     "TestCase",
@@ -78,6 +77,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
@@ -144,12 +144,13 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
+from sentry.testutils.pytest.selenium import Browser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.dates import to_timestamp
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
@@ -164,7 +165,7 @@ from ..snuba.metrics import (
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
-from . import assert_status_code
+from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
@@ -756,7 +757,7 @@ class TwoFactorAPITestCase(APITestCase):
 
 
 class AuthProviderTestCase(TestCase):
-    provider = DummyProvider
+    provider: type[Provider] = DummyProvider
     provider_name = "dummy"
 
     def setUp(self):

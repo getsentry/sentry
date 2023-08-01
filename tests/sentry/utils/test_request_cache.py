@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry import app
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.request_cache import clear_cache, request_cache
 
 
