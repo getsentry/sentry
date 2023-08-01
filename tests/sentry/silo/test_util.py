@@ -8,6 +8,7 @@ from requests.structures import CaseInsensitiveDict
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
     INVALID_PROXY_HEADERS,
+    PROXY_BASE_URL_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_headers,
@@ -30,6 +31,7 @@ class SiloUtilityTest(TestCase):
             "Content-Encoding": "deflate, gzip",
             PROXY_OI_HEADER: "12",
             PROXY_SIGNATURE_HEADER: "-leander(but-in-cursive)",
+            PROXY_BASE_URL_HEADER: "https://api.integration.com/",
             "X-Test-Header-1": "One",
             "X-Test-Header-2": "Two",
             "X-Test-Header-3": "Three",
