@@ -4,6 +4,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from celery import Task
+from django.test import override_settings
 from django.urls import reverse
 from freezegun import freeze_time
 from requests.exceptions import Timeout
@@ -651,9 +652,10 @@ class TestWebhookRequests(TestCase):
         )
         self.issue = self.create_group(project=self.project)
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
-        self.integration_buffer = IntegrationRequestBuffer(
-            self.sentry_app._get_redis_key(self.organization.id)
-        )
+        with override_settings(BROKEN_TIMEOUT_THRESHOLD=3):
+            self.integration_buffer = IntegrationRequestBuffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
@@ -674,7 +676,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
-        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
@@ -699,7 +706,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["response_body"] == html_content
-        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
@@ -724,7 +736,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
         assert json.loads(first_request["response_body"]) == json_content
-        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -741,7 +758,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 200
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
-        assert (self.integration_buffer._get()[0]["success_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
@@ -762,7 +784,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 0
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization_id
-        assert (self.integration_buffer._get()[0]["timeout_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
 
     @with_feature("organizations:disable-sentryapps-on-broken")
@@ -789,7 +816,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
-        assert (self.integration_buffer._get()[0]["error_count"]) == 1
+        assert (
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+            == []
+        )
         assert self.integration_buffer.is_integration_broken() is False
         self.sentry_app = SentryApp.objects.get(
             id=self.sentry_app.id
@@ -826,27 +858,60 @@ class TestWebhookRequests(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     @with_feature("organizations:disable-sentryapps-on-broken")
+    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
     def test_timeout_disable(self, safe_urlopen):
         """
-        Test that the integration is disabled after 1000 timeouts
+        Test that the integration is disabled after 3 timeouts
         """
         self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
-        for i in range(1000):
+        for i in range(3):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
         assert features.has("organizations:disable-sentryapps-on-broken", self.organization)
+        print(
+            self.integration_buffer._get_all_from_buffer(
+                self.sentry_app._get_redis_key(self.organization.id)
+            )
+        )
         assert safe_urlopen.called
-        assert (self.integration_buffer._get()[0]["timeout_count"]) == 1000
-        assert self.integration_buffer.is_integration_broken() is True
+        assert (self.integration_buffer._get()[0]["timeout_count"]) == 3
+        with override_settings(BROKEN_TIMEOUT_THRESHOLD=3):
+
+            assert self.integration_buffer.is_integration_broken() is True
         self.sentry_app = SentryApp.objects.get(
             id=self.sentry_app.id
         )  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
+    @with_feature("organizations:disable-sentryapps-on-broken")
+    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
+    def test_timeout_published(self, safe_urlopen):
+        """
+        Test that integration_buffer ignores published integrations
+        """
+        data = {"issue": serialize(self.issue)}
+        events = self.sentry_app.events  # save events to check later
+        # we don't raise errors for unpublished and internal apps
+        for i in range(3):
+            with pytest.raises(Timeout):
+                send_webhooks(
+                    installation=self.install, event="issue.assigned", data=data, actor=self.user
+                )
+        assert features.has("organizations:disable-sentryapps-on-broken", self.organization)
+        assert safe_urlopen.called
+        assert (self.integration_buffer._get_all_from_buffer(self.sentry_app.id)) == []
+        assert self.integration_buffer.is_integration_broken() is False
+        self.sentry_app = SentryApp.objects.get(
+            id=self.sentry_app.id
+        )  # reload to get updated events
+        assert self.sentry_app.events == events  # check that events are the same / app is enabled
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
+    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
     def test_timeout_would_disable(self, safe_urlopen):
         """
         Tests that the integration would be disabled if the feature flag is enabled but is not
@@ -855,12 +920,12 @@ class TestWebhookRequests(TestCase):
         events = self.sentry_app.events  # save events to check later
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
-        for i in range(1000):
+        for i in range(3):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
         assert safe_urlopen.called
-        assert (self.integration_buffer._get()[0]["timeout_count"]) == 1000
+        assert (self.integration_buffer._get()[0]["timeout_count"]) == 3
         assert self.integration_buffer.is_integration_broken() is True
         self.sentry_app = SentryApp.objects.get(
             id=self.sentry_app.id
@@ -868,8 +933,7 @@ class TestWebhookRequests(TestCase):
         assert self.sentry_app.events == events  # check that events are the same / app is enabled
 
     @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
-        return_value=MockFailureJSONContentResponseInstance,
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
     @with_feature("organizations:disable-sentryapps-on-broken")
     def test_slow_disable(self, safe_urlopen):
@@ -902,8 +966,7 @@ class TestWebhookRequests(TestCase):
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
     @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
-        return_value=MockFailureJSONContentResponseInstance,
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
     def test_slow_broken_not_disable(self, safe_urlopen):
         """
@@ -939,7 +1002,7 @@ class TestWebhookRequests(TestCase):
     def test_expiry(self, safe_urlopen):
         """
         Tests buffer expiry
-        Send timeouts for 33 days, assert buffer length is 30,
+        Send timeouts for 33 days, assert buffer length is 30
         """
         self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
         data = {"issue": serialize(self.issue)}

@@ -383,7 +383,7 @@ class BaseApiClient(TrackResponseMixin):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_error(error)
+            buffer.record_exception_error(error)
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:

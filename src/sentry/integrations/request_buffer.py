@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Union
 
 from django.conf import settings
 from redis.exceptions import WatchError
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
 
+from sentry.conf.server import BROKEN_TIMEOUT_THRESHOLD
 from sentry.utils import json, redis
 
 BUFFER_SIZE = 30  # 30 days
@@ -102,7 +102,7 @@ class IntegrationRequestBuffer:
         data = [
             datetime.strptime(item.get("date"), "%Y-%m-%d").date()
             for item in items
-            if item.get("timeout_count", 0) >= 1000 and item.get("date")
+            if item.get("timeout_count", 0) >= BROKEN_TIMEOUT_THRESHOLD and item.get("date")
         ]
 
         if len(data) > 0:
@@ -175,10 +175,11 @@ class IntegrationRequestBuffer:
             finally:
                 pipe.reset()
 
-    def record_error(self, resp: Union[Response, Exception]):
-        if issubclass(type(resp), Exception):
-            self.add("error")
-        elif is_response_error(resp):
+    def record_exception_error(self, e: Exception):
+        self.add("error")
+
+    def record_response_error(self, resp: Response):
+        if is_response_error(resp):
             self.add("error")
 
     def record_success(self, resp: Response):

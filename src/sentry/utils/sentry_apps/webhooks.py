@@ -46,10 +46,12 @@ def check_broken(sentryapp: SentryApp, org_id: str):
         org = Organization.objects.get(id=org_id)
         if features.has("organizations:disable-sentryapps-on-broken", org):
             sentryapp._disable()
-            notify_disable(org, "", redis_key)
+            notify_disable(org, sentryapp.name, redis_key)
 
 
 def record_timeout(sentryapp: SentryApp, org_id: str, e: Exception):
+    if sentryapp.is_published:
+        return
     redis_key = sentryapp._get_redis_key(org_id)
     if not len(redis_key):
         return
@@ -59,12 +61,14 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Exception):
 
 
 def record_response(sentryapp: SentryApp, org_id: str, response: Response):
+    if sentryapp.is_published:
+        return
     redis_key = sentryapp._get_redis_key(org_id)
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_success(response)
-    buffer.record_error(response)
+    buffer.record_response_error(response)
     check_broken(sentryapp, org_id)
 
 
