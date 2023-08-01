@@ -1125,10 +1125,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 20 minutes
         "schedule": crontab(minute="*/20"),
     },
-    "detect-regressed-functions": {
-        "task": "sentry.tasks.statistical_detectors.run_detection",
-        "schedule": crontab(),  # TODO: pick a reasonable schedule here
-    },
+    # TODO: pick a reasonable schedule to run statistical detection
+    # "detect-regressed-functions": {
+    #     "task": "sentry.tasks.statistical_detectors.run_detection",
+    #     "schedule": crontab(),
+    # },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.

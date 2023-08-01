@@ -5,13 +5,11 @@ from typing import Any, Dict, List
 import sentry_sdk
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
+from sentry import options
 from sentry.models.project import Project
-from sentry.profiles.statistical_detector import FunctionData, detect_function_regression
 from sentry.snuba import functions
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
@@ -27,9 +25,12 @@ ITERATOR_CHUNK = 10_000
 def run_detection() -> None:
     now = timezone.now()
 
-    performance_projects = []
-    profiling_projects = []
+    performance_projects: List[int] = options.get(
+        "statistical_detector.enable.projects.performance"
+    )
+    profiling_projects: List[int] = options.get("statistical_detector.enable.projects.profiling")
 
+    """ disabled for now so we can run experiements
     # TODO: iterate over a predefined list of projects for testing
     for project in RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE),
@@ -49,6 +50,7 @@ def run_detection() -> None:
             if len(profiling_projects) >= ITERATOR_CHUNK:
                 detect_regressed_functions.delay(profiling_projects, now)
                 profiling_projects = []
+    """
 
     # make sure to dispatch a task to handle the remaining projects
     if performance_projects:
@@ -78,8 +80,7 @@ def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs
 
     for project in Project.objects.filter(id__in=project_ids):
         try:
-            data = _query_functions(project, start)
-            detect_function_regression(project, data)
+            _query_functions(project, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
@@ -88,10 +89,11 @@ def _query_transactions(project_id: int) -> None:
     pass
 
 
-def _query_functions(project: Project, start: datetime) -> List[FunctionData]:
+def _query_functions(project: Project, start: datetime) -> None:
     params = _get_function_query_params(project, start)
 
-    results = functions.query(
+    # TODO: format and return this for further processing
+    functions.query(
         selected_columns=[
             "timestamp",
             "fingerprint",
@@ -107,16 +109,6 @@ def _query_functions(project: Project, start: datetime) -> List[FunctionData]:
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
-
-    return [
-        FunctionData(
-            timestamp=datetime.fromisoformat(result["timestamp"]),
-            fingerprint=result["fingerprint"],
-            count=result["count()"],
-            p95=result["p95()"],
-        )
-        for result in results["data"]
-    ]
 
 
 def _get_function_query_params(project: Project, start: datetime) -> Dict[str, Any]:

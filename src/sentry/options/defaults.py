@@ -1418,3 +1418,7 @@ register("crons.organization.disable-check-in", type=Sequence, default=[])
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
+
+# Enables statistical detectors for a project
+register("statistical_detector.enable.projects.performance", type=Sequence, default=[])
+register("statistical_detector.enable.projects.profiling", type=Sequence, default=[])
