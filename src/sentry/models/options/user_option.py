@@ -18,7 +18,7 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 
 
 class UserOptionManager(OptionManager["UserOption"]):
-    def _make_key(
+    def _make_key(  # type: ignore[override]
         self,
         user: User | RpcUser | int,
         project: Project | int | None = None,

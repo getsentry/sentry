@@ -699,9 +699,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
-  sps_percent_change: SpecialFunctionFieldRenderer;
   time_spent_percentage: SpecialFunctionFieldRenderer;
-  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -768,14 +766,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
         />
       </BarContainer>
     );
-  },
-  // N.B. Do not colorize any throughput percent change renderers, since a
-  // change in throughput is not inherently good or bad
-  tps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
-  },
-  sps_percent_change: fieldName => data => {
-    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
   },
   time_spent_percentage: fieldName => data => {
     return (

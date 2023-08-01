@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.models import ProjectOwnership, Rule
+from sentry.models import Rule
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base import Notification
