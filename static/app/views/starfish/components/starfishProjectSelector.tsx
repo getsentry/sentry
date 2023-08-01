@@ -54,7 +54,7 @@ export function StarfishProjectSelector() {
 
   const handleProjectChange = option =>
     updateProjects([parseInt(option.value, 10)], router, {
-      isStarfishPage: true,
+      storageNamespace: 'starfish',
       save: true,
     });
 

@@ -91,6 +91,8 @@ function Container({
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
+  const isStarfishPage = router.location.pathname.startsWith('/starfish');
+
   const doInitialization = () => {
     initializeUrlState({
       organization,
@@ -106,6 +108,7 @@ function Container({
       shouldPersist: !disablePersistence,
       showAbsolute,
       skipInitializeUrlParams,
+      storageNamespace: isStarfishPage ? 'starfish' : undefined,
     });
   };
 

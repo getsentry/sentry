@@ -30,15 +30,10 @@ import {
 } from 'sentry/types';
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {STARFISH_PROJECT_KEY} from 'sentry/views/starfish/utils/constants';
 
 type EnvironmentId = Environment['id'];
 
 type Options = {
-  /**
-   * Starfish stores projects separately from the rest of the app
-   */
-  isStarfishPage?: boolean;
   /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
@@ -55,6 +50,10 @@ type Options = {
    * Persist changes to the page filter selection into local storage
    */
   save?: boolean;
+  /**
+   * Optional prefix for the storage key, for areas of the app that need seprate pagefilters (i.e Starfish)
+   */
+  storageNamespace?: string;
 };
 
 /**
@@ -150,6 +149,10 @@ export type InitializeUrlStateParams = {
    * An example is Starfish, which doesn't support environments.
    */
   skipLoadLastUsedEnvironment?: boolean;
+  /**
+   *
+   */
+  storageNamespace?: string;
 };
 
 export function initializeUrlState({
@@ -166,6 +169,7 @@ export function initializeUrlState({
   forceProject,
   showAbsolute = true,
   skipInitializeUrlParams = false,
+  storageNamespace,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
 
@@ -200,10 +204,9 @@ export function initializeUrlState({
     pageFilters.environments = parsed.environment || [];
   }
 
-  const isStarfishPage = router.location.pathname.startsWith('/starfish');
   const storedPageFilters = skipLoadLastUsed
     ? null
-    : getPageFilterStorage(orgSlug, isStarfishPage);
+    : getPageFilterStorage(orgSlug, storageNamespace);
   let shouldUsePinnedDatetime = false;
 
   // We may want to restore some page filters from local storage. In the new
@@ -329,12 +332,8 @@ export function updateProjects(
     return;
   }
 
-  if (options?.isStarfishPage) {
-    localStorage.setItem(STARFISH_PROJECT_KEY, JSON.stringify(projects[0]));
-  } else {
-    PageFiltersStore.updateProjects(projects, options?.environments ?? null);
-    persistPageFilters('projects', options);
-  }
+  PageFiltersStore.updateProjects(projects, options?.environments ?? null);
+  persistPageFilters('projects', options);
 
   updateParams({project: projects, environment: options?.environments}, router, options);
   if (options?.environments) {
@@ -443,7 +442,11 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
   }
 
   const targetFilter = filter !== null ? [filter] : [];
-  setPageFiltersStorage(orgSlug, new Set<PinnedPageFilter>(targetFilter));
+  setPageFiltersStorage(
+    orgSlug,
+    new Set<PinnedPageFilter>(targetFilter),
+    options.storageNamespace
+  );
 }
 
 /**
@@ -476,7 +479,10 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
   }
 
   const isStarfishPage = router?.location?.pathname?.startsWith('/starfish');
-  const storedPageFilters = getPageFilterStorage(organization.slug, isStarfishPage);
+  const storedPageFilters = getPageFilterStorage(
+    organization.slug,
+    isStarfishPage ? 'starfish' : undefined
+  );
 
   // If we don't have any stored page filters then we do not check desynced state
   if (!storedPageFilters) {
