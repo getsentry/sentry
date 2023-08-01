@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import pytest
 
 from sentry.sentry_metrics.query_experimental import get_series
+from sentry.sentry_metrics.query_experimental.expansion import ExpressionRegistry
 from sentry.sentry_metrics.query_experimental.types import (
     Filter,
     Function,
@@ -250,11 +252,64 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             (self.now + timedelta(hours=3), 2 * 100.0),
         ]
 
+    @mock.patch(
+        "sentry.sentry_metrics.query_experimental.expansion._REGISTRY",
+        new_callable=ExpressionRegistry,
+    )
+    def test_expansion(self, registry):
+        MRI_DURATION = "d:transactions/duration@millisecond"
+        MRI_FAILURE_RATE = "e:transactions/failure_rate@none"
+        OK_STATUSES = ("ok", "cancelled", "unknown")
+        VALUES = [
+            (self.now, 100.0, "ok"),
+            (self.now, 100.0, "ok"),
+            (self.now, 100.0, "failed"),
+            (self.now, 100.0, "ok"),
+        ]
+
+        for ts, value, tx in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI_DURATION,
+                tags={"transaction.status": tx},
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        registry.register(
+            MRI_FAILURE_RATE,
+            Function(
+                "divide",
+                [
+                    Filter(
+                        [
+                            Function("count", [MetricName(MRI_DURATION)]),
+                            Function("notIn", [Tag("transaction.status"), OK_STATUSES]),
+                        ]
+                    ),
+                    Function("count", [MetricName(MRI_DURATION)]),
+                ],
+            ),
+        )
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=1, interval=3600),
+            expressions=[MetricName(MRI_FAILURE_RATE)],
+        )
+
+        result = get_series(query)
+        assert list(result.iter_series()) == [
+            (self.now, 0.25),
+        ]
+
 
 # TODO: Test missing tag
 # TODO: Test missing tag value
 # TODO: Test reverse tag mapping on sessions
-# TODO: Test expansion
 # TODO: Test name mapping
 # TODO: Test measurement lookup
 # TODO: Test with indexing values
