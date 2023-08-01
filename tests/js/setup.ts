@@ -298,6 +298,6 @@ Object.defineProperty(window, 'getComputedStyle', {
   writable: true,
 });
 
-beforeEach(() => {
+afterEach(() => {
   MockApiClient.clearMockResponses();
 });
