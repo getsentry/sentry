@@ -116,9 +116,6 @@ from sentry.testutils.outbox import outbox_runner
     # no errors in src/sentry/testutils/
     assert _run(src, filename="src/sentry/testutils/silo.py") == []
 
-    # no errors in src/sentry/utils/pytest
-    assert _run(src, filename="src/sentry/utils/pytest/fixtures.py") == []
-
     # errors in other paths
     errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
     assert errors == [
@@ -130,7 +127,6 @@ from sentry.testutils.outbox import outbox_runner
 import sentry.testutils.outbox as outbox_utils
 """
     assert _run(src, filename="tests/test_foo.py") == []
-    assert _run(src, filename="src/sentry/utils/pytest/fixtures.py") == []
 
     errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
     assert errors == [
