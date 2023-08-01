@@ -1,4 +1,5 @@
 import {ReactNode, useMemo} from 'react';
+import {EmotionJSX} from '@emotion/react/types/jsx-namespace';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -7,7 +8,9 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -41,7 +44,7 @@ type MetricsTableProps = {
   trendView: TrendView;
 };
 
-const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95'];
+const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95', 'count'];
 
 type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
 
@@ -198,14 +201,32 @@ export function MetricsTable(props: MetricsTableProps) {
       )
     : p95;
 
+  const beforeBreakpointErrorsAvg = getAvgdErrorsData(
+    beforeBreakpointErrors,
+    beforeBreakpoint
+  );
+  const afterBreakpointErrorsAvg = getAvgdErrorsData(
+    afterBreakpointErrors,
+    afterBreakpoint
+  );
+
+  const errorsTooltip = (
+    <QuestionTooltip
+      size="sm"
+      title={t('Errors per 1m transactions')}
+      position="bottom-start"
+    />
+  );
+
   const errors: TableDataRow = getEventsRowData(
     'count()',
     'Errors',
     '',
     0,
-    true,
-    beforeBreakpointErrors,
-    afterBreakpointErrors
+    false,
+    beforeBreakpointErrorsAvg,
+    afterBreakpointErrorsAvg,
+    errorsTooltip
   );
 
   const columnOrder = MetricColumnOrder.map(column => COLUMNS[column]);
@@ -238,24 +259,38 @@ function getEventsRowData(
   nullValue: string | number,
   wholeNumbers: boolean,
   beforeData?: TableData,
-  afterData?: TableData
+  afterData?: TableData,
+  tooltip?: EmotionJSX.Element
 ): TableDataRow {
-  if (beforeData?.data[0][field] && afterData?.data[0][field]) {
+  if (
+    beforeData?.data[0][field] !== undefined &&
+    afterData?.data[0][field] !== undefined
+  ) {
     return {
-      metric: rowTitle,
+      metric: tooltip ? (
+        <div style={{display: 'flex', gap: space(1)}}>
+          <p style={{marginBottom: 0}}>{rowTitle}</p>
+          {tooltip}
+        </div>
+      ) : (
+        rowTitle
+      ),
       before: !wholeNumbers
         ? toFormattedNumber(beforeData.data[0][field].toString(), 1) + ' ' + suffix
         : beforeData.data[0][field],
       after: !wholeNumbers
         ? toFormattedNumber(afterData.data[0][field].toString(), 1) + ' ' + suffix
         : afterData.data[0][field],
-      change: formatPercentage(
-        relativeChange(
-          beforeData.data[0][field] as number,
-          afterData.data[0][field] as number
-        ),
-        1
-      ),
+      change:
+        beforeData.data[0][field] && afterData.data[0][field]
+          ? formatPercentage(
+              relativeChange(
+                beforeData.data[0][field] as number,
+                afterData.data[0][field] as number
+              ),
+              1
+            )
+          : '-',
     };
   }
   return {
@@ -318,6 +353,29 @@ function toFormattedNumber(numberString: string, decimal: number) {
 
 export function relativeChange(before: number, after: number) {
   return (after - before) / before;
+}
+
+function getAvgdErrorsData(
+  breakpointErrors: TableData | undefined,
+  breakpointData: TableData | undefined
+) {
+  const breakpointErrorsAvg: TableData = {
+    data: [
+      {
+        id: 'id',
+        'count()': 0,
+      },
+    ],
+  };
+
+  if (breakpointErrors?.data[0]['count()'] && breakpointData?.data[0]['count()']) {
+    breakpointErrorsAvg.data[0]['count()'] =
+      ((breakpointErrors?.data[0]['count()'] as number) /
+        (breakpointData?.data[0]['count()'] as number)) *
+      1000000;
+  }
+
+  return breakpointErrorsAvg;
 }
 
 function renderHeadCell(column: MetricColumn, _index: number): ReactNode {
