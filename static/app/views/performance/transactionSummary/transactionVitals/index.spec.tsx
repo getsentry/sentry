@@ -1,4 +1,4 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
