@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from sentry.models import SentryApp
 
 
-WEBHOOK_TIMEOUT = 5
 TIMEOUT_STATUS_CODE = 0
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
