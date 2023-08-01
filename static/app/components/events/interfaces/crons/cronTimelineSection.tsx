@@ -1,11 +1,11 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Overlay} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -17,6 +17,7 @@ import {
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
+import {TimelinePlaceholder} from 'sentry/views/monitors/components/overviewTimeline/timelinePlaceholder';
 import {
   MonitorBucketData,
   TimeWindow,
@@ -76,8 +77,8 @@ export function CronTimelineSection({event, organization}: Props) {
       title={t('Check-ins')}
       type="check-ins"
       help={t('A timeline of check-ins that happened before and after this event')}
+      actions={<ResolutionSelector />}
     >
-      <StyledResolutionSelector />
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
         <StyledGridLineTimeLabels
@@ -91,30 +92,32 @@ export function CronTimelineSection({event, organization}: Props) {
           end={end}
           width={timelineWidth}
         />
-        <EventLineTick left={eventTickLeft} />
-        <EventLineLabel left={eventTickLeft} timelineWidth={timelineWidth}>
-          {t('Event Created')}
-        </EventLineLabel>
         {monitorStats && !isLoading ? (
-          <CheckInTimeline
-            width={timelineWidth}
-            bucketedData={monitorStats[monitorSlug]}
-            start={start}
-            end={end}
-            timeWindow={timeWindow}
-            environment={environment ?? DEFAULT_ENVIRONMENT}
-          />
+          <Fragment>
+            <EventLineTick left={eventTickLeft} />
+            <EventLineLabel left={eventTickLeft} timelineWidth={timelineWidth}>
+              {t('Event Created')}
+            </EventLineLabel>
+            <FadeInContainer>
+              <CheckInTimeline
+                width={timelineWidth}
+                bucketedData={monitorStats[monitorSlug]}
+                start={start}
+                end={end}
+                timeWindow={timeWindow}
+                environment={environment ?? DEFAULT_ENVIRONMENT}
+              />
+            </FadeInContainer>
+          </Fragment>
         ) : (
-          <Placeholder />
+          <FadeInContainer>
+            <TimelinePlaceholder />
+          </FadeInContainer>
         )}
       </TimelineContainer>
     </EventDataSection>
   );
 }
-
-const StyledResolutionSelector = styled(ResolutionSelector)`
-  margin-bottom: ${space(1)};
-`;
 
 const TimelineContainer = styled(Panel)`
   display: grid;
@@ -158,4 +161,8 @@ const EventLineLabel = styled(Overlay)<{left: number; timelineWidth: number}>`
   bottom: ${space(1)};
   left: clamp(0px, ${p => p.left}px, calc(${p => p.timelineWidth}px - 50px));
   transform: translateX(-50%);
+`;
+
+const FadeInContainer = styled('div')`
+  animation: ${fadeIn} 500ms ease-out forwards;
 `;
