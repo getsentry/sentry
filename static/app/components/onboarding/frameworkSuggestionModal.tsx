@@ -126,7 +126,6 @@ export const languageDetails = {
     description: t(
       'Our Go framework SDKs include all the features of our Go SDK with instructions specific to that framework'
     ),
-    topFrameworksImage: onboardingFrameworkSelectionJava, // TODO: need a go image
   },
 };
 
@@ -256,9 +255,11 @@ export function FrameworkSuggestionModal({
         <CloseButton onClick={closeModal} />
       </Header>
       <Body>
-        <TopFrameworksImage
-          src={languageDetails[selectedPlatform.key].topFrameworksImage}
-        />
+        {languageDetails[selectedPlatform.key].topFrameworksImage && (
+          <TopFrameworksImage
+            src={languageDetails[selectedPlatform.key].topFrameworksImage}
+          />
+        )}
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDetails[selectedPlatform.key].description}</Description>
         <Panel>
