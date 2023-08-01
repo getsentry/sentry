@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, List
+from typing import Any
 from unittest import mock
 
 from django.db import router
@@ -258,7 +258,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(platform="javascript")
-        self.team = self.project.teams.first()
         self.user = self.create_user("bar@example.com")
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -269,10 +268,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         self.data = {"platform": "rust"}
 
-    def create_bearer_token(self, user, scope_list: List[str]) -> str:
-        token = ApiToken.objects.create(user=user, scope_list=scope_list)
-        return f"Bearer {token.token}"
-
     def test_member_can_update_limited_project_details(self):
         self.create_member(
             user=self.user,
@@ -280,11 +275,13 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-
-        authorization = self.create_bearer_token(self.user, ["project:read"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.get(
-            self.url, format="json", HTTP_AUTHORIZATION=authorization, data={"isBookmarked": True}
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"isBookmarked": True},
         )
         assert response.status_code == 200, response.content
 
@@ -297,10 +294,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
 
         for scope in ["project:write", "project:admin"]:
-            authorization = self.create_bearer_token(self.user, [scope])
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
             )
             assert response.status_code == 200, response.content
 
@@ -314,10 +311,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.create_team_membership(user=self.user, team=self.team, role="admin")
 
         for scope in ["project:write", "project:admin"]:
-            authorization = self.create_bearer_token(self.user, [scope])
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
             )
             assert response.status_code == 200, response.content
 
@@ -330,10 +327,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
 
         for scope in ["project:write", "project:admin"]:
-            authorization = self.create_bearer_token(self.user, [scope])
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
             )
             assert response.status_code == 200, response.content
 
@@ -346,10 +343,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
 
         for scope in ["project:write", "project:admin"]:
-            authorization = self.create_bearer_token(self.user, [scope])
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
             )
             assert response.status_code == 200, response.content
 
@@ -360,11 +357,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-
-        authorization = self.create_bearer_token(self.user, ["project:write"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:write"])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
         )
         assert response.status_code == 403, response.content
 
@@ -375,12 +371,11 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="admin",
         )
-
         # even though the user has the 'admin' role, they've issued a token with only a project:read scope
-        authorization = self.create_bearer_token(self.user, ["project:read"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
         )
         assert response.status_code == 403, response.content
 
@@ -391,11 +386,10 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-
-        authorization = self.create_bearer_token(self.user, [""])
+        token = self.create_user_auth_token(user=self.user, scope_list=[""])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=authorization, data=self.data
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
         )
         assert response.status_code == 403, response.content
 

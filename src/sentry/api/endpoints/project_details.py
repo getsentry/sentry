@@ -465,13 +465,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_project_write = request.access and (
+        has_elevated_scopes = request.access and (
             request.access.has_scope("project:write")
             or request.access.has_scope("project:admin")
             or request.access.has_any_project_scope(project, ["project:write", "project:admin"])
         )
 
-        if has_project_write:
+        if has_elevated_scopes:
             serializer_cls = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
@@ -493,7 +493,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        if not has_project_write:
+        if not has_elevated_scopes:
             # options isn't part of the serializer, but should not be editable by members
             for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
@@ -675,7 +675,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
         # TODO(dcramer): rewrite options to use standard API config
-        if has_project_write:
+        if has_elevated_scopes:
             options = request.data.get("options", {})
             if "sentry:origins" in options:
                 project.update_option(
