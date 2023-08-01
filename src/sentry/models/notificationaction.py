@@ -3,17 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, Optional, TypeVar
 
 from django.db import models
 
@@ -35,7 +25,7 @@ if TYPE_CHECKING:
 
 class FlexibleIntEnum(IntEnum):
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         raise NotImplementedError
 
     @classmethod
@@ -59,9 +49,15 @@ class ActionService(FlexibleIntEnum):
     MSTEAMS = 3
     SENTRY_APP = 4
     SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
 
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
+        assert ExternalProviders.EMAIL.name is not None
+        assert ExternalProviders.PAGERDUTY.name is not None
+        assert ExternalProviders.SLACK.name is not None
+        assert ExternalProviders.MSTEAMS.name is not None
+        assert ExternalProviders.OPSGENIE.name is not None
         return (
             (cls.EMAIL.value, ExternalProviders.EMAIL.name),
             (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
@@ -69,6 +65,7 @@ class ActionService(FlexibleIntEnum):
             (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
+            (cls.OPSGENIE.value, ExternalProviders.OPSGENIE.name),
         )
 
 
@@ -87,7 +84,7 @@ class ActionTarget(FlexibleIntEnum):
     SENTRY_APP = 3
 
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.SPECIFIC.value, "specific"),
             (cls.USER.value, "user"),
@@ -138,7 +135,7 @@ class ActionTrigger(FlexibleIntEnum):
     AUDIT_LOG = 0
 
     @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return ((cls.AUDIT_LOG.value, "audit-log"),)
 
 
@@ -198,6 +195,9 @@ class ActionRegistration(metaclass=ABCMeta):
         return []
 
 
+ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
+
+
 @region_silo_only_model
 class NotificationAction(AbstractNotificationAction):
     """
@@ -207,8 +207,8 @@ class NotificationAction(AbstractNotificationAction):
     __include_in_export__ = True
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
-    _trigger_types: List[Tuple[int, str]] = ActionTrigger.as_choices()
-    _registry: MutableMapping[str, ActionRegistration] = {}
+    _trigger_types: tuple[tuple[int, str], ...] = ActionTrigger.as_choices()
+    _registry: MutableMapping[str, type[ActionRegistration]] = {}
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
@@ -225,12 +225,12 @@ class NotificationAction(AbstractNotificationAction):
         cls,
         value: int,
         display_text: str,
-    ):
+    ) -> None:
         """
         This method is used for adding trigger types to this model from getsentry.
         If the trigger is relevant to sentry as well, directly modify ActionTrigger.
         """
-        cls._trigger_types: List[Tuple[int, str]] = cls._trigger_types + ((value, display_text),)
+        cls._trigger_types += ((value, display_text),)
 
     @classmethod
     def register_action(
@@ -249,7 +249,7 @@ class NotificationAction(AbstractNotificationAction):
         :param registration: A subclass of `ActionRegistration`.
         """
 
-        def inner(registration: ActionRegistration):
+        def inner(registration: type[ActionRegistrationT]) -> type[ActionRegistrationT]:
             if trigger_type not in dict(cls._trigger_types):
                 raise AttributeError(
                     f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger or call register_trigger_type()."
@@ -288,13 +288,13 @@ class NotificationAction(AbstractNotificationAction):
         return f"{trigger_type}:{service_type}:{target_type}"
 
     @classmethod
-    def get_registry(cls) -> Mapping[str, ActionRegistration]:
+    def get_registry(cls) -> Mapping[str, type[ActionRegistration]]:
         return cls._registry
 
     @classmethod
     def get_registration(
         cls, trigger_type: int, service_type: int, target_type: int
-    ) -> ActionRegistration | None:
+    ) -> type[ActionRegistration] | None:
         key = cls.get_registry_key(trigger_type, service_type, target_type)
         return cls._registry.get(key)
 

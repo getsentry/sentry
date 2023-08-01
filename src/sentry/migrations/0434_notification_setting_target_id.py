@@ -26,17 +26,16 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
+                migrations.RemoveField(
+                    model_name="notificationsetting",
+                    name="target",
+                ),
                 migrations.AddField(
                     model_name="notificationsetting",
                     name="target_id",
                     field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Actor", db_index=True, null=False, on_delete="CASCADE"
                     ),
-                ),
-                migrations.RenameField(
-                    model_name="notificationsetting",
-                    old_name="target",
-                    new_name="target_id",
                 ),
                 migrations.AlterUniqueTogether(
                     name="notificationsetting",

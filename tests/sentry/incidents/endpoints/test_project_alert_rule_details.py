@@ -21,7 +21,7 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

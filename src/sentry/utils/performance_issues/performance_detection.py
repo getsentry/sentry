@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 
@@ -14,9 +14,6 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
-    ConsecutiveHTTPSpanDetectorExtended,
-)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -159,6 +156,9 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
         "consecutive_http_spans_span_duration_threshold": options.get(
             "performance.issues.consecutive_http.span_duration_threshold"
         ),
+        "consecutive_http_spans_min_time_saved_threshold": options.get(
+            "performance.issues.consecutive_http.min_time_saved_threshold"
+        ),
         "large_http_payload_size_threshold": options.get(
             "performance.issues.large_http_payload.size_threshold"
         ),
@@ -287,17 +287,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "span_duration_threshold": settings[
                 "consecutive_http_spans_span_duration_threshold"
             ],  # ms
+            "min_time_saved": settings["consecutive_http_spans_min_time_saved_threshold"],  # ms
             "consecutive_count_threshold": settings["consecutive_http_spans_count_threshold"],
             "max_duration_between_spans": settings[
                 "consecutive_http_spans_max_duration_between_spans"
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
-        },
-        DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
-            "span_duration_threshold": 500,  # ms
-            "min_time_saved": 2000,  # time saved by running all queries in parallel
-            "consecutive_count_threshold": 3,
-            "max_duration_between_spans": 1000,  # ms
         },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
@@ -314,13 +309,11 @@ def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    project_id = cast(int, project.id)
 
-    detection_settings = get_detection_settings(project_id)
+    detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
-        ConsecutiveHTTPSpanDetectorExtended(detection_settings, data),
         DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
@@ -340,7 +333,7 @@ def _detect_performance_problems(
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
 
-    organization = cast(Organization, project.organization)
+    organization = project.organization
     if project is None or organization is None:
         return []
 

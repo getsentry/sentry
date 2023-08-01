@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import os
+import platform
+import shutil
 import signal
 import subprocess
 import sys
@@ -15,33 +17,47 @@ import requests
 if TYPE_CHECKING:
     import docker
 
-# Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
-RAW_SOCKET_HACK_PATH = os.path.expanduser(
-    "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
-)
-if os.path.exists(RAW_SOCKET_HACK_PATH):
-    os.environ.setdefault("DOCKER_HOST", "unix://" + RAW_SOCKET_HACK_PATH)
-
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
+
+# platform.processor() changed at some point between these:
+# 11.2.3: arm
+# 12.3.1: arm64
+APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
+
+USE_COLIMA = bool(shutil.which("colima"))
+
+if USE_COLIMA:
+    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+else:
+    RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
 @contextlib.contextmanager
 def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    with contextlib.closing(docker.from_env()) as client:
+    with contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}")) as client:
         try:
             client.ping()
         except (requests.exceptions.ConnectionError, docker.errors.APIError):
-            click.echo("Attempting to start docker...")
             if DARWIN:
-                subprocess.check_call(
-                    ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
-                )
+                if USE_COLIMA:
+                    click.echo("Attempting to start colima...")
+                    subprocess.check_call(
+                        (
+                            "python3",
+                            "-uS",
+                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
+                        )
+                    )
+                else:
+                    click.echo("Attempting to start docker...")
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                    )
             else:
-                click.echo("Unable to start docker.")
                 raise click.ClickException("Make sure docker is running.")
 
             max_wait = 60

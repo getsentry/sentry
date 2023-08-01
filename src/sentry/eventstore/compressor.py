@@ -5,8 +5,10 @@ debug_meta.
 
 This is not used in production yet, we are still collecting metrics there.
 """
+from __future__ import annotations
 
 import hashlib
+from typing import Any
 
 from sentry.utils import json
 
@@ -29,7 +31,7 @@ class DebugMeta:
 
     @staticmethod
     def encode(data):
-        dedup = {}
+        dedup: dict[str, list[str | Any]] = {}
 
         if data:
             for image in data.get("images") or []:

@@ -50,7 +50,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -2945,6 +2945,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         now = timezone.now()
 
         assert snooze.count is None
+        assert snooze.until is not None
         assert snooze.until > now + timedelta(minutes=29)
         assert snooze.until < now + timedelta(minutes=31)
         assert snooze.user_count is None
@@ -2988,7 +2989,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
-        event = {}
         for i in range(10):
             event = self.store_event(
                 data={
@@ -2999,6 +2999,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
+        assert event.group is not None
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None

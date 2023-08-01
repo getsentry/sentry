@@ -37,7 +37,6 @@ display_modes: Mapping[str, ChartType] = {
     "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
-    "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
 }
 
@@ -233,10 +232,6 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
-        if "worldmap" in display_mode:
-            endpoint = "events-geo/"
-            params.setlist("field", params.getlist("yAxis"))
-            params.pop("sort", None)
 
         try:
             resp = client.get(

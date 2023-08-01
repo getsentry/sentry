@@ -15,7 +15,7 @@ from sentry.integrations.utils.code_mapping import (
     should_include,
     stacktrace_buckets,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 with open(

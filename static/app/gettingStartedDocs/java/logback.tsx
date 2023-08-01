@@ -7,13 +7,17 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {t, tct} from 'sentry/locale';
 
 // Configuration Start
-const introduction = tct(
-  'The sentry-logback library provides Logback support for Sentry using an [link:Appender] that sends logged exceptions to Sentry.',
-  {
-    link: (
-      <ExternalLink href="https://logback.qos.ch/apidocs/ch/qos/logback/core/Appender.html" />
-    ),
-  }
+const introduction = (
+  <p>
+    {tct(
+      'The sentry-logback library provides Logback support for Sentry using an [link:Appender] that sends logged exceptions to Sentry.',
+      {
+        link: (
+          <ExternalLink href="https://logback.qos.ch/apidocs/ch/qos/logback/core/Appender.html" />
+        ),
+      }
+    )}
+  </p>
 );
 
 export const steps = ({
@@ -36,7 +40,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-logback</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -51,7 +55,7 @@ export const steps = ({
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
       <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -93,7 +97,7 @@ export const steps = ({
         configurations: [
           {
             language: 'groovy',
-            code: "implementation 'io.sentry:sentry-logback:6.25.2'",
+            code: "implementation 'io.sentry:sentry-logback:6.27.0'",
           },
           {
             description: t(

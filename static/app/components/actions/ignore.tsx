@@ -12,6 +12,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
   GroupStatusResolution,
+  GroupSubstatus,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
@@ -61,6 +62,7 @@ export function getIgnoreActions({
         onUpdate({
           status: ResolutionStatus.IGNORED,
           statusDetails,
+          substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
         }),
       message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
@@ -228,7 +230,11 @@ function IgnoreActions({
           priority="primary"
           size="xs"
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
           aria-label={t('Unignore')}
         />

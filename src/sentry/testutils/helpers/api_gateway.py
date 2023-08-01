@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json
@@ -110,9 +110,9 @@ def provision_middleware():
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
     _REGION = Region(
-        name="region1",
+        name="region",
         snowflake_id=1,
-        address="http://region1.testserver",
+        address="http://region.internal.sentry.io",
         category=RegionCategory.MULTI_TENANT,
     )
 
@@ -152,7 +152,7 @@ class ApiGatewayTestCase(APITestCase):
         self.middleware = provision_middleware()
 
     def run(
-        self, result: unittest.result.TestResult | None = ...
+        self, result: unittest.result.TestResult | None = None
     ) -> unittest.result.TestResult | None:
         with override_regions([self._REGION]):
             return super().run(result)

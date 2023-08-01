@@ -1,8 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.core.cache import cache
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError

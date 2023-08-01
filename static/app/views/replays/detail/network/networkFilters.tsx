@@ -1,12 +1,11 @@
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type {SpanFrame} from 'sentry/utils/replays/types';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 
 type Props = {
-  networkFrames: undefined | SpanFrame[];
+  networkFrames: undefined | unknown[];
 } & ReturnType<typeof useNetworkFilters>;
 
 function NetworkFilters({

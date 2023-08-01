@@ -8,7 +8,7 @@ import {
   parseFunction,
   Sort,
 } from 'sentry/utils/discover/fields';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Options = {
@@ -18,16 +18,16 @@ type Options = {
 };
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
 
 export const SORTABLE_FIELDS = new Set([
+  `avg(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
-  `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-  'sps()',
-  'sps_percent_change()',
-  'time_spent_percentage()',
-  'time_spent_percentage(local)',
-  'http_error_count()',
-  'http_error_count_percent_change()',
+  `${SPS}()`,
+  `${SPM}()`,
+  `${TIME_SPENT_PERCENTAGE}()`,
+  `${TIME_SPENT_PERCENTAGE}(local)`,
+  `${HTTP_ERROR_COUNT}()`,
 ]);
 
 export const renderHeadCell = ({column, location, sort}: Options) => {

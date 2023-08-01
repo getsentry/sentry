@@ -83,7 +83,7 @@ function ReplaysListTable({
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
     organization,
-    projectId: projects.map(p => String(p)),
+    projectId: projects.map(String),
   });
 
   const conditions = useMemo(() => {
@@ -137,7 +137,7 @@ function ReplaysListTable({
           ) : undefined
         }
       />
-      <Pagination
+      <ReplayPagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
           trackAnalytics('replay.list-paginated', {
@@ -157,6 +157,10 @@ function ReplaysListTable({
 const EmptyStateSubheading = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ReplayPagination = styled(Pagination)`
+  margin-top: 0;
 `;
 
 export default ReplaysList;

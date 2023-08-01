@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from collections import namedtuple
 from copy import deepcopy
@@ -7,7 +9,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -55,7 +57,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     self.store_event(data, self.project.id)
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
@@ -1048,7 +1050,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
                     )
 
     def as_response_data(self, specs):
-        data = {}
+        data: dict[str, list[dict[str, int]]] = {}
         for spec in specs:
             spec = HistogramSpec(*spec)
             for measurement, count in sorted(spec.fields):
