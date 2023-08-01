@@ -27,10 +27,10 @@ from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
-from sentry.testutils.pytest.fixtures import django_db_all
 
 # IMPORTANT:
 #
