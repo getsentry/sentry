@@ -66,6 +66,8 @@ class OpsgenieNotifyTeamForm(forms.Form):
             return INVALID_TEAM
 
         integration_key = team["integration_key"]
+        assert integration is not None
+        assert org_integration is not None
         client = OpsgenieClient(
             integration=integration,
             integration_key=integration_key,
