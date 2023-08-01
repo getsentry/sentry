@@ -3570,6 +3570,8 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "options": {"cluster": "default"},
 }
 
+ADDITIONAL_BULK_QUERY_DELETES = []
+
 # Monitor limits to prevent abuse
 MAX_MONITORS_PER_ORG = 10000
 MAX_ENVIRONMENTS_PER_MONITOR = 1000

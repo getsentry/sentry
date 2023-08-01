@@ -9,6 +9,7 @@ from typing import Final, Literal
 from uuid import uuid4
 
 import click
+from django.conf import settings
 from django.utils import timezone
 from typing_extensions import TypeAlias
 
@@ -188,7 +189,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (monitor_models.MonitorCheckIn, "date_added", None),
             (metrics_indexer_models.StringIndexer, "last_seen", None),
             (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
-        ]
+        ] + settings.ADDITIONAL_BULK_QUERY_DELETES
 
         # Deletions that use the `deletions` code path (which handles their child relations)
         # (model, datetime_field, order_by)
