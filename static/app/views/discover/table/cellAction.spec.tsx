@@ -347,6 +347,11 @@ describe('Discover -> CellAction', function () {
         columnIndex: 5,
         data: {
           ...defaultData,
+<<<<<<< Updated upstream
+=======
+          // TODO: Fix this type
+          // @ts-ignore
+>>>>>>> Stashed changes
           'measurements.fcp': null,
         },
       });
