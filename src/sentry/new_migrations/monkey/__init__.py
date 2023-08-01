@@ -76,7 +76,7 @@ def monkey_migrations():
     from django.db.migrations import executor, migration, writer
 
     # monkeypatch Django's migration executor and template.
-    executor.MigrationExecutor = SentryMigrationExecutor
+    executor.MigrationExecutor = SentryMigrationExecutor  # type: ignore[misc]
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
     models.Field.deconstruct = deconstruct  # type: ignore[method-assign]

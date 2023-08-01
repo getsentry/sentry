@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -140,13 +139,13 @@ function SimilarStackTrace({params, location, project}: Props) {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <Alert type="warning">
-          {t(
-            'This is an experimental feature. Data may not be immediately available while we process merges.'
-          )}
-        </Alert>
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
+          <small>
+            {t(
+              'This is an experimental feature. Data may not be immediately available while we process merges.'
+            )}
+          </small>
         </HeaderWrapper>
         {status === 'loading' && <LoadingIndicator />}
         {status === 'error' && (
@@ -183,12 +182,13 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  margin-bottom: 0;
+  margin-bottom: ${space(0.75)};
 `;
 
 const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: ${space(2)};
+
+  small {
+    color: ${p => p.theme.subText};
+  }
 `;
