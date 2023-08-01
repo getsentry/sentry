@@ -94,12 +94,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         if new_rule_is_slow:
             max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
             if features.has("organizations:more-slow-alerts", project.organization):
-                max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS * 2
+                max_slow_alerts = settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
             if slow_rules >= max_slow_alerts:
                 return Response(
                     {
                         "conditions": [
-                            f"You may not exceed {settings.MAX_SLOW_CONDITION_ISSUE_ALERTS} rules with this type of condition per project.",
+                            f"You may not exceed {max_slow_alerts} rules with this type of condition per project.",
                         ]
                     },
                     status=status.HTTP_400_BAD_REQUEST,

@@ -217,6 +217,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.run_test(conditions=conditions, actions=actions)
 
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_exceed_limit_slow_conditions(self):
         conditions = [
             {
