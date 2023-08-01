@@ -5,13 +5,14 @@ import {SpanIndexedFields} from 'sentry/views/starfish/types';
 // NOTE: Fetching the top one is a bit naive, but works for now. A better
 // approach might be to fetch several at a time, and let the hook consumer
 // decide how to display them
-export function useFullSpanFromTrace(group: string) {
-  const {data: indexedSpans} = useIndexedSpans(
-    {
-      [SpanIndexedFields.SPAN_GROUP]: group,
-    },
-    1
-  );
+export function useFullSpanFromTrace(group?: string, enabled: boolean = true) {
+  const filters: {[key: string]: string} = {};
+
+  if (group) {
+    filters[SpanIndexedFields.SPAN_GROUP] = group;
+  }
+
+  const {data: indexedSpans} = useIndexedSpans(filters, 1, enabled);
 
   const firstIndexedSpan = indexedSpans?.[0];
 
