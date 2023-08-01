@@ -11,7 +11,7 @@ from django.conf import settings
 from sentry_kafka_schemas import codecs, get_codec
 
 from sentry import options
-from sentry.models import BlobRangeModel
+from sentry.models import FilePartModel
 from sentry.models.files.utils import get_storage
 from sentry.replays.usecases.ingest import MissingRecordingSegmentHeaders, process_headers
 from sentry.utils.crypt_envelope import envelope_encrypt
@@ -157,9 +157,9 @@ def _make_storage_options() -> Optional[dict]:
 
 
 def bulk_insert_file_part_rows(rows: List[RecordingFilePartRow]) -> None:
-    BlobRangeModel.objects.bulk_create(
+    FilePartModel.objects.bulk_create(
         [
-            BlobRangeModel(
+            FilePartModel(
                 key=row["key"],
                 filename=row["filename"],
                 start=row["start"],

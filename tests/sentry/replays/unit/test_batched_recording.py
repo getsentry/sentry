@@ -4,7 +4,7 @@ from typing import List
 
 import msgpack
 
-from sentry.models import BlobRangeModel
+from sentry.models import FilePartModel
 from sentry.replays.usecases.ingest.batched_recording import (
     ProcessedRecordingSegment,
     RecordingFilePartRow,
@@ -132,8 +132,8 @@ def test_bulk_insert_file_part_rows():
     ]
     bulk_insert_file_part_rows(parts)
 
-    blob_range = BlobRangeModel.objects.all()[0]
-    assert isinstance(blob_range, BlobRangeModel)
+    blob_range = FilePartModel.objects.all()[0]
+    assert isinstance(blob_range, FilePartModel)
     assert base64.b64decode(blob_range.dek) == dek
     assert blob_range.end == 10
     assert blob_range.start == 1

@@ -5,7 +5,7 @@ from sentry.db.models import Model, region_silo_only_model
 
 
 @region_silo_only_model
-class BlobRangeModel(Model):
+class FilePartModel(Model):
     __include_in_export__ = False
 
     end = models.IntegerField()

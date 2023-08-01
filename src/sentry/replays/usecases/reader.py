@@ -26,7 +26,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.models import BlobRangeModel
+from sentry.models import FilePartModel
 from sentry.models.files.file import File, FileBlobIndex
 from sentry.models.files.utils import get_storage
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
@@ -319,18 +319,18 @@ def decompress(buffer: bytes) -> bytes:
 # Read segment data from a byte range.
 
 
-def find_blob_ranges(replay_id: str, limit: int, offset: int) -> List[BlobRangeModel]:
+def find_blob_ranges(replay_id: str, limit: int, offset: int) -> List[FilePartModel]:
     """Return a list of blob range instances."""
-    return BlobRangeModel.objects.filter(key__startswith=replay_id).all()[offset : limit + offset]
+    return FilePartModel.objects.filter(key__startswith=replay_id).all()[offset : limit + offset]
 
 
-def find_blob_range(replay_id: str, segment_id: int) -> Optional[BlobRangeModel]:
+def find_blob_range(replay_id: str, segment_id: int) -> Optional[FilePartModel]:
     """Return a blob range instance if it can be found."""
     key = f"{replay_id}{segment_id}"
-    return BlobRangeModel.objects.filter(key=key).first()
+    return FilePartModel.objects.filter(key=key).first()
 
 
-def download_range(blob_range: BlobRangeModel) -> bytes:
+def download_range(blob_range: FilePartModel) -> bytes:
     """Return the bytes contained in a blob range."""
     kek = settings.REPLAYS_KEK
     dek = base64.b64decode(blob_range.dek)

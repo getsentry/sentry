@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 
-from sentry.models.blob_range import BlobRangeModel
+from sentry.models.blob_range import FilePartModel
 from sentry.replays.usecases.reader import download_range, find_blob_range, find_blob_ranges
 from sentry.utils.crypt_envelope import envelope_encrypt
 from sentry.utils.pytest.fixtures import django_db_all
@@ -17,7 +17,7 @@ def test_find_blob_ranges():
     replay_id = uuid.uuid4().hex
     segment_id = 0
 
-    BlobRangeModel.objects.create(
+    FilePartModel.objects.create(
         end=10, filename="test.txt", key=f"{replay_id}{segment_id}", start=0, dek="dek"
     )
 
@@ -35,7 +35,7 @@ def test_find_blob_range():
     replay_id = uuid.uuid4().hex
     segment_id = 0
 
-    BlobRangeModel.objects.create(
+    FilePartModel.objects.create(
         end=10, filename="test.txt", key=f"{replay_id}{segment_id}", start=0, dek="dek"
     )
 
@@ -60,7 +60,7 @@ def test_download_range():
     # NOTE: Payload is compressed before being encrypted.
     dek, encrypted_payload = envelope_encrypt(settings.REPLAYS_KEK, zlib.compress(payload))
 
-    blob_range = BlobRangeModel.objects.create(
+    blob_range = FilePartModel.objects.create(
         end=11,
         filename="test.txt",
         key=f"{replay_id}{segment_id}",
