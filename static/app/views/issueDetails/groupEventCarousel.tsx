@@ -15,8 +15,8 @@ import {
   IconChevron,
   IconCopy,
   IconEllipsis,
-  IconLink,
   IconNext,
+  IconOpen,
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
@@ -378,21 +378,18 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           ]}
         />
         {xlargeViewport && (
-          <Tooltip title={t('Copy link to this issue event')}>
-            <Button
-              size={BUTTON_SIZE}
-              icon={<IconLink />}
-              onClick={copyLink}
-              aria-label={t('Copy Link')}
-            />
-          </Tooltip>
+          <Button size={BUTTON_SIZE} onClick={copyLink}>
+            Copy Link
+          </Button>
         )}
         {xlargeViewport && (
-          <Tooltip title={t('View JSON')}>
-            <Button size={BUTTON_SIZE} onClick={downloadJson} aria-label={t('View JSON')}>
-              {'{ }'}
-            </Button>
-          </Tooltip>
+          <Button
+            size={BUTTON_SIZE}
+            icon={<IconOpen size={BUTTON_ICON_SIZE} />}
+            onClick={downloadJson}
+          >
+            {'{ }'}
+          </Button>
         )}
         <EventNavigationDropdown
           group={group}
