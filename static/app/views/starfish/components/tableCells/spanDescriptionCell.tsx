@@ -35,10 +35,7 @@ export function SpanDescriptionCell({
 }: Props) {
   const location = useLocation();
 
-  const theme = useTheme();
-
-  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
-    useHoverOverlay('overlay', OVERLAY_OPTIONS);
+  const hoverOverlayProps = useHoverOverlay('overlay', OVERLAY_OPTIONS);
 
   if (!description) {
     return NULL_DESCRIPTION;
@@ -63,23 +60,17 @@ export function SpanDescriptionCell({
   const formattedDescription =
     moduleName === ModuleName.DB ? formatter.toSimpleMarkup(description) : description;
 
-  const overlayContent = moduleName === ModuleName.DB && isOpen && (
-    <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
-      <OverlayContent
-        animated
-        originPoint={arrowData}
-        arrowProps={arrowProps}
-        placement={placement}
-      >
-        <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
-      </OverlayContent>
-    </PositionWrapper>
+  const overlayContent = moduleName === ModuleName.DB && hoverOverlayProps.isOpen && (
+    <QueryDescriptionOverlay
+      shortDescription={description}
+      hoverOverlayProps={hoverOverlayProps}
+    />
   );
 
   return (
     <Fragment>
       <OverflowEllipsisTextContainer>
-        {wrapTrigger(
+        {hoverOverlayProps.wrapTrigger(
           group ? (
             <Link
               to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${group}${
@@ -98,9 +89,35 @@ export function SpanDescriptionCell({
   );
 }
 
+const OVERLAY_OPTIONS = {position: 'right', isHoverable: true} as const;
+
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
-const OVERLAY_OPTIONS = {position: 'right', isHoverable: true} as const;
+interface QueryDescriptionOverlayProps {
+  hoverOverlayProps: ReturnType<typeof useHoverOverlay>;
+  shortDescription?: string;
+}
+function QueryDescriptionOverlay({
+  shortDescription,
+  hoverOverlayProps,
+}: QueryDescriptionOverlayProps) {
+  const theme = useTheme();
+
+  const description = shortDescription;
+
+  return (
+    <PositionWrapper zIndex={theme.zIndex.tooltip} {...hoverOverlayProps.overlayProps}>
+      <OverlayContent
+        animated
+        originPoint={hoverOverlayProps.arrowData}
+        arrowProps={hoverOverlayProps.arrowProps}
+        placement={hoverOverlayProps.placement}
+      >
+        <CodeSnippet language="sql">{formatter.toString(description ?? '')}</CodeSnippet>
+      </OverlayContent>
+    </PositionWrapper>
+  );
+}
 
 const OverlayContent = styled(Overlay)`
   max-width: 500px;
