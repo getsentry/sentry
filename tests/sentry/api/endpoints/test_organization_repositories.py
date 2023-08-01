@@ -363,7 +363,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
     def test_existing_repo(self, mock_build_repository_config):
-        repo = Repository.objects.create(
+        Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",
             status=0,
@@ -383,13 +383,8 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
                 organization=self.org, data={"my_config_key": "some_var"}
             )
 
-        assert response.status_code == 201, (response.status_code, response.content)
-        assert response.data["id"]
-        assert response.data["id"] == str(repo.id)
-
-        repo = Repository.objects.get(id=response.data["id"])
-        assert repo.provider == "integrations:example"
-        assert repo.name == "getsentry/sentry"
-        assert repo.url == "https://github.com/getsentry/sentry"
-        assert repo.config == {"name": "getsentry/sentry"}
-        assert repo.status == 0
+        assert response.status_code == 400
+        assert (
+            response.content
+            == b'{"detail":{"code":"repo_exists","message":"A repository with that configuration already exists","extra":{}}}'
+        )
