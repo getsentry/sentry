@@ -30,9 +30,8 @@ class DiscordNotifyServiceForm(forms.Form):
         return f"Discord: {message}"
 
     def clean(self) -> dict[str, object] | None:
-        channel_id = self.data.get("channel_id")
         cleaned_data: dict[str, object] = super().clean() or {}
-
+        channel_id = cleaned_data.get("channel_id")
         server = cleaned_data.get("server")
         integration = integration_service.get_integration(integration_id=server)
 

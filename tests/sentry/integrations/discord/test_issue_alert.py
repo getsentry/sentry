@@ -1,11 +1,15 @@
-import responses
+from unittest import mock
 
+import responses
+from django.core.exceptions import ValidationError
+
+from sentry.integrations.discord.actions.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.notification import DiscordNotifyServiceAction
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
-from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -88,3 +92,88 @@ class DiscordIssueAlertTest(RuleTestCase):
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
         )
+
+
+class DiscordNotifyServiceFormTest(TestCase):
+    def setUp(self):
+        self.guild_id = "guild-id"
+        self.channel_id = "channel-id"
+        self.discord_integration = self.create_integration(
+            provider="discord",
+            name="Cool server",
+            external_id=self.guild_id,
+            organization=self.organization,
+        )
+        self.other_integration = self.create_integration(
+            provider="discord",
+            name="Uncool server",
+            external_id="different-guild-id",
+            organization=self.organization,
+        )
+        self.integrations = [self.discord_integration, self.other_integration]
+
+    def test_has_choices(self):
+        form = DiscordNotifyServiceForm(integrations=self.integrations)
+        assert form.fields["server"].choices == [
+            (self.discord_integration.id, self.discord_integration.name),
+            (self.other_integration.id, self.other_integration.name),
+        ]
+
+    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id", return_value=None)
+    def test_valid(self, mock_validate_channel_id):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": self.channel_id,
+                "tags": "environment",
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
+
+    def test_no_channel_id(self):
+        form = DiscordNotifyServiceForm(
+            data={"server": self.discord_integration.id},
+            integrations=self.integrations,
+        )
+        form.full_clean()
+        assert not form.is_valid()
+
+    def test_no_server(self):
+        form = DiscordNotifyServiceForm(integrations=self.integrations)
+        form.full_clean()
+        assert not form.is_valid()
+
+    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id", return_value=None)
+    def test_no_tags(self, mock_validate_channel_id):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": self.channel_id,
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
+
+    @mock.patch(
+        "sentry.integrations.discord.actions.form.validate_channel_id",
+        side_effect=ValidationError("bad"),
+    )
+    def test_invalid_channel_id(self, mock_validate_channel_id):
+        form = DiscordNotifyServiceForm(
+            data={
+                "server": self.discord_integration.id,
+                "channel_id": self.channel_id,
+            },
+            integrations=self.integrations,
+        )
+
+        form.full_clean()
+        assert not form.is_valid()
+        assert mock_validate_channel_id.call_count == 1
