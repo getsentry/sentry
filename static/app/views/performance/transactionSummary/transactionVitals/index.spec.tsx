@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Organization, Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
@@ -17,7 +19,22 @@ import {
   ZOOM_KEYS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
-function initialize({project, features, transaction, query} = {}) {
+interface HistogramData {
+  count: number;
+  histogram: number;
+}
+
+function initialize({
+  project,
+  features,
+  transaction,
+  query,
+}: {
+  features?: string[];
+  project?: Project;
+  query?: Query;
+  transaction?: string;
+} = {}) {
   features = features || ['performance-view'];
   project = project || TestStubs.Project();
   query = query || {};
@@ -30,7 +47,7 @@ function initialize({project, features, transaction, query} = {}) {
       location: {
         query: {
           transaction: transaction || '/',
-          project: project.id,
+          project: project?.id,
           ...query,
         },
       },
@@ -40,10 +57,16 @@ function initialize({project, features, transaction, query} = {}) {
   return data;
 }
 
-function WrappedComponent({organization, ...props}) {
+function WrappedComponent({
+  location,
+  organization,
+}: {
+  location: Location;
+  organization: Organization;
+}) {
   return (
     <OrganizationContext.Provider value={organization}>
-      <TransactionVitals organization={organization} {...props} />
+      <TransactionVitals location={location} organization={organization} />
     </OrganizationContext.Provider>
   );
 }
@@ -116,11 +139,14 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const histogramData = {};
-    const webVitals = VITAL_GROUPS.reduce((vs, group) => vs.concat(group.vitals), []);
+    const histogramData: Record<string, HistogramData[]> = {};
+    const webVitals = VITAL_GROUPS.reduce<string[]>(
+      (vs, group) => vs.concat(group.vitals),
+      []
+    );
 
     for (const measurement of webVitals) {
-      const data = [];
+      const data: HistogramData[] = [];
       for (let i = 0; i < 100; i++) {
         data.push({
           histogram: i,
@@ -172,14 +198,9 @@ describe('Performance > Web Vitals', function () {
       transaction: '/organizations/:orgId/',
     });
 
-    render(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      {context: routerContext}
-    );
+    render(<WrappedComponent organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(
       screen.getByRole('heading', {name: '/organizations/:orgId/'})
@@ -193,14 +214,9 @@ describe('Performance > Web Vitals', function () {
   it('renders the correct bread crumbs', function () {
     const {organization, router, routerContext} = initialize();
 
-    render(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      {context: routerContext}
-    );
+    render(<WrappedComponent organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
   });
@@ -210,11 +226,7 @@ describe('Performance > Web Vitals', function () {
 
     beforeEach(() => {
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
     });
@@ -230,11 +242,7 @@ describe('Performance > Web Vitals', function () {
       const {organization, router, routerContext} = initialize();
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -249,11 +257,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -268,11 +272,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -288,11 +288,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -308,11 +304,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -344,11 +336,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -371,11 +359,7 @@ describe('Performance > Web Vitals', function () {
       });
 
       render(
-        <WrappedComponent
-          organization={organization}
-          location={router.location}
-          router={router}
-        />,
+        <WrappedComponent organization={organization} location={router.location} />,
         {context: routerContext}
       );
 
@@ -409,14 +393,9 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    render(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      {context: routerContext}
-    );
+    render(<WrappedComponent organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
