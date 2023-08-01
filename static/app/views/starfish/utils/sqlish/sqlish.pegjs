@@ -5,7 +5,7 @@ Token
    = Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
 
 Keyword
-  = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / JoinKeyword) {
+  = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / "VALUES"i / "RETURNING"i / JoinKeyword) {
   return { type: 'Keyword', content: Keyword }
 }
 

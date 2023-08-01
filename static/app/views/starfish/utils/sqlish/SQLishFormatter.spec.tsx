@@ -12,10 +12,16 @@ describe('SQLishFormatter', function () {
       expect(formatter.toString('😤')).toEqual('😤');
     });
 
-    it('Adds newlines for keywords', () => {
+    it('Adds newlines for keywords in SELECTs', () => {
       expect(
         formatter.toString('SELECT hello FROM users ORDER BY name DESC LIMIT 1;')
       ).toEqual('SELECT hello \nFROM users \nORDER BY name DESC \nLIMIT 1;');
+    });
+
+    it('Adds newlines for keywords in INSERTs', () => {
+      expect(
+        formatter.toString('INSERT INTO users (id, name) VALUES (:c0, :c1) RETURNING *')
+      ).toEqual('INSERT INTO users (id, name) \nVALUES (:c0, :c1) \nRETURNING *');
     });
   });
 
