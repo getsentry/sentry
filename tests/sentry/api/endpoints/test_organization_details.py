@@ -966,16 +966,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def assert_has_correct_audit_log(self, user: User, organization: Organization):
-        with outbox_runner():
-            pass
-
-        audit_log = AuditLogEntry.objects.get(actor_id=user.id, organization_id=organization.id)
-        assert audit_log.target_user == user.id
-        assert audit_log.target_object == organization.id
-        assert audit_log.data
-        assert audit_log.ip_address == "127.0.0.1"
-
     def setUp(self):
         # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
@@ -1000,6 +990,32 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
+
+    def assert_has_correct_audit_log(
+        self, acting_user: User, target_user: User, organization: Organization
+    ):
+        with outbox_runner():
+            pass
+
+        audit_log_entry_query = AuditLogEntry.objects.filter(
+            actor_id=acting_user.id,
+            organization_id=organization.id,
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            target_user_id=target_user.id,
+        )
+
+        assert (
+            audit_log_entry_query.exists()
+        ), f"No matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+
+        assert (
+            len(audit_log_entry_query) == 1
+        ), f"More than 1 matching audit log entry found for actor: {acting_user}, target_user: {target_user}"
+
+        audit_log_entry = audit_log_entry_query[0]
+        assert audit_log_entry.target_object == organization.id
+        assert audit_log_entry.data
+        assert audit_log_entry.ip_address == "127.0.0.1"
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not self.owner.has_2fa()
@@ -1031,7 +1047,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
         assert len(mail.outbox) == 0
-        self.assert_has_correct_audit_log(user=self.owner, organization=org)
 
     def test_manager_can_set_2fa(self):
         org = self.create_organization(owner=self.owner)
@@ -1043,6 +1058,9 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             self.assert_can_enable_org_2fa(org, self.manager)
 
         self.assert_2fa_email_equal(mail.outbox, [self.owner.email])
+        self.assert_has_correct_audit_log(
+            acting_user=self.manager, target_user=self.owner, organization=org
+        )
 
     def test_members_cannot_set_2fa(self):
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
@@ -1057,6 +1075,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
         self.assert_2fa_email_equal(mail.outbox, user_emails_without_2fa)
+
+        for user_email in user_emails_without_2fa:
+            user = User.objects.get(username=user_email)
+
+            self.assert_has_correct_audit_log(
+                acting_user=self.owner, target_user=user, organization=org
+            )
 
         mail.outbox = []
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():

@@ -393,7 +393,14 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         )
         ip_address = request.META["REMOTE_ADDR"]
 
-        task.delay(self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address)
+        # Since we cannot guarantee that a task runes after the transaction completes,
+        #  trigger the task queueing on transaction commit
+        transaction.on_commit(
+            lambda: task.delay(
+                self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address
+            ),
+            using=router.db_for_write(Organization),
+        )
 
     def handle_2fa_required(self, request):
         from sentry.tasks.auth import remove_2fa_non_compliant_members
