@@ -76,7 +76,7 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     return text
 
 
-def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
+def incident_attachment_info(incident: Incident, new_status: IncidentStatus, metric_value=None):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]

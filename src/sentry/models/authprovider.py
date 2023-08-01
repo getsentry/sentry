@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import List
 
@@ -37,7 +39,7 @@ class AuthProviderDefaultTeams(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_authprovider_default_teams"
-        unique_together = tuple()
+        unique_together = ()
 
 
 @control_silo_only_model
@@ -82,18 +84,7 @@ class AuthProvider(Model):
         return self.get_provider().name
 
     def get_scim_token(self):
-        from sentry.services.hybrid_cloud.app import app_service
-
-        if self.flags.scim_enabled:
-            return app_service.get_installation_token(
-                organization_id=self.organization_id, provider=f"{self.provider}_scim"
-            )
-        else:
-            logger.warning(
-                "SCIM disabled but tried to access token",
-                extra={"organization_id": self.organization_id},
-            )
-            return None
+        return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
         from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
@@ -189,3 +180,18 @@ class AuthProvider(Model):
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]
+
+
+def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
+    from sentry.services.hybrid_cloud.app import app_service
+
+    if scim_enabled:
+        return app_service.get_installation_token(
+            organization_id=organization_id, provider=f"{provider}_scim"
+        )
+    else:
+        logger.warning(
+            "SCIM disabled but tried to access token",
+            extra={"organization_id": organization_id},
+        )
+        return None

@@ -11,6 +11,8 @@ class ExternalProviders(ValueEqualityEnum):
     SLACK = 110
     MSTEAMS = 120
     PAGERDUTY = 130
+    DISCORD = 140
+    OPSGENIE = 150
     GITHUB = 200
     GITLAB = 210
 
@@ -27,6 +29,8 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.SLACK: "slack",
     ExternalProviders.MSTEAMS: "msteams",
     ExternalProviders.PAGERDUTY: "pagerduty",
+    ExternalProviders.DISCORD: "discord",
+    ExternalProviders.OPSGENIE: "opsgenie",
     ExternalProviders.GITHUB: "github",
     ExternalProviders.GITLAB: "gitlab",
     ExternalProviders.CUSTOM: "custom_scm",

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from sentry.models import Commit, Integration, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE_INSTALLATION
 

@@ -1,11 +1,23 @@
 #!/bin/bash
 
-echo "Stopping Docker.app. You may ignore a 'process terminated unexpectedly' dialog."
+if [[ "$(sysctl -n machdep.cpu.brand_string)" != Intel* ]]; then
+    case "$(sw_vers -productVersion)" in
+        *12.*|*13.0*|*13.1*|*13.2*)
+            echo "Your ARM Mac is on a version incompatible with colima."
+            echo "Use Docker Desktop for now until you upgrade to at least 13.3."
+            exit 1
+            ;;
+    esac
+fi
 
+echo "Copying your postgres volume for use with colima. Will take a few minutes."
+tmpdir=$(mktemp -d)
+docker context use desktop-linux
+docker run --rm -v sentry_postgres:/from -v "${tmpdir}:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
+
+echo "Stopping Docker.app. If a 'process terminated unexpectedly' dialog appears, dismiss it."
 osascript - <<'EOF' || exit
-tell application "Docker"
-  if it is running then quit it
-end tell
+quit application "Docker"
 EOF
 
 # We aren't uninstalling for now - this makes rolling back to docker desktop faster.
@@ -40,3 +52,16 @@ EOF
 echo "Installing colima."
 brew install colima
 brew link colima
+
+echo "Starting colima."
+python3 -uS scripts/start-colima.py
+
+# The context will be colima, we just want to double make sure.
+docker context use colima
+echo "Recreating your postgres volume for use with colima. May take a few minutes."
+docker volume create --name sentry_postgres
+docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
+rm -rf "$tmpdir"
+
+echo "-----------------------------------------------"
+echo "All done. Start devservices at your discretion."

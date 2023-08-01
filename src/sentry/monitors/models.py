@@ -405,7 +405,7 @@ class MonitorCheckIn(Model):
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            models.Index(fields=["timeout_at", "status"]),
+            models.Index(fields=["status", "timeout_at"]),
             models.Index(fields=["trace_id"]),
         ]
 
@@ -471,7 +471,10 @@ class MonitorEnvironment(Model):
     status = BoundedPositiveIntegerField(
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
-    next_checkin = models.DateTimeField(null=True)
+    next_checkin = models.DateTimeField(null=True)  # the expected time of the next check-in
+    next_checkin_latest = models.DateTimeField(
+        null=True
+    )  # the latest expected time of the next check-in (includes check-in margin)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -481,6 +484,9 @@ class MonitorEnvironment(Model):
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment"),)
+        indexes = [
+            models.Index(fields=["status", "next_checkin_latest"]),
+        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -511,13 +517,16 @@ class MonitorEnvironment(Model):
         elif reason == MonitorFailure.DURATION:
             new_status = MonitorStatus.TIMEOUT
 
+        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base)
+
         affected = (
             type(self)
             .objects.filter(
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
+                next_checkin=next_checkin_latest,
+                next_checkin_latest=next_checkin_latest,
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -599,6 +608,7 @@ class MonitorEnvironment(Model):
                         "monitor.id": str(self.monitor.guid),
                         "monitor.slug": self.monitor.slug,
                     },
+                    "trace_id": occurrence_context.get("trace_id"),
                     "timestamp": current_timestamp.isoformat(),
                 },
             )
@@ -630,9 +640,11 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(ts)
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
+            "next_checkin": next_checkin_latest,
+            "next_checkin_latest": next_checkin_latest,
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK

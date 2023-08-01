@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
