@@ -212,8 +212,7 @@ class RuleProcessor:
             if self.get_rule_type(rule_cond) == "condition/event":
                 condition_list.append(rule_cond)
                 if (
-                    rule_cond.id
-                    and rule_cond.id
+                    rule_cond.get("id", None)
                     == "sentry.rules.conditions.regression_event.RegressionEventCondition"
                 ):
                     self.logger.info("apply_rule got regression_event", extra={"rule_id": rule.id})
