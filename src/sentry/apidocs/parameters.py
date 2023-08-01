@@ -439,5 +439,5 @@ class GroupIdsQueryParam:
         location="query",
         required=True,
         type=build_typed_list(OpenApiTypes.INT),
-        description="A list of group IDs to force auto-assignment for. List length must be <= 100 and groups must be in the organization.",
+        description="A list of group IDs to force autoassignment for. List length must be <= 100 and groups must be in the organization.",
     )
