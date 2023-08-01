@@ -14,6 +14,7 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
+    API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )

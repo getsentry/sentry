@@ -7,7 +7,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
 )
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
@@ -43,6 +43,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
         )
 
+        assert rpc_orgmember_mapping is not None
         assert rpc_orgmember_mapping.email == "foo@example.com"
         assert rpc_orgmember_mapping.user_id is None
         assert rpc_orgmember_mapping.organization_id == self.organization.id
@@ -56,6 +57,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             mapping=RpcOrganizationMemberMappingUpdate.from_orm(om),
         )
 
+        assert rpc_orgmember_mapping is not None
         assert rpc_orgmember_mapping.user_id == om.user_id
 
     def test_upsert_happy_path(self):
@@ -80,6 +82,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             organization_id=self.organization.id
         )
 
+        assert rpc_orgmember_mapping is not None
         assert (
             rpc_orgmember_mapping.organizationmember_id == orgmember_mapping.organizationmember_id
         )

@@ -44,7 +44,7 @@ export const steps = ({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard -i sveltekit`,
+        code: `npx @sentry/wizard@latest -i sveltekit`,
       },
     ],
   },

@@ -10,7 +10,7 @@ from sentry.api.endpoints.project_release_file_details import (
 )
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
 
