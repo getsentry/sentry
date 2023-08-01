@@ -5,7 +5,7 @@ import {SpanIndexedFields} from 'sentry/views/starfish/types';
 // NOTE: Fetching the top one is a bit naive, but works for now. A better
 // approach might be to fetch several at a time, and let the hook consumer
 // decide how to display them
-export function useFullSpanDescription(group: string) {
+export function useFullSpanFromTrace(group: string) {
   const {data: indexedSpans} = useIndexedSpans(
     {
       [SpanIndexedFields.SPAN_GROUP]: group,
@@ -20,12 +20,12 @@ export function useFullSpanDescription(group: string) {
     firstIndexedSpan ? firstIndexedSpan[SpanIndexedFields.PROJECT] : undefined
   );
 
-  const fullSpanDescription = response?.data?.spans?.find(
+  const fullSpan = response?.data?.spans?.find(
     span => span.span_id === firstIndexedSpan?.[SpanIndexedFields.ID]
-  )?.description;
+  );
 
   return {
     ...response,
-    data: fullSpanDescription,
+    data: fullSpan,
   };
 }

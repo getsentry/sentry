@@ -30,7 +30,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useFullSpanDescription} from 'sentry/views/starfish/queries/useFullSpanDescription';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
@@ -65,7 +65,7 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const {data: fullSpanDescription} = useFullSpanDescription(groupId);
+  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
@@ -242,7 +242,7 @@ function SpanSummaryPage({params, location}: Props) {
                               span={{
                                 ...span,
                                 [SpanMetricsFields.SPAN_DESCRIPTION]:
-                                  fullSpanDescription ??
+                                  fullSpan?.description ??
                                   spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
                               }}
                             />
