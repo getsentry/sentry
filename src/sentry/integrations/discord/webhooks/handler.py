@@ -11,7 +11,8 @@ from .types import DiscordResponseTypes
 
 class DiscordInteractionHandler:
     """
-    Abstract class defining the shared interface of interaction handlers, along with some helper methods!
+    Abstract class defining the shared interface of interaction handlers,
+    along with some helper methods.
     """
 
     def __init__(self, request: DiscordRequest) -> None:

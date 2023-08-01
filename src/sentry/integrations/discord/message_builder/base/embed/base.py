@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import datetime
 from collections.abc import Iterable
+from datetime import datetime
 
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
@@ -24,7 +24,7 @@ class DiscordMessageEmbed:
         color: int | None = None,
         footer: DiscordMessageEmbedFooter | None = None,
         fields: Iterable[DiscordMessageEmbedField] | None = None,
-        timestamp: datetime.datetime | None = None,
+        timestamp: datetime | None = None,
     ) -> None:
         self.title = title
         self.description = description

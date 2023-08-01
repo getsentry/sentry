@@ -19,12 +19,14 @@ from sentry.integrations.discord.requests.base import DiscordRequest
 from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
+from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.types.group import SUBSTATUS_TO_STR, GroupSubStatus
 
 from ..utils import logger
 
-NO_IDENTITY = "Sorry! You need to link your Discord account to your Sentry account to do that. You can do this with `/link`!"
-NOT_IN_ORG = "Sorry! You must be a member of the org this issue belongs to in order to act on it."
+NO_IDENTITY = "You need to link your Discord account to your Sentry account to do that. You can do this with `/link`!"
+NOT_IN_ORG = "You must be a member of the org this issue belongs to in order to act on it."
 ASSIGNEE_UPDATED = "Assignee has been updated."
 RESOLVE_DIALOG_OPTIONS = [
     DiscordSelectMenuOption("Immediately", ""),
@@ -35,7 +37,7 @@ RESOLVED = "The issue has been resolved."
 RESOLVED_IN_NEXT_RELEASE = "The issue will be resolved in the next release."
 RESOLVED_IN_CURRENT_RELEASE = "The issue will be resolved in the current release."
 UNRESOLVED = "The issue has been unresolved."
-MARKED_ONGOING = "The issue has been marked as Ongoing."
+MARKED_ONGOING = "The issue has been marked as ongoing."
 IGNORE_UNTIL_ESCALATES = "The issue will be ignored until it escalates."
 
 
@@ -58,12 +60,12 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         logging_data = self.request.logging_data
 
         if self.request.user is None:
-            logger.info("discord.interaction.component.not_linked", extra={**logging_data})
+            logger.warn("discord.interaction.component.not_linked", extra={**logging_data})
             return self.send_message(NO_IDENTITY)
         self.user = self.request.user
 
         if not self.group.organization.has_access(self.user):
-            logger.info(
+            logger.warn(
                 "discord.interaction.component.not_in_org",
                 extra={"org_slug": self.group.organization.slug, **logging_data},
             )
@@ -100,7 +102,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             logger.info("discord.interaction.component.archive", extra={**logging_data})
             return self.archive()
 
-        logger.info("discord.interaction.component.unknown_custom_id", extra={**logging_data})
+        logger.warn("discord.interaction.component.unknown_custom_id", extra={**logging_data})
         return Response(status=404)
 
     def assign_dialog(self) -> Response:
@@ -145,7 +147,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
     def resolve(self) -> Response:
         status: dict[str, object] = {
-            "status": "resolved",
+            "status": STATUS_TO_STRING_LOOKUP[GroupHistoryStatus.RESOLVED],
         }
         message = RESOLVED
 
@@ -166,8 +168,8 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
     def unresolve(self, from_mark_ongoing: bool = False) -> Response:
         self.update_group(
             {
-                "status": "unresolved",
-                "substatus": "ongoing",
+                "status": STATUS_TO_STRING_LOOKUP[GroupHistoryStatus.UNRESOLVED],
+                "substatus": SUBSTATUS_TO_STR[GroupSubStatus.ONGOING],
             }
         )
 
@@ -178,8 +180,8 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
     def archive(self) -> Response:
         self.update_group(
             {
-                "status": "ignored",
-                "substatus": "until_escalating",
+                "status": STATUS_TO_STRING_LOOKUP[GroupHistoryStatus.IGNORED],
+                "substatus": SUBSTATUS_TO_STR[GroupSubStatus.UNTIL_ESCALATING],
             }
         )
         return self.send_message(IGNORE_UNTIL_ESCALATES)

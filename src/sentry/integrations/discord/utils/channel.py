@@ -8,6 +8,10 @@ from sentry.shared_integrations.exceptions.base import ApiError
 
 from . import logger
 
+NO_CHANNEL_MESSAGE = (
+    "We couldn't find a channel with that ID. Make sure you have the correct server selected."
+)
+
 
 def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | None) -> None:
     """
@@ -20,9 +24,7 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
     except ApiError as e:
         if e.code == 404:
             logger.info("rule.discord.channel_info_failed", extra={"error": str(e)})
-            raise ValidationError(
-                "We couldn't find a channel with that ID. Make sure you have the correct server selected!"
-            )
+            raise ValidationError(NO_CHANNEL_MESSAGE)
         logger.error("rule.discord.channel_info_failed", extra={"error": str(e)})
         raise IntegrationError("Could not retrieve Discord channel information.")
 
@@ -37,6 +39,4 @@ def validate_channel_id(channel_id: str, guild_id: str, integration_id: int | No
             "rule.discord.wrong_guild_for_channel",
             extra={"guild_id": guild_id, "channel_belongs_to": result["guild_id"]},
         )
-        raise ValidationError(
-            "We couldn't find a channel with that ID. Make sure you have the correct server selected!"
-        )
+        raise ValidationError(NO_CHANNEL_MESSAGE)
