@@ -1,5 +1,4 @@
 import {ReactNode, useMemo} from 'react';
-import {EmotionJSX} from '@emotion/react/types/jsx-namespace';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -83,6 +82,17 @@ const COLUMN_TYPE: Record<MetricColumnKey, ColumnType> = {
   after: 'duration',
   change: 'percentage',
 };
+
+const errorsTooltip = (
+  <div style={{display: 'flex', gap: space(1)}}>
+    <p style={{marginBottom: 0}}>{'Errors'}</p>
+    <QuestionTooltip
+      size="sm"
+      title={t('Errors per 1m transactions')}
+      position="bottom-start"
+    />
+  </div>
+);
 
 export function MetricsTable(props: MetricsTableProps) {
   const {trendFunction, transaction, trendView, organization, location, isLoading} =
@@ -210,14 +220,6 @@ export function MetricsTable(props: MetricsTableProps) {
     afterBreakpoint
   );
 
-  const errorsTooltip = (
-    <QuestionTooltip
-      size="sm"
-      title={t('Errors per 1m transactions')}
-      position="bottom-start"
-    />
-  );
-
   const errors: TableDataRow = getEventsRowData(
     'count()',
     'Errors',
@@ -225,8 +227,7 @@ export function MetricsTable(props: MetricsTableProps) {
     0,
     false,
     beforeBreakpointErrorsAvg,
-    afterBreakpointErrorsAvg,
-    errorsTooltip
+    afterBreakpointErrorsAvg
   );
 
   const columnOrder = MetricColumnOrder.map(column => COLUMNS[column]);
@@ -259,22 +260,14 @@ function getEventsRowData(
   nullValue: string | number,
   wholeNumbers: boolean,
   beforeData?: TableData,
-  afterData?: TableData,
-  tooltip?: EmotionJSX.Element
+  afterData?: TableData
 ): TableDataRow {
   if (
     beforeData?.data[0][field] !== undefined &&
     afterData?.data[0][field] !== undefined
   ) {
     return {
-      metric: tooltip ? (
-        <div style={{display: 'flex', gap: space(1)}}>
-          <p style={{marginBottom: 0}}>{rowTitle}</p>
-          {tooltip}
-        </div>
-      ) : (
-        rowTitle
-      ),
+      metric: rowTitle,
       before: !wholeNumbers
         ? toFormattedNumber(beforeData.data[0][field].toString(), 1) + ' ' + suffix
         : beforeData.data[0][field],
@@ -413,6 +406,14 @@ export function renderBodyCell(
     }
   } else {
     data = dataRow[column.key];
+  }
+
+  if (dataRow[column.key] === 'Errors') {
+    return (
+      <Container data-test-id={'pce-metrics-chart-row-' + column.key}>
+        {errorsTooltip}
+      </Container>
+    );
   }
 
   return (

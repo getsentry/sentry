@@ -261,6 +261,7 @@ describe('Performance > Trends', function () {
             'p95()': 1010.9232499999998,
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
+            'count()': 34872349,
           },
         ],
         meta: {
@@ -268,11 +269,13 @@ describe('Performance > Trends', function () {
             'p95()': 'duration',
             '950()': 'duration',
             'tps()': 'number',
+            'count()': 'number',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
+            'count()': null,
           },
           isMetricsData: true,
           tips: {},
