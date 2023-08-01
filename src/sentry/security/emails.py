@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Mapping, Optional
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 def generate_security_email(
     account: User | RpcUser,
     type: str,
-    actor: User | RpcUser,
+    actor: AnonymousUser | User | RpcUser,
     ip_address: str,
     context: Optional[Mapping[str, Any]] = None,
     current_datetime: Optional[datetime] = None,
