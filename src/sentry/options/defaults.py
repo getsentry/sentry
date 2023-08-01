@@ -1425,3 +1425,6 @@ register(
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The flag activates whether to send group attributes messages to kafka
+register("issues.group_attributes.send_kafka", default=False, flags=FLAG_MODIFIABLE_BOOL)
