@@ -16,9 +16,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):
-    # project endpoint simply uses from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
-    # as opposed to the DetailedAlertRuleSerializer we use here. need to see what the differences are
-
     # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
     serialized_rule = serialize(
