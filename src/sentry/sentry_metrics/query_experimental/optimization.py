@@ -14,7 +14,7 @@ from typing import List, Union
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
-from .types import Column, Filter, Function, InvalidMetricsQuery, SeriesQuery
+from .types import Filter, Function, InvalidMetricsQuery, MetricName, SeriesQuery
 
 
 class MergeFiltersLayer(QueryLayer):
@@ -50,27 +50,27 @@ class MergeFiltersTransform(QueryTransform):
         Filter([
             Function("divide", [
                 Filter([
-                    Function("count", [Column("my_metric")]),
-                    Function("equals", [Column("inner"), "inner"]),
+                    Function("count", [MetricName("my_metric")]),
+                    Function("equals", [Tag("inner"), "inner"]),
                 ]),
-                Function("count", [Column("my_metric")]),
+                Function("count", [MetricName("my_metric")]),
             ]),
-            Function("equals", [Column("outer"), "outer"]),
+            Function("equals", [Tag("outer"), "outer"]),
         ])
 
         # Output
         Function("divide", [
             Function("count", [
                 Filter([
-                    Column("my_metric"),
-                    Function("equals", [Column("inner"), "inner"]),
-                    Function("equals", [Column("outer"), "outer"]),
+                    MetricName("my_metric"),
+                    Function("equals", [Tag("inner"), "inner"]),
+                    Function("equals", [Tag("outer"), "outer"]),
                 ]),
             ]),
             Function("count", [
                 Filter([
-                    Column("my_metric"),
-                    Function("equals", [Column("outer"), "outer"]),
+                    MetricName("my_metric"),
+                    Function("equals", [Tag("outer"), "outer"]),
                 ]),
             ]),
         ])
@@ -90,9 +90,9 @@ class MergeFiltersTransform(QueryTransform):
 
         return inner
 
-    def _visit_column(self, column: Column) -> Union[Function, Column]:
+    def _visit_metric(self, metric: MetricName) -> Union[Filter, MetricName]:
         if not self.stack:
-            return column
+            return metric
 
         conditions = [condition for conditions in self.stack for condition in conditions]
-        return Filter([column, *conditions])
+        return Filter([metric, *conditions])

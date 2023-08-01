@@ -9,13 +9,15 @@ from typing import Generic, TypeVar, Union
 from .types import (
     AggregationFn,
     ArithmeticFn,
-    Column,
     ConditionFn,
     Expression,
     Filter,
     Function,
     InvalidMetricsQuery,
+    MetricName,
     SeriesQuery,
+    Tag,
+    Variable,
 )
 
 QueryNode = Union[SeriesQuery, Expression]
@@ -44,8 +46,12 @@ class QueryVisitor(ABC, Generic[TVisited]):
                 return self._visit_condition(node)
             else:
                 return self._visit_function(node)
-        elif isinstance(node, Column):
-            return self._visit_column(node)
+        elif isinstance(node, MetricName):
+            return self._visit_metric(node)
+        elif isinstance(node, Tag):
+            return self._visit_tag(node)
+        elif isinstance(node, Variable):
+            return self._visit_variable(node)
         elif isinstance(node, str):
             return self._visit_str(node)
         elif isinstance(node, int):
@@ -80,7 +86,15 @@ class QueryVisitor(ABC, Generic[TVisited]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _visit_column(self, column: Column) -> TVisited:
+    def _visit_metric(self, metric: MetricName) -> TVisited:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _visit_tag(self, tag: Tag) -> TVisited:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _visit_variable(self, variable: Variable) -> TVisited:
         raise NotImplementedError()
 
     @abstractmethod
@@ -136,8 +150,14 @@ class QueryTransform(QueryVisitor[QueryNode]):
         visited = [self.visit(param) for param in function.parameters]
         return replace(function, parameters=visited)
 
-    def _visit_column(self, column: Column) -> QueryNode:
-        return column
+    def _visit_metric(self, metric: MetricName) -> QueryNode:
+        return metric
+
+    def _visit_tag(self, tag: Tag) -> Tag:
+        return tag
+
+    def _visit_variable(self, variable: Variable) -> QueryNode:
+        return variable
 
     def _visit_str(self, string: str) -> Union[str, float, int]:
         return string

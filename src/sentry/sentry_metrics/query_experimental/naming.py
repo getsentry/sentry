@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
-from .types import Column, SeriesQuery, SeriesResult, parse_mri
+from .types import MetricName, SeriesQuery, SeriesResult, Tag, parse_mri
 
 # TODO: Support dynamic lookup for measurements
 
@@ -108,5 +108,8 @@ class NameTransform(QueryTransform):
     def __init__(self, registry: NameRegistry):
         self.registry = registry
 
-    def _visit_column(self, column: Column) -> Column:
-        return replace(column, name=self.registry.get_public(column.name))
+    def _visit_metric(self, metric: MetricName) -> MetricName:
+        return replace(metric, name=self.registry.get_internal(metric.name))
+
+    def _visit_tag(self, tag: Tag) -> Tag:
+        return replace(tag, name=self.registry.get_internal(tag.name))

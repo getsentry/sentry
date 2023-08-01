@@ -6,7 +6,7 @@ from typing import Dict, Optional, Union
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
-from .types import Column, Expression, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
+from .types import Expression, InvalidMetricsQuery, MetricName, SeriesQuery, parse_mri
 
 
 class ExpressionRegistry:
@@ -89,19 +89,10 @@ class ExpandTransform(QueryTransform):
     def __init__(self, registry: ExpressionRegistry):
         self.registry = registry
 
-    def _visit_condition(self, condition: Function) -> Function:
-        # Do not process filter conditions, as neither the tag keys nor tag
-        # value expressions can contain derived metrics.
-        return condition
-
-    def _visit_column(self, column: Column) -> Union[Column, Expression]:
-        # Do not try to expand variables
-        if column.name.startswith("$"):
-            return column
-
-        expression = self.registry.try_resolve(column.name)
+    def _visit_metric(self, metric: MetricName) -> Union[MetricName, Expression]:
+        expression = self.registry.try_resolve(metric.name)
         if expression is None:
-            return column
+            return metric
 
         # Recurse into the resolved expression to resolve nested derived metrics
         return self.visit(expression)

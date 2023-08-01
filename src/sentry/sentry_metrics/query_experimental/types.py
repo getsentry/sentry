@@ -18,7 +18,6 @@ from sentry.utils.cache import memoize
 __all__ = (
     "AggregationFn",
     "ArithmeticFn",
-    "Column",
     "ConditionFn",
     "Expression",
     "Filter",
@@ -54,7 +53,7 @@ class AggregationFn(Enum, metaclass=IndexableEnumMeta):
     Example::
 
         Function(AggregationFn.AVG.value, [
-            Column(MRI),
+            MetricName(MRI),
         ])
     """
 
@@ -91,8 +90,8 @@ class ArithmeticFn(Enum, metaclass=IndexableEnumMeta):
     Example::
 
         Function("divide", [
-            Function("sum", [Column(FAILURES_MRI)]),
-            Function("sum", [Column(TOTALS_MRI)]),
+            Function("sum", [MetricName(FAILURES_MRI)]),
+            Function("sum", [MetricName(TOTALS_MRI)]),
         ])
     """
 
@@ -117,22 +116,22 @@ class Filter(Function):
 
         # Apply filter on a metric and aggregate outside.
         Filter([
-            Column(MY_MRI), Function("equals", [Column("transaction"), "b"]),
+            MetricName(MY_MRI), Function("equals", [Tag("transaction"), "b"]),
         ])
 
         # Apply filter on an aggregate. Filter([
-            Function("sum", [Column(MY_MRI)]), Function("equals",
-            [Column("transaction"), "b"]),
+            Function("sum", [MetricName(MY_MRI)]), Function("equals",
+            [Tag("transaction"), "b"]),
         ])
 
         # Multiple conditions are joined together Filter([
-            Function("sum", [Column(MY_MRI)]), Function("equals",
-            [Column("transaction"), "b"]), Function("like", [Column("release"),
+            Function("sum", [MetricName(MY_MRI)]), Function("equals",
+            [Tag("transaction"), "b"]), Function("like", [Tag("release"),
             "1.*"]),
         ])
     """
 
-    function: Literal["__builtin_filter"] = field(init=False, default="__builtin_filter")
+    function: Literal["filter__builtin"] = field(init=False, default="filter__builtin")
 
 
 class ConditionFn(Enum, metaclass=IndexableEnumMeta):
@@ -143,8 +142,8 @@ class ConditionFn(Enum, metaclass=IndexableEnumMeta):
     Example::
 
         Filter([
-            Column(MY_MRI),
-            Function("equals", [Column("transaction"), "b"]),
+            MetricName(MY_MRI),
+            Function("equals", [Tag("transaction"), "b"]),
         ])
     """
 
@@ -167,6 +166,21 @@ class ConditionFn(Enum, metaclass=IndexableEnumMeta):
         else:
             # NB: This is in case we add IS NULL or IS NOT NULL in the future.
             return "none"
+
+
+@dataclass(frozen=True)
+class Tag(Column):
+    pass
+
+
+@dataclass(frozen=True)
+class MetricName(Column):
+    pass
+
+
+@dataclass(frozen=True)
+class Variable(Column):
+    pass
 
 
 class InvalidMetricsQuery(Exception):
@@ -236,9 +250,7 @@ class MetricRange:
         return cls(end - delta, end, interval)
 
 
-# Variables are currently supported only in tag value position. The only
-# supported values are strings, therefore.
-VariableMap = Mapping[str, str]
+VariableMap = Mapping[str, Expression]
 
 
 @dataclass(frozen=True)
@@ -260,9 +272,9 @@ class SeriesQuery:
         SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.end_at(self.now, hours=12, interval=3600),
-            expressions=[Function("avg", [Column("measurements.fcp")])],
-            filters=[Function("equals", [Column("transaction"), "xyz"])],
-            groups=[Column("environment")],
+            expressions=[Function("avg", [MetricName("measurements.fcp")])],
+            filters=[Function("equals", [Tag("transaction"), "xyz"])],
+            groups=[Tag("environment")],
         )
     """
 
@@ -270,7 +282,7 @@ class SeriesQuery:
     range: MetricRange
     expressions: Sequence[Expression]
     filters: Sequence[Function] = field(default_factory=list)
-    groups: Sequence[Column] = field(default_factory=list)
+    groups: Sequence[Tag] = field(default_factory=list)
 
     @classmethod
     def parse(cls, dsl: str, params: Optional[VariableMap] = None) -> "SeriesQuery":

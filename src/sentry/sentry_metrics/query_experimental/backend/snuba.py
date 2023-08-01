@@ -20,8 +20,11 @@ from ..types import (
     Expression,
     Filter,
     InvalidMetricsQuery,
+    MetricName,
     SeriesQuery,
     SeriesResult,
+    Tag,
+    Variable,
     parse_mri,
 )
 from ..use_case import get_use_case
@@ -204,7 +207,7 @@ class SnubaQueryConverter:
         to be applied to the metric to compute an aggregate.
         """
 
-        if isinstance(node, Column):
+        if isinstance(node, MetricName):
             if not node.key.isnumeric():
                 raise InvalidMetricsQuery("Metric name must be a resolved index")
             mri = parse_mri(node.name)
@@ -233,15 +236,17 @@ class SnubaQueryConverter:
             Condition(COLUMN_TIMESTAMP_FILTER, Op.LT, self.query.range.end),
         ]
 
-    def _convert_tag_key(self, column: Any) -> str:
-        if not isinstance(column, Column):
+    def _convert_tag_key(self, tag: Any) -> str:
+        if not isinstance(tag, Tag):
             raise InvalidMetricsQuery("LHS of filter condition must be a column")
 
-        if column.name == "project":
+        if tag.name == "project":
             return COLUMN_PROJECT_ID
-        if not column.key.isnumeric():
+        if not tag.key.isnumeric():
             raise InvalidMetricsQuery("Tag key must be a resolved index")
-        return Column(name=f"tags_raw[{column.key}]")
+
+        subscriptable = "tags" if self.config.index_values else "tags_raw"
+        return Column(name=f"{subscriptable}[{tag.key}]")
 
     def _convert_condition(self, condition: Function) -> Function:
         op = ConditionFn(condition.function)
@@ -363,9 +368,15 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
             entities |= self.visit(parameter)
         return entities
 
-    def _visit_column(self, column: Column) -> Set[Entity]:
-        mri = parse_mri(column.name)
+    def _visit_metric(self, metric: MetricName) -> Set[Entity]:
+        mri = parse_mri(metric.name)
         return {self.config.entity(mri.entity)}
+
+    def _visit_tag(self, tag: Tag) -> Set[Entity]:
+        return set()
+
+    def _visit_variable(self, variable: Variable) -> Set[Entity]:
+        return set()
 
     def _visit_str(self, string: str) -> Set[Entity]:
         return set()

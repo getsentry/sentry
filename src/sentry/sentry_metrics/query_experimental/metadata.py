@@ -13,15 +13,17 @@ from .transform import QueryNode, QueryVisitor
 from .types import (
     AggregationFn,
     ArithmeticFn,
-    Column,
     ConditionFn,
     Expression,
     Filter,
     Function,
     InvalidMetricsQuery,
+    MetricName,
     MetricQueryScope,
     MetricRange,
     SeriesQuery,
+    Tag,
+    Variable,
     parse_mri,
 )
 
@@ -154,34 +156,11 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
     def __init__(self):
         self._use_case = None
 
-    def _visit_expression(self, node: Expression) -> AnnotatedExpression:
-        if isinstance(node, Filter):
-            return self._visit_filter(node)
-        elif isinstance(node, Function):
-            if node.function in AggregationFn:
-                return self._visit_aggregation(node)
-            elif node.function in ArithmeticFn:
-                return self._visit_arithmetic(node)
-            elif node.function in ConditionFn:
-                return self._visit_condition(node)
-            else:
-                return self._visit_function(node)
-        elif isinstance(node, Column):
-            return self._visit_column(node)
-        elif isinstance(node, str):
-            return self._visit_str(node)
-        elif isinstance(node, int):
-            return self._visit_int(node)
-        elif isinstance(node, float):
-            return self._visit_float(node)
-
-        raise InvalidMetricsQuery(f"Expected metrics expression, received {type(node)}")
-
     def _visit_query(self, query: SeriesQuery) -> AnnotatedQuery:
         self._validate_scope(query.scope)
         self._validate_timerange(query.range)
 
-        # The use case is set when visiting a metric column, so if it is not
+        # The use case is set when visiting a metric name, so if it is not
         # set at this point, there are no metrics in the query.
         expressions = [self._visit_expression(e) for e in query.expressions]
         if self._use_case is None:
@@ -195,6 +174,16 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             expressions=expressions,
             use_case=self._use_case,
         )
+
+    def _visit_expression(self, node: Expression) -> AnnotatedExpression:
+        """
+        Helper function that visits any expression node and returns the
+        annotated expression as correct type. This delegates to :meth:`visit`.
+        """
+
+        annotated = self.visit(node)
+        assert isinstance(annotated, AnnotatedExpression)
+        return annotated
 
     def _visit_filter(self, filt: Filter) -> AnnotatedExpression:
         """
@@ -249,6 +238,11 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         """
 
         op = function.function
+        try:
+            ArithmeticFn(op)
+        except ValueError:
+            raise InvalidMetricsQuery(f"Unsupported arithmetic function {op}")
+
         if len(function.parameters) != 2:
             raise InvalidMetricsQuery(f"`{op}` must have two parameters")
 
@@ -275,11 +269,30 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
     def _visit_function(self, function: Function) -> AnnotatedExpression:
         raise InvalidMetricsQuery(f"Unsupported function {function.function}")
 
-    def _visit_column(self, column: Column) -> AnnotatedExpression:
-        # This is called from an expression tree but not from a condition.
-        #
-        # TODO: Change the Visitor ABC so that there are different methods.
-        return self._annotate_metric(column)
+    def _visit_variable(self, variable: Variable) -> AnnotatedExpression:
+        # TODO: Support variables in metric position.
+        raise InvalidMetricsQuery("Unexpected variable in metric position")
+
+    def _visit_tag(self, tag: Tag) -> AnnotatedExpression:
+        raise InvalidMetricsQuery("Unexpected tag in metric position")
+
+    def _visit_metric(self, metric: MetricName) -> AnnotatedExpression:
+        mri = parse_mri(metric.name)
+        if mri.entity not in MRI_TYPES:
+            raise InvalidMetricsQuery(f"Unknown metric type `{mri.entity}`")
+
+        self._check_use_case(UseCaseID(mri.namespace))
+
+        return AnnotatedExpression(
+            node=metric,
+            type_=MRI_TYPES[mri.entity],
+        )
+
+    def _check_use_case(self, use_case: UseCaseID):
+        if self._use_case is None:
+            self._use_case = use_case
+        elif self._use_case != use_case:
+            raise InvalidMetricsQuery("All metrics in a query must belong to the same use case")
 
     def _visit_str(self, value: str) -> AnnotatedExpression:
         return AnnotatedExpression(node=value, type_=ScalarType())
@@ -290,27 +303,9 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
     def _visit_float(self, value: float) -> AnnotatedExpression:
         return AnnotatedExpression(node=value, type_=ScalarType())
 
-    def _check_use_case(self, use_case: UseCaseID):
-        if self._use_case is None:
-            self._use_case = use_case
-        elif self._use_case != use_case:
-            raise InvalidMetricsQuery("All metrics in a query must belong to the same use case")
-
-    def _annotate_metric(self, column: Column) -> AnnotatedExpression:
-        mri = parse_mri(column.name)
-        if mri.entity not in MRI_TYPES:
-            raise InvalidMetricsQuery(f"Unknown metric type `{mri.entity}`")
-
-        self._check_use_case(UseCaseID(mri.namespace))
-
-        return AnnotatedExpression(
-            node=column,
-            type_=MRI_TYPES[mri.entity],
-        )
-
     def _validate_filter_condition(self, condition: Function) -> None:
         # Conditions have a rigid structure at this moment. LHS (first
-        # parameter) must be a column, and RHS (second parameter) must be a
+        # parameter) must be a tag, and RHS (second parameter) must be a
         # scalar. There cannot be boolean operators in conditions.
 
         try:
@@ -323,8 +318,8 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         if len(condition.parameters) != params:
             raise InvalidMetricsQuery(f"Filter {op} condition must have {params} parameters")
 
-        if not isinstance(condition.parameters[0], Column):
-            raise InvalidMetricsQuery("LHS of filter condition must be a column")
+        if not isinstance(condition.parameters[0], Tag):
+            raise InvalidMetricsQuery("LHS of filter condition must be a tag")
 
         if value_type == "scalar":
             self._validate_condition_value(condition.parameters[1])
@@ -338,16 +333,8 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
             assert value_type == "none"
 
     def _validate_condition_value(self, value: Any) -> None:
-        if isinstance(value, Column):
-            if self._is_variable(value):
-                return
-        elif isinstance(value, str):
-            return
-
-        raise InvalidMetricsQuery("Filters values must be a strings or variables")
-
-    def _is_variable(self, column: Column) -> bool:
-        return column.name.startswith("$")
+        if not isinstance(value, (str, Variable)):
+            raise InvalidMetricsQuery("Filters values must be a strings or variables")
 
     def _validate_timerange(self, range_: MetricRange) -> None:
         if range_.start > range_.end:

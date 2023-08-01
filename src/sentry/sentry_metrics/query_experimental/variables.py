@@ -1,5 +1,5 @@
 from .transform import QueryTransform
-from .types import Column, InvalidMetricsQuery, SeriesQuery, VariableMap
+from .types import Expression, InvalidMetricsQuery, SeriesQuery, Variable, VariableMap
 
 
 def map_variables(query: SeriesQuery, mapping: VariableMap) -> SeriesQuery:
@@ -15,12 +15,8 @@ class VariableTransform(QueryTransform):
     def __init__(self, mapping: VariableMap):
         self.mapping = mapping
 
-    def _visit_column(self, column: Column) -> Column:
-        if not column.name.startswith("$"):
-            return column
+    def _visit_variable(self, variable: Variable) -> Expression:
+        if variable.name not in self.mapping:
+            raise InvalidMetricsQuery(f"Variable `{variable.name}` not defined")
 
-        name = column.name[1:]
-        if name not in self.mapping:
-            raise InvalidMetricsQuery(f"Variable `{name}` not defined")
-
-        return self.mapping[name]
+        return self.mapping[variable.name]

@@ -23,7 +23,7 @@ def get_series(query: SeriesQuery, public: bool = False) -> SeriesResult:
         namespace. If this is True, MRIs and private metrics cannot be used.
     """
 
-    # TODO: Support binding variables (column with $ prefix)?
+    # TODO: Support binding variables?
 
     return (
         QueryPipeline()

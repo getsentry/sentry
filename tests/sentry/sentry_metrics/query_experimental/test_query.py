@@ -4,12 +4,13 @@ import pytest
 
 from sentry.sentry_metrics.query_experimental import get_series
 from sentry.sentry_metrics.query_experimental.types import (
-    Column,
     Filter,
     Function,
+    MetricName,
     MetricQueryScope,
     MetricRange,
     SeriesQuery,
+    Tag,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils import BaseMetricsLayerTestCase, TestCase
@@ -53,7 +54,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function("avg", [Column(MRI)])],
+            expressions=[Function("avg", [MetricName(MRI)])],
         )
 
         result = get_series(query)
@@ -84,8 +85,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function("avg", [Column(MRI)])],
-            groups=[Column("transaction")],
+            expressions=[Function("avg", [MetricName(MRI)])],
+            groups=[Tag("transaction")],
         )
 
         result = get_series(query)
@@ -121,8 +122,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function("avg", [Column(MRI)])],
-            filters=[Function("equals", [Column("transaction"), "b"])],
+            expressions=[Function("avg", [MetricName(MRI)])],
+            filters=[Function("equals", [Tag("transaction"), "b"])],
         )
 
         result = get_series(query)
@@ -155,7 +156,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             )
 
         expr = Function(
-            "avg", [Filter([Column(MRI), Function("equals", [Column("transaction"), "b"])])]
+            "avg", [Filter([MetricName(MRI), Function("equals", [Tag("transaction"), "b"])])]
         )
 
         query = SeriesQuery(
@@ -195,8 +196,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 
         expr = Filter(
             [
-                Function("avg", [Column(MRI)]),
-                Function("equals", [Column("transaction"), "b"]),
+                Function("avg", [MetricName(MRI)]),
+                Function("equals", [Tag("transaction"), "b"]),
             ]
         )
 
@@ -238,7 +239,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         query = SeriesQuery(
             scope=MetricQueryScope(org_id=1, project_ids=[1]),
             range=MetricRange.start_at(self.now, hours=4, interval=3600),
-            expressions=[Function("multiply", [Function("avg", [Column(MRI)]), 2])],
+            expressions=[Function("multiply", [Function("avg", [MetricName(MRI)]), 2])],
         )
 
         result = get_series(query)

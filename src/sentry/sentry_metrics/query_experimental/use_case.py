@@ -8,7 +8,7 @@ from typing import Set
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 from .transform import QueryVisitor
-from .types import Column, Filter, Function, InvalidMetricsQuery, SeriesQuery, parse_mri
+from .types import Filter, Function, InvalidMetricsQuery, MetricName, SeriesQuery, parse_mri
 
 
 def get_use_case(query: SeriesQuery) -> UseCaseID:
@@ -56,13 +56,19 @@ class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
             use_cases |= self.visit(parameter)
         return use_cases
 
-    def _visit_column(self, column: Column) -> Set[UseCaseID]:
-        mri = parse_mri(column.name)
+    def _visit_metric(self, metric: MetricName) -> Set[UseCaseID]:
+        mri = parse_mri(metric.name)
 
         try:
             return {UseCaseID(mri.namespace)}
         except ValueError:
             raise InvalidMetricsQuery(f"Unknown use case (namespace): `{mri.namespace}`")
+
+    def _visit_tag(self, tag: MetricName) -> Set[UseCaseID]:
+        return set()
+
+    def _visit_variable(self, variable: MetricName) -> Set[UseCaseID]:
+        return set()
 
     def _visit_str(self, string: str) -> Set[UseCaseID]:
         return set()
