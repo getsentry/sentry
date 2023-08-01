@@ -379,7 +379,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-        token = self.create_user_auth_token(user=self.user, scope_list=["project:write"])
+        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
             self.url,
