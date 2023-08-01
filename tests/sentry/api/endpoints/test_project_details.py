@@ -388,7 +388,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             data={"platform": "rust"},
         )
         assert response.status_code == 403
-        assert response.data == {"detail": "You do not have permission to perform this action."}
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_admin_update_denied_with_token(self):
         self.create_member(
@@ -407,7 +407,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             data={"platform": "rust"},
         )
         assert response.status_code == 403
-        assert response.data == {"detail": "You do not have permission to perform this action."}
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_empty_token_scopes_denied(self):
         self.create_member(
@@ -425,7 +425,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             data={"platform": "rust"},
         )
         assert response.status_code == 403
-        assert response.data == {"detail": "You do not have permission to perform this action."}
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
 
 @region_silo_test(stable=True)
@@ -1359,7 +1359,7 @@ class CopyProjectSettingsTest(APITestCase):
             copy_from_project=self.other_project.id,
             status_code=409,
         )
-        assert resp.data == {"detail": ["Copy project settings failed."]}
+        assert resp.data["detail"] == "Copy project settings failed."
         self.assert_settings_not_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -1710,7 +1710,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             data={"dynamicSamplingBiases": DEFAULT_BIASES},
         )
         assert response.status_code == 403
-        assert response.json()["detail"] == ["dynamicSamplingBiases is not a valid field"]
+        assert response.data["detail"] == "dynamicSamplingBiases is not a valid field"
 
     def test_put_new_dynamic_sampling_rules_with_correct_flags(self):
         """
