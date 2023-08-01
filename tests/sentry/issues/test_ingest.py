@@ -32,7 +32,7 @@ from sentry.models import (
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -272,7 +272,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
 
-        group_event = event.for_group(group_info.group.id)
+        group_event = event.for_group(group_info.group)
         with mock.patch("sentry.issues.ingest.eventstream") as eventstream, mock.patch.object(
             event, "for_group", return_value=group_event
         ):

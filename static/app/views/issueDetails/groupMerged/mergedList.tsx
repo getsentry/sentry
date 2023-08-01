@@ -4,18 +4,16 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
 import {Fingerprint} from 'sentry/stores/groupingStore';
 import {Group, Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedItem from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
 
 type Props = {
   groupId: Group['id'];
-  /*
+  /**
    * From GroupingStore.onToggleCollapseFingerprints
    */
   onToggleCollapse: () => void;
@@ -55,11 +53,6 @@ function MergedList({
 
   return (
     <Fragment>
-      <h4>
-        <span>{t('Merged fingerprints with latest event')}</span>{' '}
-        <QueryCount count={fingerprintsWithLatestEvent.length} />
-      </h4>
-
       <Panel>
         <MergedToolbar
           onToggleCollapse={onToggleCollapse}
@@ -85,4 +78,4 @@ function MergedList({
   );
 }
 
-export default withOrganization(MergedList);
+export default MergedList;

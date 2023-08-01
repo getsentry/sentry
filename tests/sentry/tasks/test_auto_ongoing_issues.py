@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-import pytz
 from freezegun import freeze_time
 
 from sentry.models import (
@@ -19,7 +18,7 @@ from sentry.tasks.auto_ongoing_issues import (
     TRANSITION_AFTER_DAYS,
     schedule_auto_transition_to_ongoing,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -30,7 +29,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_simple(self, mock_backend):
-        now = datetime.now(tz=pytz.UTC)
+        now = datetime.now(tz=timezone.utc)
         organization = self.organization
         project = self.create_project(organization=organization)
         group = self.create_group(
@@ -60,7 +59,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_reprocessed(self, mock_backend):
-        now = datetime.now(tz=pytz.UTC)
+        now = datetime.now(tz=timezone.utc)
 
         project = self.create_project()
 
@@ -84,7 +83,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_multiple_old_new(self, mock_backend):
-        now = datetime.now(tz=pytz.UTC)
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         new_groups = []
         older_groups = []
@@ -156,7 +155,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_simple(self, mock_backend):
-        now = datetime.now(tz=pytz.UTC)
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
             project=project,
@@ -195,7 +194,7 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     def test_simple(self, mock_backend):
-        now = datetime.now(tz=pytz.UTC)
+        now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
             project=project,

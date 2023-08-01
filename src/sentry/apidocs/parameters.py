@@ -431,3 +431,13 @@ class TeamParams:
 Specify `"0"` to return team details that do not include projects.
 """,
     )
+
+
+class ReplayParams:
+    REPLAY_ID = OpenApiParameter(
+        name="replay_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="""The id of the replay you'd like to retrieve.""",
+    )

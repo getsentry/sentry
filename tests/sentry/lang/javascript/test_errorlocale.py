@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from copy import deepcopy
+from typing import Any
 from unittest import TestCase
 
 from sentry.lang.javascript.errorlocale import translate_exception, translate_message
@@ -81,7 +84,7 @@ class ErrorLocaleTest(TestCase):
         }
 
     def test_translate_exception_missing(self):
-        data = {}
+        data: dict[str, Any] = {}
         translate_exception(data)
         assert data == {}
 

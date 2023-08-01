@@ -3,7 +3,7 @@ from django.db import connection
 
 from sentry import deletions
 from sentry.models import ApiApplication, SentryApp, SentryAppInstallation, User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

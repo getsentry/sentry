@@ -34,7 +34,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 const COLUMN_TITLES = [
   t('Endpoint'),
   DataTitles.throughput,
-  DataTitles.p95,
+  DataTitles.avg,
   DataTitles.errorCount,
   DataTitles.timeSpent,
 ];
@@ -157,7 +157,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             'equation|(percentile_range(transaction.duration,0.95,lessOrEquals'
           )
         ) {
-          deltaColumnMap['p95()'] = col;
+          deltaColumnMap['avg()'] = col;
         }
       });
     }

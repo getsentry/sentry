@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.utils.samples import create_sample_event
 
 

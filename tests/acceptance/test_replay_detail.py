@@ -10,7 +10,7 @@ from sentry.replays.testutils import (
     mock_segment_init,
     mock_segment_nagivation,
 )
-from sentry.testutils import ReplaysAcceptanceTestCase
+from sentry.testutils.cases import ReplaysAcceptanceTestCase
 
 FEATURE_NAME = ["organizations:session-replay"]
 

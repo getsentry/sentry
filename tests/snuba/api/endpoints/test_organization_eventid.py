@@ -3,7 +3,7 @@ from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 from freezegun import freeze_time
 
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 

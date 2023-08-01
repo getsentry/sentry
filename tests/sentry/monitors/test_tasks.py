@@ -14,7 +14,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks import check_missing, check_timeout
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CheckMonitorsTest(TestCase):

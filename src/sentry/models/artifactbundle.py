@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import zipfile
 from enum import Enum
 from io import BytesIO
@@ -39,7 +41,7 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional["SourceFileType"]:
+    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional[SourceFileType]:
         if lowercase_key is None:
             return None
 
@@ -87,8 +89,8 @@ class ArtifactBundle(Model):
 
     @classmethod
     def get_release_associations(
-        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> List[Mapping[str, str]]:
+        cls, organization_id: int, artifact_bundle: ArtifactBundle
+    ) -> List[Mapping[str, str | None]]:
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
         )

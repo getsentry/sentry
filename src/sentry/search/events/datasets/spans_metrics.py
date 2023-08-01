@@ -321,37 +321,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="duration",
                 ),
-                fields.MetricsFunction(
-                    "percentile_percent_change",
-                    required_args=[
-                        fields.MetricArg(
-                            "column",
-                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
-                            allow_custom_measurements=False,
-                        ),
-                        fields.NumberRange("percentile", 0, 1),
-                    ],
-                    calculated_args=[resolve_metric_id],
-                    snql_percentile=self._resolve_percentile_percent_change,
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "http_error_count_percent_change",
-                    snql_distribution=self._resolve_http_error_count_percent_change,
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "epm_percent_change",
-                    snql_distribution=self._resolve_epm_percent_change,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percent_change",
-                ),
-                fields.MetricsFunction(
-                    "eps_percent_change",
-                    snql_distribution=self._resolve_eps_percent_change,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percent_change",
-                ),
             ]
         }
 
@@ -523,62 +492,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 if interval is None
                 else Function("divide", [args["interval"], interval]),
             ],
-            alias,
-        )
-
-    def _resolve_http_error_count_percent_change(
-        self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_http_error_count({}, None, self.builder.first_half_condition())
-        second_half = self._resolve_http_error_count({}, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_percentile_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = function_aliases.resolve_metrics_percentile(
-            args=args,
-            alias=None,
-            fixed_percentile=args["percentile"],
-            extra_conditions=[self.builder.first_half_condition()],
-        )
-        second_half = function_aliases.resolve_metrics_percentile(
-            args=args,
-            alias=None,
-            fixed_percentile=args["percentile"],
-            extra_conditions=[self.builder.second_half_condition()],
-        )
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_epm_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_epm(args, None, self.builder.first_half_condition())
-        second_half = self._resolve_epm(args, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_eps_percent_change(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-    ) -> SelectType:
-        first_half = self._resolve_eps(args, None, self.builder.first_half_condition())
-        second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
-        return self._resolve_percent_change_function(first_half, second_half, alias)
-
-    def _resolve_percent_change_function(self, first_half, second_half, alias):
-        return self.builder.resolve_division(
-            Function(
-                "minus",
-                [second_half, first_half],
-            ),
-            first_half,
             alias,
         )
 
