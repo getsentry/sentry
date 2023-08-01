@@ -86,7 +86,7 @@ export function setPageFiltersStorage(
   };
 
   const localStorageKey = makeLocalStorageKey(
-    `${storageNamespace ? `${storageNamespace}:` : ''}${orgSlug}`
+    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
   );
 
   try {
@@ -99,9 +99,9 @@ export function setPageFiltersStorage(
 /**
  * Retrieves the page filters from local storage
  */
-export function getPageFilterStorage(orgSlug: string, storageNamespace?: string) {
+export function getPageFilterStorage(orgSlug: string, storageNamespace: string = '') {
   const localStorageKey = makeLocalStorageKey(
-    `${storageNamespace ? `${storageNamespace}:` : ''}${orgSlug}`
+    storageNamespace.length > 0 ? `${storageNamespace}:${orgSlug}` : orgSlug
   );
 
   const value = localStorage.getItem(localStorageKey);
