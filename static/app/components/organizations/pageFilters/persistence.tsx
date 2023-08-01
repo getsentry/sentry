@@ -35,7 +35,7 @@ type StoredObject = {
 export function setPageFiltersStorage(
   orgSlug: string,
   updateFilters: Set<PinnedPageFilter>,
-  storageNamespace?: string
+  storageNamespace: string = '',
 ) {
   const {selection, pinnedFilters} = PageFiltersStore.getState();
 
