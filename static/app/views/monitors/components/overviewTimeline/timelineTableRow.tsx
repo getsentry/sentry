@@ -38,7 +38,13 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
         {environments.map(({name, status}) => (
           <EnvWithStatus key={name}>
             <MonitorEnvLabel status={status}>{name}</MonitorEnvLabel>
-            {statusIconColorMap[status].icon}
+            {
+              statusIconColorMap[
+                monitor.status === MonitorStatus.DISABLED
+                  ? MonitorStatus.DISABLED
+                  : status
+              ].icon
+            }
           </EnvWithStatus>
         ))}
         {!isExpanded && (
