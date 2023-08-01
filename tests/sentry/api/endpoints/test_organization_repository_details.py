@@ -4,12 +4,19 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
+from sentry.models import (
+    Commit,
+    Integration,
+    OrganizationOption,
+    RegionScheduledDeletion,
+    Repository,
+)
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationRepositoryDeleteTest(APITestCase):
     def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data["status"] == "pending_deletion"
@@ -44,7 +51,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__lte=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo)
@@ -67,7 +74,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
 
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=repo.id, model_name="Repository", date_scheduled__gt=timezone.now()
         ).exists()
         self.assert_rename_pending_delete(response, repo, "abc123")
@@ -92,7 +99,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
+        assert RegionScheduledDeletion.objects.filter(
+            object_id=repo.id, model_name="Repository"
+        ).exists()
         self.assert_rename_pending_delete(response, repo, "abc12345")
 
     def test_delete_disabled_with_commits(self):
@@ -114,15 +123,18 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         repo = Repository.objects.get(id=repo.id)
         assert repo.status == ObjectStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(object_id=repo.id, model_name="Repository").exists()
+        assert RegionScheduledDeletion.objects.filter(
+            object_id=repo.id, model_name="Repository"
+        ).exists()
         self.assert_rename_pending_delete(response, repo)
 
     def test_put(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = Integration.objects.create(provider="example", name="example")
-        integration.add_organization(org)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         repo = Repository.objects.create(
             name="example", organization_id=org.id, status=ObjectStatus.DISABLED
@@ -141,8 +153,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = Integration.objects.create(provider="example", name="example")
-        integration.add_organization(org)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         repo = Repository.objects.create(
             name="uuid-name",
@@ -223,7 +236,8 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
-        integration = Integration.objects.create(provider="example", name="example")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", name="example")
 
         repo = Repository.objects.create(name="example", organization_id=org.id)
 
