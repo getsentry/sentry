@@ -21,6 +21,7 @@ METADATA = {
 
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest, TestCase):
+    @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = Integration.objects.create(
@@ -33,6 +34,17 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
         self.org_integration.config = {"team_table": [self.og_team]}
         self.org_integration.save()
 
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 0.093,
+            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+
         self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.og_team["id"],
             type=AlertRuleTriggerAction.Type.OPSGENIE,
@@ -40,6 +52,7 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
             integration=self.integration,
         )
 
+    @responses.activate
     def test_build_incident_attachment(self):
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
@@ -47,6 +60,16 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
         incident = self.create_incident(alert_rule=alert_rule)
         update_incident_status(
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 0.093,
+            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
         )
         self.create_alert_rule_trigger_action(
             target_identifier=self.og_team["id"],
@@ -88,9 +111,11 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
             incident, IncidentStatus(incident.status), metric_value
         )
 
+    @responses.activate
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
+    @responses.activate
     def test_fire_metric_alert_multiple_teams(self):
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         self.org_integration.config["team_table"].append(team2)
@@ -98,6 +123,7 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
 
         self.run_fire_test()
 
+    @responses.activate
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
@@ -120,6 +146,7 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
 
         assert len(responses.calls) == 0
 
+    @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
     def test_missing_integration(self, mock_logger):
         alert_rule = self.create_alert_rule()
@@ -138,6 +165,7 @@ class OpsgenieActionHandlerTest(FireTest, TestCase):
             == "Opsgenie integration removed, but the rule is still active."
         )
 
+    @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
     def test_missing_team(self, mock_logger):
         alert_rule = self.create_alert_rule()
