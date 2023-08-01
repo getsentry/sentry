@@ -589,7 +589,7 @@ class _RemoteSiloCall:
                     self.path,
                     data,
                     content_type=f"application/json; charset={_RPC_CONTENT_CHARSET}",
-                    **{f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()},
+                    **{f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()},  # type: ignore
                 )
 
     def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:

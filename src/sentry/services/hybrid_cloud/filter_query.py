@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVa
 from django.db.models import Model, QuerySet
 
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
@@ -109,8 +110,13 @@ class FilterQueryDatabaseImpl(
         serializer: Optional[SERIALIZER_ENUM] = None,
     ) -> List[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
+        from sentry.services.hybrid_cloud.user import RpcUser
 
-        if as_user is not None and not isinstance(as_user, RpcUser):
+        if (
+            as_user is not None
+            and not isinstance(as_user, RpcUser)
+            and SiloMode.get_current_mode() != SiloMode.MONOLITH
+        ):
             # Frequent cause of bugs that type-checking doesn't always catch
             raise TypeError("`as_user` must be serialized first")
 
