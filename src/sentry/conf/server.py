@@ -3626,3 +3626,6 @@ SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
 
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
+
+# TODO: Move this to a remote key management service.
+REPLAYS_KEK = b'\xfe\xc2\xf6\xf6O\x8e\x8a\x15"\x99Z\x8b\xbc\xdd\xb3N'

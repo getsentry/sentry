@@ -6,9 +6,12 @@ from sentry.db.models import Model, region_silo_only_model
 
 @region_silo_only_model
 class BlobRangeModel(Model):
+    __include_in_export__ = False
+
+    end = models.IntegerField()
+    filename = models.CharField()
     key = models.CharField(db_index=True)
     start = models.IntegerField()
-    stop = models.IntegerField()
     dek = models.BinaryField()
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 

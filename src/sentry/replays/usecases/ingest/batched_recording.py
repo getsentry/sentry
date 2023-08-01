@@ -6,12 +6,13 @@ from io import BytesIO
 from typing import List, Optional, TypedDict
 
 import msgpack
+from django.conf import settings
 from sentry_kafka_schemas import codecs, get_codec
 
 from sentry import options
+from sentry.models import BlobRangeModel
 from sentry.models.files.utils import get_storage
 from sentry.replays.usecases.ingest import MissingRecordingSegmentHeaders, process_headers
-from sentry.utils.crypt import generate_key
 from sentry.utils.crypt_envelope import envelope_encrypt
 
 logger = logging.getLogger()
@@ -87,7 +88,7 @@ def prepare_recording_message_batch_item(message: RecordingSegment) -> Processed
     #
     # Specific to the replays use case, a 90-day TTL is applied to _all_ blobs regardless of
     # retention period.
-    kek = generate_key()
+    kek = settings.REPLAYS_KEK
     dek, encrypted_message = envelope_encrypt(kek, message["payload"])
 
     # Return a staged recording segment object.
@@ -155,5 +156,11 @@ def _make_storage_options() -> Optional[dict]:
 
 
 def bulk_insert_file_part_rows(rows: List[RecordingFilePartRow]) -> None:
-    # TODO
-    return None
+    BlobRangeModel.objects.bulk_create(
+        [
+            BlobRangeModel(
+                key=row.key, filename=row.filename, start=row.start, end=row.end, dek=row.dek
+            )
+            for row in rows
+        ]
+    )
