@@ -1,27 +1,14 @@
 from __future__ import annotations
 
 import responses
-from requests import Request
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleStatus,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
-)
-from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration
-from sentry.models.actor import get_actor_for_user
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.incidents.models import AlertRule
+from sentry.models import AuditLogEntry
 from sentry.testutils.cases import APITestCase
-from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 
 @region_silo_test(stable=True)
