@@ -517,9 +517,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
+        tracing_without_performance_enabled = features.has(
+            "organizations:performance-tracing-without-performance",
+            organization,
+            actor=request.user,
+        )
         with self.handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params)
-            if len(transactions) == 0:
+            if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
