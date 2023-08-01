@@ -64,7 +64,7 @@ def get_title_link(
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
-    provider: ExternalProviders,
+    provider: ExternalProviders = ExternalProviders.SLACK,
     rule_id: int | None = None,
 ) -> str:
     other_params = {}
