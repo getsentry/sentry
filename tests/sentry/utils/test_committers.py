@@ -11,7 +11,7 @@ from sentry.models import Commit, CommitAuthor, GroupRelease, Release, ReleaseCo
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.integrations.integration import Integration
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test

@@ -75,9 +75,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
         integration = integration_service.get_integration(integration_id=integration_id)
-        installation = integration_service.get_installation(
-            integration=integration, organization_id=repo.organization_id
-        )
+        installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
         try:

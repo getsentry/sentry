@@ -4,7 +4,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 
-import pytz
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
@@ -70,6 +69,7 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query, fo
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
@@ -239,12 +239,18 @@ class GroupSerializerBase(Serializer, ABC):
 
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
-        user_ids = {r[-1] for r in release_resolutions.values()}
-        user_ids.update(r.actor_id for r in ignore_items.values() if r.actor_id is not None)
+        user_ids = {
+            user_id
+            for user_id in itertools.chain(
+                (r[-1] for r in release_resolutions.values()),
+                (r.actor_id for r in ignore_items.values()),
+            )
+            if user_id is not None
+        }
         if user_ids:
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": user_ids, "is_active": True},
-                as_user=user,
+                as_user=serialize_generic_user(user),
             )
             actors = {id: u for id, u in zip(user_ids, serialized_users)}
         else:
@@ -546,11 +552,11 @@ class GroupSerializerBase(Serializer, ABC):
                     last_seen = item["last_seen"]
 
         if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
+            return datetime.now(timezone.utc) - timedelta(days=30)
 
         return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
+            min(last_seen - timedelta(days=1), datetime.now(timezone.utc) - timedelta(days=14)),
+            datetime.now(timezone.utc) - timedelta(days=90),
         )
 
     @staticmethod
@@ -649,18 +655,12 @@ class GroupSerializerBase(Serializer, ABC):
         integrations = integration_service.get_integrations(organization_id=org_id)
         for integration in integrations:
             if not (
-                integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
-                )
-                or integration_service.has_feature(
-                    provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
-                )
+                integration.has_feature(feature=IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
             ):
                 continue
 
-            install = integration_service.get_installation(
-                integration=integration, organization_id=org_id
-            )
+            install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
                 safe_execute(
                     install.get_annotations_for_group_list,

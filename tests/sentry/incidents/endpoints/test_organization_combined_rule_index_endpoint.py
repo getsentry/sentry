@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
 import requests
 from freezegun import freeze_time
 
@@ -9,7 +8,7 @@ from sentry.models import Rule
 from sentry.models.rule import RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -71,14 +70,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
             owner=self.team.actor.get_actor_tuple(),
         )
         self.other_alert_rule = self.create_alert_rule(
             name="other alert rule",
             organization=self.org,
             projects=[self.project2],
-            date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=5).replace(tzinfo=timezone.utc),
             owner=self.team.actor.get_actor_tuple(),
         )
         self.issue_rule = self.create_issue_alert_rule(
@@ -88,14 +87,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
             name="yet another alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
             owner=self.team2.actor.get_actor_tuple(),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
@@ -171,14 +170,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="!1?",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
             owner=self.team.actor.get_actor_tuple(),
         )
         alert_rule1 = self.create_alert_rule(
             name="!1?zz",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
             owner=self.team.actor.get_actor_tuple(),
         )
 
@@ -303,12 +302,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=pytz.UTC),
+            date_added=date_added.replace(tzinfo=timezone.utc),
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
-            date_added=date_added.replace(tzinfo=pytz.UTC),
+            date_added=date_added.replace(tzinfo=timezone.utc),
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project]
@@ -352,12 +351,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=pytz.UTC),
+            date_added=date_added.replace(tzinfo=timezone.utc),
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=date_added.replace(tzinfo=pytz.UTC),
+            date_added=date_added.replace(tzinfo=timezone.utc),
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]
@@ -396,7 +395,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
             }
         )
 
@@ -466,7 +465,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.an_unassigned_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
             owner=None,
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -514,7 +513,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
                 "owner": self.team.actor,
             }
         )
@@ -544,7 +543,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="alert rule",
             organization=another_org,
             projects=[another_project],
-            date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
             owner=another_org_team.actor.get_actor_tuple(),
         )
 
@@ -555,7 +554,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
                 "owner": another_org_team.actor,
             }
         )
@@ -825,7 +824,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="the best rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=1).replace(tzinfo=pytz.UTC),
+            date_added=before_now(minutes=1).replace(tzinfo=timezone.utc),
             owner=team.actor.get_actor_tuple(),
         )
         self.create_issue_alert_rule(
@@ -835,7 +834,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=2).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=2).replace(tzinfo=timezone.utc),
                 "owner": team.actor,
             }
         )
@@ -858,7 +857,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
-        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=pytz.UTC)
+        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
 
     def test_project_deleted(self):
         from sentry.models import ScheduledDeletion

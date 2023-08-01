@@ -16,6 +16,7 @@ from typing import (
     Iterable,
     Mapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
     TypeVar,
@@ -178,6 +179,10 @@ class RpcModel(pydantic.BaseModel):
             fields[rpc_field_name] = value
 
         return cls(**fields)
+
+
+class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore
+    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
 
 
 ServiceInterface = TypeVar("ServiceInterface")

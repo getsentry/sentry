@@ -12,7 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json

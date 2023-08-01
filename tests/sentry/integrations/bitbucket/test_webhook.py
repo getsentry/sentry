@@ -6,7 +6,7 @@ from typing import Any
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 BAD_IP = "109.111.111.10"

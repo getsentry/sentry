@@ -1,7 +1,7 @@
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 
 

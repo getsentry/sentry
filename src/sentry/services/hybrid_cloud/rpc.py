@@ -104,7 +104,7 @@ class RpcMethodSignature:
         parameters = list(inspect.signature(self._base_method).parameters.values())
         parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     _RETURN_MODEL_ATTR = "value"
 
@@ -123,7 +123,7 @@ class RpcMethodSignature:
         self._validate_type_token(return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
-        return pydantic.create_model(name, **field_definitions)  # type: ignore
+        return pydantic.create_model(name, **field_definitions)  # type: ignore[call-overload]
 
     def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
@@ -571,27 +571,6 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     secret = settings.RPC_SHARED_SECRET[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
     return f"rpc0:{signature}"
-
-
-@dataclass(frozen=True)
-class RpcSenderCredentials:
-    """Credentials for sending remote procedure calls.
-
-    This implementation is for dev environments only, and presumes that the
-    credentials can be picked up from Django settings. A production implementation
-    will likely look different.
-    """
-
-    is_allowed: bool = False
-    control_silo_api_token: str | None = None
-    control_silo_address: str | None = None
-
-    @classmethod
-    def read_from_settings(cls) -> RpcSenderCredentials:
-        setting_values = settings.DEV_HYBRID_CLOUD_RPC_SENDER
-        if isinstance(setting_values, str):
-            setting_values = json.loads(setting_values)
-        return cls(**setting_values) if setting_values else cls()
 
 
 class RpcSendException(RpcServiceUnimplementedException):

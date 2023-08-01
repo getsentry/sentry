@@ -16,7 +16,7 @@ from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingT
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 
 
 def test_multiprocessing_strategy():

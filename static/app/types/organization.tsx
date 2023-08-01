@@ -246,12 +246,12 @@ export type SavedQueryState = {
 };
 
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
-export type EventsGeoData = {count: number; 'geo.country_code': string}[];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   end?: number;
+  isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;

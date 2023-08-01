@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+import string
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
 
 from django.conf import settings
@@ -80,7 +82,7 @@ def get_rate_limit_key(
     if is_api_token_auth(request_auth) and request_user:
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken):
+        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
             token_id = request_auth.entity_id
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
@@ -117,11 +119,17 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: str) -> int | None:
+def get_organization_id_from_token(token_id: int) -> Any:
     from sentry.models import SentryAppInstallation
 
     installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
-    return installation.organization_id if installation else None
+
+    # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
+    # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
+    if not installation:
+        return random.choice(string.ascii_letters)
+
+    return installation.organization_id
 
 
 def get_rate_limit_config(

@@ -1,4 +1,4 @@
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 
 
 class ApiTokensTest(AcceptanceTestCase):

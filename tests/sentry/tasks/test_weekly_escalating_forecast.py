@@ -1,8 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from unittest.mock import MagicMock, patch
-
-import pytz
 
 from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
 from sentry.models.group import Group, GroupStatus
@@ -59,7 +57,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             )
 
             run_escalating_forecast()
-            approximate_date_added = datetime.now(pytz.utc)
+            approximate_date_added = datetime.now(timezone.utc)
             fetched_forecast = EscalatingGroupForecast.fetch(
                 group_list[0].project.id, group_list[0].id
             )
@@ -86,7 +84,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             )
 
             run_escalating_forecast()
-            approximate_date_added = datetime.now(pytz.utc)
+            approximate_date_added = datetime.now(timezone.utc)
             for i in range(len(group_list)):
                 fetched_forecast = EscalatingGroupForecast.fetch(
                     group_list[i].project.id, group_list[i].id

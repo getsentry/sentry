@@ -9,7 +9,7 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     organization_mapping_service,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
