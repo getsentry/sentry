@@ -18,7 +18,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/region/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/region/",
             verify_request_params(query_params, headers),
         )
 
@@ -36,12 +36,12 @@ class ApiGatewayTest(ApiGatewayTestCase):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/region/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"http://region1.testserver/organizations/{self.organization.slug}/control/",
+            f"http://region.internal.sentry.io/organizations/{self.organization.slug}/control/",
             json={"proxy": True},
         )
 
