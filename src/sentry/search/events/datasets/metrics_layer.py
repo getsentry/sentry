@@ -123,6 +123,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -139,6 +140,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -155,6 +157,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -171,6 +174,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -187,6 +191,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
+                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -200,6 +205,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
+                    # Not marked as a percentile as this is equivalent to just `max`
                     snql_metric_layer=lambda args, alias: self._resolve_percentile(args, alias, 1),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
@@ -274,6 +280,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         ),
                         fields.NumberRange("percentile", 0, 1),
                     ],
+                    is_percentile=True,
                     snql_metric_layer=self._resolve_percentile,
                     default_result_type="duration",
                 ),

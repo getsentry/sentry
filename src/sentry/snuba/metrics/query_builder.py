@@ -149,7 +149,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
 
 
 def resolve_tags(
@@ -1233,7 +1233,7 @@ class SnubaResultConverter:
         # Creating this dictionary serves the purpose of having a mapping from the alias of a groupBy column to the
         # original groupBy column, and we need this to determine for which tag values we don't need to reverse resolve
         # in the indexer. As an example, we do not want to reverse resolve tag values for project_ids.
-        # Another exception is `team_key_transaction` derived op since we don't want to reverse resolve its value as
+        # Another exception is `eam_key_transaction` derived op since we don't want to reverse resolve its value as
         # it is just a boolean. Therefore we rely on creating a mapping from the alias to the operation in this case
         # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
