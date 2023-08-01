@@ -12,7 +12,7 @@ from sentry.sentry_metrics.use_case_id_registry import QueryConfig, get_query_co
 from sentry.utils.snuba import bulk_snql_query
 
 from ..timeframe import resolve_granularity
-from ..transform import QueryVisitor
+from ..transform import Primitive, QueryVisitor
 from ..types import (
     AggregationFn,
     ArithmeticFn,
@@ -378,11 +378,5 @@ class EntityExtractor(QueryVisitor[Set[Entity]]):
     def _visit_variable(self, variable: Variable) -> Set[Entity]:
         return set()
 
-    def _visit_str(self, string: str) -> Set[Entity]:
-        return set()
-
-    def _visit_int(self, value: int) -> Set[Entity]:
-        return set()
-
-    def _visit_float(self, value: float) -> Set[Entity]:
+    def _visit_literal(self, value: Primitive) -> Set[Entity]:
         return set()

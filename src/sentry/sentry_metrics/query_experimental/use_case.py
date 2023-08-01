@@ -7,7 +7,7 @@ from typing import Set
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
-from .transform import QueryVisitor
+from .transform import Primitive, QueryVisitor
 from .types import Filter, Function, InvalidMetricsQuery, MetricName, SeriesQuery, parse_mri
 
 
@@ -70,11 +70,5 @@ class UseCaseExtractor(QueryVisitor[Set[UseCaseID]]):
     def _visit_variable(self, variable: MetricName) -> Set[UseCaseID]:
         return set()
 
-    def _visit_str(self, string: str) -> Set[UseCaseID]:
-        return set()
-
-    def _visit_int(self, value: int) -> Set[UseCaseID]:
-        return set()
-
-    def _visit_float(self, value: float) -> Set[UseCaseID]:
+    def _visit_literal(self, value: Primitive) -> Set[UseCaseID]:
         return set()

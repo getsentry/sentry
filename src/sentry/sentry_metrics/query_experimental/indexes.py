@@ -3,15 +3,13 @@ Resolution of indexed metric names, tag keys, and tag values in metric queries
 and results.
 """
 
-from typing import Union
-
 from snuba_sdk import Column
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_query_config
 
 from .pipeline import QueryLayer
-from .transform import QueryTransform
+from .transform import Primitive, QueryTransform
 from .types import MetricName, SeriesQuery, SeriesResult, Tag
 from .use_case import get_use_case
 
@@ -90,10 +88,10 @@ class IndexerTransform(QueryTransform):
         # it is used to store the index of the metric name, tag key, or value.
         super(Column, column).__setattr__("key", str(resolved))
 
-    def _visit_str(self, string: str) -> Union[str, int]:
-        if not self.config.index_values:
-            return string
+    def _visit_literal(self, value: Primitive) -> Primitive:
+        if not self.config.index_values or not isinstance(value, str):
+            return value
 
-        if resolved := indexer.resolve(self.use_case, self.org_id, string):
+        if resolved := indexer.resolve(self.use_case, self.org_id, value):
             return resolved
         return STRING_NOT_FOUND

@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 from .pipeline import QueryLayer
-from .transform import QueryNode, QueryVisitor
+from .transform import Primitive, QueryNode, QueryVisitor
 from .types import (
     AggregationFn,
     ArithmeticFn,
@@ -294,13 +294,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         elif self._use_case != use_case:
             raise InvalidMetricsQuery("All metrics in a query must belong to the same use case")
 
-    def _visit_str(self, value: str) -> AnnotatedExpression:
-        return AnnotatedExpression(node=value, type_=ScalarType())
-
-    def _visit_int(self, value: int) -> AnnotatedExpression:
-        return AnnotatedExpression(node=value, type_=ScalarType())
-
-    def _visit_float(self, value: float) -> AnnotatedExpression:
+    def _visit_literal(self, value: Primitive) -> AnnotatedExpression:
         return AnnotatedExpression(node=value, type_=ScalarType())
 
     def _validate_filter_condition(self, condition: Function) -> None:

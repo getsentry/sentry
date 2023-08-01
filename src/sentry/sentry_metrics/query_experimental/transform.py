@@ -4,7 +4,7 @@ Utilities for transforming expressions and queries.
 
 from abc import ABC, abstractmethod
 from dataclasses import replace
-from typing import Generic, TypeVar, Union
+from typing import Generic, List, Tuple, TypeVar, Union
 
 from .types import (
     AggregationFn,
@@ -20,6 +20,7 @@ from .types import (
     Variable,
 )
 
+Primitive = Union[str, int, float, Tuple, List]
 QueryNode = Union[SeriesQuery, Expression]
 TVisited = TypeVar("TVisited")
 
@@ -52,12 +53,8 @@ class QueryVisitor(ABC, Generic[TVisited]):
             return self._visit_tag(node)
         elif isinstance(node, Variable):
             return self._visit_variable(node)
-        elif isinstance(node, str):
-            return self._visit_str(node)
-        elif isinstance(node, int):
-            return self._visit_int(node)
-        elif isinstance(node, float):
-            return self._visit_float(node)
+        elif isinstance(node, (str, int, float, list, tuple)):
+            return self._visit_literal(node)
         else:
             raise InvalidMetricsQuery(f"Expected metrics expression, received {type(node)}")
 
@@ -98,15 +95,7 @@ class QueryVisitor(ABC, Generic[TVisited]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _visit_str(self, string: str) -> TVisited:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _visit_int(self, value: int) -> TVisited:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _visit_float(self, value: float) -> TVisited:
+    def _visit_literal(self, value: Union[str, int, float, Tuple, List]) -> TVisited:
         raise NotImplementedError()
 
 
@@ -159,11 +148,5 @@ class QueryTransform(QueryVisitor[QueryNode]):
     def _visit_variable(self, variable: Variable) -> QueryNode:
         return variable
 
-    def _visit_str(self, string: str) -> Union[str, float, int]:
-        return string
-
-    def _visit_int(self, value: int) -> Union[int, float]:
-        return value
-
-    def _visit_float(self, value: float) -> Union[int, float]:
+    def _visit_literal(self, value: Primitive) -> Primitive:
         return value
