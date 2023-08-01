@@ -15,7 +15,7 @@ def backfill_next_checkin_latest(apps, schema_editor):
         if monitor_environment.next_checkin_latest is not None:
             continue
 
-        monitor_environment.next_checkin_latest = monitor_environment.next_checkin_latest
+        monitor_environment.next_checkin_latest = monitor_environment.next_checkin
         monitor_environment.save(update_fields=["next_checkin_latest"])
 
 
