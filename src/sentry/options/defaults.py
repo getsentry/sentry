@@ -1214,7 +1214,7 @@ register(
 )
 register(
     "performance.issues.http_overhead.problem-creation",
-    default=1.0,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
