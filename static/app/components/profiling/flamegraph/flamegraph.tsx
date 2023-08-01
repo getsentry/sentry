@@ -491,7 +491,6 @@ function Flamegraph(): ReactElement {
         return null;
       }
 
-      const PX_PADDING = flamegraphTheme.SIZES.CHART_PX_PADDING * window.devicePixelRatio;
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: CPUChart,
@@ -503,17 +502,12 @@ function Flamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 0,
           depthOffset: 0,
-          maxHeight: 100,
-          configSpaceTransform: new Rect(0, PX_PADDING, 0, 0),
+          maxHeight: CPUChart.configSpace.height,
         },
       });
 
       // Compute the total size of the padding and stretch the view. This ensures that
       // the total range is rendered and perfectly aligned from top to bottom.
-      const doublePaddingInConfigView = new Rect(0, 0, 1, PX_PADDING * 2).transformRect(
-        newView.fromConfigView(cpuChartCanvas.physicalSpace)
-      );
-      newView.maxHeight = newView.configView.height + doublePaddingInConfigView.height;
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
@@ -529,7 +523,6 @@ function Flamegraph(): ReactElement {
       CPUChart,
       uiFrames.minFrameDuration,
       cpuChartCanvas,
-      flamegraphTheme.SIZES.CHART_PX_PADDING,
     ]
   );
 

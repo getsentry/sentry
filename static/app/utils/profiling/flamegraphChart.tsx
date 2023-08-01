@@ -51,6 +51,8 @@ export class FlamegraphChart {
 
     this.domains.y[1] = 100;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
+
+    console.log(this.configSpace);
     this.formatter = makeFormatter(measurement.unit);
   }
 }

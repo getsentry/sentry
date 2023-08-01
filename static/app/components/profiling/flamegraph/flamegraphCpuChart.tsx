@@ -7,6 +7,7 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
@@ -38,14 +39,15 @@ export function FlamegraphCpuChart({
 }: FlamegraphChartProps) {
   const profiles = useProfiles();
   const scheduler = useCanvasScheduler(canvasPoolManager);
+  const theme = useFlamegraphTheme();
 
   const cpuChartRenderer = useMemo(() => {
     if (!cpuChartCanvasRef || !chart) {
       return null;
     }
 
-    return new FlamegraphChartRenderer(cpuChartCanvasRef, chart);
-  }, [cpuChartCanvasRef, chart]);
+    return new FlamegraphChartRenderer(cpuChartCanvasRef, chart, theme);
+  }, [cpuChartCanvasRef, chart, theme]);
 
   useEffect(() => {
     if (!cpuChartCanvas || !chart || !cpuChartView || !cpuChartRenderer) {
@@ -54,10 +56,10 @@ export function FlamegraphCpuChart({
 
     const drawCpuChart = () => {
       cpuChartRenderer.draw(
-        cpuChartView.configView.transformRect(cpuChartView.configSpaceTransform),
+        cpuChartView.configView,
         cpuChartView.configSpace,
         cpuChartCanvas.physicalSpace,
-        cpuChartView.fromTransformedConfigView(cpuChartCanvas.physicalSpace)
+        cpuChartView.fromConfigView(cpuChartCanvas.physicalSpace)
       );
     };
 

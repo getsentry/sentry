@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -8,10 +9,12 @@ export class FlamegraphChartRenderer {
   canvas: HTMLCanvasElement | null;
   chart: FlamegraphChart;
   context: CanvasRenderingContext2D;
+  theme: FlamegraphTheme;
 
-  constructor(canvas: HTMLCanvasElement, chart: FlamegraphChart) {
+  constructor(canvas: HTMLCanvasElement, chart: FlamegraphChart, theme: FlamegraphTheme) {
     this.canvas = canvas;
     this.chart = chart;
+    this.theme = theme;
 
     this.context = getContext(this.canvas, '2d');
     resizeCanvasToDisplaySize(this.canvas);
