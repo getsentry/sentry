@@ -1684,6 +1684,8 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
+    # Extract spans from transactions in Relay, and forward them via Kafka.
+    "projects:extract-standalone-spans": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
