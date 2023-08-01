@@ -15,6 +15,14 @@ from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
 
+def remove_alert_rule(request: Request, organization, alert_rule):
+    try:
+        delete_alert_rule(alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR"))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except AlreadyDeletedError:
+        return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
+
+
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     def get(self, request: Request, organization, alert_rule) -> Response:
@@ -97,12 +105,4 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request: Request, organization, alert_rule) -> Response:
-        try:
-            delete_alert_rule(
-                alert_rule, user=request.user, ip_address=request.META.get("REMOTE_ADDR")
-            )
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except AlreadyDeletedError:
-            return Response(
-                "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
-            )
+        return remove_alert_rule(request, organization, alert_rule)
