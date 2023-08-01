@@ -267,6 +267,19 @@ def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organizatio
     assert set(all_top_dogs) == set(service_top_dogs)
 
 
+@django_db_all(transaction=True)
+@all_silo_test(stable=True)
+def test_options():
+    org = Factories.create_organization()
+    organization_service.update_option(organization_id=org.id, key="test", value="a string")
+    organization_service.update_option(organization_id=org.id, key="test2", value=False)
+    organization_service.update_option(organization_id=org.id, key="test3", value=5)
+
+    assert organization_service.get_option(organization_id=org.id, key="test") == "a string"
+    assert organization_service.get_option(organization_id=org.id, key="test2") is False
+    assert organization_service.get_option(organization_id=org.id, key="test3") == 5
+
+
 class RpcOrganizationMemberTest(TestCase):
     def test_get_audit_log_metadata(self):
         org = self.create_organization(owner=self.user)
