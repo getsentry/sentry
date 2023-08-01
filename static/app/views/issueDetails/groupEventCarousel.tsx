@@ -378,17 +378,21 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           ]}
         />
         {xlargeViewport && (
-          <Button
-            size={BUTTON_SIZE}
-            onClick={copyLink}
-            icon={<IconLink />}
-            aria-label={t('Copy Link')}
-          />
+          <Tooltip title={t('Copy link to this issue event')}>
+            <Button
+              size={BUTTON_SIZE}
+              onClick={copyLink}
+              icon={<IconLink />}
+              aria-label={t('Copy Link')}
+            />
+          </Tooltip>
         )}
         {xlargeViewport && (
-          <Button size={BUTTON_SIZE} onClick={downloadJson} aria-label={t('View JSON')}>
-            {'{ }'}
-          </Button>
+          <Tooltip title={t('View JSON')}>
+            <Button size={BUTTON_SIZE} onClick={downloadJson} aria-label={t('View JSON')}>
+              {'{ }'}
+            </Button>
+          </Tooltip>
         )}
         <EventNavigationDropdown
           group={group}
