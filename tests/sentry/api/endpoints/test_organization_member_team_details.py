@@ -645,7 +645,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
                 )
 
                 assert not OrganizationMemberTeam.objects.filter(
-                    team=self.team, organizationmember=self.member
+                    team=self.team, organizationmember=member
                 ).exists()
 
     def test_access_revoked_after_leaving_team(self):
