@@ -153,6 +153,7 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
           <FeatureBadge type="new" />
         </div>
       ),
+      textValue: t('Recommended'),
       details: t('Event with the most context'),
     },
     {
