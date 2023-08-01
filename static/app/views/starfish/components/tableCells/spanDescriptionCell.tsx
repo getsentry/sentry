@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
@@ -10,7 +9,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
@@ -72,10 +71,10 @@ export function SpanDescriptionCell({
   );
 
   return (
-    <Fragment>
-      <OverflowEllipsisTextContainer>
-        {hoverOverlayProps.wrapTrigger(
-          group ? (
+    <DescriptionWrapper>
+      {hoverOverlayProps.wrapTrigger(
+        <OverflowEllipsisTextContainer>
+          {group ? (
             <Link
               to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${group}${
                 queryString ? `?${qs.stringify(queryString)}` : ''
@@ -85,15 +84,23 @@ export function SpanDescriptionCell({
             </Link>
           ) : (
             formattedDescription
-          )
-        )}
-      </OverflowEllipsisTextContainer>
+          )}
+        </OverflowEllipsisTextContainer>
+      )}
       {createPortal(<AnimatePresence>{overlayContent}</AnimatePresence>, document.body)}
-    </Fragment>
+    </DescriptionWrapper>
   );
 }
 
-const OVERLAY_OPTIONS = {position: 'right', isHoverable: true} as const;
+const DescriptionWrapper = styled('div')`
+  display: inline-flex;
+`;
+
+const OVERLAY_OPTIONS: UseHoverOverlayProps = {
+  position: 'right',
+  isHoverable: true,
+  skipWrapper: true,
+};
 
 const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
