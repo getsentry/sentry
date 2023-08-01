@@ -9,6 +9,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeatureBadge from 'sentry/components/featureBadge';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
@@ -47,6 +48,11 @@ type GroupEventCarouselProps = {
   projectSlug: string;
 };
 
+type GroupEventNavigationProps = {
+  group: Group;
+  relativeTime: string;
+};
+
 type EventNavigationButtonProps = {
   disabled: boolean;
   group: Group;
@@ -60,37 +66,12 @@ enum EventNavDropdownOption {
   RECOMMENDED = 'recommended',
   LATEST = 'latest',
   OLDEST = 'oldest',
+  CUSTOM = 'custom',
   ALL = 'all',
 }
 
 const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
-
-const EVENT_NAV_DROPDOWN_OPTIONS = [
-  {
-    value: EventNavDropdownOption.RECOMMENDED,
-    label: (
-      <div>
-        {t('Recommended')}
-        <FeatureBadge type="new" />
-      </div>
-    ),
-    details: t('Event with the most context'),
-  },
-  {
-    value: EventNavDropdownOption.LATEST,
-    label: t('Latest'),
-    details: t('Last seen event in this issue'),
-  },
-  {
-    value: EventNavDropdownOption.OLDEST,
-    label: t('Oldest'),
-    details: t('First seen event in this issue'),
-  },
-  {
-    options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
-  },
-];
 
 const copyToClipboard = (value: string) => {
   navigator.clipboard
@@ -143,7 +124,7 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({group}: {group: Group}) {
+function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
@@ -172,18 +153,51 @@ function EventNavigationDropdown({group}: {group: Group}) {
   };
 
   const selectedValue = getSelectedOption();
+  const EVENT_NAV_DROPDOWN_OPTIONS = [
+    {
+      value: EventNavDropdownOption.RECOMMENDED,
+      label: (
+        <div>
+          {t('Recommended')}
+          <FeatureBadge type="new" />
+        </div>
+      ),
+      details: t('Event with the most context'),
+    },
+    {
+      value: EventNavDropdownOption.LATEST,
+      label: t('Latest'),
+      details: t('Last seen event in this issue'),
+    },
+    {
+      value: EventNavDropdownOption.OLDEST,
+      label: t('Oldest'),
+      details: t('First seen event in this issue'),
+    },
+    ...(!selectedValue
+      ? [
+          {
+            value: EventNavDropdownOption.CUSTOM,
+            label: t('Custom Selection'),
+          },
+        ]
+      : []),
+    {
+      options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
+    },
+  ];
 
   return (
     <CompactSelect
       size="sm"
       options={EVENT_NAV_DROPDOWN_OPTIONS}
-      value={selectedValue}
+      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
       triggerLabel={
-        !selectedValue
-          ? t('Navigate Events')
-          : selectedValue === EventNavDropdownOption.RECOMMENDED
-          ? t('Recommended')
-          : undefined
+        !selectedValue ? (
+          <TimeSince date={relativeTime} />
+        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+          t('Recommended')
+        ) : undefined
       }
       menuWidth={232}
       onChange={selectedOption => {
@@ -386,7 +400,10 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             </Button>
           </Tooltip>
         )}
-        <EventNavigationDropdown group={group} />
+        <EventNavigationDropdown
+          group={group}
+          relativeTime={event.dateCreated ?? event.dateReceived}
+        />
         <NavButtons>
           {!isHelpfulEventUiEnabled && (
             <EventNavigationButton
