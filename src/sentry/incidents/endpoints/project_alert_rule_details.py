@@ -4,9 +4,11 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
-from sentry.incidents.endpoints.organization_alert_rule_details import remove_alert_rule
+from sentry.incidents.endpoints.organization_alert_rule_details import (
+    fetch_alert_rule,
+    remove_alert_rule,
+)
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -22,9 +24,10 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        serialized_alert_rule = serialize(alert_rule, request.user, AlertRuleSerializer())
+        # serialized_alert_rule = serialize(alert_rule, request.user, AlertRuleSerializer())
 
-        return Response(serialized_alert_rule)
+        # return Response(serialized_alert_rule)
+        return fetch_alert_rule(request, project.organization, alert_rule)
 
     def put(self, request: Request, project, alert_rule) -> Response:
         data = request.data
