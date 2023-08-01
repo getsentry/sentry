@@ -51,7 +51,7 @@ export const getTooltip = (
 
 export const getThroughputTitle = (spanOp?: string) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries');
+    return t('Queries Per Min');
   }
   if (defined(spanOp)) {
     return t('Requests');
