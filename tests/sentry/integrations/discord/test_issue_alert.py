@@ -9,6 +9,9 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
+from sentry.models.group import GroupStatus
+from sentry.models.release import Release
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
@@ -40,25 +43,25 @@ class DiscordIssueAlertTest(RuleTestCase):
             },
             project_id=self.project.id,
         )
-
-    @responses.activate
-    def test_basic(self):
-        rule = self.get_rule(
+        self.tags = "environment, user"
+        self.rule = self.get_rule(
             data={
                 "server": self.discord_integration.id,
                 "channel_id": self.channel_id,
+                "tags": self.tags,
             }
         )
-
-        results = list(rule.after(self.event, self.get_state()))
-
-        assert len(results) == 1
 
         responses.add(
             method=responses.POST,
             url=f"{DiscordClient.MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
+
+    @responses.activate
+    def test_basic(self):
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
         body = responses.calls[0].request.body
@@ -91,6 +94,107 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert (
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+
+    @responses.activate
+    def test_has_releases(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+        body = responses.calls[0].request.body
+        data = json.loads(bytes.decode(body, "utf-8"))
+
+        buttons = data["components"][0]["components"]
+        assert (
+            buttons[0]["custom_id"]
+            == f"{DiscordComponentCustomIds.RESOLVE_DIALOG}:{self.event.group.id}"
+        )
+        assert (
+            buttons[1]["custom_id"] == f"{DiscordComponentCustomIds.ARCHIVE}:{self.event.group.id}"
+        )
+        assert (
+            buttons[2]["custom_id"]
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.discord.message_builder.issues.Group.get_status",
+        return_value=GroupStatus.RESOLVED,
+    )
+    def test_resolved(self, mock_get_status):
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+        body = responses.calls[0].request.body
+        data = json.loads(bytes.decode(body, "utf-8"))
+
+        buttons = data["components"][0]["components"]
+        assert (
+            buttons[0]["custom_id"]
+            == f"{DiscordComponentCustomIds.UNRESOLVE}:{self.event.group.id}"
+        )
+        assert (
+            buttons[1]["custom_id"] == f"{DiscordComponentCustomIds.ARCHIVE}:{self.event.group.id}"
+        )
+        assert (
+            buttons[2]["custom_id"]
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.discord.message_builder.issues.Group.get_status",
+        return_value=GroupStatus.IGNORED,
+    )
+    def test_ignored(self, mock_get_status):
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+        body = responses.calls[0].request.body
+        data = json.loads(bytes.decode(body, "utf-8"))
+
+        buttons = data["components"][0]["components"]
+        assert (
+            buttons[0]["custom_id"] == f"{DiscordComponentCustomIds.RESOLVE}:{self.event.group.id}"
+        )
+        assert (
+            buttons[1]["custom_id"]
+            == f"{DiscordComponentCustomIds.MARK_ONGOING}:{self.event.group.id}"
+        )
+        assert (
+            buttons[2]["custom_id"]
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+        )
+
+    def test_integration_removed(self):
+        integration_service.delete_integration(integration_id=self.discord_integration.id)
+        results = list(self.rule.after(self.event, self.get_state()))
+        assert len(results) == 0
+
+    @mock.patch("sentry.integrations.discord.actions.form.validate_channel_id")
+    def test_get_form_instance(self, mock_validate_channel_id):
+        form = self.rule.get_form_instance()
+        form.full_clean()
+        assert form.is_valid()
+        assert int(form.cleaned_data["server"]) == self.discord_integration.id
+        assert form.cleaned_data["channel_id"] == self.channel_id
+        assert form.cleaned_data["tags"] == self.tags
+
+    def test_label(self):
+        label = self.rule.render_label()
+        assert (
+            label
+            == "Send a notification to the Cool server Discord server in the channel with ID: channel-id and show tags [environment, user] in the notification."
         )
 
 
