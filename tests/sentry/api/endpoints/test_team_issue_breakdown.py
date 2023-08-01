@@ -4,10 +4,9 @@ from django.utils.timezone import now
 from freezegun import freeze_time
 
 from sentry.models import GroupAssignee, GroupEnvironment, GroupHistoryStatus
-from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @freeze_time()
@@ -20,9 +19,8 @@ class TeamIssueBreakdownTest(APITestCase):
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
-        with assume_test_silo_mode(SiloMode.REGION):
-            GroupAssignee.objects.assign(group1, self.user)
-            GroupAssignee.objects.assign(group2, self.user)
+        GroupAssignee.objects.assign(group1, self.user)
+        GroupAssignee.objects.assign(group2, self.user)
 
         self.create_group_history(
             group=group1, date_added=before_now(days=5), status=GroupHistoryStatus.UNRESOLVED
