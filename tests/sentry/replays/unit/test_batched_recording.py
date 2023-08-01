@@ -1,15 +1,22 @@
+import base64
 import uuid
+from typing import List
 
 import msgpack
 
+from sentry.models import BlobRangeModel
 from sentry.replays.usecases.ingest.batched_recording import (
     ProcessedRecordingSegment,
+    RecordingFilePartRow,
     RecordingSegment,
+    bulk_insert_file_part_rows,
     decode_recording_message,
     prepare_batched_commit,
     prepare_recording_message_batch_item,
 )
+from sentry.utils.crypt import encrypt, generate_key
 from sentry.utils.crypt_envelope import envelope_decrypt
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def test_prepare_batched_commit():
@@ -112,3 +119,23 @@ def test_decode_recording_message_invalid_payload():
 
     # Message was not msgpack encoded.
     assert decode_recording_message(b"hello") is None
+
+
+@django_db_all
+def test_bulk_insert_file_part_rows():
+    """Test "bulk_insert_file_part_rows" function."""
+    nonce, tag, message = encrypt(generate_key(), generate_key())
+    dek = nonce + tag + message
+
+    parts: List[RecordingFilePartRow] = [
+        {"dek": dek, "end": 10, "start": 1, "filename": "a", "key": "b"}
+    ]
+    bulk_insert_file_part_rows(parts)
+
+    blob_range = BlobRangeModel.objects.all()[0]
+    assert isinstance(blob_range, BlobRangeModel)
+    assert base64.b64decode(blob_range.dek) == dek
+    assert blob_range.end == 10
+    assert blob_range.start == 1
+    assert blob_range.filename == "a"
+    assert blob_range.key == "b"
