@@ -517,13 +517,16 @@ class MonitorEnvironment(Model):
         elif reason == MonitorFailure.DURATION:
             new_status = MonitorStatus.TIMEOUT
 
+        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base)
+
         affected = (
             type(self)
             .objects.filter(
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
+                next_checkin=next_checkin_latest,
+                next_checkin_latest=next_checkin_latest,
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -637,9 +640,11 @@ class MonitorEnvironment(Model):
         return True
 
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        next_checkin_latest = self.monitor.get_next_scheduled_checkin_with_margin(ts)
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
+            "next_checkin": next_checkin_latest,
+            "next_checkin_latest": next_checkin_latest,
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
