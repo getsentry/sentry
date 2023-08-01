@@ -393,7 +393,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         )
         ip_address = request.META["REMOTE_ADDR"]
 
-        # Since we cannot guarantee that a task runes after the transaction completes,
+        # Since we cannot guarantee that a task runs after the transaction completes,
         #  trigger the task queueing on transaction commit
         transaction.on_commit(
             lambda: task.delay(
