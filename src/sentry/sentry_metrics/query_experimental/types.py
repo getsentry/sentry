@@ -292,6 +292,17 @@ class SeriesQuery:
         # TODO: Move this to a query builder, since we also need groups etc.
         raise NotImplementedError("TODO")
 
+    def bind(self, params: VariableMap) -> "SeriesQuery":
+        """
+        Bind the specified variables to this query.
+
+        Raises ``InvalidMetricsQuery`` if a referenced variable is missing from
+        the variable map.
+        """
+        from .variables import bind_variables
+
+        return bind_variables(self, params)
+
     def __hash__(self):
         return hash(self._id)
 

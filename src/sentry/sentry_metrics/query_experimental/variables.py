@@ -2,7 +2,7 @@ from .transform import QueryTransform
 from .types import Expression, InvalidMetricsQuery, SeriesQuery, Variable, VariableMap
 
 
-def map_variables(query: SeriesQuery, mapping: VariableMap) -> SeriesQuery:
+def bind_variables(query: SeriesQuery, mapping: VariableMap) -> SeriesQuery:
     """
     Map variables in a series query to columns.
     """
