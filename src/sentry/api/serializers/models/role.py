@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping
+from typing import Any, Collection, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -8,13 +8,18 @@ from sentry.models import User
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
 
 
-class RoleSerializerResponse(TypedDict):
+class RoleSerializerResponse(TypedDict, total=False):
     id: str
     name: str
     desc: str
-    scopes: List[str]
+    scopes: Collection[str]
     is_global: bool
     allowed: bool
+    isAllowed: bool
+    isRetired: bool
+    isGlobal: bool
+    minimumTeamRole: str
+    isMinimumRoleFor: Optional[str]
 
 
 class RoleSerializer(Serializer):
@@ -48,7 +53,7 @@ class RoleSerializer(Serializer):
 
 
 class OrganizationRoleSerializer(RoleSerializer):
-    def serialize(self, obj: OrganizationRole, attrs, user, **kwargs):
+    def serialize(self, obj: OrganizationRole, attrs, user, **kwargs):  # type: ignore[override]
         serialized = super().serialize(obj, attrs, user, **kwargs)
         serialized.update(
             {
@@ -61,7 +66,7 @@ class OrganizationRoleSerializer(RoleSerializer):
 
 
 class TeamRoleSerializer(RoleSerializer):
-    def serialize(self, obj: TeamRole, attrs, user, **kwargs):
+    def serialize(self, obj: TeamRole, attrs, user, **kwargs):  # type: ignore[override]
         serialized = super().serialize(obj, attrs, user, **kwargs)
         serialized.update(
             {

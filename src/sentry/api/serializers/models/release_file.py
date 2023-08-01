@@ -1,4 +1,5 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from typing import Optional
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import Distribution, ReleaseFile
@@ -29,8 +30,8 @@ def decode_release_file_id(id: str):
     except ValueError:
         decoded = urlsafe_b64decode(id).decode()
         dist, url = decoded.split("_", 1)
-        dist = dist or None
-        return dist, url
+        ret_dist: Optional[str] = dist or None
+        return ret_dist, url
 
 
 @register(ReleaseFile)
