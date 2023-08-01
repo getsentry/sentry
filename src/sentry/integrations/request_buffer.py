@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 
 from django.conf import settings
@@ -20,13 +19,9 @@ class IntegrationRequestBuffer:
 
     def __init__(self, key):
         self.integrationkey = key
-        logger = logging.getLogger(__name__)
 
-        try:
-            cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
-            self.client = redis.redis_clusters.get(cluster_id)
-        except KeyError as e:
-            logger.info("no_redis_cluster", extra={"error": e, "cluster_id": cluster_id})
+        cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
+        self.client = redis.redis_clusters.get(cluster_id)
 
     def _convert_obj_to_dict(self, redis_object):
         """
