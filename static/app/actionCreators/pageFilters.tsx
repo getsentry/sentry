@@ -333,9 +333,9 @@ export function updateProjects(
   }
 
   PageFiltersStore.updateProjects(projects, options?.environments ?? null);
+  updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
 
-  updateParams({project: projects, environment: options?.environments}, router, options);
   if (options?.environments) {
     persistPageFilters('environments', options);
   }
