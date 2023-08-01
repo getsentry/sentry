@@ -91,7 +91,7 @@ function Container({
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
 
-  const isStarfishPage = router.location.pathname.startsWith('/starfish');
+  const isStarfishPage = router?.location?.pathname?.startsWith('/starfish');
 
   const doInitialization = () => {
     initializeUrlState({
