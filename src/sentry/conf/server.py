@@ -1419,6 +1419,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Enables higher limit for alert rules
+    "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
@@ -1557,6 +1559,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
     # Enable FE/BE for tracing without performance
     "organizations:performance-tracing-without-performance": False,
+    # Enable root cause analysis for statistical detector perf issues
+    "organizations:statistical-detectors-root-cause-analysis": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -2411,6 +2415,9 @@ SENTRY_USE_PROFILING = False
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
 
+# This flag activates consuming GroupAttribute messages in the development environment
+SENTRY_USE_GROUP_ATTRIBUTES = False
+
 # This flag activates code paths that are specific for customer domains
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
@@ -2600,6 +2607,9 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 if settings.SENTRY_USE_ISSUE_OCCURRENCE
                 else "",
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
+                if settings.SENTRY_USE_GROUP_ATTRIBUTES
+                else "",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -3087,6 +3097,7 @@ KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
+KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -3132,6 +3143,7 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_INGEST_MONITORS: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
+    KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
 }
 
 
@@ -3434,6 +3446,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
 MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
@@ -3474,6 +3487,8 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
 # USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
 # Split databases are also required for the USE_SILOS devserver flow.

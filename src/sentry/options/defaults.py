@@ -919,12 +919,6 @@ register(
 # Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
 register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Flag to determine whether performance metrics indexer should index tag
-# values or not
-register(
-    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1425,3 +1419,6 @@ register(
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The flag activates whether to send group attributes messages to kafka
+register("issues.group_attributes.send_kafka", default=False, flags=FLAG_MODIFIABLE_BOOL)
