@@ -16,7 +16,7 @@ from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequestComment
+from sentry.models.pullrequest import CommentType, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -138,6 +138,7 @@ def create_or_update_comment(
     comment_body: str,
     pullrequest_id: int,
     issue_list: List[int],
+    comment_type: CommentType = CommentType.MERGED_PR,
 ):
     # client will raise ApiError if the request is not successful
     if pr_comment is None:
@@ -150,6 +151,7 @@ def create_or_update_comment(
             created_at=current_time,
             updated_at=current_time,
             group_ids=issue_list,
+            comment_type=comment_type,
         )
     else:
         resp = client.update_comment(
@@ -197,7 +199,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     pr_comment = None
-    pr_comment_query = PullRequestComment.objects.filter(pull_request__id=pullrequest_id)
+    pr_comment_query = PullRequestComment.objects.filter(
+        pull_request__id=pullrequest_id, comment_type=CommentType.MERGED_PR
+    )
     if pr_comment_query.exists():
         pr_comment = pr_comment_query[0]
 
