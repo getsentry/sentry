@@ -118,6 +118,7 @@ const ShortIdCopyable = styled('div')`
   align-items: center;
 
   button[aria-haspopup] {
+    display: block;
     opacity: 0;
     transition: opacity 50ms linear;
   }
