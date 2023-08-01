@@ -23,5 +23,4 @@ targets:
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-  - name: pypi
   - name: github
