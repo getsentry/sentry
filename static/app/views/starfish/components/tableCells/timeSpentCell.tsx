@@ -13,7 +13,7 @@ interface Props {
 
 export function TimeSpentCell({percentage, total}: Props) {
   const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
-  const formattedTotal = getDuration((total ?? 0) / 1000, 2, true, true);
+  const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
   const tooltip = tct(
     'The application spent [percentage] of its total time on this span.',
     {
