@@ -750,6 +750,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
+            allow_postgres_only_search = True
+        else:
+            allow_postgres_only_search = features.has(
+                "organizations:issue-search-allow-postgres-only-search", projects[0].organization
+            )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -782,19 +787,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
         if (
-            cursor is None
+            allow_postgres_only_search
+            and cursor is None
             and sort_by == "date"
-            # only apply this optimization if `end` is really close to now (non-absolute time range filter)
-            # otherwise if end is far in the past, `group.filter(last_seen_lte=end)` would
-            # exclude issues where group.last_seen is after end, we want to delegate to snuba to get a more 'correct'
-            # accounting for when events happened
-            and now - timedelta(minutes=1) < end
             and
             # This handles tags and date parameters for search filters.
             not [
                 sf
                 for sf in (search_filters or ())
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
+                if sf.key.name not in self.postgres_only_fields.union(["date", "timestamp"])
             ]
         ):
             group_queryset = (
