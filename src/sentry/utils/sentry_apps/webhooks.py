@@ -7,6 +7,7 @@ from requests import Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
+from sentry import options
 from sentry.http import safe_urlopen
 from sentry.models.integrations.sentry_app import track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
@@ -62,7 +63,7 @@ def send_and_save_webhook_request(
             url=url,
             data=app_platform_event.body,
             headers=app_platform_event.headers,
-            timeout=WEBHOOK_TIMEOUT,
+            timeout=options.get("sentry-apps.webhook.timeout.sec"),
         )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
