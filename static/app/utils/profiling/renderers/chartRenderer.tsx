@@ -45,34 +45,34 @@ export class FlamegraphChartRenderer {
 
     this.context.beginPath();
     this.context.stroke();
-
-    const colors = {0: 'red', 25: 'orange', 50: 'yellow', 75: 'green', 100: 'blue'};
-    for (const h of [0, 25, 50, 75, 100]) {
-      this.context.strokeStyle = colors[h] ?? 'red';
-      const r = new Rect(0, h, 1, 1).transformRect(configViewToPhysicalSpace);
-
-      this.context.beginPath();
-      this.context.moveTo(0, r.y);
-      this.context.lineTo(this.canvas.width, Math.round(r.y));
-      this.context.stroke();
-      // this.context.fillText(h.toString(), this.canvas.width / 2, Math.round(r.y));
-    }
+    this.context.lineWidth = 1 * window.devicePixelRatio;
 
     // @TODO draw series
     for (let i = 0; i < this.chart.series.length; i++) {
-      this.context.strokeStyle = `black`;
+      this.context.strokeStyle = this.theme.COLORS.SELECTED_FRAME_BORDER_COLOR;
       this.context.beginPath();
+      this.context.lineCap = 'round';
       const serie = this.chart.series[i];
+
+      const origin = new Rect(0, 0, 1, 1).transformRect(configViewToPhysicalSpace);
 
       for (let j = 0; j < serie.points.length; j++) {
         const point = serie.points[j];
         const r = new Rect(point.x, point.y, 1, 1).transformRect(
           configViewToPhysicalSpace
         );
+        if (j === 0) {
+          this.context.lineTo(r.x, origin.y);
+        }
         this.context.lineTo(r.x, r.y);
+        if (j === serie.points.length - 1) {
+          this.context.lineTo(r.x, origin.y);
+        }
       }
 
+      this.context.fillStyle = 'rgba(0, 0, 255, 0.2)';
       this.context.stroke();
+      this.context.fill();
     }
   }
 }
