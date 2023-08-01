@@ -60,12 +60,12 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         logging_data = self.request.logging_data
 
         if self.request.user is None:
-            logger.warn("discord.interaction.component.not_linked", extra={**logging_data})
+            logger.warning("discord.interaction.component.not_linked", extra={**logging_data})
             return self.send_message(NO_IDENTITY)
         self.user = self.request.user
 
         if not self.group.organization.has_access(self.user):
-            logger.warn(
+            logger.warning(
                 "discord.interaction.component.not_in_org",
                 extra={"org_slug": self.group.organization.slug, **logging_data},
             )
@@ -102,7 +102,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             logger.info("discord.interaction.component.archive", extra={**logging_data})
             return self.archive()
 
-        logger.warn("discord.interaction.component.unknown_custom_id", extra={**logging_data})
+        logger.warning("discord.interaction.component.unknown_custom_id", extra={**logging_data})
         return Response(status=404)
 
     def assign_dialog(self) -> Response:
