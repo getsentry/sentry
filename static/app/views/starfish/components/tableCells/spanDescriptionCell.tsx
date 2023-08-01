@@ -7,10 +7,13 @@ import {AnimatePresence} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {space} from 'sentry/styles/space';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {ModuleName, StarfishFunctions} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
@@ -62,6 +65,7 @@ export function SpanDescriptionCell({
 
   const overlayContent = moduleName === ModuleName.DB && hoverOverlayProps.isOpen && (
     <QueryDescriptionOverlay
+      group={group}
       shortDescription={description}
       hoverOverlayProps={hoverOverlayProps}
     />
@@ -95,17 +99,25 @@ const NULL_DESCRIPTION = <span>&lt;null&gt;</span>;
 
 interface QueryDescriptionOverlayProps {
   hoverOverlayProps: ReturnType<typeof useHoverOverlay>;
+  group?: string;
   shortDescription?: string;
 }
 function QueryDescriptionOverlay({
+  group,
   shortDescription,
   hoverOverlayProps,
 }: QueryDescriptionOverlayProps) {
   const theme = useTheme();
 
-  const description = shortDescription;
+  const {
+    data: fullSpan,
+    isLoading,
+    isFetching,
+  } = useFullSpanFromTrace(group, Boolean(group));
 
-  return (
+  const description = fullSpan?.description ?? shortDescription;
+
+  return description ? (
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...hoverOverlayProps.overlayProps}>
       <OverlayContent
         animated
@@ -113,12 +125,22 @@ function QueryDescriptionOverlay({
         arrowProps={hoverOverlayProps.arrowProps}
         placement={hoverOverlayProps.placement}
       >
-        <CodeSnippet language="sql">{formatter.toString(description ?? '')}</CodeSnippet>
+        {isLoading && isFetching ? (
+          <PaddedSpinner>
+            <LoadingIndicator mini />
+          </PaddedSpinner>
+        ) : (
+          <CodeSnippet language="sql">{formatter.toString(description)}</CodeSnippet>
+        )}
       </OverlayContent>
     </PositionWrapper>
-  );
+  ) : null;
 }
 
 const OverlayContent = styled(Overlay)`
   max-width: 500px;
+`;
+
+const PaddedSpinner = styled('div')`
+  padding: ${space(1)};
 `;
