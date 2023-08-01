@@ -21,7 +21,6 @@ import {
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
-import {IconJSON} from 'sentry/icons/iconJSON';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
@@ -398,7 +397,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             onClick={downloadJson}
             icon={
               isHelpfulEventUiEnabled ? (
-                <IconJSON />
+                <IconOpen size={BUTTON_ICON_SIZE} />
               ) : (
                 <IconOpen size={BUTTON_ICON_SIZE} />
               )
