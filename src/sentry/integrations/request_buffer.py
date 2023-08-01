@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
-from redis.exceptions import WatchError
+from freezegun import freeze_time
 
 from sentry.utils import json, redis
 
@@ -27,7 +27,7 @@ class IntegrationRequestBuffer:
         """
         Convert the request string stored in Redis to a python dict
         """
-
+        redis_object = redis_object.replace("'", '"')
         return json.loads(redis_object)
 
     def _get_all_from_buffer(self, buffer_key):
@@ -35,21 +35,38 @@ class IntegrationRequestBuffer:
         Get the list at the buffer key.
         """
 
-        return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+        ret = []
+        now = datetime.now()
+        for i in reversed(range(BUFFER_SIZE)):
+            with freeze_time(now - timedelta(days=i)):
+                cur = datetime.now().strftime("%Y-%m-%d")
+                buffer_key = self.integrationkey + cur
+                ret.append(self.client.hgetall(buffer_key))
+
+        return ret
 
     def _get_broken_range_from_buffer(self, buffer_key):
         """
         Get the list at the buffer key in the broken range.
         """
 
-        return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
+        # return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
+        ret = []
+        now = datetime.now()
+        for i in reversed(range(IS_BROKEN_RANGE)):
+            with freeze_time(now - timedelta(days=i)):
+                cur = datetime.now().strftime("%Y-%m-%d")
+                buffer_key = self.integrationkey + cur
+                ret.append(self.client.hgetall(buffer_key))
+
+        return ret
 
     def _get(self):
         """
         Returns the list of daily aggregate error counts.
         """
         return [
-            self._convert_obj_to_dict(obj)
+            self._convert_obj_to_dict(str(obj))
             for obj in self._get_broken_range_from_buffer(self.integrationkey)
         ]
 
@@ -60,21 +77,15 @@ class IntegrationRequestBuffer:
         """
         items = self._get()
 
-        data = [
-            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
-            for item in items
-            if item.get("fatal_count", 0) > 0 and item.get("date")
-        ]
+        data = [item for item in items if int(item.get("fatal_count", 0)) > 0]
 
         if len(data) > 0:
             return True
 
         data = [
-            datetime.strptime(item.get("date"), "%Y-%m-%d").date()
+            item
             for item in items
-            if item.get("error_count", 0) > 0
-            and item.get("success_count", 0) == 0
-            and item.get("date")
+            if int(item.get("error_count", 0)) > 0 and int(item.get("success_count", 0)) == 0
         ]
 
         if not len(data):
@@ -90,47 +101,14 @@ class IntegrationRequestBuffer:
         if count not in VALID_KEYS:
             raise Exception("Requires a valid key param.")
 
-        other_count1, other_count2 = list(set(VALID_KEYS).difference([count]))[0:2]
         now = datetime.now().strftime("%Y-%m-%d")
 
-        buffer_key = self.integrationkey
+        buffer_key = self.integrationkey + now
         pipe = self.client.pipeline()
-
-        while True:
-            try:
-                pipe.watch(buffer_key)
-                recent_item_array = pipe.lrange(buffer_key, 0, 1)  # get first element from array
-                pipe.multi()
-                if len(recent_item_array):
-                    recent_item = self._convert_obj_to_dict(recent_item_array[0])
-                    if recent_item.get("date") == now:
-                        recent_item[f"{count}_count"] += 1
-                        pipe.lset(buffer_key, 0, json.dumps(recent_item))
-                    else:
-                        data = {
-                            "date": now,
-                            f"{count}_count": 1,
-                            f"{other_count1}_count": 0,
-                            f"{other_count2}_count": 0,
-                        }
-                        pipe.lpush(buffer_key, json.dumps(data))
-
-                else:
-                    data = {
-                        "date": now,
-                        f"{count}_count": 1,
-                        f"{other_count1}_count": 0,
-                        f"{other_count2}_count": 0,
-                    }
-                    pipe.lpush(buffer_key, json.dumps(data))
-                pipe.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
-                pipe.expire(buffer_key, KEY_EXPIRY)
-                pipe.execute()
-                break
-            except WatchError:
-                continue
-            finally:
-                pipe.reset()
+        pipe.hincrby(buffer_key, count + "_count", 1)
+        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.execute()
+        pipe.reset()
 
     def record_error(self):
         self.add("error")
