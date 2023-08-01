@@ -1,5 +1,6 @@
 import {CSSProperties, Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mat3} from 'gl-matrix';
 
 import {t} from 'sentry/locale';
 import {
@@ -10,6 +11,7 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
@@ -28,6 +30,9 @@ interface FlamegraphChartProps {
   cpuChartView: CanvasView<FlamegraphChart> | null;
   setCpuChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
+
+const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
+const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 
 export function FlamegraphCpuChart({
   chart,
@@ -55,11 +60,37 @@ export function FlamegraphCpuChart({
     }
 
     const drawCpuChart = () => {
+      const physicalToConfig = mat3.invert(
+        CONFIG_TO_PHYSICAL_SPACE,
+        cpuChartView.fromConfigView(cpuChartCanvas.physicalSpace)
+      );
+      const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
+
+      const offsetConfigView = cpuChartView.configView
+        .withY(-configSpacePixel.height * theme.SIZES.CHART_PX_PADDING)
+        .withHeight(cpuChartView.configView.height + theme.SIZES.CHART_PX_PADDING * 2);
+
+      const betweenRect = transformMatrixBetweenRect(
+        cpuChartView.configView,
+        offsetConfigView
+      );
+
+      const fromConfigView = transformMatrixBetweenRect(
+        offsetConfigView.transformRect(betweenRect),
+        cpuChartCanvas.physicalSpace
+      );
+
+      mat3.multiply(
+        fromConfigView,
+        cpuChartCanvas.physicalSpace.invertYTransform(),
+        fromConfigView
+      );
+
       cpuChartRenderer.draw(
         cpuChartView.configView,
         cpuChartView.configSpace,
         cpuChartCanvas.physicalSpace,
-        cpuChartView.fromConfigView(cpuChartCanvas.physicalSpace)
+        fromConfigView
       );
     };
 
@@ -69,7 +100,7 @@ export function FlamegraphCpuChart({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawCpuChart);
     };
-  }, [scheduler, chart, cpuChartCanvas, cpuChartRenderer, cpuChartView]);
+  }, [scheduler, chart, cpuChartCanvas, cpuChartRenderer, cpuChartView, theme]);
 
   return (
     <Fragment>
