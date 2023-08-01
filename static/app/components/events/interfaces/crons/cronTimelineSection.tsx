@@ -110,9 +110,7 @@ export function CronTimelineSection({event, organization}: Props) {
             </FadeInContainer>
           </Fragment>
         ) : (
-          <FadeInContainer>
-            <TimelinePlaceholder />
-          </FadeInContainer>
+          <TimelinePlaceholder />
         )}
       </TimelineContainer>
     </EventDataSection>
