@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+
 
 class OrganizationIntegrityBackfillMixin:
     organization_integration_id: Any
@@ -16,9 +18,10 @@ class OrganizationIntegrityBackfillMixin:
 
         if self.organization_id is None or self.integration_id is None:
             # Find the original org integration instance, backfill in the identifiers.
-            org_integrations = integration_service.get_organization_integrations(
-                org_integration_ids=[self.organization_integration_id],
-            )
+            with in_test_hide_transaction_boundary():
+                org_integrations = integration_service.get_organization_integrations(
+                    org_integration_ids=[self.organization_integration_id],
+                )
             assert org_integrations, "Could not find org integration!"
             org_integration = org_integrations[0]
             self.organization_id = org_integration.organization_id
