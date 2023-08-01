@@ -2,14 +2,14 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {makeFormatter} from './units/units';
 
-interface Serie {
+interface Series {
   points: {x: number; y: number}[];
 }
 
 export class FlamegraphChart {
   configSpace: Rect;
   formatter: ReturnType<typeof makeFormatter>;
-  series: Serie[];
+  series: Series[];
   domains: {
     x: [number, number];
     y: [number, number];
@@ -21,7 +21,7 @@ export class FlamegraphChart {
   static Empty = new FlamegraphChart(Rect.Empty(), {unit: 'percent', values: []});
 
   constructor(configSpace: Rect, measurement: Profiling.Measurement) {
-    this.series = new Array<Serie>();
+    this.series = new Array<Series>();
 
     this.series[0] = {
       points: new Array(measurement.values.length),
