@@ -86,6 +86,7 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 default_manager.add("organizations:integrations-discord", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-discord-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:integrations-opsgenie", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:integrations-open-pr-comment", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-most-helpful-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

@@ -753,7 +753,7 @@ class Factories:
         extra_data: Mapping[str, Any] | None = None,
     ):
         if not provider:
-            provider = "example"
+            provider = "asana"
         if not uid:
             uid = "abc-123"
         usa = UserSocialAuth(user=user, provider=provider, uid=uid, extra_data=extra_data)

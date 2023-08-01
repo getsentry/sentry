@@ -1487,6 +1487,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
+    # Enable comments of related issues on open PRs
+    "organizations:integrations-open-pr-comment": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.

@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.utils.pytest.sentry import TEST_REDIS_DB
+from sentry.testutils.pytest.sentry import TEST_REDIS_DB
 
 _log = logging.getLogger(__name__)
 
