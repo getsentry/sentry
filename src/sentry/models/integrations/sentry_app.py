@@ -225,7 +225,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
         )
         if installations.exists():
             installation = installations.first()
-        if hasattr(installation, "uuid"):
             return f"sentry-app-error:{installation.uuid}"
         return ""
 
