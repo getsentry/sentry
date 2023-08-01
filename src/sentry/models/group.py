@@ -5,12 +5,13 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q, QuerySet
 from django.db.models.signals import pre_save
@@ -43,6 +44,7 @@ from sentry.types.group import (
     UNRESOLVED_SUBSTATUS_CHOICES,
     GroupSubStatus,
 )
+from sentry.utils import metrics
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
@@ -235,22 +237,6 @@ def get_oldest_or_latest_event_for_environments(
         return events[0].for_group(group)
 
     return None
-
-
-def get_replay_count_for_group(group: Group) -> int:
-    events = eventstore.backend.get_events(
-        filter=eventstore.Filter(
-            conditions=[["replay_id", "IS NOT NULL", None]],
-            project_ids=[group.project_id],
-            group_ids=[group.id],
-        ),
-        limit=1,
-        orderby=EventOrdering.MOST_HELPFUL.value,
-        referrer="Group.get_replay_count_for_group",
-        dataset=Dataset.Events,
-        tenant_ids={"organization_id": group.project.organization_id},
-    )
-    return len(events)
 
 
 def get_helpful_event_for_environments(
@@ -625,7 +611,31 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def has_replays(self):
-        return get_replay_count_for_group(self) > 0
+        from sentry.replays.usecases.replay_counts import get_replay_counts
+        from sentry.search.events.types import SnubaParams
+
+        metrics.incr("group.has_replays")
+        cached_value = cache.get(f"has_replays:{self.id}")
+        if cached_value is not None:
+            metrics.incr("group.has_replays_cached")
+            return cached_value
+
+        if not self.project.flags.has_replays:
+            has_replays = False
+        else:
+            snuba_params = SnubaParams(
+                organization=self.project.organization,
+                projects=[self.project],
+                user=None,
+                start=datetime.now() - timedelta(days=14),
+                end=datetime.now(),
+                environments=[None],
+                teams=None,
+            )
+            counts = get_replay_counts(snuba_params, f"issue.id:[{self.id}]", return_ids=False)
+            has_replays = counts.get(self.id, 0) > 0
+        cache.set(f"has_replays:{self.id}", has_replays, 6000)
+        return has_replays
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic
