@@ -92,3 +92,16 @@ def test_q_failure_rate():
     )
 
     assert query.expressions == [EXPECTED]
+
+
+def test_q_dsl_with_bind():
+    query = (
+        Q()
+        .expr("$foo / 2")
+        .scope(MetricQueryScope(org_id=1, project_ids=[1]))
+        .range(MetricRange.start_at(datetime.utcnow(), hours=1, interval=3600))
+        .bind(foo=MetricName("failure_rate"))
+        .build()
+    )
+
+    assert query.expressions == [Function("divide", [MetricName("failure_rate"), 2])]

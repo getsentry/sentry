@@ -233,6 +233,7 @@ class Q:
         self._expressions = []
         self._filters = []
         self._groups = []
+        self._params = None
 
     def scope(self, scope: MetricQueryScope) -> "Q":
         """
@@ -254,12 +255,12 @@ class Q:
         """
         Add an expression to the query.
 
-        If the initializer is a string, it is interpreted as DSL and parsed into
-        an expression. Refer to ``parse_dsl`` for syntax.
+        If the initializer is a string, it is interpreted as MQL (metrics query
+        language) and parsed into an expression. Refer to ``parse_expression``
+        for syntax.
 
-        Otherwise, the passed expression is used directly. To
-        construct complex expressions, use and pass an instance of the `E`
-        expression builder.
+        Otherwise, the passed expression is used directly. To construct complex
+        expressions, use and pass an instance of the `E` expression builder.
         """
 
         if isinstance(initializer, str):
@@ -282,12 +283,19 @@ class Q:
         self._filters.append(condition)
         return self
 
-    def group(self, tag: Union[str, Tag]):
+    def group(self, tag: Union[str, Tag]) -> "Q":
         """
         Add a grouping to the query.
         """
 
         self._groups.append(tag)
+        return self
+
+    def bind(self, **params: Expression) -> "Q":
+        """
+        Bind the specified variables to this query.
+        """
+        self._params = params
         return self
 
     def build(self) -> SeriesQuery:
@@ -304,13 +312,18 @@ class Q:
         if not self._expressions:
             raise ValueError("At least one expression is required")
 
-        return SeriesQuery(
+        query = SeriesQuery(
             scope=self._scope,
             range=self._range,
             expressions=self._expressions,
             filters=self._filters,
             groups=self._groups,
         )
+
+        if self._params is not None:
+            query = query.bind(**self._params)
+
+        return query
 
     def query(self) -> SeriesResult:
         """

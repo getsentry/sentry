@@ -284,7 +284,7 @@ class SeriesQuery:
     filters: Sequence[Function] = field(default_factory=list)
     groups: Sequence[Tag] = field(default_factory=list)
 
-    def bind(self, params: VariableMap) -> "SeriesQuery":
+    def bind(self, **params: Expression) -> "SeriesQuery":
         """
         Bind the specified variables to this query.
 
