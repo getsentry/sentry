@@ -56,7 +56,7 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
             <TimelineEnvOuterContainer key={name}>
               {!bucketedData ? (
                 <TimelineEnvContainer key="timeline">
-                  <TimelinePlaceholder count={Math.round(timelineProps.width / 20)} />
+                  <TimelinePlaceholder />
                 </TimelineEnvContainer>
               ) : (
                 <TimelineEnvContainer key="placeholder">
