@@ -1,8 +1,11 @@
 import logging
 from datetime import datetime
+from typing import Union
 
 from django.conf import settings
 from redis.exceptions import WatchError
+from requests import Response
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.utils import json, redis
 
@@ -10,6 +13,26 @@ BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 IS_BROKEN_RANGE = 7  # 7 days
+
+
+def is_timeout(e: Exception) -> bool:
+    if type(e) is Timeout or type(e) is ConnectionError:
+        return True
+    return False
+
+
+def is_response_error(resp: Response) -> bool:
+    if resp.status_code:
+        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+            return True
+    return False
+
+
+def is_response_success(resp: Response) -> bool:
+    if resp.status_code:
+        if resp.status_code < 300:
+            return True
+    return False
 
 
 class IntegrationRequestBuffer:
@@ -152,14 +175,19 @@ class IntegrationRequestBuffer:
             finally:
                 pipe.reset()
 
-    def record_error(self):
-        self.add("error")
+    def record_error(self, resp: Union[Response, Exception]):
+        if issubclass(type(resp), Exception):
+            self.add("error")
+        elif is_response_error(resp):
+            self.add("error")
 
-    def record_success(self):
-        self.add("success")
+    def record_success(self, resp: Response):
+        if is_response_success(resp):
+            self.add("success")
 
     def record_fatal(self):
         self.add("fatal")
 
-    def record_timeout(self):
-        self.add("timeout")
+    def record_timeout(self, e: Exception):
+        if is_timeout(e):
+            self.add("timeout")

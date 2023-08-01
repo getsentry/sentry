@@ -39,43 +39,12 @@ def ignore_unpublished_app_errors(func):
     return wrapper
 
 
-def is_timeout(e: Exception) -> bool:
-    if type(e) is Timeout or type(e) is ConnectionError:
-        return True
-    return False
-
-
-def is_response_error(resp: Response) -> bool:
-    if resp.status_code:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
-    return False
-
-
-def is_response_success(resp: Response) -> bool:
-    if resp.status_code:
-        if resp.status_code < 300:
-            return True
-    return False
-
-
-def record_timeout(sentryapp: SentryApp, org_id: str, resp: Response):
+def record_timeout(sentryapp: SentryApp, org_id: str, e: Exception):
     redis_key = sentryapp._get_redis_key(org_id)
     if not len(redis_key):
         return
-    if is_timeout(resp):
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_timeout()
-        if buffer.is_integration_broken():
-            org = Organization.objects.get(id=org_id)
-            if features.has("organizations:disable-sentryapps-on-broken", org):
-                sentryapp._disable()
-
-
-def record_request_error(sentryapp: SentryApp, org_id: str, resp: Response):
-    redis_key = sentryapp._get_redis_key(org_id)
     buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_error()
+    buffer.record_timeout(e)
     if buffer.is_integration_broken():
         org = Organization.objects.get(id=org_id)
         if features.has("organizations:disable-sentryapps-on-broken", org):
@@ -86,11 +55,13 @@ def record_response(sentryapp: SentryApp, org_id: str, response: Response):
     redis_key = sentryapp._get_redis_key(org_id)
     if not len(redis_key):
         return
-    if is_response_error(response):
-        record_request_error(sentryapp, org_id, response)
-    elif is_response_success(response):
-        buffer = IntegrationRequestBuffer(redis_key)
-        buffer.record_success()
+    buffer = IntegrationRequestBuffer(redis_key)
+    buffer.record_success(response)
+    buffer.record_error(response)
+    if buffer.is_integration_broken():
+        org = Organization.objects.get(id=org_id)
+        if features.has("organizations:disable-sentryapps-on-broken", org):
+            sentryapp._disable()
 
 
 @ignore_unpublished_app_errors

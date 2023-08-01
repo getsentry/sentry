@@ -95,22 +95,7 @@ class BaseApiClient(TrackResponseMixin):
             return ""
         return f"sentry-integration-error:{self.integration_id}"
 
-    def is_considered_error(self, e: Exception) -> bool:
-        return True
-
     def is_response_fatal(self, resp: Response) -> bool:
-        return False
-
-    def is_response_error(self, resp: Response) -> bool:
-        if resp.status_code:
-            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-                return True
-        return False
-
-    def is_response_success(self, resp: Response) -> bool:
-        if resp.status_code:
-            if resp.status_code < 300:
-                return True
         return False
 
     @overload
@@ -373,59 +358,30 @@ class BaseApiClient(TrackResponseMixin):
         return output
 
     def record_response(self, response: BaseApiResponse):
-        if self.is_response_fatal(response):
-            self.record_request_fatal(response)
-        elif self.is_response_error(response):
-            self.record_request_error(response)
-        elif self.is_response_success(response):
-            self.record_request_success(response)
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            if self.is_response_fatal(response):
+                buffer.record_fatal()
+            else:
+                buffer.record_error(response)
+                buffer.record_success(response)
+            if buffer.is_integration_broken():
+                self.disable_integration()
+
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
-        if not self.is_considered_error(error):
-            return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_error()
-            if buffer.is_integration_broken():
-                self.disable_integration()
-        except Exception:
-            metrics.incr("integration.slack.disable_on_broken.redis")
-            return
-
-    def record_request_error(self, resp: Response):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        try:
-            buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_error()
-            if buffer.is_integration_broken():
-                self.disable_integration()
-        except Exception:
-            metrics.incr("integration.slack.disable_on_broken.redis")
-            return
-
-    def record_request_success(self, resp: Response):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        try:
-            buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_success()
-        except Exception:
-            metrics.incr("integration.slack.disable_on_broken.redis")
-            return
-
-    def record_request_fatal(self, resp: Response):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        try:
-            buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_fatal()
+            buffer.record_error(error)
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
