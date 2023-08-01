@@ -62,6 +62,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=next_checkin_ts - timedelta(minutes=2),
             next_checkin=next_checkin_ts - timedelta(minutes=1),
+            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -102,6 +103,7 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=next_checkin_ts - timedelta(minutes=1),
+            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
             status=MonitorStatus.ACTIVE,
         )
 
@@ -151,6 +153,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=last_checkin_ts,
             next_checkin=next_checkin_ts,
+            next_checkin_latest=next_checkin_ts,
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
@@ -196,6 +199,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago - timedelta(hours=24),
             next_checkin=check_in_24hr_ago,
+            next_checkin_latest=check_in_24hr_ago,
             status=MonitorStatus.OK,
         )
         # In progress started 24hr ago
@@ -260,6 +264,7 @@ class CheckMonitorsTest(TestCase):
             # Next checkin is in the future, we just completed our last checkin
             last_checkin=next_checkin_ts,
             next_checkin=next_checkin_ts + timedelta(hours=24),
+            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         # Checkin 24hr ago
@@ -316,6 +321,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=check_in_24hr_ago,
             next_checkin=next_checkin_ts,
+            next_checkin_latest=next_checkin_ts,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -366,6 +372,7 @@ class CheckMonitorsTest(TestCase):
             monitor=exception_monitor,
             environment=self.environment,
             next_checkin=next_checkin_ts - timedelta(minutes=1),
+            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -379,6 +386,7 @@ class CheckMonitorsTest(TestCase):
             monitor=monitor,
             environment=self.environment,
             next_checkin=next_checkin_ts - timedelta(minutes=1),
+            next_checkin_latest=next_checkin_ts - timedelta(minutes=1),
             status=MonitorStatus.OK,
         )
 
@@ -420,6 +428,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=next_checkin_ts,
             next_checkin=next_checkin_ts + timedelta(hours=24),
+            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         MonitorCheckIn.objects.create(
@@ -445,6 +454,7 @@ class CheckMonitorsTest(TestCase):
             environment=self.environment,
             last_checkin=next_checkin_ts,
             next_checkin=next_checkin_ts + timedelta(hours=24),
+            next_checkin_latest=next_checkin_ts + timedelta(hours=24),
             status=MonitorStatus.OK,
         )
         checkin1 = MonitorCheckIn.objects.create(
