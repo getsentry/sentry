@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
-
-from django.utils import timezone
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models import Commit, CommitAuthor, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 BAD_IP = "109.111.111.10"

@@ -7,13 +7,15 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     GetActiveOrgsVolumes,
+    OrganizationDataVolume,
     TimedIterator,
     TimeoutException,
+    get_organization_volume,
     timed_function,
 )
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.snuba.metrics.naming_layer import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -227,9 +229,11 @@ NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def setUp(self):
+        self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
         for i in range(12):
             org = self.create_organization(f"org-{i}")
+            self.orgs.append(org)
             project = self.create_project(organization=org)
             for decision, value in [("drop", 2), ("keep", 1)]:
                 self.store_performance_metric(
@@ -280,3 +284,19 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
                 assert org.indexed == 1
 
         assert total_orgs == 12
+
+    def test_get_organization_volume_existing_org(self):
+        """
+        gets the volume of one existing organization
+        """
+        org = self.orgs[0]
+        org_volume = get_organization_volume(org.id)
+        assert org_volume == OrganizationDataVolume(org_id=org.id, total=3, indexed=1)
+
+    def test_get_organization_volume_missing_org(self):
+        """
+        calls get_organization_volume for a missing org (should return None)
+        """
+        org_id = 99999999  # can we do better, an id we know for sure is not in the DB?
+        org_volume = get_organization_volume(org_id)
+        assert org_volume is None

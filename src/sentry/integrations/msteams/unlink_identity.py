@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
@@ -31,7 +32,7 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
 
 class MsTeamsUnlinkIdentityView(BaseView):
     @transaction_start("MsTeamsUnlinkIdentityView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
             params = unsign(signed_params)

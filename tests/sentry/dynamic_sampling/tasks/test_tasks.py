@@ -33,7 +33,7 @@ from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -241,49 +241,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
-    @patch("sentry.quotas.backend.get_blended_sample_rate")
-    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
-    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
-    def test_boost_low_volume_projects_simple_with_sliding_window_org_from_sync(
-        self,
-        extrapolate_monthly_volume,
-        get_transaction_sampling_tier_for_volume,
-        get_blended_sample_rate,
-    ):
-        extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
-        get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 0.8
-        # Create a org
-        test_org = self.create_old_organization(name="sample-org")
-
-        # Create 4 projects
-        proj_a = self.create_project_and_add_metrics("a", 9, test_org)
-        proj_b = self.create_project_and_add_metrics("b", 7, test_org)
-        proj_c = self.create_project_and_add_metrics("c", 3, test_org)
-        proj_d = self.create_project_and_add_metrics("d", 1, test_org)
-
-        with self.feature("organizations:ds-sliding-window-org"):
-            with self.tasks():
-                # We are testing whether the sliding window org sample rate will be synchronously computed
-                # since the cache value is not there.
-                boost_low_volume_projects()
-
-        # we expect only uniform rule
-        # also we test here that `generate_rules` can handle trough redis long floats
-        assert generate_rules(proj_a)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.14814814814814817),
-        }
-        assert generate_rules(proj_b)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.1904761904761905),
-        }
-        assert generate_rules(proj_c)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.4444444444444444),
-        }
-        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
-
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
@@ -312,6 +269,7 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
 
         with self.feature("organizations:ds-sliding-window-org"):
             with self.tasks():
+                sliding_window_org()
                 boost_low_volume_projects()
 
         assert schedule_invalidate_project_config.call_count == 2

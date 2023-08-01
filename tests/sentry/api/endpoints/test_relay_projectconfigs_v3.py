@@ -1,17 +1,14 @@
 from unittest.mock import patch, sentinel
-from uuid import uuid4
 
 import pytest
 from django.urls import reverse
-from sentry_relay.auth import generate_key_pair
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)
@@ -19,31 +16,6 @@ def disable_auto_on_commit():
     simulated_transaction_watermarks.state["default"] = -1
     with in_test_hide_transaction_boundary():
         yield
-
-
-@pytest.fixture
-def key_pair():
-    return generate_key_pair()
-
-
-@pytest.fixture
-def public_key(key_pair):
-    return key_pair[1]
-
-
-@pytest.fixture
-def private_key(key_pair):
-    return key_pair[0]
-
-
-@pytest.fixture
-def relay_id():
-    return str(uuid4())
-
-
-@pytest.fixture
-def relay(relay_id, public_key):
-    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture

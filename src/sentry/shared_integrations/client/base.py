@@ -9,8 +9,14 @@ from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
+from sentry.integrations.notify_disable import notify_disable
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.models import Organization, OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
@@ -44,11 +50,13 @@ class BaseApiClient(TrackResponseMixin):
 
     def __init__(
         self,
+        integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
+        self.integration_id = integration_id
 
     def __enter__(self) -> BaseApiClient:
         return self
@@ -77,6 +85,34 @@ class BaseApiClient(TrackResponseMixin):
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
+
+    def _get_redis_key(self):
+        """
+        Returns the redis key for the integration or empty str if cannot make key
+        """
+        if not hasattr(self, "integration_id"):
+            return ""
+        if not self.integration_id:
+            return ""
+        return f"sentry-integration-error:{self.integration_id}"
+
+    def is_considered_error(self, e: Exception) -> bool:
+        return True
+
+    def is_response_fatal(self, resp: Response) -> bool:
+        return False
+
+    def is_response_error(self, resp: Response) -> bool:
+        if resp.status_code:
+            if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
+                return True
+        return False
+
+    def is_response_success(self, resp: Response) -> bool:
+        if resp.status_code:
+            if resp.status_code < 300:
+                return True
+        return False
 
     @overload
     def _request(
@@ -217,12 +253,15 @@ class BaseApiClient(TrackResponseMixin):
                     resp.raise_for_status()
             except RestrictedIPAddress as e:
                 self.track_response_data("restricted_ip_address", span, e)
+                self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
+                self.record_error(e)
                 raise ApiHostError.from_exception(e) from e
             except Timeout as e:
                 self.track_response_data("timeout", span, e)
+                self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
@@ -234,9 +273,10 @@ class BaseApiClient(TrackResponseMixin):
                     if self.integration_type:
                         extra[self.integration_type] = self.name
                     self.logger.exception("request.error", extra=extra)
-
+                    self.record_error(e)
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(error_resp.status_code, span, e)
+                self.record_error(e)
                 raise ApiError.from_response(error_resp, url=full_url) from e
 
             except Exception as e:
@@ -248,16 +288,20 @@ class BaseApiClient(TrackResponseMixin):
                 # Rather than worrying about what the other layers might be, we just stringify to detect this.
                 if "ConnectionResetError" in str(e):
                     self.track_response_data("connection_reset_error", span, e)
+                    self.record_error(e)
                     raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
                 # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
                 if "InvalidChunkLength" in str(e):
                     self.track_response_data("invalid_chunk_length", span, e)
+                    self.record_error(e)
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
+
+            self.record_response(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -329,3 +373,103 @@ class BaseApiClient(TrackResponseMixin):
             if num_results < page_size:
                 return output
         return output
+
+    def record_response(self, response: BaseApiResponse):
+        if self.is_response_fatal(response):
+            self.record_request_fatal(response)
+        elif self.is_response_error(response):
+            self.record_request_error(response)
+        elif self.is_response_success(response):
+            self.record_request_success(response)
+
+    def record_error(self, error: Exception):
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
+            return
+        if not self.is_considered_error(error):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
+    def record_request_error(self, resp: Response):
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_error()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
+    def record_request_success(self, resp: Response):
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_success()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
+    def record_request_fatal(self, resp: Response):
+        redis_key = self._get_redis_key()
+        if not len(redis_key):
+            return
+        try:
+            buffer = IntegrationRequestBuffer(redis_key)
+            buffer.record_fatal()
+            if buffer.is_integration_broken():
+                self.disable_integration()
+        except Exception:
+            metrics.incr("integration.slack.disable_on_broken.redis")
+            return
+
+    def disable_integration(self) -> None:
+        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
+            integration_id=self.integration_id
+        )
+        if (
+            integration_service.get_integration(integration_id=rpc_integration.id).status
+            == ObjectStatus.DISABLED
+        ):
+            return
+        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
+        org = Organization.objects.get(id=oi.organization_id)
+        if (
+            features.has("organizations:slack-disable-on-broken", org)
+            and rpc_integration.provider == "slack"
+        ):
+            integration_service.update_integration(
+                integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
+            )
+            notify_disable(org, rpc_integration.provider, self._get_redis_key())
+
+        extra = {"integration_id": self.integration_id}
+        if len(rpc_org_integration) == 0 and rpc_integration is None:
+            extra["provider"] = "unknown"
+            extra["organization_id"] = "unknown"
+        elif len(rpc_org_integration) == 0:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = "unknown"
+        elif rpc_integration is None:
+            extra["provider"] = "unknown"
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+        else:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+
+        self.logger.info(
+            "integration.disabled",
+            extra=extra,
+        )
+        return

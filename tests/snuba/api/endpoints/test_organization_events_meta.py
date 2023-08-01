@@ -1,13 +1,13 @@
+from datetime import timezone
 from unittest import mock
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin

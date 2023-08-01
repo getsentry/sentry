@@ -8,6 +8,20 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcAuthenticator, RpcAvatar, RpcUser, RpcUserEmail
 
 
+def serialize_generic_user(user: Any) -> RpcUser | None:
+    """Serialize a user-representing object of unknown type to an RpcUser.
+
+    Return None if the user is anonymous (not logged in).
+    """
+    if user is None or user.id is None:
+        return None
+    if isinstance(user, RpcUser):
+        return user
+    if isinstance(user, User):
+        return serialize_rpc_user(user)
+    raise TypeError(f"Can't serialize {type(user)} to RpcUser")
+
+
 def serialize_rpc_user(user: User) -> RpcUser:
     args = {
         field_name: getattr(user, field_name)

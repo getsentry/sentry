@@ -90,6 +90,7 @@ export interface FlamegraphTheme {
     BAR_FONT_SIZE: number;
     BAR_HEIGHT: number;
     BAR_PADDING: number;
+    CPU_CHART_HEIGHT: number;
     FLAMEGRAPH_DEPTH_OFFSET: number;
     GRID_LINE_WIDTH: number;
     HIGHLIGHTED_FRAME_BORDER_WIDTH;
@@ -104,6 +105,7 @@ export interface FlamegraphTheme {
     SPANS_DEPTH_OFFSET: number;
     SPANS_FONT_SIZE: number;
     TIMELINE_HEIGHT: number;
+    TIMELINE_LABEL_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
     UI_FRAMES_HEIGHT: number;
   };
@@ -151,6 +153,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   LABEL_FONT_PADDING: 6,
   LABEL_FONT_SIZE: 10,
   MINIMAP_HEIGHT: 100,
+  CPU_CHART_HEIGHT: 80,
   MINIMAP_POSITION_OVERLAY_BORDER_WIDTH: 2,
   SPANS_BAR_HEIGHT: 20,
   SPANS_DEPTH_OFFSET: 3,
@@ -158,6 +161,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   MAX_SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
+  TIMELINE_LABEL_HEIGHT: 20,
   UI_FRAMES_HEIGHT: 60,
 };
 

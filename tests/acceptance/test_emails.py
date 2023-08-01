@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from selenium.webdriver.common.by import By
 
 from sentry.receivers import create_default_projects
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.factories import get_fixture_path
 
 EMAILS = (

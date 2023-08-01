@@ -9,7 +9,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
@@ -645,7 +645,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
                 )
 
                 assert not OrganizationMemberTeam.objects.filter(
-                    team=self.team, organizationmember=self.member
+                    team=self.team, organizationmember=member
                 ).exists()
 
     def test_access_revoked_after_leaving_team(self):

@@ -1,8 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from django.utils import timezone
-
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.cases import AcceptanceTestCase
 from sentry.utils.samples import create_sample_event
 
 
