@@ -25,4 +25,40 @@ describe('SQLishParser', function () {
       }).not.toThrow();
     });
   });
+
+  describe('SQLishParser.parse', () => {
+    const parser = new SQLishParser();
+    it('Detects collapsed columns', () => {
+      expect(parser.parse('select ..')).toEqual([
+        {
+          type: 'Keyword',
+          content: 'select',
+        },
+        {
+          type: 'Whitespace',
+          content: ' ',
+        },
+        {
+          type: 'CollapsedColumns',
+          content: '..',
+        },
+      ]);
+    });
+
+    it('Detects whitespace between generic tokens and JOIN commands', () => {
+      expect(parser.parse('table1 INNER JOIN table2')).toEqual([
+        {
+          type: 'GenericToken',
+          content: 'table1',
+        },
+        {type: 'Whitespace', content: ' '},
+        {type: 'Keyword', content: 'INNER JOIN'},
+        {type: 'Whitespace', content: ' '},
+        {
+          type: 'GenericToken',
+          content: 'table2',
+        },
+      ]);
+    });
+  });
 });

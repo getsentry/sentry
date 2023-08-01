@@ -20,7 +20,11 @@ from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.integrations import IntegrationInstallation, IntegrationProvider
+    from sentry.integrations import (
+        IntegrationFeatures,
+        IntegrationInstallation,
+        IntegrationProvider,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +66,19 @@ class Integration(DefaultFieldsModel):
         unique_together = (("provider", "external_id"),)
 
     def get_provider(self) -> IntegrationProvider:
-        from sentry import integrations
+        from .utils import get_provider
 
-        return integrations.get(self.provider)
+        return get_provider(instance=self)
+
+    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
+        from .utils import get_installation
+
+        return get_installation(instance=self, organization_id=organization_id, **kwargs)
+
+    def has_feature(self, feature: IntegrationFeatures) -> bool:
+        from .utils import has_feature
+
+        return has_feature(instance=self, feature=feature)
 
     def delete(self, *args, **kwds):
         with outbox_context(
@@ -91,12 +105,6 @@ class Integration(DefaultFieldsModel):
             )
             for region_name in find_regions_for_orgs(org_ids)
         ]
-
-    def get_installation(self, organization_id: int, **kwargs: Any) -> IntegrationInstallation:
-        return self.get_provider().get_installation(self, organization_id, **kwargs)
-
-    def has_feature(self, feature):
-        return feature in self.get_provider().features
 
     def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
         """

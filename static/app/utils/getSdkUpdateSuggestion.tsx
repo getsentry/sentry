@@ -115,16 +115,13 @@ function getSdkUpdateSuggestion({
   }
 
   const alertContent = suggestion.enables
-    .map((subSuggestion, index) => {
+    .map(subSuggestion => {
       const subSuggestionContent = getSdkUpdateSuggestion({
         suggestion: subSuggestion,
         sdk,
         capitalized,
       });
-      if (!subSuggestionContent) {
-        return null;
-      }
-      return <ListItem key={index}>{subSuggestionContent}</ListItem>;
+      return subSuggestionContent || null;
     })
     .filter(content => !!content);
 
@@ -135,7 +132,11 @@ function getSdkUpdateSuggestion({
   return (
     <span>
       {tct('[title] so you can:', {title})}
-      <StyledList symbol="bullet">{alertContent}</StyledList>
+      <StyledList symbol="bullet">
+        {alertContent.map((content, index) => (
+          <ListItem key={index}>{content}</ListItem>
+        ))}
+      </StyledList>
     </span>
   );
 }

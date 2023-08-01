@@ -41,6 +41,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
@@ -152,6 +153,7 @@ function findLongestMatchingFrame(
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
+const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChart.Empty;
 
 const noopFormatDuration = () => '';
 
@@ -183,6 +185,9 @@ function Flamegraph(): ReactElement {
 
   const [spansCanvasRef, setSpansCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [uiFramesCanvasRef, setUIFramesCanvasRef] = useState<HTMLCanvasElement | null>(
+    null
+  );
+  const [cpuChartCanvasRef, setCpuChartCanvasRef] = useState<HTMLCanvasElement | null>(
     null
   );
 
@@ -289,6 +294,20 @@ function Flamegraph(): ReactElement {
     hasUIFrames,
   ]);
 
+  const CPUChart = useMemo(() => {
+    if (!hasCPUChart) {
+      return LOADING_OR_FALLBACK_CPU_CHART;
+    }
+
+    return new FlamegraphChart(
+      Rect.From(flamegraph.configSpace),
+      profileGroup.measurements?.cpu_usage_0 ?? {
+        unit: 'percentage',
+        values: [],
+      }
+    );
+  }, [profileGroup.measurements?.cpu_usage_0, flamegraph.configSpace, hasCPUChart]);
+
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
       return null;
@@ -319,6 +338,13 @@ function Flamegraph(): ReactElement {
     }
     return new FlamegraphCanvas(uiFramesCanvasRef, vec2.fromValues(0, 0));
   }, [uiFramesCanvasRef]);
+
+  const cpuChartCanvas = useMemo(() => {
+    if (!cpuChartCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(cpuChartCanvasRef, vec2.fromValues(0, 0));
+  }, [cpuChartCanvasRef]);
 
   const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
     previousView => {
@@ -459,6 +485,37 @@ function Flamegraph(): ReactElement {
     [flamegraphView, flamegraphCanvas, flamegraph, uiFrames]
   );
 
+  const cpuChartView = useMemoWithPrevious<CanvasView<FlamegraphChart> | null>(
+    _previousView => {
+      if (!flamegraphView || !flamegraphCanvas || !CPUChart) {
+        return null;
+      }
+
+      const newView = new CanvasView({
+        canvas: flamegraphCanvas,
+        model: CPUChart,
+        mode: 'anchorBottom',
+        options: {
+          // Invert chart so origin is at bottom left
+          // corner as opposed to top left
+          inverted: true,
+          minWidth: uiFrames.minFrameDuration,
+          barHeight: 0,
+          depthOffset: 0,
+          maxHeight: 100,
+        },
+      });
+
+      // Initialize configView to whatever the flamegraph configView is
+      newView.setConfigView(flamegraphView.configView.withHeight(100), {
+        width: {min: 0},
+      });
+
+      return newView;
+    },
+    [flamegraphView, flamegraphCanvas, CPUChart, uiFrames.minFrameDuration]
+  );
+
   const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
     _previousView => {
       if (!spansCanvas || !spanChart || !flamegraphView) {
@@ -494,13 +551,15 @@ function Flamegraph(): ReactElement {
     const minWidthBetweenViews = Math.min(
       flamegraphView?.minWidth ?? Number.MAX_SAFE_INTEGER,
       spansView?.minWidth ?? Number.MAX_SAFE_INTEGER,
-      uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER
+      uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER,
+      cpuChartView?.minWidth ?? Number.MAX_SAFE_INTEGER
     );
 
     flamegraphView?.setMinWidth?.(minWidthBetweenViews);
     spansView?.setMinWidth?.(minWidthBetweenViews);
     uiFramesView?.setMinWidth?.(minWidthBetweenViews);
-  }, [flamegraphView, spansView, uiFramesView]);
+    cpuChartView?.setMinWidth?.(minWidthBetweenViews);
+  }, [flamegraphView, spansView, uiFramesView, cpuChartView]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -526,6 +585,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
+        if (cpuChartView) {
+          cpuChartView.setConfigView(rect);
+        }
       }
 
       if (sourceConfigViewChange === spansView) {
@@ -536,6 +598,9 @@ function Flamegraph(): ReactElement {
         );
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
+        }
+        if (cpuChartView) {
+          cpuChartView.setConfigView(rect);
         }
       }
       canvasPoolManager.draw();
@@ -558,6 +623,9 @@ function Flamegraph(): ReactElement {
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
       }
 
       if (sourceTransformConfigView === spansView) {
@@ -567,6 +635,9 @@ function Flamegraph(): ReactElement {
         flamegraphView.setConfigView(flamegraphView.configView.withY(beforeY));
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
+        }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
         }
       }
 
@@ -580,6 +651,9 @@ function Flamegraph(): ReactElement {
       }
       if (uiFramesView && uiFramesCanvas) {
         uiFramesView.resetConfigView(uiFramesCanvas);
+      }
+      if (cpuChartView && cpuChartCanvas) {
+        cpuChartView.resetConfigView(cpuChartCanvas);
       }
       canvasPoolManager.draw();
     };
@@ -600,6 +674,11 @@ function Flamegraph(): ReactElement {
           newConfigView.withHeight(uiFramesView.configView.height)
         );
       }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -615,16 +694,21 @@ function Flamegraph(): ReactElement {
       ).transformRect(spansView.configSpaceTransform);
 
       spansView.setConfigView(newConfigView);
-      if (uiFramesView) {
-        uiFramesView.setConfigView(
-          newConfigView.withHeight(uiFramesView.configView.height)
-        );
-      }
       flamegraphView.setConfigView(
         newConfigView
           .withHeight(flamegraphView.configView.height)
           .withY(flamegraphView.configView.y)
       );
+      if (uiFramesView) {
+        uiFramesView.setConfigView(
+          newConfigView.withHeight(uiFramesView.configView.height)
+        );
+      }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
       canvasPoolManager.draw();
     };
 
@@ -650,6 +734,8 @@ function Flamegraph(): ReactElement {
     spansView,
     uiFramesCanvas,
     uiFramesView,
+    cpuChartCanvas,
+    cpuChartView,
   ]);
 
   const minimapCanvases = useMemo(() => {
@@ -683,6 +769,17 @@ function Flamegraph(): ReactElement {
     canvasPoolManager,
     uiFramesCanvas,
     uiFramesView
+  );
+
+  const chartCanvases = useMemo(() => {
+    return [cpuChartCanvasRef];
+  }, [cpuChartCanvasRef]);
+
+  const cpuChartCanvasBounds = useResizeCanvasObserver(
+    chartCanvases,
+    canvasPoolManager,
+    cpuChartCanvas,
+    cpuChartView
   );
 
   const flamegraphCanvases = useMemo(() => {
@@ -889,7 +986,19 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
-        cpuChart={hasCPUChart ? <FlamegraphCpuChart /> : null}
+        cpuChart={
+          hasCPUChart ? (
+            <FlamegraphCpuChart
+              cpuChartCanvasRef={cpuChartCanvasRef}
+              cpuChartCanvas={cpuChartCanvas}
+              setCpuChartCanvasRef={setCpuChartCanvasRef}
+              canvasBounds={cpuChartCanvasBounds}
+              cpuChartView={cpuChartView}
+              canvasPoolManager={canvasPoolManager}
+              chart={CPUChart}
+            />
+          ) : null
+        }
         spansTreeDepth={spanChart?.depth}
         spans={
           spanChart ? (

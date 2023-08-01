@@ -11,7 +11,7 @@ import TableView from 'sentry/views/discover/table/tableView';
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
-  const location = {
+  const location = TestStubs.location({
     pathname: '/organizations/org-slug/discover/results/',
     query: {
       id: '42',
@@ -26,12 +26,12 @@ describe('TableView > CellActions', function () {
       ],
       sort: ['title'],
       query: '',
-      project: [123],
+      project: ['123'],
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'p95',
     },
-  };
+  });
   const eventView = EventView.fromLocation(location);
 
   function renderComponent(context, tableData, view) {
@@ -41,9 +41,13 @@ describe('TableView > CellActions', function () {
         location={location}
         eventView={view}
         isLoading={false}
-        projects={context.organization.projects}
         tableData={tableData}
         onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
       />,
       {context: context.routerContext}
     );
@@ -57,8 +61,8 @@ describe('TableView > CellActions', function () {
   }
 
   beforeEach(function () {
-    browserHistory.push.mockReset();
-    browserHistory.replace.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
 
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
@@ -73,9 +77,9 @@ describe('TableView > CellActions', function () {
       ProjectsStore.loadInitialData(initialData.organization.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
-        {name: 'size', key: 'size', count: 1},
-        {name: 'shape', key: 'shape', count: 1},
-        {name: 'direction', key: 'direction', count: 1},
+        {name: 'size', key: 'size'},
+        {name: 'shape', key: 'shape'},
+        {name: 'direction', key: 'direction'},
       ]);
     });
 
@@ -357,10 +361,10 @@ describe('TableView > CellActions', function () {
           },
         })}
         isLoading={false}
-        projects={initialData.organization.projects}
         tableData={{
           data: [
             {
+              id: '1',
               title: '/random/transaction/name',
               'p99(measurements.custom.kibibyte)': 222.3,
               'p99(measurements.custom.kilobyte)': 444.3,
@@ -371,13 +375,17 @@ describe('TableView > CellActions', function () {
             'p99(measurements.custom.kibibyte)': 'size',
             'p99(measurements.custom.kilobyte)': 'size',
             units: {
-              title: null,
               'p99(measurements.custom.kibibyte)': 'kibibyte',
               'p99(measurements.custom.kilobyte)': 'kilobyte',
             },
           },
         }}
         onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
       />
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
@@ -388,6 +396,7 @@ describe('TableView > CellActions', function () {
     const orgWithFeature = TestStubs.Organization({
       projects: [TestStubs.Project()],
     });
+
     render(
       <TableView
         organization={orgWithFeature}
@@ -400,10 +409,10 @@ describe('TableView > CellActions', function () {
           },
         })}
         isLoading={false}
-        projects={initialData.organization.projects}
         tableData={{
           data: [
             {
+              id: '1',
               title: '/random/transaction/name',
               'p99(measurements.custom.kilobyte)': 444.3,
             },
@@ -411,13 +420,15 @@ describe('TableView > CellActions', function () {
           meta: {
             title: 'string',
             'p99(measurements.custom.kilobyte)': 'size',
-            units: {
-              title: null,
-              'p99(measurements.custom.kilobyte)': 'kilobyte',
-            },
+            units: {'p99(measurements.custom.kilobyte)': 'kilobyte'},
           },
         }}
         onChangeShowTags={onChangeShowTags}
+        error={null}
+        isFirstPage
+        measurementKeys={null}
+        showTags={false}
+        title=""
       />
     );
     await userEvent.hover(screen.getByText('444.3 KB'));

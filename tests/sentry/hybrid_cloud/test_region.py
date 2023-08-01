@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.region import (
 )
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory, RegionResolutionError

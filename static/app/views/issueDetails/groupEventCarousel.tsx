@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
@@ -72,17 +72,6 @@ enum EventNavDropdownOption {
 
 const BUTTON_SIZE = 'sm';
 const BUTTON_ICON_SIZE = 'sm';
-
-const copyToClipboard = (value: string) => {
-  navigator.clipboard
-    .writeText(value)
-    .then(() => {
-      addSuccessMessage(t('Copied to clipboard'));
-    })
-    .catch(() => {
-      t('Error copying to clipboard');
-    });
-};
 
 const makeBaseEventsPath = ({
   organization,
@@ -213,11 +202,12 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
             });
             break;
           case EventNavDropdownOption.ALL:
+            const searchTermWithoutQuery = omit(location.query, 'query');
             browserHistory.push({
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/issues/${group.id}/events/`
               ),
-              query: location.query,
+              query: searchTermWithoutQuery,
             });
             break;
           default:
@@ -245,8 +235,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
 
-  const {onClick: onClickCopy} = useCopyToClipboard({text: event.id});
-
   const downloadJson = () => {
     const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
@@ -256,17 +244,23 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     });
   };
 
-  const copyLink = () => {
-    copyToClipboard(
+  const {onClick: copyLink} = useCopyToClipboard({
+    successMessage: t('Event URL copied to clipboard'),
+    text:
       window.location.origin +
-        normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`)
-    );
-    trackAnalytics('issue_details.copy_event_link_clicked', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyticsDataForEvent(event),
-    });
-  };
+      normalizeUrl(`${makeBaseEventsPath({organization, group})}${event.id}/`),
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+      }),
+  });
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
 
   const isHelpfulEventUiEnabled =
     organization.features.includes('issue-details-most-helpful-event') &&
@@ -282,7 +276,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <Button
                 aria-label={t('Copy')}
                 borderless
-                onClick={onClickCopy}
+                onClick={copyEventId}
                 size="zero"
                 title={event.id}
                 tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
@@ -335,7 +329,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             {
               key: 'copy-event-id',
               label: t('Copy Event ID'),
-              onAction: () => copyToClipboard(event.id),
+              onAction: copyEventId,
             },
             {
               key: 'copy-event-url',

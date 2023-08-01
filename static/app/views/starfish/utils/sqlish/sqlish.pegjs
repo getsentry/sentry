@@ -2,15 +2,15 @@ Expression
    = tokens:Token*
 
 Token
-   = Keyword / Parameter / CollapsedColumns / Whitespace / GenericToken
+   = Whitespace / Keyword / Parameter / CollapsedColumns / GenericToken
 
 Keyword
-  = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / JoinKeyword) {
+  = Keyword:("SELECT"i / "INSERT"i / "DELETE"i / "FROM"i / "ON"i / "WHERE"i / "AND"i / "ORDER BY"i / "LIMIT"i / "GROUP BY"i / "OFFSET"i / "VALUES"i / "RETURNING"i / JoinKeyword) {
   return { type: 'Keyword', content: Keyword }
 }
 
 JoinKeyword
-  = JoinDirection:JoinDirection? Whitespace JoinType:JoinType? Whitespace "JOIN"i {
+  = JoinDirection:JoinDirection? Whitespace? JoinType:JoinType? Whitespace "JOIN"i {
   return (JoinDirection || '') + (JoinDirection ? " " : '') + JoinType + " " + "JOIN"
 }
 
@@ -24,7 +24,7 @@ Parameter
   = Parameter:("%s" / ":c" [0-9]) { return { type: 'Parameter', content: Array.isArray(Parameter) ? Parameter.join('') : Parameter } }
 
 CollapsedColumns
-  = ".." { return { type: 'CollapsedColumns' } }
+  = ".." { return { type: 'CollapsedColumns', content: '..' } }
 
 Whitespace
   = Whitespace:[\n\t ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }

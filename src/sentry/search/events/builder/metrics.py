@@ -487,6 +487,20 @@ class MetricsQueryBuilder(QueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if name in constants.METRICS_MAP:
+                if search_filter.operator == "!=":
+                    return None
+                else:
+                    raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
+            else:
+                return Condition(
+                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                    1,
+                )
+
         lhs = self.resolve_column(name)
         # If this is an aliasedexpression, we don't need the alias here, just the expression
         if isinstance(lhs, AliasedExpression):
@@ -523,15 +537,6 @@ class MetricsQueryBuilder(QueryBuilder):
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
-                )
-
-        # Handle checks for existence
-        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag:
-                return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
-                    1,
                 )
 
         if search_filter.value.is_wildcard():
