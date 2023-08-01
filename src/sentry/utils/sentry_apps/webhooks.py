@@ -7,8 +7,7 @@ from requests import Response
 from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import features
-from sentry import options
+from sentry import features, options
 from sentry.http import safe_urlopen
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
