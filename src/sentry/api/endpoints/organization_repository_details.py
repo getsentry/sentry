@@ -9,8 +9,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Integration, Repository, ScheduledDeletion
+from sentry.models import Commit, RegionScheduledDeletion, Repository
 from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
@@ -59,12 +60,10 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             else:
                 raise NotImplementedError
         if result.get("integrationId"):
-            try:
-                integration = Integration.objects.get(
-                    id=result["integrationId"],
-                    organizationintegration__organization_id=coerce_id_from(organization),
-                )
-            except Integration.DoesNotExist:
+            integration = integration_service.get_integration(
+                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+            )
+            if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)
 
             update_kwargs["integration_id"] = integration.id
@@ -108,8 +107,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 repo.rename_on_pending_deletion()
 
                 if has_commits:
-                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
                 else:
-                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                    RegionScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)
