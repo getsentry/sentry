@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 import pickle
@@ -41,7 +43,7 @@ class DjangoNodeStorage(NodeStorage):
         except Node.DoesNotExist:
             return None
 
-    def _get_bytes_multi(self, id_list):
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         return {n.id: decompress(n.data) for n in Node.objects.filter(id__in=id_list)}
 
     def delete_multi(self, id_list):

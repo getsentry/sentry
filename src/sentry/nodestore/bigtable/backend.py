@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 import sentry_sdk
@@ -59,8 +61,8 @@ class BigtableNodeStorage(NodeStorage):
     def _get_bytes(self, id):
         return self.store.get(id)
 
-    def _get_bytes_multi(self, id_list):
-        rv = {id: None for id in id_list}
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
+        rv: dict[str, bytes | None] = {id: None for id in id_list}
         rv.update(self.store.get_many(id_list))
         return rv
 

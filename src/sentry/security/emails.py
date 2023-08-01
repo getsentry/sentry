@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.utils import timezone
 
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
 if TYPE_CHECKING:
@@ -10,9 +13,9 @@ if TYPE_CHECKING:
 
 
 def generate_security_email(
-    account: "User",
+    account: User | RpcUser,
     type: str,
-    actor: "User",
+    actor: User | RpcUser,
     ip_address: str,
     context: Optional[Mapping[str, Any]] = None,
     current_datetime: Optional[datetime] = None,
@@ -22,10 +25,12 @@ def generate_security_email(
 
     subject = "Security settings changed"
     if type == "mfa-removed":
+        assert context is not None
         assert "authenticator" in context
         template = "sentry/emails/mfa-removed.txt"
         html_template = "sentry/emails/mfa-removed.html"
     elif type == "mfa-added":
+        assert context is not None
         assert "authenticator" in context
         template = "sentry/emails/mfa-added.txt"
         html_template = "sentry/emails/mfa-added.html"
