@@ -50,7 +50,6 @@ class IntegrationRequestBuffer:
         Get the list at the buffer key in the broken range.
         """
 
-        # return self.client.lrange(buffer_key, 0, IS_BROKEN_RANGE - 1)
         ret = []
         now = datetime.now()
         for i in reversed(range(IS_BROKEN_RANGE)):
