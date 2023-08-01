@@ -20,7 +20,7 @@ from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
     def get(self, request: Request, project, alert_rule) -> Response:
         """
-        Fetch an alert rule.
+        Fetch a metric alert rule. @deprecated. Use OrganizationAlertRuleDetailsEndpoint instead.
         ``````````````````
         :auth: required
         """
