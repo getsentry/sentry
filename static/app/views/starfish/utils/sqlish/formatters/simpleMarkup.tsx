@@ -11,13 +11,11 @@ export function simpleMarkup(tokens: Token[]): React.ReactElement[] {
 
     if (typeof content.content === 'string') {
       if (content.type === 'Keyword') {
-        accumulator.push(
-          <b key={toKey(content.content)}>{content.content.toUpperCase()}</b>
-        );
+        accumulator.push(<b>{content.content.toUpperCase()}</b>);
       } else if (content.type === 'Whitespace') {
-        accumulator.push(<span key={toKey(content.content)}> </span>);
+        accumulator.push(<span> </span>);
       } else {
-        accumulator.push(<span key={toKey(content.content)}>{content.content}</span>);
+        accumulator.push(<span>{content.content}</span>);
       }
     }
 
@@ -26,8 +24,4 @@ export function simpleMarkup(tokens: Token[]): React.ReactElement[] {
 
   tokens.forEach(contentize);
   return accumulator;
-}
-
-function toKey(content: string): string {
-  return content.toLowerCase();
 }
