@@ -3,7 +3,7 @@ from functools import cached_property
 from django.utils import timezone
 
 from sentry.models import ApiApplication, ApiGrant, ApiToken
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -276,7 +276,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.client-secret": "signing_secret"}):
+        with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
                 self.path,
                 {
@@ -309,7 +309,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.client-secret": "signing_secret"}):
+        with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
                 self.path,
                 {

@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
@@ -71,20 +71,26 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[RpcIntegration | RpcOrganizationIntegration],
-        expected: List[Integration | OrganizationIntegration],
+        result: List[RpcIntegration] | List[RpcOrganizationIntegration],
+        expected: List[Integration] | List[OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
         assert len(result) == len(expected)
         result_ids = [api_item.id for api_item in result]
         assert all([item.id in result_ids for item in expected])
 
-    def verify_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_integration_result(self, result: RpcIntegration | None, expected: Integration):
+        assert result is not None
         serialized_fields = ["id", "provider", "external_id", "name", "metadata", "status"]
         for field in serialized_fields:
             assert getattr(result, field) == getattr(expected, field)
 
-    def verify_org_integration_result(self, result: RpcIntegration, expected: Integration):
+    def verify_org_integration_result(
+        self,
+        result: RpcIntegration | RpcOrganizationIntegration | None,
+        expected: Integration | OrganizationIntegration,
+    ):
+        assert result is not None
         serialized_fields = [
             "id",
             "default_auth_id",
@@ -171,6 +177,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         api_integration1 = serialize_integration(integration=self.integration1)
         api_install = api_integration1.get_installation(organization_id=self.organization.id)
         install = self.integration1.get_installation(organization_id=self.organization.id)
+        assert api_install.org_integration is not None
         assert api_install.org_integration.id == self.org_integration1.id
         assert api_install.__class__ == install.__class__
 

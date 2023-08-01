@@ -4,7 +4,7 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping
 from uuid import uuid1
 
 import sentry_sdk
@@ -51,7 +51,17 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
-MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
+MIGRATED_GETTING_STARTD_DOCS = [
+    "javascript-react",
+    "javascript-remix",
+    "go-echo",
+    "go-fasthttp",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+]
 
 
 class ProjectManager(BaseManager):
@@ -78,7 +88,7 @@ class ProjectManager(BaseManager):
             teams__organizationmember__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Teams have access to."""
         return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
 

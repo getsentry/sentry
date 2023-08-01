@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import GroupHash
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

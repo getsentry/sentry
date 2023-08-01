@@ -1,9 +1,7 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -13,10 +11,11 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
-import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
 
 import {Monitor} from '../../types';
 
+import {ResolutionSelector} from './resolutionSelector';
+import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
 import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
@@ -25,20 +24,13 @@ interface Props {
 }
 
 export function OverviewTimeline({monitorList}: Props) {
-  const {replace, location} = useRouter();
+  const {location} = useRouter();
   const organization = useOrganization();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
-
-  const handleResolutionChange = useCallback(
-    (value: TimeWindow) => {
-      replace({...location, query: {...location.query, timeWindow: value}});
-    },
-    [location, replace]
-  );
 
   const rollup = Math.floor(
     (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
@@ -65,19 +57,7 @@ export function OverviewTimeline({monitorList}: Props) {
 
   return (
     <MonitorListPanel>
-      <ListFilters>
-        <SegmentedControl<TimeWindow>
-          value={timeWindow}
-          onChange={handleResolutionChange}
-          size="xs"
-          aria-label={t('Time Scale')}
-        >
-          <SegmentedControl.Item key="1h">{t('Hour')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="24h">{t('Day')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="7d">{t('Week')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="30d">{t('Month')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </ListFilters>
+      <StyledResolutionSelector />
       <TimelineWidthTracker ref={elementRef} />
       <GridLineTimeLabels
         timeWindow={timeWindow}
@@ -111,9 +91,7 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const ListFilters = styled('div')`
-  display: flex;
-  gap: ${space(1)};
+const StyledResolutionSelector = styled(ResolutionSelector)`
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   grid-column: 1/3;

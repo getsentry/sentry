@@ -2,8 +2,8 @@ from sentry.models import AuditLogEntry, OutboxScope, RegionOutbox, UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.utils.pytest.fixtures import django_db_all
 
 
 @django_db_all

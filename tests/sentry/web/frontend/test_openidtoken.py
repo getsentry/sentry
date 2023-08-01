@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sentry.models import ApiApplication, ApiGrant
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import jwt as jwt_utils
 from sentry.web.frontend.openidtoken import OpenIDToken
 

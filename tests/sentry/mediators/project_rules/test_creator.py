@@ -2,7 +2,7 @@ from sentry.mediators.project_rules import Creator
 from sentry.models import Rule
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class TestCreator(TestCase):

@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.analytics import Attribute, Event, Map
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -4,7 +4,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models import OrganizationMember
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class VstsExtensionConfigurationTest(TestCase):

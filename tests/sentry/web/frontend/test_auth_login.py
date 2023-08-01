@@ -17,7 +17,7 @@ from sentry.models import AuthProvider, OrganizationMember, User
 from sentry.models.organization import Organization
 from sentry.receivers import create_default_projects
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test

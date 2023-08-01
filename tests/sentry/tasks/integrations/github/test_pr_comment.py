@@ -10,7 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import CommentType, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -24,7 +24,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
-from sentry.testutils import IntegrationTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -364,6 +364,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
+        assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
         )
@@ -383,6 +384,16 @@ class TestCommentWorkflow(GithubCommentTestCase):
             created_at=timezone.now() - timedelta(hours=1),
             updated_at=timezone.now() - timedelta(hours=1),
             group_ids=[1, 2, 3, 4],
+        )
+
+        # An Open PR comment should not affect the rest of the test as the filter should ignore it.
+        PullRequestComment.objects.create(
+            external_id=2,
+            pull_request_id=self.pr.id,
+            created_at=timezone.now() - timedelta(hours=1),
+            updated_at=timezone.now() - timedelta(hours=1),
+            group_ids=[],
+            comment_type=CommentType.OPEN_PR,
         )
 
         responses.add(

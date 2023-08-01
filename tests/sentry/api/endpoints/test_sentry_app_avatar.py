@@ -2,7 +2,7 @@ from base64 import b64encode
 
 from sentry import options as options_store
 from sentry.models import SentryAppAvatar
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

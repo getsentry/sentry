@@ -108,6 +108,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-1',
             'count()': 1000,
+            'p75()': 100000,
             'sum()': 1000000,
             'examples()': [
               'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -117,6 +118,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-2',
             'count()': 2500,
+            'p75()': 50000,
             'sum()': 500000,
             'examples()': ['cccccccccccccccccccccccccccccccc'],
           },
@@ -126,7 +128,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:123',
-          field: ['transaction', 'count()', 'sum()', 'examples()'],
+          field: ['transaction', 'count()', 'p75()', 'sum()', 'examples()'],
         }),
       ],
     });
@@ -139,6 +141,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-3',
             'count()': 2000,
+            'p75()': 200000,
             'sum()': 2000000,
             'examples()': [
               'dddddddddddddddddddddddddddddddd',
@@ -148,6 +151,7 @@ describe('SlowestFunctionsWidget', function () {
           {
             transaction: 'transaction-4',
             'count()': 3500,
+            'p75()': 70000,
             'sum()': 700000,
             'examples()': ['ffffffffffffffffffffffffffffffff'],
           },
@@ -157,7 +161,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:456',
-          field: ['transaction', 'count()', 'sum()', 'examples()'],
+          field: ['transaction', 'count()', 'p75()', 'sum()', 'examples()'],
         }),
       ],
     });
@@ -173,7 +177,7 @@ describe('SlowestFunctionsWidget', function () {
     // headers
     expect(screen.getByText('Transaction')).toBeInTheDocument();
     expect(screen.getByText('Count')).toBeInTheDocument();
-    expect(screen.getByText('Total Self Time')).toBeInTheDocument();
+    expect(screen.getByText('Time Spent')).toBeInTheDocument();
 
     // first row
     const transaction1 = screen.getByText('transaction-1');
