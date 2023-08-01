@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -31,7 +33,12 @@ class RpcServiceEndpoint(Endpoint):
             raise PermissionDenied
 
         metadata = request.data.get("meta")  # noqa
-        arguments = request.data.get("args")
+        try:
+            arguments: Dict[str, Any] = request.data["args"]
+        except KeyError as e:
+            raise ParseError from e
+        if not isinstance(arguments, dict):
+            raise ParseError
 
         auth_context: AuthenticationContext = AuthenticationContext()
         if auth_context_json := arguments.get("auth_context"):
