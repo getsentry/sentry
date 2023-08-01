@@ -336,6 +336,6 @@ def download_range(blob_range: BlobRangeModel) -> bytes:
     dek = base64.b64decode(blob_range.dek)
 
     store = get_storage(storage._make_storage_options())
-    encrypted_file = store.read_range(blob_range.filename, blob_range.start, blob_range.stop)
+    encrypted_file = store.read_range(blob_range.filename, blob_range.start, blob_range.end)
     decrypted_file = envelope_decrypt(kek, dek, encrypted_file)
     return decompress(decrypted_file)
