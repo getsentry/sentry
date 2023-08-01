@@ -17,9 +17,11 @@ import {
   IconEllipsis,
   IconLink,
   IconNext,
+  IconOpen,
   IconPrevious,
   IconWarning,
 } from 'sentry/icons';
+import {IconJSON} from 'sentry/icons/iconJSON';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization} from 'sentry/types';
@@ -142,7 +144,7 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
   };
 
   const selectedValue = getSelectedOption();
-  const EVENT_NAV_DROPDOWN_OPTIONS = [
+  const eventNavDropdownOptions = [
     {
       value: EventNavDropdownOption.RECOMMENDED,
       label: (
@@ -179,7 +181,7 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
   return (
     <CompactSelect
       size="sm"
-      options={EVENT_NAV_DROPDOWN_OPTIONS}
+      options={eventNavDropdownOptions}
       value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
       triggerLabel={
         !selectedValue ? (
@@ -378,21 +380,34 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           ]}
         />
         {xlargeViewport && (
-          <Tooltip title={t('Copy link to this issue event')}>
-            <Button
-              size={BUTTON_SIZE}
-              onClick={copyLink}
-              icon={<IconLink />}
-              aria-label={t('Copy Link')}
-            />
-          </Tooltip>
+          <Button
+            title={
+              isHelpfulEventUiEnabled ? t('Copy link to this issue event') : undefined
+            }
+            size={BUTTON_SIZE}
+            onClick={copyLink}
+            icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
+            aria-label={isHelpfulEventUiEnabled ? t('Copy Link') : undefined}
+          >
+            {!isHelpfulEventUiEnabled && 'Copy Link'}
+          </Button>
         )}
         {xlargeViewport && (
-          <Tooltip title={t('View JSON')}>
-            <Button size={BUTTON_SIZE} onClick={downloadJson} aria-label={t('View JSON')}>
-              {'{ }'}
-            </Button>
-          </Tooltip>
+          <Button
+            title={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
+            size={BUTTON_SIZE}
+            onClick={downloadJson}
+            icon={
+              isHelpfulEventUiEnabled ? (
+                <IconJSON />
+              ) : (
+                <IconOpen size={BUTTON_ICON_SIZE} />
+              )
+            }
+            aria-label={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
+          >
+            {!isHelpfulEventUiEnabled && 'JSON'}
+          </Button>
         )}
         <EventNavigationDropdown
           group={group}
