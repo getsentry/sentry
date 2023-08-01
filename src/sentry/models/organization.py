@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from enum import IntEnum
 from typing import Collection, FrozenSet, Optional, Sequence
 
@@ -384,28 +383,6 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         from sentry.models import OrganizationOption
 
         return OrganizationOption.objects
-
-    def send_delete_confirmation(self, audit_log_entry, countdown):
-        from sentry import options
-        from sentry.utils.email import MessageBuilder
-
-        owners = self.get_owners()
-        url = self.absolute_url(reverse("sentry-restore-organization", args=[self.slug]))
-
-        context = {
-            "organization": self,
-            "audit_log_entry": audit_log_entry,
-            "eta": timezone.now() + timedelta(seconds=countdown),
-            "url": url,
-        }
-
-        MessageBuilder(
-            subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
-            template="sentry/emails/org_delete_confirm.txt",
-            html_template="sentry/emails/org_delete_confirm.html",
-            type="org.confirm_delete",
-            context=context,
-        ).send_async([o.email for o in owners])
 
     def _handle_requirement_change(self, request, task):
         from sentry.models.apikey import is_api_key_auth

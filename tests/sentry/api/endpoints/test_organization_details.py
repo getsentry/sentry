@@ -40,6 +40,7 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import task_runner
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -880,10 +881,20 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         owner_emails = {o.email for o in owners}
         for msg in mail.outbox:
             assert "Deletion" in msg.subject
+            assert self.user.username in msg.body
+            # Test that the IP address is correctly rendered in the email
+            assert "IP: 127.0.0.1" in msg.body
             assert len(msg.to) == 1
             owner_emails.remove(msg.to[0])
         # No owners should be remaining
         assert len(owner_emails) == 0
+
+        with outbox_runner():
+            pass
+
+        assert AuditLogEntry.objects.filter(
+            organization_id=self.organization.id, actor=self.user.id
+        ).exists()
 
     def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)
@@ -1017,8 +1028,9 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         self.assert_cannot_enable_org_2fa(org, self.manager, 400)
         TotpInterface().enroll(self.manager)
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options({"system.url-prefix": "http://example.com"}), task_runner():
             self.assert_can_enable_org_2fa(org, self.manager)
+
         self.assert_2fa_email_equal(mail.outbox, [self.owner.email])
 
     def test_members_cannot_set_2fa(self):
