@@ -7,7 +7,6 @@ import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
 
-from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
@@ -77,11 +76,7 @@ class MessageProcessor:
         The value of the message is what we need to parse and then translate
         using the indexer.
         """
-        should_index_tag_values = (
-            options.get(self._config.index_tag_values_option_name)
-            if self._config.index_tag_values_option_name
-            else True
-        )
+        should_index_tag_values = self._config.should_index_tag_values
         is_output_sliced = self._config.is_output_sliced or False
 
         batch = IndexerBatch(
