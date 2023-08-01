@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from threading import local
 
 import sentry_sdk
@@ -147,7 +149,7 @@ class NodeStorage(local, Service):
 
             return rv
 
-    def _get_bytes_multi(self, id_list):
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         """
         >>> nodestore._get_bytes_multi(['key1', 'key2')
         {

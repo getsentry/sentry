@@ -7,13 +7,10 @@ from typing import Type
 from click.testing import CliRunner
 from django.core.management import call_command
 
-from sentry.runner.commands.backup import (
-    ComparatorFindings,
-    ComparatorMap,
-    export,
-    import_,
-    validate,
-)
+from sentry.backup.comparators import ComparatorMap
+from sentry.backup.findings import ComparatorFindings
+from sentry.backup.validate import validate
+from sentry.runner.commands.backup import export, import_
 from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
