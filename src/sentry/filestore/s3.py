@@ -531,6 +531,10 @@ class S3Boto3Storage(Storage):
         name = self._normalize_name(self._clean_name(name))
         self.bucket.Object(self._encode_name(name)).delete()
 
+    def read_range(self, filename: str, start: int, end: int) -> bytes:
+        result: bytes = self.bucket.Object(filename).get(Range=f"bytes={start}-{end}")
+        return result
+
     def exists(self, name):
         if not name:
             try:

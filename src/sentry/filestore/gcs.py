@@ -331,6 +331,11 @@ class GoogleCloudStorage(Storage):
 
         return blob
 
+    def read_range(self, filename: str, start: int, end: int) -> bytes:
+        """Return a range of bytes from the target file."""
+        blob = Blob(filename, self.bucket)
+        return blob.download_as_bytes(start=start, end=end)
+
     def size(self, name):
         name = self._normalize_name(clean_name(name))
         blob = self._get_blob(self._encode_name(name))
