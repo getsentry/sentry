@@ -123,7 +123,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
-        assert prepared_request.url == "https://example.com/chat.postMessage"
+        assert prepared_request.url == "https://example.com/api/chat.postMessage"
         assert prepared_request.headers == {
             "Cookie": "",
             "Content-Type": "application/octet-stream",
@@ -172,7 +172,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         proxy_response = self.client.get(self.path, **headers)
 
         prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
-        assert prepared_request.url == "https://foobar.example.com/chat.postMessage"
+        assert prepared_request.url == "https://foobar.example.com/api/chat.postMessage"
         assert prepared_request.headers == {
             "Cookie": "",
             "Content-Type": "application/octet-stream",
