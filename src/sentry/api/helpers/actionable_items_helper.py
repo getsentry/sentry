@@ -58,6 +58,7 @@ deprecated_event_errors = [
 ]
 
 
+# These checks mirror what we do in the front end in getUniqueFilesFromException
 def find_debug_frames(event):
     max_frames = 5
     debug_frames = []
