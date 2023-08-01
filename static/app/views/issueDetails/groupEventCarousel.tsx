@@ -15,6 +15,7 @@ import {
   IconChevron,
   IconCopy,
   IconEllipsis,
+  IconJson,
   IconLink,
   IconNext,
   IconOpen,
@@ -397,7 +398,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             onClick={downloadJson}
             icon={
               isHelpfulEventUiEnabled ? (
-                <IconOpen size={BUTTON_ICON_SIZE} />
+                <IconJson />
               ) : (
                 <IconOpen size={BUTTON_ICON_SIZE} />
               )
