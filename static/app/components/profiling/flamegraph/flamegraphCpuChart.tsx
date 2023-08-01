@@ -84,7 +84,7 @@ export function FlamegraphCpuChart({
       );
 
       cpuChartRenderer.draw(
-        cpuChartView.configView.transformRect(cpuChartView.configSpaceTransform),
+        cpuChartView.configView,
         cpuChartView.configSpace,
         cpuChartCanvas.physicalSpace,
         fromConfigView,

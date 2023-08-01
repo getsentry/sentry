@@ -497,7 +497,6 @@ function Flamegraph(): ReactElement {
         return null;
       }
 
-      const PX_PADDING = flamegraphTheme.SIZES.CHART_PX_PADDING * window.devicePixelRatio;
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
         model: CPUChart,
