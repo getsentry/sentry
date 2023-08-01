@@ -242,7 +242,8 @@ function SpanSummaryPage({params, location}: Props) {
                               span={{
                                 ...span,
                                 [SpanMetricsFields.SPAN_DESCRIPTION]:
-                                  fullSpanDescription ?? '',
+                                  fullSpanDescription ??
+                                  spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
                               }}
                             />
                           </DescriptionContainer>

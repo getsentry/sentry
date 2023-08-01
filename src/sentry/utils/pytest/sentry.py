@@ -200,6 +200,10 @@ def pytest_configure(config):
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
+    # Configure control backend settings for storage
+    settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
+    settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
+
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
 

@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import OrganizationMemberTeam
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import ensure_aware
 from sentry.utils.samples import load_data

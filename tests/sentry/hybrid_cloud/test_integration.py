@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.integrations import ExternalProviders
 
@@ -169,9 +169,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_get_installation(self):
         api_integration1 = serialize_integration(integration=self.integration1)
-        api_install = integration_service.get_installation(
-            integration=api_integration1, organization_id=self.organization.id
-        )
+        api_install = api_integration1.get_installation(organization_id=self.organization.id)
         install = self.integration1.get_installation(organization_id=self.organization.id)
         assert api_install.org_integration.id == self.org_integration1.id
         assert api_install.__class__ == install.__class__
@@ -180,9 +178,7 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         for feature in IntegrationFeatures:
             api_integration2 = serialize_integration(integration=self.integration2)
             integration_has_feature = self.integration2.has_feature(feature)
-            api_integration_has_feature = integration_service.has_feature(
-                provider=api_integration2.provider, feature=feature
-            )
+            api_integration_has_feature = api_integration2.has_feature(feature=feature)
             assert integration_has_feature == api_integration_has_feature
 
 

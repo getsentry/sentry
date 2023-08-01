@@ -13,10 +13,7 @@ import useDomFilters, {FilterFields} from './useDomFilters';
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
-const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
-  typeof browserHistory.push
->;
+const mockUseLocation = jest.mocked(useLocation);
 
 const ACTION_1_DEBUG = {
   frame: hydrateSpans(TestStubs.ReplayRecord(), [
@@ -64,7 +61,7 @@ describe('useDomFilters', () => {
   const actions: Extraction[] = [ACTION_1_DEBUG, ACTION_2_CLICK, ACTION_3_CLICK];
 
   beforeEach(() => {
-    mockBrowserHistoryPush.mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   it('should update the url when setters are called', () => {

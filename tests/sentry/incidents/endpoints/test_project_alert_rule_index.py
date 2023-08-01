@@ -1,6 +1,6 @@
+from datetime import timezone
 from functools import cached_property
 
-import pytz
 import requests
 from freezegun import freeze_time
 
@@ -10,7 +10,7 @@ from sentry.incidents.models import AlertRule
 from sentry.models import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -161,10 +161,10 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.login_as(self.user)
         self.projects = [self.project, self.create_project()]
         self.alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=6).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=before_now(minutes=6).replace(tzinfo=timezone.utc)
         )
         self.other_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=5).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=before_now(minutes=5).replace(tzinfo=timezone.utc)
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -173,11 +173,11 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=pytz.UTC),
+                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=timezone.utc)
         )
         self.combined_rules_url = (
             f"/api/0/projects/{self.org.slug}/{self.project.slug}/combined-rules/"
@@ -296,10 +296,10 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
 
         date_added = before_now(minutes=1)
         self.one_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=timezone.utc)
         )
         self.two_alert_rule = self.create_alert_rule(
-            projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
+            projects=self.projects, date_added=date_added.replace(tzinfo=timezone.utc)
         )
         self.three_alert_rule = self.create_alert_rule(projects=self.projects)
 

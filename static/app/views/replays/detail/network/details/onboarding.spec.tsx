@@ -7,10 +7,6 @@ import {Output} from 'sentry/views/replays/detail/network/details/getOutputType'
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
-const mockUseProjectSdkNeedsUpdate = useProjectSdkNeedsUpdate as jest.MockedFunction<
-  typeof useProjectSdkNeedsUpdate
->;
-
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';
 
 const [MOCK_ITEM] = hydrateSpans(TestStubs.ReplayRecord(), [
@@ -23,7 +19,9 @@ const [MOCK_ITEM] = hydrateSpans(TestStubs.ReplayRecord(), [
 ]);
 
 describe('Setup', () => {
-  mockUseProjectSdkNeedsUpdate.mockReturnValue({isFetching: false, needsUpdate: false});
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isFetching: false, needsUpdate: false});
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {

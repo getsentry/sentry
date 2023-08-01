@@ -19,7 +19,7 @@ from sentry.models import (
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
+from sentry.testutils.cases import APITestCase, ReleaseCommitPatchTest, TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -730,7 +730,9 @@ class ReleaseSerializerTest(TestCase):
 
         result = serializer.validated_data
         assert result["version"] == self.version
-        assert result["owner"] == self.user
+        assert result["owner"]
+        assert result["owner"].id == self.user.id
+        assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
         assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)

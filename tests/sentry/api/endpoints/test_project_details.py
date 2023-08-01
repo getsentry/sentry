@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest import mock
 
-import pytz
 from django.db import router
 from django.urls import reverse
 
@@ -25,15 +24,15 @@ from sentry.models import (
     OrganizationOption,
     Project,
     ProjectBookmark,
-    ProjectOwnership,
     ProjectRedirect,
     RegionScheduledDeletion,
     Rule,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -1373,7 +1372,9 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     def _apply_old_date_to_project_and_org(self):
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
-        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        old_date = datetime.now(tz=timezone.utc) - timedelta(
+            minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1
+        )
         # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
         # copy is mutated.
         self.project.organization.update(date_added=old_date)

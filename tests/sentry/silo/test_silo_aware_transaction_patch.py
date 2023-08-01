@@ -11,7 +11,7 @@ from sentry.silo.patches.silo_aware_transaction_patch import (
     TransactionMissingDBException,
     siloed_atomic,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 def is_running_in_split_db_mode() -> bool:

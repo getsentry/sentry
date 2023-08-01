@@ -112,6 +112,7 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
@@ -364,7 +365,7 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "REGION": ["sentry.RegionOutbox"],
 }
 
-INSTALLED_APPS = (
+INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -632,7 +633,7 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
-SENTRY_REGION_CONFIG: Any = tuple()
+SENTRY_REGION_CONFIG: Any = ()
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET = None
@@ -1340,6 +1341,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
     "organizations:customer-domains": False,
+    # Allow disabling integrations when broken is detected
+    "organizations:slack-disable-on-broken": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1404,8 +1407,6 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue platform
     "organizations:issue-platform": False,
-    # Whether to allow issue only search on the issue list
-    "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1476,7 +1477,7 @@ SENTRY_FEATURES = {
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enables inviting new members based on GitHub commit activity.
-    "organizations:gh-invite": False,
+    "organizations:integrations-gh-invite": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
     # Enable inviting members to organizations.
@@ -1666,7 +1667,7 @@ SENTRY_FEATURES = {
     # Enable detecting SDK crashes during event processing
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
-    "organizations:pr-comment-bot": False,
+    "organizations:pr-comment-bot": True,
     # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Enable functionality for recap server polling.
@@ -1732,7 +1733,7 @@ SENTRY_PROJECT_KEY = None
 
 # Default organization to represent the Internal Sentry project.
 # Used as a default when in SINGLE_ORGANIZATION mode.
-SENTRY_ORGANIZATION = None
+SENTRY_ORGANIZATION: int | None = None
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -1876,7 +1877,7 @@ SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
-SENTRY_CACHE = None
+SENTRY_CACHE: str | None = None
 SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 
 # Attachment blob cache backend
