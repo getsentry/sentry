@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 
-from sentry.models.blob_range import FilePartModel
+from sentry.models.file_part import FilePartModel
 from sentry.replays.usecases.reader import download_range, find_blob_range, find_blob_ranges
 from sentry.utils.crypt_envelope import envelope_encrypt
 from sentry.utils.pytest.fixtures import django_db_all

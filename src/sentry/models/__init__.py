@@ -14,7 +14,6 @@ from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
 from .authprovider import *  # NOQA
 from .avatars import *  # NOQA
-from .blob_range import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
@@ -36,6 +35,7 @@ from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
 from .eventuser import *  # NOQA
 from .featureadoption import *  # NOQA
+from .file_part import *  # NOQA
 from .files import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
