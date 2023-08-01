@@ -31,6 +31,7 @@ from sentry.models import (
     OrganizationStatus,
     OutboxFlushError,
     RegionScheduledDeletion,
+    User,
     outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
@@ -40,7 +41,6 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import task_runner
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -966,6 +966,16 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
+    def assert_has_correct_audit_log(self, user: User, organization: Organization):
+        with outbox_runner():
+            pass
+
+        audit_log = AuditLogEntry.objects.get(actor_id=user.id, organization_id=organization.id)
+        assert audit_log.target_user == user.id
+        assert audit_log.target_object == organization.id
+        assert audit_log.data
+        assert audit_log.ip_address == "127.0.0.1"
+
     def setUp(self):
         # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
@@ -1021,6 +1031,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
         assert len(mail.outbox) == 0
+        self.assert_has_correct_audit_log(user=self.owner, organization=org)
 
     def test_manager_can_set_2fa(self):
         org = self.create_organization(owner=self.owner)
@@ -1028,7 +1039,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         self.assert_cannot_enable_org_2fa(org, self.manager, 400)
         TotpInterface().enroll(self.manager)
-        with self.options({"system.url-prefix": "http://example.com"}), task_runner():
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.manager)
 
         self.assert_2fa_email_equal(mail.outbox, [self.owner.email])
