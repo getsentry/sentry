@@ -248,21 +248,26 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         Arithmetic functions require vectors as parameters and return vectors.
         """
 
-        name = function.function
+        op = function.function
         if len(function.parameters) != 2:
-            raise InvalidMetricsQuery(f"`{name}` must have two parameters")
+            raise InvalidMetricsQuery(f"`{op}` must have two parameters")
 
         lhs = self._visit_expression(function.parameters[0])
         rhs = self._visit_expression(function.parameters[1])
-
-        allowed_types = (VectorType, ScalarType)
-        if not isinstance(lhs.type_, allowed_types) or not isinstance(rhs.type_, allowed_types):
-            raise InvalidMetricsQuery(f"Cannot apply `{name}` to a metric, aggregation needed")
+        self._validate_numeric(lhs, op)
+        self._validate_numeric(rhs, op)
 
         return AnnotatedExpression(
             node=function,
             type_=VectorType(),
         )
+
+    def _validate_numeric(self, node: AnnotatedExpression, op: str) -> None:
+        if isinstance(node.type_, ScalarType):
+            if not isinstance(node.node, (int, float)):
+                raise InvalidMetricsQuery("Expected a numeric value")
+        elif not isinstance(node.type_, VectorType):
+            raise InvalidMetricsQuery(f"Cannot apply `{op}` to a metric, aggregation needed")
 
     def _visit_condition(self, condition: Function) -> AnnotatedExpression:
         raise InvalidMetricsQuery("Unexpected condition function")
