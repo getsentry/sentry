@@ -31,9 +31,6 @@ interface FlamegraphChartProps {
   setCpuChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
-const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
-const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
-
 export function FlamegraphCpuChart({
   chart,
   canvasPoolManager,
@@ -82,8 +79,13 @@ export function FlamegraphCpuChart({
       );
       mat3.multiply(
         fromConfigView,
-        cpuChartCanvas.physicalSpace.invertYTransform(),
-        fromConfigView
+        configViewToPhysicalSpaceTransform,
+        physicalSpaceToOffsetPhysicalSpaceTransform
+      );
+      mat3.multiply(
+        fromConfigView,
+        fromConfigView,
+        offsetPhysicalSpace.invertYTransform()
       );
 
       cpuChartRenderer.draw(
