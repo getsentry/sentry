@@ -29,7 +29,7 @@ class CheckMonitorsTest(TestCase):
         # run very close, let's say for our test that it runs 12 seconds after
         # the minute.
         #
-        # This is testing that the task correctly clamps it's reference time
+        # This is testing that the task correctly clamps its reference time
         # down to the minute.
         task_run_ts = ts.replace(second=12, microsecond=0)
 
@@ -37,7 +37,7 @@ class CheckMonitorsTest(TestCase):
         # same here.
         next_checkin_ts = ts.replace(second=0, microsecond=0)
 
-        return (task_run_ts, next_checkin_ts)
+        return task_run_ts, next_checkin_ts
 
     def test_missing_checkin(self):
         org = self.create_organization()
@@ -56,7 +56,7 @@ class CheckMonitorsTest(TestCase):
                 "checkin_margin": None,
             },
         )
-        # Exepcted checkin was a full minute ago.
+        # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment=self.environment,
@@ -81,6 +81,61 @@ class CheckMonitorsTest(TestCase):
         )
         assert missed_check.expected_time == (
             monitor_environment.last_checkin + timedelta(minutes=1)
+        ).replace(second=0, microsecond=0)
+        assert missed_check.monitor_config == monitor.config
+
+    def test_missing_checkin_with_margin(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        task_run_ts, next_checkin_ts = self.make_ref_time()
+
+        monitor = Monitor.objects.create(
+            organization_id=org.id,
+            project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [10, "minute"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": 5,
+            },
+        )
+        # Expected check-in was 12 minutes ago.
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            last_checkin=next_checkin_ts - timedelta(minutes=12),
+            next_checkin=next_checkin_ts - timedelta(minutes=2),
+            next_checkin_latest=next_checkin_ts + timedelta(minutes=3),
+            status=MonitorStatus.OK,
+        )
+
+        # No missed check-in generated as expected time was still within margin
+        check_missing(task_run_ts)
+
+        assert not MonitorEnvironment.objects.filter(
+            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+        ).exists()
+        assert not MonitorCheckIn.objects.filter(
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
+        )
+
+        # Missed check-in generated as clock now exceeds expected time plus margin
+        check_missing(task_run_ts + timedelta(minutes=4))
+
+        assert MonitorEnvironment.objects.filter(
+            id=monitor_environment.id, status=MonitorStatus.MISSED_CHECKIN
+        ).exists()
+
+        assert MonitorCheckIn.objects.filter(
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
+        )
+        missed_check = MonitorCheckIn.objects.get(
+            monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
+        )
+        assert missed_check.expected_time == (
+            monitor_environment.last_checkin + timedelta(minutes=10)
         ).replace(second=0, microsecond=0)
         assert missed_check.monitor_config == monitor.config
 
