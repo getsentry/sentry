@@ -276,7 +276,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.client-secret": "signing_secret"}):
+        with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
                 self.path,
                 {
@@ -309,7 +309,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.client-secret": "signing_secret"}):
+        with self.options({"codecov.signing_secret": "signing_secret"}):
             resp = self.client.post(
                 self.path,
                 {
