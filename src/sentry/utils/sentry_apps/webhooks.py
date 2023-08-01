@@ -9,6 +9,7 @@ from rest_framework import status
 
 from sentry import features
 from sentry.http import safe_urlopen
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization
 from sentry.models.integrations.sentry_app import track_response_code
@@ -39,16 +40,23 @@ def ignore_unpublished_app_errors(func):
     return wrapper
 
 
+def check_broken(sentryapp: SentryApp, org_id: str):
+    redis_key = sentryapp._get_redis_key(org_id)
+    buffer = IntegrationRequestBuffer(redis_key)
+    if buffer.is_integration_broken():
+        org = Organization.objects.get(id=org_id)
+        if features.has("organizations:disable-sentryapps-on-broken", org):
+            sentryapp._disable()
+            notify_disable(org, "", redis_key)
+
+
 def record_timeout(sentryapp: SentryApp, org_id: str, e: Exception):
     redis_key = sentryapp._get_redis_key(org_id)
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_timeout(e)
-    if buffer.is_integration_broken():
-        org = Organization.objects.get(id=org_id)
-        if features.has("organizations:disable-sentryapps-on-broken", org):
-            sentryapp._disable()
+    check_broken(sentryapp, org_id)
 
 
 def record_response(sentryapp: SentryApp, org_id: str, response: Response):
@@ -58,10 +66,7 @@ def record_response(sentryapp: SentryApp, org_id: str, response: Response):
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_success(response)
     buffer.record_error(response)
-    if buffer.is_integration_broken():
-        org = Organization.objects.get(id=org_id)
-        if features.has("organizations:disable-sentryapps-on-broken", org):
-            sentryapp._disable()
+    check_broken(sentryapp, org_id)
 
 
 @ignore_unpublished_app_errors
