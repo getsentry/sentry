@@ -137,7 +137,10 @@ class OpsgenieIntegration(IntegrationInstallation):
                 "label": "Opsgenie teams with the Sentry integration enabled",
                 "help": "If teams need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of teams.",
                 "addButtonText": "",
-                "columnLabels": {"team": "Opsgenie Team", "integration_key": "Integration Key"},
+                "columnLabels": {
+                    "team": "Opsgenie Integration",
+                    "integration_key": "Integration Key",
+                },
                 "columnKeys": ["team", "integration_key"],
                 "confirmDeleteMessage": "Any alert rules associated with this team will stop working. The rules will still exist but will show a `removed` team.",
             }
