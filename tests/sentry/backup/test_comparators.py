@@ -1,9 +1,9 @@
-from sentry.runner.commands.backup import (
+from sentry.backup.comparators import (
     DateUpdatedComparator,
     EmailObfuscatingComparator,
     HashObfuscatingComparator,
-    InstanceID,
 )
+from sentry.backup.findings import InstanceID
 from sentry.utils.json import JSONData
 
 
