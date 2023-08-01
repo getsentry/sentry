@@ -214,6 +214,15 @@ class GitHubClientMixin(GithubProxyClient):
         pullrequest: JSONData = self.get(f"/repos/{repo}/commits/{sha}/pulls")
         return pullrequest
 
+    def get_pullrequest(self, repo: str, pull_number: int) -> JSONData:
+        """
+        https://docs.github.com/en/free-pro-team@latest/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
+
+        Returns the pull request details
+        """
+        pullrequest: JSONData = self.get(f"/repos/{repo}/pulls/{pull_number}")
+        return pullrequest
+
     def get_repo(self, repo: str) -> JSONData:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
