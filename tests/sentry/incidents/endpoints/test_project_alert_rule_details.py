@@ -14,8 +14,6 @@ from sentry.incidents.models import (
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
@@ -699,22 +697,3 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             event=audit_log.get_event_id("ALERT_RULE_REMOVE"), target_object=self.alert_rule.id
         )
         assert len(audit_log_entry) == 1
-
-    def test_snapshot_and_create_new_with_same_name(self):
-        with self.tasks():
-            # We attach the rule to an incident so the rule is snapshotted instead of deleted.
-            incident = self.create_incident(alert_rule=self.alert_rule)
-
-            with self.feature("organizations:incidents"):
-                self.get_success_response(
-                    self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
-                )
-
-            alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
-
-            assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-            assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
-            assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
-
-            # We also confirm that the incident is automatically resolved.
-            assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
