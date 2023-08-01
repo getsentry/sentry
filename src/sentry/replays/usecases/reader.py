@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Iterator, List, Optional
 
 import sentry_sdk
+from django.conf import settings
 from django.db.models import Prefetch
 from sentry_sdk.tracing import Span
 from snuba_sdk import (
@@ -24,9 +25,12 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.models import BlobRangeModel
 from sentry.models.files.file import File, FileBlobIndex
+from sentry.models.files.utils import get_storage
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.utils.crypt_envelope import envelope_decrypt
 from sentry.utils.snuba import raw_snql_query
 
 # METADATA QUERY BEHAVIOR.
@@ -309,3 +313,25 @@ def decompress(buffer: bytes) -> bytes:
         return buffer
 
     return zlib.decompress(buffer, zlib.MAX_WBITS | 32)
+
+
+# Read segment data from a byte range.
+
+
+def find_blob_ranges(replay_id: str, limit: int, offset: int) -> List[BlobRangeModel]:
+    """Return a list of blob range instances."""
+    return BlobRangeModel.objects.filter(key__startswith=replay_id).all()[offset : limit + offset]
+
+
+def find_blob_range(replay_id: str, segment_id: int) -> Optional[BlobRangeModel]:
+    """Return a blob range instance if it can be found."""
+    key = f"{replay_id}{segment_id}"
+    return BlobRangeModel.objects.filter(key=key).first()
+
+
+def download_range(blob_range: BlobRangeModel) -> bytes:
+    """Return the bytes contained in a blob range."""
+    store = get_storage(storage._make_storage_options())
+    encrypted_file = store.read_range(blob_range.filename, blob_range.start, blob_range.stop)
+    decrypted_file = envelope_decrypt(settings.REPLAYS_KEK, blob_range.dek, encrypted_file)
+    return decompress(decrypted_file)
