@@ -12,7 +12,11 @@ export function useFullSpanFromTrace(group?: string, enabled: boolean = true) {
     filters[SpanIndexedFields.SPAN_GROUP] = group;
   }
 
-  const {data: indexedSpans} = useIndexedSpans(filters, 1, enabled);
+  const {
+    data: indexedSpans,
+    isLoading: areIndexedSpansLoading,
+    isFetching: areIndexedSpansFetching,
+  } = useIndexedSpans(filters, 1, enabled);
 
   const firstIndexedSpan = indexedSpans?.[0];
 
@@ -27,6 +31,8 @@ export function useFullSpanFromTrace(group?: string, enabled: boolean = true) {
 
   return {
     ...response,
+    isLoading: response.isLoading || areIndexedSpansLoading,
+    isFetching: response.isFetching || areIndexedSpansFetching,
     data: fullSpan,
   };
 }
