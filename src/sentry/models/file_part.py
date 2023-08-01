@@ -8,12 +8,12 @@ from sentry.db.models import Model, region_silo_only_model
 class FilePartModel(Model):
     __include_in_export__ = False
 
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    dek = models.CharField(max_length=64)
     end = models.IntegerField()
     filename = models.CharField(max_length=32)
     key = models.CharField(max_length=64, db_index=True)
     start = models.IntegerField()
-    dek = models.CharField(max_length=64)
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "sentry"
