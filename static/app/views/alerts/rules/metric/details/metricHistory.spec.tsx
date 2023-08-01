@@ -23,7 +23,7 @@ describe('MetricHistory', () => {
     render(<MetricHistory incidents={[incident]} />);
     expect(
       screen.getByText(
-        'Number of errors 70% higher in the last 1 hour compared to the same time one hour ago'
+        'Number of errors 70% higher in 1 hour compared to the same time one hour ago'
       )
     ).toBeInTheDocument();
   });

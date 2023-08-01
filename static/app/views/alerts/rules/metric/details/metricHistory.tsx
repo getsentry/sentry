@@ -87,7 +87,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           <Fragment>
             {alertName} {curentTrigger?.alertThreshold}%
             {t(
-              ' %s in the last %s compared to the ',
+              ' %s in %s compared to the ',
               incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
                 ? t('higher')
                 : t('lower'),
