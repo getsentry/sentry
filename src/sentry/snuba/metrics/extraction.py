@@ -155,13 +155,27 @@ class DerivedMetricComponent(NamedTuple):
         return upstream_query + " " + self.query
 
 
+# TODO: implement definition of filters as a proper expression tree and use the field directly with the entity encoding,
+#  since we know that at compile time.
 # Derived metrics to their components.
 _DERIVED_METRIC_TO_COMPONENTS: Dict[str, List[DerivedMetricComponent]] = {
     "failure_rate()": [
         DerivedMetricComponent(field="count()", query="transaction.status:aborted"),
         DerivedMetricComponent(field="count()", query=""),
     ],
-    "apdex()": [],
+    "apdex()": [
+        # TODO: in some cases we want to extract LCP and in some DURATION, we need to implement logic to check this.
+        DerivedMetricComponent(
+            field="count(transaction.duration)", query="transaction.duration:<=T"
+        ),  # satisfactory
+        DerivedMetricComponent(
+            field="count(transaction.duration)",
+            query="transaction.duration:>T AND transaction.duration:<=4T",
+        ),  # tolerable
+        DerivedMetricComponent(
+            field="count(transaction.duration)", query="transaction.duration:>4T"
+        ),  # frustrated
+    ],
 }
 
 # Operators used in ``ComparingRuleCondition``.
