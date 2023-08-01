@@ -1,36 +1,51 @@
+import {Location} from 'history';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
-const defaultData = {
+const defaultData: TableDataRow = {
   transaction: 'best-transaction',
   count: 19,
   timestamp: '2020-06-09T01:46:25+00:00',
   release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
-  nullValue: null,
   'measurements.fcp': 1234,
   'percentile(measurements.fcp, 0.5)': 1234,
+  // TODO: Fix this type
+  // @ts-ignore
   'error.handled': [null],
+  // TODO: Fix this type
+  // @ts-ignore
   'error.type': [
     'ServerException',
     'ClickhouseError',
     'QueryException',
     'QueryException',
   ],
+  id: '42',
 };
 
-function renderComponent(
+function renderComponent({
   eventView,
-  handleCellAction,
+  handleCellAction = jest.fn(),
   columnIndex = 0,
-  data = defaultData
-) {
+  data = defaultData,
+}: {
+  eventView: EventView;
+  columnIndex?: number;
+  data?: TableDataRow;
+  handleCellAction?: (
+    action: Actions,
+    value: React.ReactText | null[] | string[] | null
+  ) => void;
+}) {
   return render(
     <CellAction
       dataRow={data}
-      eventView={eventView}
       column={eventView.getColumns()[columnIndex]}
       handleCellAction={handleCellAction}
     >
@@ -40,7 +55,7 @@ function renderComponent(
 }
 
 describe('Discover -> CellAction', function () {
-  const location = {
+  const location: Location = TestStubs.location({
     query: {
       id: '42',
       name: 'best query',
@@ -58,14 +73,15 @@ describe('Discover -> CellAction', function () {
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
       query: 'event.type:transaction',
-      project: [123],
+      project: ['123'],
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'p95',
     },
-  };
+  });
+
   const view = EventView.fromLocation(location);
 
   async function openMenu() {
@@ -74,14 +90,14 @@ describe('Discover -> CellAction', function () {
 
   describe('hover menu button', function () {
     it('shows no menu by default', function () {
-      renderComponent(view);
+      renderComponent({eventView: view});
       expect(screen.queryByRole('button', {name: 'Actions'})).toBeInTheDocument();
     });
   });
 
   describe('opening the menu', function () {
     it('toggles the menu on click', async function () {
-      renderComponent(view);
+      renderComponent({eventView: view});
       await openMenu();
       expect(
         screen.getByRole('menuitemradio', {name: 'Add to filter'})
@@ -97,7 +113,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('add button appends condition', async function () {
-      renderComponent(view, handleCellAction);
+      renderComponent({eventView: view, handleCellAction});
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -105,7 +121,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('exclude button adds condition', async function () {
-      renderComponent(view, handleCellAction);
+      renderComponent({eventView: view, handleCellAction});
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -115,10 +131,12 @@ describe('Discover -> CellAction', function () {
     });
 
     it('exclude button appends exclusions', async function () {
-      const excludeView = EventView.fromLocation({
-        query: {...location.query, query: '!transaction:nope'},
-      });
-      renderComponent(excludeView, handleCellAction);
+      const excludeView = EventView.fromLocation(
+        TestStubs.location({
+          query: {...location.query, query: '!transaction:nope'},
+        })
+      );
+      renderComponent({eventView: excludeView, handleCellAction});
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -128,7 +146,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('go to release button goes to release health page', async function () {
-      renderComponent(view, handleCellAction, 3);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
@@ -139,7 +157,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('greater than button adds condition', async function () {
-      renderComponent(view, handleCellAction, 2);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Show values greater than'})
@@ -152,7 +170,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('less than button adds condition', async function () {
-      renderComponent(view, handleCellAction, 2);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Show values less than'})
@@ -165,7 +183,12 @@ describe('Discover -> CellAction', function () {
     });
 
     it('error.handled with null adds condition', async function () {
-      renderComponent(view, handleCellAction, 7, defaultData);
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 7,
+        data: defaultData,
+      });
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -173,7 +196,12 @@ describe('Discover -> CellAction', function () {
     });
 
     it('error.type with array values adds condition', async function () {
-      renderComponent(view, handleCellAction, 8, defaultData);
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 8,
+        data: defaultData,
+      });
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -186,18 +214,25 @@ describe('Discover -> CellAction', function () {
     });
 
     it('error.handled with 0 adds condition', async function () {
-      renderComponent(view, handleCellAction, 7, {
-        ...defaultData,
-        'error.handled': [0],
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 7,
+        data: {
+          ...defaultData,
+          // TODO: Fix this type
+          // @ts-ignore
+          'error.handled': ['0'],
+        },
       });
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-      expect(handleCellAction).toHaveBeenCalledWith('add', [0]);
+      expect(handleCellAction).toHaveBeenCalledWith('add', ['0']);
     });
 
     it('show appropriate actions for string cells', async function () {
-      renderComponent(view, handleCellAction, 0);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 0});
       await openMenu();
 
       expect(
@@ -215,7 +250,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for string cells with null values', async function () {
-      renderComponent(view, handleCellAction, 4);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 4});
       await openMenu();
 
       expect(
@@ -227,7 +262,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for number cells', async function () {
-      renderComponent(view, handleCellAction, 1);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 1});
       await openMenu();
 
       expect(
@@ -245,7 +280,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for date cells', async function () {
-      renderComponent(view, handleCellAction, 2);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
       await openMenu();
 
       expect(
@@ -263,7 +298,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for release cells', async function () {
-      renderComponent(view, handleCellAction, 3);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
       await openMenu();
 
       expect(
@@ -272,7 +307,14 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for empty release cells', async function () {
-      renderComponent(view, handleCellAction, 3, {...defaultData, release: null});
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 3,
+        // TODO: Fix this type
+        // @ts-ignore
+        data: {...defaultData, release: null},
+      });
       await openMenu();
 
       expect(
@@ -281,7 +323,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for measurement cells', async function () {
-      renderComponent(view, handleCellAction, 5);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 5});
       await openMenu();
 
       expect(
@@ -299,9 +341,16 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for empty measurement cells', async function () {
-      renderComponent(view, handleCellAction, 5, {
-        ...defaultData,
-        'measurements.fcp': null,
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 5,
+        data: {
+          ...defaultData,
+          // TODO: Fix this type
+          // @ts-ignore
+          'measurements.fcp': null,
+        },
       });
       await openMenu();
 
@@ -320,7 +369,7 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for numeric function cells', async function () {
-      renderComponent(view, handleCellAction, 6);
+      renderComponent({eventView: view, handleCellAction, columnIndex: 6});
       await openMenu();
 
       expect(
@@ -332,9 +381,16 @@ describe('Discover -> CellAction', function () {
     });
 
     it('show appropriate actions for empty numeric function cells', function () {
-      renderComponent(view, handleCellAction, 6, {
-        ...defaultData,
-        'percentile(measurements.fcp, 0.5)': null,
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 6,
+        data: {
+          ...defaultData,
+          // TODO: Fix this type
+          // @ts-ignore
+          'percentile(measurements.fcp, 0.5)': null,
+        },
       });
       expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
     });
@@ -342,7 +398,7 @@ describe('Discover -> CellAction', function () {
 });
 
 describe('updateQuery()', function () {
-  const columnA = {
+  const columnA: TableColumn<keyof TableDataRow> = {
     key: 'a',
     name: 'a',
     type: 'number',
@@ -354,7 +410,7 @@ describe('updateQuery()', function () {
     width: -1,
   };
 
-  const columnB = {
+  const columnB: TableColumn<keyof TableDataRow> = {
     key: 'b',
     name: 'b',
     type: 'number',
@@ -368,14 +424,22 @@ describe('updateQuery()', function () {
 
   it('modifies the query with has/!has', function () {
     let results = new MutableSearch([]);
+    // TODO: Fix this type
+    // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
+    // TODO: Fix this type
+    // @ts-ignore
     updateQuery(results, Actions.EXCLUDE, columnA, null);
     expect(results.formatString()).toEqual('has:a');
+    // TODO: Fix this type
+    // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
 
     results = new MutableSearch([]);
+    // TODO: Fix this type
+    // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, [null]);
     expect(results.formatString()).toEqual('!has:a');
   });
@@ -439,7 +503,10 @@ describe('updateQuery()', function () {
   });
 
   it('modifies the query with greater/less than on duration fields', function () {
-    const columnADuration = {...columnA, type: 'duration'};
+    const columnADuration: TableColumn<keyof TableDataRow> = {
+      ...columnA,
+      type: 'duration',
+    };
 
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 1);
@@ -460,6 +527,8 @@ describe('updateQuery()', function () {
 
   it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
+    // TODO: Fix this type
+    // @ts-ignore
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });
 });
