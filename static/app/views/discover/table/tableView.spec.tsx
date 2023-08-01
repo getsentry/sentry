@@ -370,7 +370,6 @@ describe('TableView > CellActions', function () {
               'p99(measurements.custom.kilobyte)': 444.3,
             },
           ],
-          // @ts-expect-error: MetaType is not compatible because we can't express the correct type
           meta: {
             title: 'string',
             'p99(measurements.custom.kibibyte)': 'size',
@@ -397,6 +396,7 @@ describe('TableView > CellActions', function () {
     const orgWithFeature = TestStubs.Organization({
       projects: [TestStubs.Project()],
     });
+
     render(
       <TableView
         organization={orgWithFeature}
@@ -417,13 +417,10 @@ describe('TableView > CellActions', function () {
               'p99(measurements.custom.kilobyte)': 444.3,
             },
           ],
-          // @ts-expect-error: MetaType is not compatible because we can't express the correct type
           meta: {
             title: 'string',
             'p99(measurements.custom.kilobyte)': 'size',
-            units: {
-              'p99(measurements.custom.kilobyte)': 'kilobyte',
-            },
+            units: {'p99(measurements.custom.kilobyte)': 'kilobyte'},
           },
         }}
         onChangeShowTags={onChangeShowTags}
