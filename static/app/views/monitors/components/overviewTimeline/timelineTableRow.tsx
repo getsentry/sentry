@@ -35,18 +35,16 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
     <TimelineRow key={monitor.id}>
       <MonitorDetails monitor={monitor} />
       <MonitorEnvContainer>
-        {environments.map(({name, status}) => (
-          <EnvWithStatus key={name}>
-            <MonitorEnvLabel status={status}>{name}</MonitorEnvLabel>
-            {
-              statusIconColorMap[
-                monitor.status === MonitorStatus.DISABLED
-                  ? MonitorStatus.DISABLED
-                  : status
-              ].icon
-            }
-          </EnvWithStatus>
-        ))}
+        {environments.map(({name, status}) => {
+          const envStatus =
+            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          return (
+            <EnvWithStatus key={name}>
+              <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
+              {statusIconColorMap[envStatus].icon}
+            </EnvWithStatus>
+          );
+        })}
         {!isExpanded && (
           <Button size="xs" onClick={() => setExpanded(true)}>
             {tct('Show [num] More', {
