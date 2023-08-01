@@ -1419,6 +1419,8 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Enables higher limit for alert rules
+    "organizations:more-slow-alerts": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental features)
@@ -3442,6 +3444,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
 MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
