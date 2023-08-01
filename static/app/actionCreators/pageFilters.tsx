@@ -150,7 +150,7 @@ export type InitializeUrlStateParams = {
    */
   skipLoadLastUsedEnvironment?: boolean;
   /**
-   *
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
    */
   storageNamespace?: string;
 };
