@@ -14,7 +14,7 @@ from sentry.tasks.base import instrumented_task
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
-ITERATOR_CHUNK = 10_000
+ITERATOR_CHUNK = 1_000
 
 
 @instrumented_task(
@@ -23,15 +23,17 @@ ITERATOR_CHUNK = 10_000
     max_retries=0,
 )
 def run_detection() -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
+
     now = timezone.now()
 
     performance_projects: List[int] = options.get(
-        "statistical_detector.enable.projects.performance"
+        "statistical_detectors.enable.projects.performance"
     )
-    profiling_projects: List[int] = options.get("statistical_detector.enable.projects.profiling")
+    profiling_projects: List[int] = options.get("statistical_detectors.enable.projects.profiling")
 
     """ disabled for now so we can run experiements
-    # TODO: iterate over a predefined list of projects for testing
     for project in RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda item: item.id,
@@ -68,7 +70,10 @@ def run_detection() -> None:
 )
 def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
     for project_id in project_ids:
-        _query_transactions(project_id)
+        if not options.get("statistical_detectors.enable"):
+            return
+
+        query_transactions(project_id)
 
 
 @instrumented_task(
@@ -79,20 +84,25 @@ def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
 def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs) -> None:
 
     for project in Project.objects.filter(id__in=project_ids):
+        if not options.get("statistical_detectors.enable"):
+            return
+
         try:
-            _query_functions(project, start)
+            query_functions(project, start)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
 
-def _query_transactions(project_id: int) -> None:
+def query_transactions(project_id: int) -> None:
     pass
 
 
-def _query_functions(project: Project, start: datetime) -> None:
+def query_functions(project: Project, start: datetime) -> None:
     params = _get_function_query_params(project, start)
 
-    # TODO: format and return this for further processing
+    # TODOs:
+    # - format and return this for further processing
+    # - handle any errors
     functions.query(
         selected_columns=[
             "timestamp",
