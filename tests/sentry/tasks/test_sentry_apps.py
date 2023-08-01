@@ -871,16 +871,9 @@ class TestWebhookRequests(TestCase):
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
         assert features.has("organizations:disable-sentryapps-on-broken", self.organization)
-        print(
-            self.integration_buffer._get_all_from_buffer(
-                self.sentry_app._get_redis_key(self.organization.id)
-            )
-        )
         assert safe_urlopen.called
         assert (self.integration_buffer._get()[0]["timeout_count"]) == 3
-        with override_settings(BROKEN_TIMEOUT_THRESHOLD=3):
-
-            assert self.integration_buffer.is_integration_broken() is True
+        assert self.integration_buffer.is_integration_broken() is True
         self.sentry_app = SentryApp.objects.get(
             id=self.sentry_app.id
         )  # reload to get updated events
