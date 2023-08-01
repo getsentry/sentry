@@ -172,7 +172,6 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             (self.now + timedelta(hours=3), 100.0),
         ]
 
-    @pytest.mark.skip(reason="TODO: normalization not implemented")
     def test_filter_expression_outside(self):
         MRI = "d:transactions/duration@millisecond"
         VALUES = [

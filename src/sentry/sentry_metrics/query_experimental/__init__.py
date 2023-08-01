@@ -2,6 +2,7 @@ from .expansion import ExpansionLayer
 from .indexes import IndexLayer
 from .metadata import ValidationLayer
 from .naming import NamingLayer
+from .optimization import MergeFiltersLayer
 from .pipeline import QueryPipeline
 from .timeframe import TimeframeLayer
 from .types import SeriesQuery, SeriesResult
@@ -30,6 +31,7 @@ def get_series(query: SeriesQuery, public: bool = False) -> SeriesResult:
         .layer(TimeframeLayer())
         .layer(ExpansionLayer())
         .layer(IndexLayer())
+        .layer(MergeFiltersLayer())
         .layer(ValidationLayer())
         .execute(query)
     )
