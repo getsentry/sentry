@@ -186,7 +186,7 @@ function EventNavigationDropdown({group, relativeTime}: GroupEventNavigationProp
       value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
       triggerLabel={
         !selectedValue ? (
-          <TimeSince date={relativeTime} />
+          <TimeSince date={relativeTime} disabledAbsoluteTooltip />
         ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
           t('Recommended')
         ) : undefined
