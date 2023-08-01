@@ -62,7 +62,7 @@ class OpsgenieClient(IntegrationProxyClient):
         organization = group.project.organization
         rule_urls = []
         for rule in rules:
-            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.name}/{rule.id}/details/"
+            path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule.id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 

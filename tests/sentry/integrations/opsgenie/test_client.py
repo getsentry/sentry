@@ -84,7 +84,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.name}/{rule.id}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
