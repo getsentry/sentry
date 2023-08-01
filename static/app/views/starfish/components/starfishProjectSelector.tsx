@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -26,9 +26,10 @@ export function StarfishProjectSelector() {
     selection.projects[0] ?? allowedProjectIDs[0]
   );
 
-  useEffect(() => {
-    setSelectedProjectId(selection.projects[0] ?? allowedProjectIDs[0]);
-  }, [selection.projects, allowedProjectIDs]);
+  const currentProject = selection.projects[0] ?? allowedProjectIDs[0];
+  if (selectedProjectId !== currentProject) {
+    setSelectedProjectId(currentProject);
+  }
 
   if (!projectsLoaded) {
     return (
