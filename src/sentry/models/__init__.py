@@ -14,6 +14,7 @@ from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
 from .authprovider import *  # NOQA
 from .avatars import *  # NOQA
+from .blob_range import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
