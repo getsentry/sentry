@@ -178,6 +178,66 @@ class ActionableItemsEndpointTestCase(APITestCase):
         assert error["dismissed"]
 
     @with_feature("organizations:actionable-items")
+    def test_multiple_source_map_errors(self):
+
+        data = {
+            "event_id": "a" * 32,
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                    "filename": "/static/js/main.fa8fe19f.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                    "context_line": "function foo() {",
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "https://app.example.com/static/js/main.fa8fe19f.js",
+                                    "filename": "/static/js/main.fa8fe19f.js",
+                                    "lineno": 10,
+                                    "colno": 15,
+                                    "context_line": "function baz() {",
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "https://app.example.com/static/js/main.a1b2c3.js",
+                                    "filename": "/static/js/main.a1b2c3.js",
+                                    "lineno": 2,
+                                    "colno": 50,
+                                    "context_line": "function bar() {",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    },
+                ]
+            },
+        }
+        event = self.store_event(
+            data=data,
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+        )
+
+        errors = resp.data["errors"]
+
+        # Should have 2 errors, one path is repeated so it shouldn't have an error
+        assert len(errors) == 2
+
+        assert errors[0]["type"] == "no_release_on_event"
+        assert errors[1]["type"] == "no_release_on_event"
+
+    @with_feature("organizations:actionable-items")
     def test_event_has_no_release_with_event_error(self):
         data = {
             "event_id": "a" * 32,

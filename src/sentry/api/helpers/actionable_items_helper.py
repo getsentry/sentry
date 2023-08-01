@@ -2,7 +2,7 @@ from sentry.models import EventError, PromptsActivity, SourceMapProcessingIssue
 
 fileNameBlocklist = ["@webkit-masked-url"]
 
-priority = {
+priority_ranking = {
     EventError.INVALID_DATA: 19,
     EventError.INVALID_ATTRIBUTE: 20,
     EventError.VALUE_TOO_LONG: 11,

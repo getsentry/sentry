@@ -15,7 +15,7 @@ from sentry.api.helpers.actionable_items_helper import (
     errors_to_hide,
     find_debug_frames,
     find_prompts_activity,
-    priority,
+    priority_ranking,
 )
 from sentry.api.helpers.source_map_helper import source_map_debug
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -70,16 +70,17 @@ class ActionableItemsEndpoint(ProjectEndpoint):
                 detail="Endpoint not available without 'organizations:actionable-items' feature flag"
             )
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
         actions = []
 
+        # Find frames to run debug function on
         debug_frames = find_debug_frames(event)
         for frame_idx, exception_idx in debug_frames:
 
-            debug_response = source_map_debug(project, event.event_id, frame_idx, exception_idx)
+            debug_response = source_map_debug(project, event.event_id, exception_idx, frame_idx)
             issue, data = debug_response.issue, debug_response.data
 
             if issue:
@@ -88,6 +89,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
 
         event_errors = event.data.get("errors", [])
 
+        # Add event errors to actionable items
         for event_error in event_errors:
             if (
                 event_error["type"] in errors_to_hide
@@ -98,6 +100,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
 
             actions.append(response)
 
+        # Use prompts activity to check if prompt has been dismissed
         features = [x["type"] for x in actions]
         prompts_activity = find_prompts_activity(
             organization.id, project.id, request.user.id, features
@@ -111,14 +114,14 @@ class ActionableItemsEndpoint(ProjectEndpoint):
                 prompt = prompts_activity.filter(feature=action["type"]).first()
                 dismissed = prompt.data["dismissed_ts"]
                 # Check if dismissed within the last week
-
                 if dismissed and timezone.now().timestamp() < int(dismissed) + 60 * 60 * 24 * 7:
                     action["dismissed"] = True
                 else:
                     # if dismissed more than a week ago, delete the prompts activity
                     prompt.delete()
 
-        priority_get = lambda x: priority.get(x["type"], len(actions))
+        # Currently 25 is the highest priority, so we set the default to 26
+        priority_get = lambda x: priority_ranking.get(x["type"], 26)
         sorted_errors = sorted(actions, key=priority_get)
 
         return Response({"errors": sorted_errors})
