@@ -358,3 +358,38 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
         assert repo.url == "https://github.com/getsentry/sentry"
         assert repo.config == {"name": "getsentry/sentry"}
         assert repo.status == 0
+
+    @patch.object(
+        ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
+    )
+    def test_existing_repo(self, mock_build_repository_config):
+        repo = Repository.objects.create(
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            status=0,
+            external_id="my_external_id",
+            integration_id="2",
+            provider="integrations:example",
+            url="https://github.com/getsentry/sentry",
+        )
+
+        with patch.object(
+            ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
+        ) as mock_get_repository_data:
+            response = self.client.post(
+                self.url, data={"provider": "integrations:example", "name": "getsentry/sentry"}
+            )
+            mock_get_repository_data.assert_called_once_with(
+                organization=self.org, data={"my_config_key": "some_var"}
+            )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data["id"]
+        assert response.data["id"] == str(repo.id)
+
+        repo = Repository.objects.get(id=response.data["id"])
+        assert repo.provider == "integrations:example"
+        assert repo.name == "getsentry/sentry"
+        assert repo.url == "https://github.com/getsentry/sentry"
+        assert repo.config == {"name": "getsentry/sentry"}
+        assert repo.status == 0
