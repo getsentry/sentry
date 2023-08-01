@@ -387,7 +387,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             size={BUTTON_SIZE}
             onClick={copyLink}
             icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
-            aria-label={isHelpfulEventUiEnabled ? t('Copy Link') : undefined}
           >
             {!isHelpfulEventUiEnabled && 'Copy Link'}
           </Button>
@@ -404,7 +403,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
                 <IconOpen size={BUTTON_ICON_SIZE} />
               )
             }
-            aria-label={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
           >
             {!isHelpfulEventUiEnabled && 'JSON'}
           </Button>
