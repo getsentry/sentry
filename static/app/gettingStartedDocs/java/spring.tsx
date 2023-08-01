@@ -47,7 +47,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
           `,
           },
@@ -58,7 +58,7 @@ export const steps = ({
 <dependency>
   <groupId>io.sentry</groupId>
   <artifactId>sentry-spring-jakarta</artifactId>
-  <version>6.25.2</version>
+  <version>6.27.0</version>
 </dependency>
         `,
           },
@@ -164,7 +164,7 @@ import org.springframework.core.Ordered
     <plugin>
     <groupId>io.sentry</groupId>
     <artifactId>sentry-maven-plugin</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <configuration>
       <!-- for showing output of sentry-cli -->
       <debugSentryCli>true</debugSentryCli>
@@ -206,12 +206,12 @@ import org.springframework.core.Ordered
           {
             description: <strong>{t('Spring 5')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring:6.25.2'`,
+            code: `implementation 'io.sentry:sentry-spring:6.27.0'`,
           },
           {
             description: <strong>{t('Spring 6')}</strong>,
             language: 'groovy',
-            code: `implementation 'io.sentry:sentry-spring-jakarta:6.25.2'`,
+            code: `implementation 'io.sentry:sentry-spring-jakarta:6.27.0'`,
           },
         ],
       },
