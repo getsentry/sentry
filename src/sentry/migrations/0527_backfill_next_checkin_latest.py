@@ -12,7 +12,11 @@ def backfill_next_checkin_latest(apps, schema_editor):
     for monitor_environment in RangeQuerySetWrapperWithProgressBar(
         MonitorEnvironment.objects.all()
     ):
-        if monitor_environment.next_checkin_latest is not None:
+        # skip backfill if next_checkin_latest is set or next_checkin is not set
+        if (
+            monitor_environment.next_checkin_latest is not None
+            or monitor_environment.next_checkin is None
+        ):
             continue
 
         monitor_environment.next_checkin_latest = monitor_environment.next_checkin
