@@ -5,7 +5,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class ExamplePlugin(IssuePlugin2):

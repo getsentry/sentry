@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.tagstore.types import GroupTagKey
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 

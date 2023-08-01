@@ -1,4 +1,4 @@
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

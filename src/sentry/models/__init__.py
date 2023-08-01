@@ -79,7 +79,7 @@ from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
 from .projectkey import *  # NOQA
-from .projectownership import *  # NOQA
+from .projectownership import ProjectOwnership  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectteam import ProjectTeam  # noqa

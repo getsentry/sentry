@@ -5,7 +5,6 @@
 
 import datetime
 import hmac
-from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, List, Mapping, Optional, Protocol
 
@@ -13,7 +12,7 @@ from pydantic.fields import Field
 from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import RpcModel, RpcModelProtocolMeta
 
 
 class RpcApiApplication(RpcModel):
@@ -111,8 +110,7 @@ class SentryAppEventDataInterface(Protocol):
         pass
 
 
-@dataclass  # TODO: Make compatible with RpcModel
-class RpcSentryAppEventData(SentryAppEventDataInterface):
+class RpcSentryAppEventData(RpcModel, SentryAppEventDataInterface, metaclass=RpcModelProtocolMeta):
     id: str = ""
     label: str = ""
     action_type: str = ""

@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app import SentryAppSerializer
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

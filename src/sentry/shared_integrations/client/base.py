@@ -13,6 +13,7 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
+from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models import Organization, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -284,6 +285,7 @@ class BaseApiClient(TrackResponseMixin):
                 raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
+
             self.record_response(resp)
 
             if resp.status_code == 204:
@@ -406,41 +408,24 @@ class BaseApiClient(TrackResponseMixin):
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )
+            notify_disable(org, rpc_integration.provider, self._get_redis_key())
+
+        extra = {"integration_id": self.integration_id}
         if len(rpc_org_integration) == 0 and rpc_integration is None:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": "provider is None",
-                    "organization_id": "rpc_org_integration is empty",
-                },
-            )
-            return
-        if len(rpc_org_integration) == 0:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": rpc_integration.provider,
-                    "organization_id": "rpc_org_integration is empty",
-                },
-            )
-            return
-        if rpc_integration is None:
-            self.logger.info(
-                "integration.disabled",
-                extra={
-                    "integration_id": self.integration_id,
-                    "provider": "provider is None",
-                    "organization_id": rpc_org_integration[0].organization_id,
-                },
-            )
-            return
+            extra["provider"] = "unknown"
+            extra["organization_id"] = "unknown"
+        elif len(rpc_org_integration) == 0:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = "unknown"
+        elif rpc_integration is None:
+            extra["provider"] = "unknown"
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+        else:
+            extra["provider"] = rpc_integration.provider
+            extra["organization_id"] = rpc_org_integration[0].organization_id
+
         self.logger.info(
             "integration.disabled",
-            extra={
-                "integration_id": self.integration_id,
-                "provider": rpc_integration.provider,
-                "organization_id": rpc_org_integration[0].organization_id,
-            },
+            extra=extra,
         )
+        return

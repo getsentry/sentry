@@ -3,8 +3,8 @@ import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Monitor} from 'sentry/views/monitors/types';
@@ -12,6 +12,7 @@ import {scheduleAsText} from 'sentry/views/monitors/utils';
 import {statusIconMap} from 'sentry/views/monitors/utils/constants';
 
 import {CheckInTimeline, CheckInTimelineProps} from './checkInTimeline';
+import {TimelinePlaceholder} from './timelinePlaceholder';
 import {MonitorBucket} from './types';
 
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
@@ -48,22 +49,28 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
           </Button>
         )}
       </MonitorEnvContainer>
-      {!bucketedData ? (
-        <TimelinePlaceholder />
-      ) : (
-        <TimelineContainer>
-          {environments.map(({name}) => {
-            return (
-              <CheckInTimeline
-                key={name}
-                {...timelineProps}
-                bucketedData={bucketedData}
-                environment={name}
-              />
-            );
-          })}
-        </TimelineContainer>
-      )}
+
+      <TimelineContainer>
+        {environments.map(({name}) => {
+          return (
+            <TimelineEnvOuterContainer key={name}>
+              {!bucketedData ? (
+                <TimelineEnvContainer key="timeline">
+                  <TimelinePlaceholder />
+                </TimelineEnvContainer>
+              ) : (
+                <TimelineEnvContainer key="placeholder">
+                  <CheckInTimeline
+                    {...timelineProps}
+                    bucketedData={bucketedData}
+                    environment={name}
+                  />
+                </TimelineEnvContainer>
+              )}
+            </TimelineEnvOuterContainer>
+          );
+        })}
+      </TimelineContainer>
     </TimelineRow>
   );
 }
@@ -142,8 +149,18 @@ const TimelineContainer = styled('div')`
   padding: ${space(3)} 0;
   flex-direction: column;
   gap: ${space(4)};
+  contain: content;
 `;
 
-const TimelinePlaceholder = styled(Placeholder)`
-  align-self: center;
+const TimelineEnvOuterContainer = styled('div')`
+  position: relative;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+`;
+
+const TimelineEnvContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: ${fadeIn} 1.5s ease-out forwards;
+  contain: content;
 `;

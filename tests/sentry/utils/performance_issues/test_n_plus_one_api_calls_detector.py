@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,

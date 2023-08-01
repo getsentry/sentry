@@ -14,7 +14,7 @@ from sentry.runner.commands.configoptions import (
     UPDATE_MSG,
     configoptions,
 )
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 
 class ConfigOptionsTest(CliTestCase):

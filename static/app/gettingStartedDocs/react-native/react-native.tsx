@@ -28,7 +28,7 @@ export const steps = ({
       {
         language: 'bash',
         description: <div>{tct('Run [code:@sentry/wizard]:', {code: <code />})}</div>,
-        code: 'npx @sentry/wizard -s -i reactNative',
+        code: 'npx @sentry/wizard@latest -s -i reactNative',
         additionalInfo: (
           <Fragment>
             <p>
