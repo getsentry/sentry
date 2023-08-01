@@ -220,11 +220,8 @@ describe('Discover -> CellAction', function () {
         columnIndex: 7,
         data: {
           ...defaultData,
-<<<<<<< HEAD
-=======
           // TODO: Fix this type
           // @ts-ignore
->>>>>>> 5cf730aab5 (remove extra chnages and add ts-ignore)
           'error.handled': ['0'],
         },
       });
@@ -314,11 +311,8 @@ describe('Discover -> CellAction', function () {
         eventView: view,
         handleCellAction,
         columnIndex: 3,
-<<<<<<< HEAD
-=======
         // TODO: Fix this type
         // @ts-ignore
->>>>>>> 5cf730aab5 (remove extra chnages and add ts-ignore)
         data: {...defaultData, release: null},
       });
       await openMenu();
@@ -391,11 +385,8 @@ describe('Discover -> CellAction', function () {
         columnIndex: 6,
         data: {
           ...defaultData,
-<<<<<<< HEAD
-=======
           // TODO: Fix this type
           // @ts-ignore
->>>>>>> 5cf730aab5 (remove extra chnages and add ts-ignore)
           'percentile(measurements.fcp, 0.5)': null,
         },
       });
@@ -534,12 +525,8 @@ describe('updateQuery()', function () {
 
   it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
-<<<<<<< HEAD
-    expect(() => updateQuery(results, Actions.UNKNOWN, columnA, '')).toThrow();
-=======
     // TODO: Fix this type
     // @ts-ignore
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
->>>>>>> 5cf730aab5 (remove extra chnages and add ts-ignore)
   });
 });
