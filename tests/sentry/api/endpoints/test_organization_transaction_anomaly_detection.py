@@ -7,7 +7,7 @@ from django.urls import reverse
 from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_transaction_anomaly_detection import get_time_params
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 

@@ -1,6 +1,8 @@
 import re
-from dataclasses import dataclass, replace
+import types
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 
 import freezegun
@@ -69,18 +71,15 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@dataclass
-class PseudoProject:
-    organization_id: int
-    id: int
-    slug: str = "project-slug"
+def PseudoProject(organization_id: int, id: int) -> Any:  # TODO: use real projects
+    return types.SimpleNamespace(organization_id=organization_id, id=id, slug="project-slug")
 
 
 MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)

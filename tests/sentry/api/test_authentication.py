@@ -20,9 +20,9 @@ from sentry.models import ProjectKeyStatus, Relay
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.rpc import RpcServiceSetupException, generate_request_signature
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -247,7 +247,6 @@ def test_statically_configured_relay(settings, internal):
     assert request.relay_request_data == data
 
 
-@override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
 @control_silo_test(stable=True)
 class TestRpcSignatureAuthentication(TestCase):
     def setUp(self):
@@ -256,6 +255,7 @@ class TestRpcSignatureAuthentication(TestCase):
         self.auth = RpcSignatureAuthentication()
         self.org = self.create_organization(owner=self.user)
 
+    @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
     def test_authenticate_success(self):
         data = b'{"meta":{},"args":{"id":1}'
         request = RequestFactory().post("/", data=data, content_type="application/json")
@@ -291,6 +291,7 @@ class TestRpcSignatureAuthentication(TestCase):
 
         assert self.auth.authenticate(request) is None
 
+    @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
     def test_authenticate_invalid_signature(self):
         request = RequestFactory().post("/", data="", content_type="application/json")
         request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"

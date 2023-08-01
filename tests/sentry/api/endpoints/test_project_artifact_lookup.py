@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.models.releasefile import read_artifact_index, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 
@@ -75,9 +75,9 @@ def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artif
 
 
 class ArtifactLookupTest(APITestCase):
-    def assert_download_matches_file(self, url: str, file: bytes):
+    def assert_download_matches_file(self, url: str, file_contents: bytes) -> None:
         response = self.client.get(url)
-        file = BytesIO(file)
+        file = BytesIO(file_contents)
         for chunk in response:
             assert file.read(len(chunk)) == chunk
 

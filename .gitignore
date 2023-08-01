@@ -46,6 +46,7 @@ Gemfile.lock
 *.iml
 .pytest_cache/
 .vscode/tags
+.vscode/bookmarks.json
 coverage.xml
 junit.xml
 *.codestyle.xml

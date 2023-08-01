@@ -16,6 +16,7 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
+    Container,
     Dict,
     FrozenSet,
     Iterable,
@@ -85,7 +86,7 @@ class ProjectDebugFileManager(BaseManager):
         return sorted(missing)
 
     def find_by_debug_ids(
-        self, project: Project, debug_ids: List[str], features: Iterable[str] | None = None
+        self, project: Project, debug_ids: Container[str], features: Iterable[str] | None = None
     ) -> Dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 

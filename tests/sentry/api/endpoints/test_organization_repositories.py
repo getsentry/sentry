@@ -6,7 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -333,7 +333,10 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     )
     def test_floating_repo(self, mock_build_repository_config):
         repo = Repository.objects.create(
-            organization_id=self.org.id, name="getsentry/sentry", status=2
+            organization_id=self.org.id,
+            name="getsentry/sentry",
+            status=2,
+            external_id="my_external_id",
         )
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data

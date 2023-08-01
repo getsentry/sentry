@@ -18,7 +18,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
 
@@ -477,10 +477,12 @@ class FromUserTest(AccessFactoryTestCase):
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=self.superuser, permission="test.permission")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserPermission.objects.create(user=self.superuser, permission="test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization_id=self.org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])

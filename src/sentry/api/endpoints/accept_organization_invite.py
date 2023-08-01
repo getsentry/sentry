@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Mapping, Optional
 
-from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -42,7 +41,7 @@ def get_invite_state(
         )
         for mapping in org_mappings:
             try:
-                if get_region_by_name(mapping.region_name).name == settings.SENTRY_MONOLITH_REGION:
+                if get_region_by_name(mapping.region_name).is_historic_monolith_region():
                     member_mapping = member_mappings.get(mapping.organization_id)
                     break
             except RegionResolutionError:

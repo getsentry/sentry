@@ -10,7 +10,6 @@ from sentry.api.serializers import (
     UserSerializer,
 )
 from sentry.api.serializers.base import Serializer
-from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     OrganizationMapping,
@@ -95,12 +94,12 @@ class DatabaseBackedUserService(UserService):
         try:
             # First, assume username is an iexact match for username
             user = qs.get(username__iexact=username)
-            return [user]
+            return [serialize_rpc_user(user)]
         except User.DoesNotExist:
             # If not, we can take a stab at guessing it's an email address
             if "@" in username:
                 # email isn't guaranteed unique
-                return list(qs.filter(email__iexact=username))
+                return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
         return []
 
     def get_organizations(
@@ -156,11 +155,7 @@ class DatabaseBackedUserService(UserService):
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
     ):
-        def apply_filters(
-            self,
-            query: BaseQuerySet,
-            filters: UserFilterArgs,
-        ) -> List[User]:
+        def apply_filters(self, query: QuerySet[User], filters: UserFilterArgs) -> QuerySet[User]:
             if "user_ids" in filters:
                 query = query.filter(id__in=filters["user_ids"])
             if "is_active" in filters:
@@ -185,9 +180,9 @@ class DatabaseBackedUserService(UserService):
                 else:
                     query = query.filter(authenticator__isnull=False, authenticator__type__in=at)
 
-            return list(query)
+            return query
 
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[User]:
             if ids_only:
                 return User.objects
 

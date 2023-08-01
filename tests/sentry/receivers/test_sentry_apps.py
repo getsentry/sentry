@@ -17,8 +17,8 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -161,8 +161,8 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -340,8 +340,8 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             )
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -412,8 +412,6 @@ class TestIssueAssigned(APITestCase):
         )
 
 
-@with_feature("organizations:sentry-functions")
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 @region_silo_test(stable=True)
 class TestIssueAssignedSentryFunctions(APITestCase):
     def setUp(self):
@@ -431,6 +429,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
         self.issue = self.create_group(project=self.project)
         self.assignee = self.create_user(name="Bert", email="bert@example.com")
 
+    @with_feature("organizations:sentry-functions")
+    @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
     def test_after_issue_assigned(self, delay):
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
         sub_data = {
@@ -441,7 +441,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "email": self.assignee.email,
             }
         }
-        sub_data["user"] = serialize(self.user, UserSerializer())
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
         delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
@@ -449,6 +450,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             sub_data,
         )
 
+    @with_feature("organizations:sentry-functions")
+    @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
     def test_after_issue_assigned_with_enhanced_privacy(self, delay):
         org = self.issue.project.organization
         org.flags.enhanced_privacy = True
@@ -463,7 +466,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
                 "id": self.assignee.id,
             }
         }
-        sub_data["user"] = serialize(self.user, UserSerializer())
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            sub_data["user"] = serialize(self.user, serializer=UserSerializer())
         delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
@@ -472,8 +476,8 @@ class TestIssueAssignedSentryFunctions(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -545,8 +549,8 @@ class TestComments(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 @region_silo_test(stable=True)
+@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestCommentsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()

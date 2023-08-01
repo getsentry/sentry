@@ -1,11 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
-import pytz
 
 from sentry.analytics import Attribute, Event, Map
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
@@ -33,7 +32,7 @@ class EventTest(TestCase):
             id="1",
             map={"key": "value"},
             optional=False,
-            datetime=datetime(2001, 4, 18, tzinfo=pytz.utc),
+            datetime=datetime(2001, 4, 18, tzinfo=timezone.utc),
         )
         assert result.data == {"id": 1, "map": {"key": "value"}, "optional": False}
         assert result.serialize() == {

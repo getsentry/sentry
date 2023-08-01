@@ -5,11 +5,13 @@ from typing import Any, Sequence
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404, HttpResponse
+from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -66,7 +68,7 @@ class SlackLinkTeamView(BaseView):
     """
 
     @transaction_start("SlackLinkTeamView")
-    @never_cache
+    @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:
             return render_error_page(request, body_text="HTTP 405: Method not allowed")
@@ -178,7 +180,7 @@ class SlackLinkTeamView(BaseView):
             external_provider=ExternalProviders.SLACK,
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
-            team_id=team.id,
+            actor=RpcActor(id=team.id, actor_type=ActorType.TEAM),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(

@@ -1,7 +1,7 @@
 from sentry.models import Organization, Project, Team
 from sentry.notifications.helpers import get_scope
 from sentry.notifications.types import NotificationScopeType
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

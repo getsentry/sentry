@@ -1,17 +1,17 @@
+from __future__ import annotations
+
 import re
-from uuid import uuid4
+from typing import Any
 
 import pytest
 from django.urls import reverse
-from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.models import ProjectKey, ProjectKeyStatus
-from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, safe
-from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -26,31 +26,6 @@ def _get_all_keys(config):
         if isinstance(config[key], dict):
             for key in _get_all_keys(config[key]):
                 yield key
-
-
-@pytest.fixture
-def key_pair():
-    return generate_key_pair()
-
-
-@pytest.fixture
-def public_key(key_pair):
-    return key_pair[1]
-
-
-@pytest.fixture
-def private_key(key_pair):
-    return key_pair[0]
-
-
-@pytest.fixture
-def relay_id():
-    return str(uuid4())
-
-
-@pytest.fixture
-def relay(relay_id, public_key):
-    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)
@@ -160,7 +135,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
     # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
 
@@ -279,7 +254,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
 @pytest.fixture
 def projectconfig_cache_set(monkeypatch):
-    calls = []
+    calls: list[dict[str, Any]] = []
     monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
 

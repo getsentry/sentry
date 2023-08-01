@@ -2132,6 +2132,7 @@ class MetricsFunction(SnQLFunction):
 
     def __init__(self, *args, **kwargs) -> None:
         self.snql_distribution = kwargs.pop("snql_distribution", None)
+        self.snql_percentile = kwargs.pop("snql_percentile", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
@@ -2150,6 +2151,7 @@ class MetricsFunction(SnQLFunction):
                     self.snql_distribution is not None,
                     self.snql_set is not None,
                     self.snql_counter is not None,
+                    self.snql_percentile is not None,
                     self.snql_column is not None,
                     self.snql_metric_layer is not None,
                 ]

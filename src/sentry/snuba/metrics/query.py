@@ -1,4 +1,6 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -35,8 +37,11 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
+    params: Optional[
+        Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
+    ] = None
     alias: Optional[str] = None
+    allow_private: bool = False
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -45,7 +50,10 @@ class MetricField:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
         # Validates that the MRI requested is an MRI the metrics layer exposes
-        metric_name = get_public_name_from_mri(self.metric_mri)
+        metric_name = f"pm_{self.metric_mri}"
+        if not self.allow_private:
+            metric_name = get_public_name_from_mri(self.metric_mri)
+
         if not self.alias:
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)

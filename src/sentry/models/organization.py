@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
@@ -60,7 +61,7 @@ class OrganizationStatus(IntEnum):
 
     @property
     def label(self):
-        return OrganizationStatus._labels[self]
+        return OrganizationStatus_labels[self]
 
     @classmethod
     def as_choices(cls):
@@ -76,7 +77,7 @@ class OrganizationStatus(IntEnum):
         return tuple(result)
 
 
-OrganizationStatus._labels = {
+OrganizationStatus_labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
@@ -165,7 +166,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
 
     __include_in_export__ = True
     name = models.CharField(max_length=64)
-    slug: models.SlugField[str, str] = models.SlugField(unique=True)
+    slug: models.Field[str, str] = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
@@ -323,7 +324,8 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": list(owners)})
+        with in_test_hide_transaction_boundary():
+            return user_service.get_many(filter={"user_ids": list(owners)})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -354,16 +356,14 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         roles: Collection[str],
         include_null_users: bool = False,
     ):
-        members_with_role = self.member_set.filter(
-            role__in=roles,
-        )
+        members_with_role_query = self.member_set.filter(role__in=roles)
         if not include_null_users:
-            user_ids = members_with_role.filter(
+            user_ids = members_with_role_query.filter(
                 user_id__isnull=False, user_is_active=True
             ).values_list("user_id", flat=True)
-            members_with_role = members_with_role.filter(user_id__in=user_ids)
+            members_with_role_query = members_with_role_query.filter(user_id__in=user_ids)
 
-        members_with_role = set(members_with_role.values_list("id", flat=True))
+        members_with_role = set(members_with_role_query.values_list("id", flat=True))
 
         teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
 

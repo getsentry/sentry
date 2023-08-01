@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -10,8 +13,8 @@ from sentry.constants import ObjectStatus
 from sentry.models import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, safe
-from sentry.utils.pytest.fixtures import django_db_all
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
@@ -159,7 +162,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
     # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
 
@@ -273,7 +276,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
 @pytest.fixture
 def projectconfig_cache_set(monkeypatch):
-    calls = []
+    calls: list[dict[str, Any]] = []
     monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
 
@@ -350,7 +353,7 @@ def test_relay_disabled_project(
     assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
     """
     Test health check filter (aka ignoreTransactions)

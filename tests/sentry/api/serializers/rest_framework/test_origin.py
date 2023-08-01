@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import OriginField
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class DummySerializer(serializers.Serializer):

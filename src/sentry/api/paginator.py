@@ -1,15 +1,16 @@
 import bisect
 import functools
 import math
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from django.utils import timezone
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
+from sentry.utils.pagination_factory import PaginatorLike
 
 quote_name = connections["default"].ops.quote_name
 
@@ -220,7 +221,7 @@ class DateTimePaginator(BasePaginator):
 # TODO(dcramer): previous cursors are too complex at the moment for many things
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
-class OffsetPaginator:
+class OffsetPaginator(PaginatorLike):
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, max_offset=None, on_results=None
     ):
@@ -234,7 +235,14 @@ class OffsetPaginator:
         self.max_offset = max_offset
         self.on_results = on_results
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(
+        self,
+        limit: int = 100,
+        cursor: Any = None,
+        count_hits: Any = False,
+        known_hits: Any = None,
+        max_hits: Any = None,
+    ):
         # offset is page #
         # value is page limit
         if cursor is None:

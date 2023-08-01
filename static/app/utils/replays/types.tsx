@@ -75,10 +75,28 @@ export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFram
   return Boolean(frame && 'category' in frame && frame.category === 'issue');
 }
 
-export function frameOpOrCategory(frame: ReplayFrame) {
+export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
+}
+
+export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
+  return frame.category === 'console';
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  return frame.data.endReason === 'timeout';
+}
+
+export function isDeadRageClick(frame: SlowClickFrame) {
+  return Boolean(
+    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+  );
+}
+
+export function isRageClick(frame: MultiClickFrame) {
+  return frame.data.clickCount >= 5;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -149,17 +167,20 @@ export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 
-// This list should match each of the categories used in `HydratedBreadcrumb` above.
+// This list must match each of the categories used in `HydratedBreadcrumb` above
+// and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
   'console',
-  'ui.click',
-  'ui.input',
+  'navigation',
+  'replay.init',
   'replay.mutations',
-  'ui.keyDown',
   'ui.blur',
+  'ui.click',
   'ui.focus',
-  'ui.slowClickDetected',
+  'ui.input',
+  'ui.keyDown',
   'ui.multiClick',
+  'ui.slowClickDetected',
 ];
 
 // Spans
@@ -181,23 +202,26 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.script'
 >;
 
-// This list should match each of the operations used in `HydratedSpan` above.
+// This list should match each of the operations used in `HydratedSpan` above
+// And any app-specific types that we hydrate (ie: replay.start & replay.end).
 export const SpanOps = [
-  'navigation.push',
   'largest-contentful-paint',
   'memory',
-  'navigation.navigate',
-  'navigation.reload',
   'navigation.back_forward',
+  'navigation.navigate',
+  'navigation.push',
+  'navigation.reload',
   'paint',
-  'resource.fetch',
-  'resource.xhr',
+  'replay.end',
+  'replay.start',
   'resource.css',
+  'resource.fetch',
   'resource.iframe',
   'resource.img',
   'resource.link',
   'resource.other',
   'resource.script',
+  'resource.xhr',
 ];
 
 /**

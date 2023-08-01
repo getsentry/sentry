@@ -1,12 +1,12 @@
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectUserDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()

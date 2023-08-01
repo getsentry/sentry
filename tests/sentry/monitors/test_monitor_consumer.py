@@ -23,7 +23,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks import TIMEOUT
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.services import build_instance_from_options
@@ -326,15 +326,20 @@ class MonitorConsumerTest(TestCase):
         assert open_checkin.status == CheckInStatus.IN_PROGRESS
         assert open_checkin.guid != uuid.UUID(int=0)
 
+        # Send an event to a different monitor environment, tests that when we
+        # use the empty UUID "latest" we properly scope to the latest of the
+        # same monitor environment
+        self.send_message("my-monitor", status="in_progress", environment="dev")
+
         self.send_message(
             "my-monitor",
             status="ok",
             guid=str(uuid.UUID(int=0)),
         )
 
-        close_checkin = MonitorCheckIn.objects.get(guid=open_checkin.guid)
-        assert close_checkin.status == CheckInStatus.OK
-        assert close_checkin.guid != uuid.UUID(int=0)
+        closed_checkin = MonitorCheckIn.objects.get(guid=open_checkin.guid)
+        assert closed_checkin.status == CheckInStatus.OK
+        assert closed_checkin.guid != uuid.UUID(int=0)
 
     def test_rate_limit(self):
         monitor = self._create_monitor(slug="my-monitor")

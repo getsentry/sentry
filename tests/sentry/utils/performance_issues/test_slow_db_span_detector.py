@@ -6,7 +6,7 @@ import pytest
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.options.project_option import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
@@ -34,7 +34,7 @@ class SlowDBQueryDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_calls_detect_slow_span(self):
-        no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
+        no_slow_span_event = create_event([create_span("db", 899.0)] * 1)
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
 

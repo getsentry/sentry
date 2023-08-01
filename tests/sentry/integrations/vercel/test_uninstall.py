@@ -4,7 +4,7 @@ from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
 from sentry.integrations.vercel import VercelClient
 from sentry.models import Integration, OrganizationIntegration, ScheduledDeletion
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 

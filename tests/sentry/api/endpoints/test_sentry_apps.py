@@ -18,7 +18,7 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -67,6 +67,7 @@ class SentryAppsTest(APITestCase):
         has_features: bool = False,
         mask_secret: bool = False,
     ) -> None:
+        assert sentry_app.application is not None
         data = {
             "allowedOrigins": [],
             "author": sentry_app.author,
@@ -140,7 +141,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()

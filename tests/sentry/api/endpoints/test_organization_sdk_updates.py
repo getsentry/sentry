@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.sdk_updates import SdkIndexState
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -192,6 +192,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         # until it is turned into an error, we'll get a warning about parsing an invalid version
         (warning,) = warninfo
+        assert isinstance(warning.message, DeprecationWarning)
         (warn_msg,) = warning.message.args
         assert (
             warn_msg

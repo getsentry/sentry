@@ -31,7 +31,7 @@ from sentry.snuba.tasks import (
     subscription_checker,
     update_subscription_in_snuba,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool

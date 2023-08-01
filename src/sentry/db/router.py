@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-import sys
 from typing import Iterable, Optional
 
 from django.apps import apps
 from django.db import connections
-from django.db.utils import ConnectionDoesNotExist
+from django.utils.connection import ConnectionDoesNotExist
 
 from sentry.db.models.base import Model, ModelSiloLimit
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class SiloRouter:
             self.__is_simulated = False
 
     def use_simulated(self, value: bool):
-        if "pytest" not in sys.argv[0]:
+        if not in_test_environment():
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
@@ -97,7 +97,7 @@ class SiloRouter:
 
         # If we're in tests raise an error, otherwise return 'no decision'
         # so that django skips migration operations that won't work.
-        if "pytest" in sys.argv[0]:
+        if in_test_environment():
             raise SiloConnectionUnavailableError(
                 f"Cannot resolve table {table} in {silo_modes}. "
                 f"Application silo mode is {active_mode} and simulated silos are not enabled."

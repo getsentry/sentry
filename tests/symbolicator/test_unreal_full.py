@@ -8,8 +8,9 @@ from django.urls import reverse
 
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.relay import RelayStoreHelper
 from sentry.utils.safe import get_path
 from tests.symbolicator import normalize_native_exception
 
@@ -68,7 +69,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             format="multipart",
         )
         assert response.status_code == 201, response.content
-        assert len(response.data) == 1
+        assert len(response.json()) == 1
 
     def unreal_crash_test_impl(self, filename):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)

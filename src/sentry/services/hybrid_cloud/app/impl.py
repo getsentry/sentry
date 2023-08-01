@@ -7,7 +7,12 @@ from django.db.models import QuerySet
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import alert_rule_actions
-from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models import (
+    SentryApp,
+    SentryAppComponent,
+    SentryAppInstallation,
+    SentryAppInstallationToken,
+)
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 from sentry.services.hybrid_cloud.app import (
     AppService,
@@ -133,7 +138,7 @@ class DatabaseBackedAppService(AppService):
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet[SentryAppInstallation]:
             if ids_only:
                 return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
@@ -149,8 +154,8 @@ class DatabaseBackedAppService(AppService):
             raise NotImplementedError("Serialization not supported for AppService")
 
         def apply_filters(
-            self, query: QuerySet, filters: SentryAppInstallationFilterArgs
-        ) -> QuerySet:
+            self, query: QuerySet[SentryAppInstallation], filters: SentryAppInstallationFilterArgs
+        ) -> QuerySet[SentryAppInstallation]:
             # filters["status"] = SentryAppInstallationStatus.INSTALLED
             if "installation_ids" in filters:
                 query = query.filter(id__in=filters["installation_ids"])
@@ -182,6 +187,9 @@ class DatabaseBackedAppService(AppService):
             return None
 
         return serialize_sentry_app_installation(installation, sentry_app)
+
+    def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
+        return SentryAppInstallationToken.objects.get_token(organization_id, provider)
 
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: str | None

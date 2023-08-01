@@ -21,7 +21,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -209,12 +209,12 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=organization.id,
-                flags=AuthProvider.flags["scim_enabled"],
+                flags=AuthProvider.flags.scim_enabled,
             )
             AuthProvider.objects.create(
                 provider="saml2",
                 organization_id=org3.id,
-                flags=AuthProvider.flags["allow_unlinked"],
+                flags=AuthProvider.flags.allow_unlinked,
             )
         ninety_one_days = timezone.now() - timedelta(days=91)
         member = self.create_member(

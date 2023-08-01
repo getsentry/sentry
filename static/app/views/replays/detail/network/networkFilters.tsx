@@ -3,17 +3,16 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
-  networkSpans: undefined | NetworkSpan[];
+  networkFrames: undefined | unknown[];
 } & ReturnType<typeof useNetworkFilters>;
 
 function NetworkFilters({
   getMethodTypes,
   getResourceTypes,
   getStatusTypes,
-  networkSpans,
+  networkFrames,
   searchTerm,
   selectValue,
   setFilters,
@@ -53,7 +52,7 @@ function NetworkFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Network Requests')}
         query={searchTerm}
-        disabled={!networkSpans || !networkSpans.length}
+        disabled={!networkFrames || !networkFrames.length}
       />
     </FiltersGrid>
   );
