@@ -70,18 +70,18 @@ def test_statistical_detectors_options(
     with freeze_time(timestamp), override_options(options), TaskRunner():
         run_detection()
 
-        if performance_projects is None:
-            assert not detect_regressed_transactions.delay.called
-        else:
-            assert detect_regressed_transactions.delay.called
-            detect_regressed_transactions.delay.assert_has_calls(
-                [mock.call(projects) for projects in performance_projects]
-            )
+    if performance_projects is None:
+        assert not detect_regressed_transactions.delay.called
+    else:
+        assert detect_regressed_transactions.delay.called
+        detect_regressed_transactions.delay.assert_has_calls(
+            [mock.call(projects) for projects in performance_projects]
+        )
 
-        if profiling_projects is None:
-            assert not detect_regressed_functions.delay.called
-        else:
-            assert detect_regressed_functions.delay.called
-            detect_regressed_functions.delay.assert_has_calls(
-                [mock.call(call, timestamp) for call in profiling_projects],
-            )
+    if profiling_projects is None:
+        assert not detect_regressed_functions.delay.called
+    else:
+        assert detect_regressed_functions.delay.called
+        detect_regressed_functions.delay.assert_has_calls(
+            [mock.call(call, timestamp) for call in profiling_projects],
+        )
