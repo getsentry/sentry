@@ -67,6 +67,9 @@ function HeaderCell({column, sort}: Props) {
     case ReplayColumn.MOST_RAGE_CLICKS:
       return <SortableHeader label={t('Most rage clicks')} />;
 
+    case ReplayColumn.MOST_DEAD_CLICKS:
+      return <SortableHeader label={t('Most dead clicks')} />;
+
     case ReplayColumn.SLOWEST_TRANSACTION:
       return (
         <SortableHeader
