@@ -30,7 +30,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
-from sentry.utils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 # IMPORTANT:
 #
