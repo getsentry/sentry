@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 import uuid
 from io import BytesIO
@@ -159,7 +160,11 @@ def bulk_insert_file_part_rows(rows: List[RecordingFilePartRow]) -> None:
     BlobRangeModel.objects.bulk_create(
         [
             BlobRangeModel(
-                key=row.key, filename=row.filename, start=row.start, end=row.end, dek=row.dek
+                key=row["key"],
+                filename=row["filename"],
+                start=row["start"],
+                end=row["end"],
+                dek=base64.b64encode(row["dek"]).decode("utf-8"),
             )
             for row in rows
         ]

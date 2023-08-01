@@ -9,10 +9,10 @@ class BlobRangeModel(Model):
     __include_in_export__ = False
 
     end = models.IntegerField()
-    filename = models.CharField()
-    key = models.CharField(db_index=True)
+    filename = models.CharField(max_length=32)
+    key = models.CharField(max_length=64, db_index=True)
     start = models.IntegerField()
-    dek = models.BinaryField()
+    dek = models.CharField(max_length=64)
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:

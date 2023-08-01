@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import uuid
 import zlib
@@ -331,7 +332,10 @@ def find_blob_range(replay_id: str, segment_id: int) -> Optional[BlobRangeModel]
 
 def download_range(blob_range: BlobRangeModel) -> bytes:
     """Return the bytes contained in a blob range."""
+    kek = settings.REPLAYS_KEK
+    dek = base64.b64decode(blob_range.dek)
+
     store = get_storage(storage._make_storage_options())
     encrypted_file = store.read_range(blob_range.filename, blob_range.start, blob_range.stop)
-    decrypted_file = envelope_decrypt(settings.REPLAYS_KEK, blob_range.dek, encrypted_file)
+    decrypted_file = envelope_decrypt(kek, dek, encrypted_file)
     return decompress(decrypted_file)
