@@ -125,6 +125,8 @@ function QueryDescriptionOverlay({
         arrowProps={hoverOverlayProps.arrowProps}
         placement={hoverOverlayProps.placement}
       >
+        {/* N.B. A `disabled` query still returns `isLoading: true`, so we also
+        check the fetching status explicitly. */}
         {isLoading && isFetching ? (
           <PaddedSpinner>
             <LoadingIndicator mini />

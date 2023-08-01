@@ -12,27 +12,25 @@ export function useFullSpanFromTrace(group?: string, enabled: boolean = true) {
     filters[SpanIndexedFields.SPAN_GROUP] = group;
   }
 
-  const {
-    data: indexedSpans,
-    isLoading: areIndexedSpansLoading,
-    isFetching: areIndexedSpansFetching,
-  } = useIndexedSpans(filters, 1, enabled);
+  const indexedSpansResponse = useIndexedSpans(filters, 1, enabled);
 
-  const firstIndexedSpan = indexedSpans?.[0];
+  const firstIndexedSpan = indexedSpansResponse.data?.[0];
 
-  const response = useEventJSON(
+  const eventJSONResponse = useEventJSON(
     firstIndexedSpan ? firstIndexedSpan[SpanIndexedFields.TRANSACTION_ID] : undefined,
     firstIndexedSpan ? firstIndexedSpan[SpanIndexedFields.PROJECT] : undefined
   );
 
-  const fullSpan = response?.data?.spans?.find(
+  const fullSpan = eventJSONResponse?.data?.spans?.find(
     span => span.span_id === firstIndexedSpan?.[SpanIndexedFields.ID]
   );
 
+  // N.B. There isn't a great pattern for us to merge the responses together,
+  // so we're only merging the three most important properties
   return {
-    ...response,
-    isLoading: response.isLoading || areIndexedSpansLoading,
-    isFetching: response.isFetching || areIndexedSpansFetching,
+    isLoading: indexedSpansResponse.isLoading || eventJSONResponse.isLoading,
+    isFetching: indexedSpansResponse.isFetching || eventJSONResponse.isFetching,
+    isError: indexedSpansResponse.isError || eventJSONResponse.isError,
     data: fullSpan,
   };
 }
