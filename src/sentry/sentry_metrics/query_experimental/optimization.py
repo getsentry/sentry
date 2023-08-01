@@ -20,7 +20,9 @@ from .types import Column, Filter, Function, InvalidMetricsQuery, SeriesQuery
 class MergeFiltersLayer(QueryLayer):
     """
     Layer for the query pipeline that recursively merges filters to the
-    inner-most level around columns.
+    inner-most level around columns inside aggregations. Filters are cloned into
+    every arm of arithmetic expressions, should they contain references to
+    metrics.
     """
 
     def transform_query(self, query: SeriesQuery) -> SeriesQuery:
@@ -29,7 +31,9 @@ class MergeFiltersLayer(QueryLayer):
 
 def merge_filters(query: SeriesQuery) -> SeriesQuery:
     """
-    Recursively merge filters to the inner-most level around columns.
+    Recursively merge filters to the inner-most level around columns inside
+    aggregations. Filters are cloned into every arm of arithmetic expressions,
+    should they contain references to metrics.
     """
     return MergeFiltersTransform().visit(query)
 
@@ -37,7 +41,39 @@ def merge_filters(query: SeriesQuery) -> SeriesQuery:
 class MergeFiltersTransform(QueryTransform):
     """
     A query transform that recursively merges filters to the inner-most level
-    around columns.
+    around columns inside aggregations. Filters are cloned into every arm of
+    arithmetic expressions, should they contain references to metrics.
+
+    Example::
+
+        # Input
+        Filter([
+            Function("divide", [
+                Filter([
+                    Function("count", [Column("my_metric")]),
+                    Function("equals", [Column("inner"), "inner"]),
+                ]),
+                Function("count", [Column("my_metric")]),
+            ]),
+            Function("equals", [Column("outer"), "outer"]),
+        ])
+
+        # Output
+        Function("divide", [
+            Function("count", [
+                Filter([
+                    Column("my_metric"),
+                    Function("equals", [Column("inner"), "inner"]),
+                    Function("equals", [Column("outer"), "outer"]),
+                ]),
+            ]),
+            Function("count", [
+                Filter([
+                    Column("my_metric"),
+                    Function("equals", [Column("outer"), "outer"]),
+                ]),
+            ]),
+        ])
     """
 
     def __init__(self):

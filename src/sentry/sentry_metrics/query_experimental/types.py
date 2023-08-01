@@ -50,24 +50,50 @@ class IndexableEnumMeta(EnumMeta):
 class AggregationFn(Enum, metaclass=IndexableEnumMeta):
     """
     Valid aggregation functions for metrics queries to be used with ``Function``.
+
+    Example::
+
+        Function(AggregationFn.AVG.value, [
+            Column(MRI),
+        ])
     """
 
+    # Sum all values in a counter metric.
     SUM = "sum"
-    COUNT = "count"
-    AVG = "avg"
-    MAX = "max"
-    MIN = "min"
-    P50 = "p50"
-    P75 = "p75"
-    P95 = "p95"
-    P99 = "p99"
+    # Compute the rate per time interval of a counter or distribution metric.
+    # This operates the same as ``sum`` on counters and ``count`` on
+    # distributions, but takes the time interval into account.
     # RATE = "rate"  # TODO: Implement rate
+    # Count occurrences of a distribution metric, irrespective of value.
+    COUNT = "count"
+    # Compute the average of a distribution metric.
+    AVG = "avg"
+    # Obtain the maximum value of a distribution metric.
+    MAX = "max"
+    # Obtain the minimum value of a distribution metric.
+    MIN = "min"
+    # Compute the median of a distribution metric.
+    P50 = "p50"
+    # Compute the 75th percentile of a distribution metric.
+    P75 = "p75"
+    # Compute the 95th percentile of a distribution metric.
+    P95 = "p95"
+    # Compute the 99th percentile of a distribution metric.
+    P99 = "p99"
+    # Compute the number of unique values in a set metric.
     COUNT_UNIQUE = "count_unique"
 
 
 class ArithmeticFn(Enum, metaclass=IndexableEnumMeta):
     """
     Valid arithmetic functions for metrics queries to be used with ``Function``.
+
+    Example::
+
+        Function("divide", [
+            Function("sum", [Column(FAILURES_MRI)]),
+            Function("sum", [Column(TOTALS_MRI)]),
+        ])
     """
 
     PLUS = "plus"
@@ -78,13 +104,48 @@ class ArithmeticFn(Enum, metaclass=IndexableEnumMeta):
 
 @dataclass(frozen=True)
 class Filter(Function):
-    function: Literal["filter"] = field(init=False, default="filter")
+    """
+    A built-in function that filters a metric or aggregate by a set of tag
+    conditions.
+
+    The first parameter is the metric or aggregate to filter. All other
+    parameters are tag conditions functions to filter by. See ``ConditionFn``
+    for valid conditions. If multiple conditions are provided, all conditions
+    must be met for a bucket to be included in the result.
+
+    Example::
+
+        # Apply filter on a metric and aggregate outside.
+        Filter([
+            Column(MY_MRI), Function("equals", [Column("transaction"), "b"]),
+        ])
+
+        # Apply filter on an aggregate. Filter([
+            Function("sum", [Column(MY_MRI)]), Function("equals",
+            [Column("transaction"), "b"]),
+        ])
+
+        # Multiple conditions are joined together Filter([
+            Function("sum", [Column(MY_MRI)]), Function("equals",
+            [Column("transaction"), "b"]), Function("like", [Column("release"),
+            "1.*"]),
+        ])
+    """
+
+    function: Literal["__builtin_filter"] = field(init=False, default="__builtin_filter")
 
 
 class ConditionFn(Enum, metaclass=IndexableEnumMeta):
     """
-    Valid filter conditions for metrics queries to be used with ``Function`` and
-    inside query filters.
+    Valid filter conditions for metrics queries to be used with ``Function``.
+    These can be placed only inside a ``Filter`` function.
+
+    Example::
+
+        Filter([
+            Column(MY_MRI),
+            Function("equals", [Column("transaction"), "b"]),
+        ])
     """
 
     EQ = "equals"
@@ -118,7 +179,11 @@ class InvalidMetricsQuery(Exception):
 
 @dataclass(frozen=True)
 class MetricQueryScope:
-    org_id: int
+    """
+    Scoping information for metrics queries.
+    """
+
+    org_id: int  # TODO: Support cross-org queries
     project_ids: Sequence[int]
 
 
@@ -186,9 +251,19 @@ class SeriesQuery:
     :param expressions: Metric expressions to resolve.
     :param filters: A set of conditions to filter the time series specified by
         `expressions` by. This is a shorthand for wrapping every one of the
-        expressions in the specified filters.
+        expressions in the specified filters. Default is empty.
     :param groups: A set of tag names to group the time series specified by
-        `expressions` by.
+        `expressions` by. Default is empty.
+
+    Example::
+
+        SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.end_at(self.now, hours=12, interval=3600),
+            expressions=[Function("avg", [Column("measurements.fcp")])],
+            filters=[Function("equals", [Column("transaction"), "xyz"])],
+            groups=[Column("environment")],
+        )
     """
 
     scope: MetricQueryScope
@@ -226,6 +301,9 @@ SeriesMap = Mapping[int, Mapping[datetime, float]]
 class SeriesResult:
     """
     A result of a metrics query.
+
+    To iterate over the series in this result, use the :meth:`iter_series` or
+    :meth:`iter_groups` methods.
 
     :param tags: Tag values for all tags in the result set.
     :param intervals: An ordered list of timestamps for data points in the

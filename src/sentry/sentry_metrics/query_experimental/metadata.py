@@ -309,8 +309,9 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         )
 
     def _validate_filter_condition(self, condition: Function) -> None:
-        # Conditions have a rigid structure at this moment. LHS must be a column,
-        # and RHS must be a scalar.
+        # Conditions have a rigid structure at this moment. LHS (first
+        # parameter) must be a column, and RHS (second parameter) must be a
+        # scalar. There cannot be boolean operators in conditions.
 
         try:
             op = ConditionFn(condition.function)
