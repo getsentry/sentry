@@ -20,7 +20,7 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
 
 
-def get_replay_counts(snuba_params: SnubaParams, query, return_ids) -> dict[str, Any]:
+def get_replay_counts(snuba_params: SnubaParams, query, return_ids) -> dict[str | int, Any]:
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
@@ -74,8 +74,10 @@ def _get_replay_id_mappings(query, snuba_params) -> dict[str, list[str]]:
     return replay_id_to_issue_map
 
 
-def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
-    ret: dict[str, int] = defaultdict(int)
+def _get_counts(
+    replay_results: Any, replay_ids_mapping: dict[str, list[str]]
+) -> dict[str | int, int]:
+    ret: dict[str | int, int] = defaultdict(int)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["replay_id"]]
         for identifier in identifiers:
@@ -85,8 +87,8 @@ def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -
 
 def _get_replay_ids(
     replay_results: Any, replay_ids_mapping: dict[str, list[str]]
-) -> dict[str, list[str]]:
-    ret: dict[str, list[str]] = defaultdict(list)
+) -> dict[str | int, list[str]]:
+    ret: dict[str | int, list[str]] = defaultdict(list)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["replay_id"]]
         for identifier in identifiers:

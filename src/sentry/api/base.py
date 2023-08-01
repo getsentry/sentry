@@ -398,7 +398,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
+    def respond(self, context: Mapping[Any, Any] | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):
