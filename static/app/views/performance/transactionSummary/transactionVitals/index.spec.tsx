@@ -19,6 +19,11 @@ import {
   ZOOM_KEYS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
+interface HistogramData {
+  count: number;
+  histogram: number;
+}
+
 function initialize({
   project,
   features,
@@ -31,7 +36,7 @@ function initialize({
   transaction?: string;
 } = {}) {
   features = features || ['performance-view'];
-  project = project || (TestStubs.Project() as Project);
+  project = project || TestStubs.Project();
   query = query || {};
   const data = initializeOrg({
     organization: TestStubs.Organization({
@@ -42,7 +47,7 @@ function initialize({
       location: {
         query: {
           transaction: transaction || '/',
-          project: project.id,
+          project: project?.id,
           ...query,
         },
       },
@@ -128,10 +133,6 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    interface HistogramData {
-      count: number;
-      histogram: number;
-    }
     const histogramData: Record<string, HistogramData[]> = {};
     const webVitals = VITAL_GROUPS.reduce<string[]>(
       (vs, group) => vs.concat(group.vitals),
