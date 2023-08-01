@@ -12,7 +12,7 @@ from sentry.models import (
     ReleaseFile,
     SourceMapProcessingIssue,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
