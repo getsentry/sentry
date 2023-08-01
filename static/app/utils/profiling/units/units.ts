@@ -15,7 +15,8 @@ export type ProfilingFormatterUnit =
   | 'milliseconds'
   | 'second'
   | 'seconds'
-  | 'count';
+  | 'count'
+  | 'percent';
 
 const durationMappings: Record<ProfilingFormatterUnit, number> = {
   nanosecond: 1e-9,
@@ -27,6 +28,7 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   second: 1,
   seconds: 1,
   count: 1,
+  percent: 1,
 };
 
 export function makeFormatTo(
@@ -67,9 +69,9 @@ const format = (v: number, abbrev: string, precision: number) => {
 };
 
 export function makeFormatter(
-  from: ProfilingFormatterUnit | string
+  from: ProfilingFormatterUnit | string,
+  precision: number = 2
 ): (value: number) => string {
-  const DEFAULT_PRECISION = 2;
   const multiplier = durationMappings[from];
 
   if (multiplier === undefined) {
@@ -78,7 +80,12 @@ export function makeFormatter(
 
   if (from === 'count') {
     return (value: number) => {
-      return value.toFixed(0);
+      return value.toFixed(precision);
+    };
+  }
+  if (from === 'percent') {
+    return (value: number) => {
+      return value.toFixed(precision) + '%';
     };
   }
 
@@ -86,15 +93,15 @@ export function makeFormatter(
     const duration = value * multiplier;
 
     if (duration >= 1) {
-      return format(duration, 's', DEFAULT_PRECISION);
+      return format(duration, 's', precision);
     }
     if (duration / 1e-3 >= 1) {
-      return format(duration / 1e-3, 'ms', DEFAULT_PRECISION);
+      return format(duration / 1e-3, 'ms', precision);
     }
     if (duration / 1e-6 >= 1) {
-      return format(duration / 1e-6, 'μs', DEFAULT_PRECISION);
+      return format(duration / 1e-6, 'μs', precision);
     }
-    return format(duration / 1e-9, 'ns', DEFAULT_PRECISION);
+    return format(duration / 1e-9, 'ns', precision);
   };
 }
 

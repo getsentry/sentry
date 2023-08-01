@@ -105,6 +105,7 @@ export interface FlamegraphTheme {
     SPANS_DEPTH_OFFSET: number;
     SPANS_FONT_SIZE: number;
     TIMELINE_HEIGHT: number;
+    TIMELINE_LABEL_HEIGHT: number;
     TOOLTIP_FONT_SIZE: number;
     UI_FRAMES_HEIGHT: number;
   };
@@ -160,6 +161,7 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   MAX_SPANS_HEIGHT: 160,
   TIMELINE_HEIGHT: 20,
   TOOLTIP_FONT_SIZE: 12,
+  TIMELINE_LABEL_HEIGHT: 20,
   UI_FRAMES_HEIGHT: 60,
 };
 

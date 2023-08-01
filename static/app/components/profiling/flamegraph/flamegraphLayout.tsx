@@ -264,10 +264,10 @@ const FlamegraphGrid = styled('div')<{
   width: 100%;
   grid-template-rows: ${({layout}) =>
     layout === 'table bottom'
-      ? 'auto auto auto 1fr'
+      ? 'auto auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content min-content 1fr'
-      : 'min-content min-content min-content 1fr'};
+      ? 'min-content min-content min-content min-content 1fr'
+      : 'min-content min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
@@ -283,6 +283,7 @@ const FlamegraphGrid = styled('div')<{
         'minimap'
         'ui-frames'
         'spans'
+        'cpu-chart'
         'flamegraph'
         'frame-stack'
         `
@@ -291,6 +292,7 @@ const FlamegraphGrid = styled('div')<{
         'minimap    frame-stack'
         'ui-frames  frame-stack'
         'spans     frame-stack'
+        'cpu-chart frame-stack'
         'flamegraph frame-stack'
       `
       : layout === 'table left'
@@ -298,6 +300,7 @@ const FlamegraphGrid = styled('div')<{
         'frame-stack minimap'
         'frame-stack ui-frames'
         'frame-stack spans'
+        'frame-stack cpu-chart'
         'frame-stack flamegraph'
     `
       : ''};

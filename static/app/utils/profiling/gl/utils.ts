@@ -278,9 +278,9 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
  * @param values {Array<T> | ReadonlyArray<T>}
  * @returns number
  */
-export function upperBound<T extends {end: number; start: number}>(
+export function upperBound<T extends {end: number; start: number; x: number}>(
   target: number,
-  values: Array<T> | ReadonlyArray<T>
+  values: Array<T> | ReadonlyArray<T> | Record<any, any>
 ) {
   let low = 0;
   let high = values.length;
