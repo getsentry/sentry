@@ -392,6 +392,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             pull_request_id=self.pr.id,
             created_at=timezone.now() - timedelta(hours=1),
             updated_at=timezone.now() - timedelta(hours=1),
+            group_ids=[],
             comment_type=CommentType.OPEN_PR,
         )
 

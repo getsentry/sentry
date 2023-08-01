@@ -111,8 +111,7 @@ class PullRequestComment(Model):
     group_ids = DjangoArrayField(BoundedBigIntegerField())
     reactions = JSONField(null=True)
     comment_type = BoundedPositiveIntegerField(
-        default=CommentType.MERGED_PR,
-        choices=CommentType.as_choices(),
+        default=CommentType.MERGED_PR, choices=CommentType.as_choices(), null=False
     )
 
     class Meta:

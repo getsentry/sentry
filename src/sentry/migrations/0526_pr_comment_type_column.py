@@ -42,7 +42,9 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="pullrequestcomment",
                     name="comment_type",
-                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        default=0, null=False
+                    ),
                 ),
                 migrations.AlterField(
                     model_name="pullrequestcomment",
@@ -51,10 +53,10 @@ class Migration(CheckedMigration):
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
                     ),
                 ),
-                migrations.AlterUniqueTogether(
-                    name="pullrequestcomment",
-                    unique_together={("pull_request", "comment_type")},
-                ),
             ],
+        ),
+        migrations.AlterUniqueTogether(
+            name="pullrequestcomment",
+            unique_together={("pull_request", "comment_type")},
         ),
     ]
