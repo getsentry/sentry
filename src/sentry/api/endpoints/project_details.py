@@ -487,7 +487,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             features.has("organizations:dynamic-sampling", project.organization)
         ):
             return Response(
-                {"detail": ["dynamicSamplingBiases is not a valid field"]},
+                {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
             )
         if not serializer.is_valid():
@@ -498,7 +498,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
-                        {"detail": ["You do not have permission to perform this action."]},
+                        {"detail": "You do not have permission to perform this action."},
                         status=403,
                     )
 
@@ -768,9 +768,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
@@ -781,12 +779,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         ),
                     )
                 else:
-                    return Response(
-                        {"detail": ["You do not have that feature enabled"]}, status=400
-                    )
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
-                    return Response({"detail": ["Copy project settings failed."]}, status=409)
+                    return Response({"detail": "Copy project settings failed."}, status=409)
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(

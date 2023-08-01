@@ -266,7 +266,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
                 "project_slug": self.project.slug,
             },
         )
-        self.data = {"platform": "rust"}
+
+        self.platforms = ["rust", "java"]
 
     def test_member_can_update_limited_project_details(self):
         self.create_member(
@@ -277,13 +278,14 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
-        response = self.client.get(
+        response = self.client.put(
             self.url,
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
             data={"isBookmarked": True},
         )
-        assert response.status_code == 200, response.content
+        assert response.status_code == 200
+        assert response.data["isBookmarked"] is True
 
     def test_admin_update_allowed_with_correct_token_scope(self):
         self.create_member(
@@ -293,13 +295,18 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="admin",
         )
 
-        for scope in ["project:write", "project:admin"]:
+        for i, scope in enumerate(["project:write", "project:admin"]):
             token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
             )
-            assert response.status_code == 200, response.content
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
     @with_feature("organizations:team-roles")
     def test_team_admin_update_allowed_with_correct_token_scope(self):
@@ -310,13 +317,18 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         self.create_team_membership(user=self.user, team=self.team, role="admin")
 
-        for scope in ["project:write", "project:admin"]:
+        for i, scope in enumerate(["project:write", "project:admin"]):
             token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
             )
-            assert response.status_code == 200, response.content
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
     def test_manager_update_allowed_with_correct_token_scope(self):
         self.create_member(
@@ -326,13 +338,18 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="manager",
         )
 
-        for scope in ["project:write", "project:admin"]:
+        for i, scope in enumerate(["project:write", "project:admin"]):
             token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
             )
-            assert response.status_code == 200, response.content
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
     def test_owner_update_allowed_with_correct_token_scope(self):
         self.create_member(
@@ -342,13 +359,18 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             role="owner",
         )
 
-        for scope in ["project:write", "project:admin"]:
+        for i, scope in enumerate(["project:write", "project:admin"]):
             token = self.create_user_auth_token(user=self.user, scope_list=[scope])
+            platform = self.platforms[i]
 
             response = self.client.put(
-                self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+                data={"platform": platform},
             )
-            assert response.status_code == 200, response.content
+            assert response.status_code == 200
+            assert response.data["platform"] == platform
 
     def test_member_update_denied_with_token(self):
         self.create_member(
@@ -360,9 +382,13 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         token = self.create_user_auth_token(user=self.user, scope_list=["project:write"])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_admin_update_denied_with_token(self):
         self.create_member(
@@ -375,9 +401,13 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_empty_token_scopes_denied(self):
         self.create_member(
@@ -389,9 +419,13 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         token = self.create_user_auth_token(user=self.user, scope_list=[""])
 
         response = self.client.put(
-            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}", data=self.data
+            self.url,
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            data={"platform": "rust"},
         )
-        assert response.status_code == 403, response.content
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
 
 
 @region_silo_test(stable=True)
