@@ -31,9 +31,6 @@ interface FlamegraphChartProps {
   setCpuChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
 }
 
-const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
-const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
-
 export function FlamegraphCpuChart({
   chart,
   canvasPoolManager,
@@ -60,30 +57,34 @@ export function FlamegraphCpuChart({
     }
 
     const drawCpuChart = () => {
-      const physicalToConfig = mat3.invert(
-        CONFIG_TO_PHYSICAL_SPACE,
-        cpuChartView.fromConfigView(cpuChartCanvas.physicalSpace)
-      );
-      const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
-
-      const offsetConfigView = cpuChartView.configView
-        .withY(-configSpacePixel.height * theme.SIZES.CHART_PX_PADDING)
-        .withHeight(cpuChartView.configView.height + theme.SIZES.CHART_PX_PADDING * 2);
-
-      const betweenRect = transformMatrixBetweenRect(
+      const configViewToPhysicalSpaceTransform = transformMatrixBetweenRect(
         cpuChartView.configView,
-        offsetConfigView
-      );
-
-      const fromConfigView = transformMatrixBetweenRect(
-        offsetConfigView.transformRect(betweenRect),
         cpuChartCanvas.physicalSpace
       );
 
+      const offsetPhysicalSpace = cpuChartCanvas.physicalSpace
+        // move the chart down by the padding
+        .withY(theme.SIZES.CHART_PX_PADDING)
+        // shrink the chart height by 2X the padding
+        .withHeight(
+          cpuChartCanvas.physicalSpace.height - theme.SIZES.CHART_PX_PADDING * 2
+        );
+
+      const physicalSpaceToOffsetPhysicalSpaceTransform = transformMatrixBetweenRect(
+        cpuChartCanvas.physicalSpace,
+        offsetPhysicalSpace
+      );
+
+      const fromConfigView = mat3.create();
       mat3.multiply(
         fromConfigView,
-        cpuChartCanvas.physicalSpace.invertYTransform(),
-        fromConfigView
+        configViewToPhysicalSpaceTransform,
+        physicalSpaceToOffsetPhysicalSpaceTransform
+      );
+      mat3.multiply(
+        fromConfigView,
+        fromConfigView,
+        offsetPhysicalSpace.invertYTransform()
       );
 
       cpuChartRenderer.draw(
