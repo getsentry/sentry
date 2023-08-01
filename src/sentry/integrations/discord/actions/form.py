@@ -41,7 +41,7 @@ class DiscordNotifyServiceForm(forms.Form):
                 code="invalid",
             )
 
-        if channel_id:
+        if channel_id and isinstance(channel_id, str):
             try:
                 validate_channel_id(
                     channel_id=channel_id,
