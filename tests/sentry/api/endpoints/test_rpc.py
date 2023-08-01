@@ -127,7 +127,9 @@ class RpcServiceEndpointTest(APITestCase):
         data = {"args": {"id": "invalid type"}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
-        assert response.data == [ErrorDetail(string="Invalid input.", code="invalid")]
+        assert response.data == {
+            "detail": ErrorDetail(string="Malformed request.", code="parse_error")
+        }
 
         data = {"args": {"invalid": "invalid type"}}
         response = self._send_post_request(path, data)
