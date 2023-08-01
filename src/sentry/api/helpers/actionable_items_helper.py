@@ -1,8 +1,34 @@
-from sentry.models import EventError, PromptsActivity
+from sentry.models import EventError, PromptsActivity, SourceMapProcessingIssue
 
 fileNameBlocklist = ["@webkit-masked-url"]
 
-priority = {EventError.JS_INVALID_SOURCEMAP: 2, EventError.JS_NO_COLUMN: 3}
+priority = {
+    EventError.INVALID_DATA: 19,
+    EventError.INVALID_ATTRIBUTE: 20,
+    EventError.VALUE_TOO_LONG: 11,
+    EventError.FUTURE_TIMESTAMP: 12,
+    EventError.PAST_TIMESTAMP: 13,
+    EventError.CLOCK_DRIFT: 14,
+    EventError.INVALID_ENVIRONMENT: 15,
+    EventError.SECURITY_VIOLATION: 16,
+    EventError.RESTRICTED_IP: 17,
+    EventError.FETCH_GENERIC_ERROR: 18,
+    EventError.JS_MISSING_SOURCES_CONTENT: 10,
+    EventError.JS_SCRAPING_DISABLED: 9,
+    EventError.NATIVE_BAD_DSYM: 21,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: 22,
+    EventError.NATIVE_MISSING_DSYM: 23,
+    EventError.PROGUARD_MISSING_MAPPING: 24,
+    EventError.PROGUARD_MISSING_LINENO: 25,
+    SourceMapProcessingIssue.MISSING_RELEASE: 1,
+    SourceMapProcessingIssue.MISSING_SOURCEMAPS: 2,
+    SourceMapProcessingIssue.URL_NOT_VALID: 3,
+    SourceMapProcessingIssue.NO_URL_MATCH: 4,
+    SourceMapProcessingIssue.PARTIAL_MATCH: 5,
+    SourceMapProcessingIssue.DIST_MISMATCH: 6,
+    SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND: 7,
+    SourceMapProcessingIssue.DEBUG_ID_NO_SOURCEMAPS: 8,
+}
 
 errors_to_hide = [
     EventError.JS_MISSING_SOURCE,
@@ -33,16 +59,23 @@ deprecated_event_errors = [
 
 
 def find_debug_frames(event):
+    max_frames = 5
     debug_frames = []
-    exceptions = event.exception.values
+    exceptions = event.interfaces["exception"].values
     seen_filenames = []
 
     for exception_idx, exception in enumerate(exceptions):
         for frame_idx, frame in enumerate(exception.stacktrace.frames):
-            if frame.in_app and frame.filename not in seen_filenames:
+            if (
+                frame.in_app
+                and is_frame_filename_valid(frame)
+                and frame.lineno
+                and frame.filename not in seen_filenames
+            ):
                 debug_frames.append((frame_idx, exception_idx))
                 seen_filenames.append(frame.filename)
 
+    debug_frames = debug_frames[:max_frames]
     return debug_frames
 
 
@@ -53,25 +86,28 @@ def get_file_extension(filename):
     return None
 
 
-def is_frame_filename_invalid(frame):
-    filename = frame.get("abs_path")
+def is_frame_filename_valid(frame):
+    filename = frame.abs_path
     if not filename:
-        return True
+        return False
     try:
         filename = filename.split("/")[-1]
     except Exception:
         pass
 
-    if frame.get("filename") == "<anonymous>" and frame.get("in_app"):
-        return True
-    elif frame.get("function") in fileNameBlocklist:
-        return True
+    if frame.filename == "<anonymous>" and frame.in_app:
+        return False
+    elif frame.function in fileNameBlocklist:
+        return False
     elif filename and not get_file_extension(filename):
-        return True
-    return False
+        return False
+    return True
 
 
-def find_prompts_activity(organization_id, project_id, user_id, feature):
+def find_prompts_activity(organization_id, project_id, user_id, features):
     return PromptsActivity.objects.filter(
-        organization_id__in=organization_id, feature=feature, user_id=user_id
+        organization_id=organization_id,
+        feature__in=features,
+        user_id=user_id,
+        project_id=project_id,
     )

@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import List, Union
 
 from django.utils import timezone
@@ -79,36 +78,47 @@ class ActionableItemsEndpoint(ProjectEndpoint):
 
         debug_frames = find_debug_frames(event)
         for frame_idx, exception_idx in debug_frames:
-            debug_response = source_map_debug(project, event, frame_idx, exception_idx)
+
+            debug_response = source_map_debug(project, event.event_id, frame_idx, exception_idx)
             issue, data = debug_response.issue, debug_response.data
 
             if issue:
                 response = SourceMapProcessingIssue(issue, data=data).get_api_context()
                 actions.append(response)
 
-        for event_error in event.errors:
-            if event_error.type in errors_to_hide or event_error.type in deprecated_event_errors:
+        event_errors = event.data.get("errors", [])
+
+        for event_error in event_errors:
+            if (
+                event_error["type"] in errors_to_hide
+                or event_error["type"] in deprecated_event_errors
+            ):
                 continue
             response = EventError(event_error).get_api_context()
 
             actions.append(response)
 
-        features = [x.type for x in actions]
+        features = [x["type"] for x in actions]
         prompts_activity = find_prompts_activity(
             organization.id, project.id, request.user.id, features
         )
+
         prompt_features = [prompt.feature for prompt in prompts_activity]
 
         for action in actions:
-            if action.type in prompt_features:
-                prompt = prompts_activity.filter(feature=action.type).first()
-                dismissed = prompt.data.dismissed_ts
-                if dismissed and dismissed + timedelta(days=7) < timezone.now():
+            action["dismissed"] = False
+            if action["type"] in prompt_features:
+                prompt = prompts_activity.filter(feature=action["type"]).first()
+                dismissed = prompt.data["dismissed_ts"]
+                # Check if dismissed within the last week
+
+                if dismissed and timezone.now().timestamp() < int(dismissed) + 60 * 60 * 24 * 7:
                     action["dismissed"] = True
                 else:
-                    action["dismissed"] = False
+                    # if dismissed more than a week ago, delete the prompts activity
+                    prompt.delete()
 
-        priority_get = lambda x: priority.get(x, len(actions))
+        priority_get = lambda x: priority.get(x["type"], len(actions))
         sorted_errors = sorted(actions, key=priority_get)
 
         return Response({"errors": sorted_errors})

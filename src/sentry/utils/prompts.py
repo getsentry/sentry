@@ -84,7 +84,7 @@ class PromptsConfig:
         return self.prompts[name]["required_fields"]
 
 
-prompt_config = PromptsConfig(DEFAULT_PROMPTS | ACTIONABLE_ITEMS_PROMPTS)
+prompt_config = PromptsConfig({**DEFAULT_PROMPTS, **ACTIONABLE_ITEMS_PROMPTS})
 
 
 # TODO: remove get_prompt_activities and use get_prompt_activities_for_user instead
