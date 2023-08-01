@@ -8,6 +8,7 @@ from requests.exceptions import ConnectionError, Timeout
 from rest_framework import status
 
 from sentry import features
+from sentry import options
 from sentry.http import safe_urlopen
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
@@ -21,7 +22,6 @@ if TYPE_CHECKING:
     from sentry.models import SentryApp
 
 
-WEBHOOK_TIMEOUT = 5
 TIMEOUT_STATUS_CODE = 0
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
@@ -95,7 +95,7 @@ def send_and_save_webhook_request(
             url=url,
             data=app_platform_event.body,
             headers=app_platform_event.headers,
-            timeout=WEBHOOK_TIMEOUT,
+            timeout=options.get("sentry-apps.webhook.timeout.sec"),
         )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
