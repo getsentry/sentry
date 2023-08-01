@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -15,7 +15,7 @@ from sentry.models import (
 from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpec,
-    OndemandMetricSpec,
+    OndemandMetricSpecBuilder,
     RuleCondition,
     is_on_demand_snuba_query,
 )
@@ -78,34 +78,49 @@ def _get_metric_specs(alert_rules: Sequence[AlertRule]) -> List[MetricSpec]:
     metrics: Dict[str, MetricSpec] = {}
 
     for alert in alert_rules:
-        if result := convert_query_to_metric(alert.snuba_query):
-            metrics[result[0]] = result[1]
+        hashed_metric_specs = convert_query_to_metric(alert.snuba_query)
+        for hashed_metric_spec in hashed_metric_specs:
+            metrics[hashed_metric_spec.query_hash] = hashed_metric_spec.metric_spec
 
     return [spec for spec in metrics.values()]
 
 
-def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[Tuple[str, MetricSpec]]:
+class HashedMetricSpec(NamedTuple):
+    metric_spec: MetricSpec
+    query_hash: str
+
+
+def convert_query_to_metric(snuba_query: SnubaQuery) -> List[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a MetricSpec for the query. Otherwise, returns None.
     """
     try:
         if not is_on_demand_snuba_query(snuba_query):
-            return None
+            return []
 
-        spec = OndemandMetricSpec(snuba_query.aggregate, snuba_query.query)
-        query_hash = spec.query_hash()
+        builder = OndemandMetricSpecBuilder(field=snuba_query.aggregate, query=snuba_query.query)
+        on_demand_specs = builder.build_specs()
 
-        return query_hash, {
-            "category": DataCategory.TRANSACTION.api_name(),
-            "mri": spec.mri,
-            "field": spec.field,
-            "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
-        }
+        hashed_metric_specs = []
+        for on_demand_spec in on_demand_specs:
+            query_hash = on_demand_spec.query_hash()
+            metric_spec: MetricSpec = {
+                "category": DataCategory.TRANSACTION.api_name(),
+                "mri": on_demand_spec.mri,
+                "field": on_demand_spec.field,
+                "condition": on_demand_spec.condition(),
+                "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
+            }
+
+            hashed_metric_specs.append(
+                HashedMetricSpec(metric_spec=metric_spec, query_hash=query_hash)
+            )
+
+        return hashed_metric_specs
     except Exception as e:
         logger.error(e, exc_info=True)
-        return None
+        return []
 
 
 # CONDITIONAL TAGGING

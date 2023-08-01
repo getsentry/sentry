@@ -6,6 +6,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    NamedTuple,
     Optional,
     Sequence,
     Type,
@@ -137,6 +138,31 @@ _STANDARD_METRIC_FIELDS = [
     "geo.country_code",
     "event.type",
 ]
+
+
+class DerivedMetricComponent(NamedTuple):
+    field: str
+    query: str
+
+    def to_on_demand_spec(self, upstream_query: str) -> "OndemandMetricSpec":
+        return OndemandMetricSpec(self.field, self._merge_queries(upstream_query))
+
+    def _merge_queries(self, upstream_query: str) -> str:
+        # TODO: implement merging at the AST level if possible.
+        if not self.query:
+            return upstream_query
+
+        return upstream_query + " " + self.query
+
+
+# Derived metrics to their components.
+_DERIVED_METRIC_TO_COMPONENTS: Dict[str, List[DerivedMetricComponent]] = {
+    "failure_rate()": [
+        DerivedMetricComponent(field="count()", query="transaction.status:aborted"),
+        DerivedMetricComponent(field="count()", query=""),
+    ],
+    "apdex()": [],
+}
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -365,6 +391,20 @@ class OndemandMetricSpec:
 
         condition["inner"].append(self._field_condition)
         return condition
+
+
+class OndemandMetricSpecBuilder:
+    def __init__(self, field: str, query: str):
+        self.field = field
+        self.query = query
+
+    def build_specs(self) -> List[OndemandMetricSpec]:
+        if (components := _DERIVED_METRIC_TO_COMPONENTS.get(self.field)) is not None:
+            return [
+                component.to_on_demand_spec(upstream_query=self.query) for component in components
+            ]
+        else:
+            return [OndemandMetricSpec(field=self.field, query=self.query)]
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
