@@ -200,6 +200,10 @@ def pytest_configure(config):
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
+    # Configure control backend settings for storage
+    settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
+    settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
+
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
@@ -367,7 +371,7 @@ def pytest_collection_modifyitems(config, items):
         if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
             import inspect
 
-            from sentry.testutils import SnubaTestCase
+            from sentry.testutils.cases import SnubaTestCase
 
             if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
                 # No need to group if we are deselecting this

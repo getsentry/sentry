@@ -2,7 +2,7 @@ import pytest
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba import discover
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 

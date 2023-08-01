@@ -3,7 +3,7 @@ from django.conf import settings
 
 from sentry import newsletter
 from sentry.models import UserEmail
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 

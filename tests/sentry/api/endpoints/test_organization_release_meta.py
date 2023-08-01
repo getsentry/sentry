@@ -11,7 +11,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 

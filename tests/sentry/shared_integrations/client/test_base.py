@@ -8,7 +8,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiHostError
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.socket import override_blacklist
 
 

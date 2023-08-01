@@ -5,7 +5,7 @@ from typing import Optional, Sequence
 from django.utils import timezone
 
 from sentry.snuba.dataset import Dataset
-from sentry.testutils import SnubaTestCase
+from sentry.testutils.cases import SnubaTestCase
 
 
 class PerfIssueTransactionTestMixin:

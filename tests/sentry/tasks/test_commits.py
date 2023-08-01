@@ -14,7 +14,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 

@@ -12,7 +12,7 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import no_silo_test, region_silo_test
