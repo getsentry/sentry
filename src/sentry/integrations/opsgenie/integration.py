@@ -146,19 +146,19 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        # get the team ID/test the API key for a newly added row
+        # add the integration ID to a newly added row
+        if not self.org_integration:
+            return
+
         teams = data["team_table"]
         unsaved_teams = [team for team in teams if team["id"] == ""]
+        # this is not instantaneous, so you could add the same team a bunch of times in a row
+        # but I don't anticipate this being too much of an issue
+        added_names = {team["team"] for team in teams if team not in unsaved_teams}
         for team in unsaved_teams:
-            try:
-                client = self.get_client(integration_key=team["integration_key"])
-                resp = client.get_team_id(team_name=team["team"])
-                team["id"] = resp["data"]["id"]
-            except ApiError:
-                raise ValidationError(
-                    {"api_key": ["Could not save due to invalid team name or integration key."]}
-                )
-
+            if team["team"] in added_names:
+                raise ValidationError({"duplicate_name": ["Duplicate team name."]})
+            team["id"] = str(self.org_integration.id) + "-" + team["team"]
         return super().update_organization_config(data)
 
 
