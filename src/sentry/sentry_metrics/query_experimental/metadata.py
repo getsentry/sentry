@@ -255,7 +255,7 @@ class TypeAnnotationTransform(QueryVisitor[AnnotatedNode]):
         lhs = self._visit_expression(function.parameters[0])
         rhs = self._visit_expression(function.parameters[1])
 
-        allowed_types = (VectorType, ScalarType)  # TODO: Check scalar is not a string
+        allowed_types = (VectorType, ScalarType)
         if not isinstance(lhs.type_, allowed_types) or not isinstance(rhs.type_, allowed_types):
             raise InvalidMetricsQuery(f"Cannot apply `{name}` to a metric, aggregation needed")
 

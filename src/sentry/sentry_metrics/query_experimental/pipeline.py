@@ -8,8 +8,6 @@ from .backend import MetricsBackend, default_backend
 from .calculation import generate_calculation
 from .types import SeriesQuery, SeriesResult
 
-# TODO: Request class?
-
 
 class QueryLayer:
     """
@@ -53,7 +51,7 @@ class QueryPipeline:
         self._backend = backend
         return self
 
-    def layer(self, layer) -> "QueryPipeline":
+    def layer(self, layer: QueryLayer) -> "QueryPipeline":
         """
         Wrap the query pipeline with a layer that transforms queries or results.
 
@@ -64,7 +62,7 @@ class QueryPipeline:
         self._layers.append(layer)
         return self
 
-    def layer_if(self, flag: bool, layer) -> "QueryPipeline":
+    def layer_if(self, flag: bool, layer: QueryLayer) -> "QueryPipeline":
         """
         Add a conditional query layer to the pipeline that transforms queries or
         results if the given flag is set.

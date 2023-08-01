@@ -82,6 +82,10 @@ def expand_derived_metrics(
 
 
 class ExpandTransform(QueryTransform):
+    """
+    Transform for recursively expanding derived metrics in queries.
+    """
+
     def __init__(self, registry: ExpressionRegistry):
         self.registry = registry
 

@@ -288,7 +288,6 @@ class SnubaResultConverter:
         self.intervals: Set[datetime] = set()
         self.tags: Dict[str, Set[str]] = {}
         self.buckets: Dict[GroupKey, SeriesDict] = {}
-        self.num_expressions = 1  # TODO
 
     def _parse_expression_id(self, key: str) -> Optional[int]:
         if key.startswith("__expr_"):

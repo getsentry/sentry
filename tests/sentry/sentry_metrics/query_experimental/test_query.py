@@ -253,3 +253,8 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
 # TODO: Test missing tag
 # TODO: Test missing tag value
 # TODO: Test reverse tag mapping on sessions
+# TODO: Test expansion
+# TODO: Test name mapping
+# TODO: Test measurement lookup
+# TODO: Test with indexing values
+# TODO: Test cycles in MRIs

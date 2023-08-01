@@ -18,9 +18,6 @@ from .use_case import get_use_case
 STRING_NOT_FOUND = -1
 
 
-# TODO: Support dynamic lookup for measurements
-
-
 class IndexLayer(QueryLayer):
     """
     Layer for the query pipeline that resolves indexed metric names, tag keys,
