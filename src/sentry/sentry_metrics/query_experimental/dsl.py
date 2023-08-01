@@ -14,4 +14,4 @@ def parse_expression(dsl: str) -> Expression:
     Parse a metrics expression from a string.
     """
 
-    raise NotImplementedError()
+    raise NotImplementedError("Cannot parse DSL yet")

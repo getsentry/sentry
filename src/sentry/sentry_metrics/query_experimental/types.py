@@ -284,14 +284,6 @@ class SeriesQuery:
     filters: Sequence[Function] = field(default_factory=list)
     groups: Sequence[Tag] = field(default_factory=list)
 
-    @classmethod
-    def parse(cls, dsl: str, params: Optional[VariableMap] = None) -> "SeriesQuery":
-        """
-        Parses a metrics query from a string.
-        """
-        # TODO: Move this to a query builder, since we also need groups etc.
-        raise NotImplementedError("TODO")
-
     def bind(self, params: VariableMap) -> "SeriesQuery":
         """
         Bind the specified variables to this query.
