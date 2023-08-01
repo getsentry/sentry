@@ -322,7 +322,7 @@ class BaseTeamSerializer(Serializer):
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-        return {
+        result: BaseTeamSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
@@ -338,6 +338,8 @@ class BaseTeamSerializer(Serializer):
         }
         if obj.org_role:
             result["orgRole"] = obj.org_role
+
+        return result
 
 
 # See TeamSerializerResponse for explanation as to why this is needed
