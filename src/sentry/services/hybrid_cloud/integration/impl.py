@@ -342,7 +342,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment: Mapping[str, Any],
         metric_value: Optional[str] = None,
     ) -> None:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)

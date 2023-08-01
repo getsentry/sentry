@@ -256,7 +256,7 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment: Mapping[str, Any],  # TODO: Replace with object schema
         metric_value: Optional[str] = None,
     ) -> None:
         pass
