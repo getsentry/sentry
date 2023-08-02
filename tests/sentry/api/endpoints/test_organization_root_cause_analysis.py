@@ -4,6 +4,9 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 ROOT_CAUSE_FEATURE_FLAG = "organizations:statistical-detectors-root-cause-analysis"
+PERFORMANCE_METRICS = "organizations:performance-use-metrics"
+
+FEATURES = [ROOT_CAUSE_FEATURE_FLAG, PERFORMANCE_METRICS]
 
 
 @region_silo_test(stable=True)
@@ -22,7 +25,7 @@ class OrganizationRootCauseAnalysisTest(APITestCase):
         assert response.status_code == 404, response.content
 
     def test_can_call_endpoint(self):
-        with self.feature(ROOT_CAUSE_FEATURE_FLAG):
+        with self.feature(FEATURES):
             response = self.client.get(
                 self.url, format="json", data={"transaction": "foo", "project": "1"}
             )
@@ -30,13 +33,21 @@ class OrganizationRootCauseAnalysisTest(APITestCase):
         assert response.status_code == 200, response.content
 
     def test_transaction_name_required(self):
-        with self.feature(ROOT_CAUSE_FEATURE_FLAG):
+        with self.feature(FEATURES):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 400, response.content
 
     def test_project_id_required(self):
-        with self.feature(ROOT_CAUSE_FEATURE_FLAG):
+        with self.feature(FEATURES):
             response = self.client.get(self.url, format="json", data={"transaction": "foo"})
 
         assert response.status_code == 400, response.content
+
+    def test_transaction_must_exist(self):
+        with self.feature(FEATURES):
+            response = self.client.get(
+                self.url, format="json", data={"transaction": "foo", "project": "1"}
+            )
+
+        assert response.status_code == 200, response.content
