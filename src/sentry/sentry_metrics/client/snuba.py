@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 import urllib3
 from arroyo.backends.kafka import KafkaPayload
@@ -174,21 +174,21 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         # index message via the MessageProcessor
         new_batch = self._message_processor.process_messages(outer_message=outer_message)
 
-        json_payloads: Sequence[str] = []
+        decoded_payloads: List[str] = []
         for message in new_batch:
             payload = message.payload
             if type(payload) == RoutingPayload:
                 payload = payload.routing_message
             # decode bytes into json
             assert type(payload) == KafkaPayload
-            json_payloads.append(payload.value.decode("utf-8"))
+            decoded_payloads.append(payload.value.decode("utf-8"))
 
-        deserialized_payloads: Sequence[json.JSONData] = []
-        for payload in json_payloads:
-            deserialized_p = json.loads(payload)
-            deserialized_payloads.append(deserialized_p)
+        json_payloads: List[json.JSONData] = []
+        for str_payload in decoded_payloads:
+            json_p = json.loads(str_payload)
+            json_payloads.append(json_p)
 
-        return deserialized_payloads
+        return json_payloads
 
     def __build_and_send_request(self, metric):
         metric_type = metric["type"]
