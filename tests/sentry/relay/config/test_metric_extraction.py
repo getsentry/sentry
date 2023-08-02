@@ -95,6 +95,7 @@ def test_get_metric_extraction_config_single_alert(default_project):
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -113,6 +114,7 @@ def test_get_metric_extraction_config_multiple_alerts(default_project):
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 2
 
         first_hash = config["metrics"][0]["tags"][0]["value"]
@@ -130,6 +132,7 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
 
 
@@ -148,6 +151,7 @@ def test_get_metric_extraction_config_single_widget(default_project):
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -168,6 +172,7 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -197,6 +202,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(default_p
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -218,6 +224,7 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -244,6 +251,7 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
@@ -265,6 +273,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",

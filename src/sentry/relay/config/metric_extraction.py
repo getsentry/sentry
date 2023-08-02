@@ -140,22 +140,26 @@ def _convert_widget_query_to_metric(
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
     """
-    metrics = []
+    metrics_specs: List[HashMetricSpec] = []
+
+    if not widget_query.aggregates:
+        return metrics_specs
+
     for aggregate in widget_query.aggregates:
         if result := _convert_aggregate_and_query_to_metric(
             # there is an internal check to make sure we extract metrics oly for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
-            Dataset.PerformanceMetrics,
+            Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
         ):
-            metrics.append(result)
+            metrics_specs.append(result)
 
-    return metrics
+    return metrics_specs
 
 
 def _convert_aggregate_and_query_to_metric(
-    dataset: Dataset, aggregate: str, query: str
+    dataset: str, aggregate: str, query: str
 ) -> Optional[HashMetricSpec]:
     try:
         if not is_on_demand_query(dataset, aggregate, query):
