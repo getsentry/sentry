@@ -1110,7 +1110,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
