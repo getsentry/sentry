@@ -62,7 +62,7 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
-    eventNavDefault = serializers.ChoiceField(
+    defaultIssueEvent = serializers.ChoiceField(
         choices=(
             ("recommended", _("Recommended")),
             ("latest", _("Latest")),
@@ -155,7 +155,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
         :param string theme: UI theme, either "light", "dark", or "system"
-        :param string event_nav_default: Default event navigation, either "recommended", "latest" or "oldest"
+        :param string default_issue_event: Event displayed by default: "recommended", "latest" or "oldest"
         :auth: required
         """
         if not request.access.has_permission("users.admin"):
@@ -192,7 +192,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "language": "language",
             "timezone": "timezone",
             "stacktraceOrder": "stacktrace_order",
-            "eventNavDefault": "event_nav_default",
+            "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
         }
 
