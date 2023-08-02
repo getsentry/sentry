@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime
+from typing import Union
 
 from django.conf import settings
 from redis.exceptions import WatchError
 from requests import Response
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.utils import json, redis
 
@@ -182,5 +184,8 @@ class IntegrationRequestBuffer:
     def record_fatal(self):
         self.add("fatal")
 
-    def record_timeout(self, e: Exception):
+    def record_timeout(self, e: Union[ConnectionError, Timeout]):
+        """
+        Record a Sentry App timeout or connection error in the buffer
+        """
         self.add("timeout")
