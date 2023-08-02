@@ -128,7 +128,7 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        assert int(buffer._get()[-1]["error_count"]) == 2
+        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
         assert buffer.is_integration_broken() is False
 
     @responses.activate
@@ -204,4 +204,4 @@ class SlackClientDisable(TestCase):
                 buffer.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
-        assert len(buffer._get_all_from_buffer(buffer.integrationkey)) == 30
+        assert len(buffer._get_all_from_buffer()) == 30

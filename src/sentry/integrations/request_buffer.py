@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from freezegun import freeze_time
 
 from sentry.utils import json, redis
 
@@ -27,46 +26,38 @@ class IntegrationRequestBuffer:
         """
         Convert the request string stored in Redis to a python dict
         """
-        redis_object = redis_object.replace("'", '"')
         return json.loads(redis_object)
 
-    def _get_all_from_buffer(self, buffer_key):
+    def _get_all_from_buffer(self):
         """
         Get the list at the buffer key.
         """
 
         ret = []
         now = datetime.now()
-        for i in reversed(range(BUFFER_SIZE)):
-            with freeze_time(now - timedelta(days=i)):
-                cur = datetime.now().strftime("%Y-%m-%d")
-                buffer_key = self.integrationkey + cur
-                ret.append(self.client.hgetall(buffer_key))
+        i = 0
+        buffer_key = f"{self.integrationkey}:{now.strftime('%Y-%m-%d')}"
+        while self.client.hgetall(buffer_key):
+            cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            buffer_key = f"{self.integrationkey}:{cur}"
+            ret.append(self.client.hgetall(buffer_key))
+            i += 1
 
         return ret
 
-    def _get_broken_range_from_buffer(self, buffer_key):
+    def _get_broken_range_from_buffer(self):
         """
         Get the list at the buffer key in the broken range.
         """
 
         ret = []
         now = datetime.now()
-        for i in reversed(range(IS_BROKEN_RANGE)):
+        for i in range(IS_BROKEN_RANGE):
             cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             buffer_key = f"{self.integrationkey}:{cur}"
             ret.append(self.client.hgetall(buffer_key))
 
         return ret
-
-    def _get(self):
-        """
-        Returns the list of daily aggregate error counts.
-        """
-        return [
-            self._convert_obj_to_dict(str(obj))
-            for obj in self._get_broken_range_from_buffer(self.integrationkey)
-        ]
 
     def is_integration_broken(self):
         """
@@ -75,7 +66,7 @@ class IntegrationRequestBuffer:
         """
         items = self._get_broken_range_from_buffer()
 
-        data = [item for item in items if int(item.hget("fatal_count", 0)) > 0]
+        data = [item for item in items if int(item.get("fatal_count", 0)) > 0]
 
         if len(data) > 0:
             return True
@@ -83,7 +74,7 @@ class IntegrationRequestBuffer:
         data = [
             item
             for item in items
-            if int(item.hget("error_count", 0)) > 0 and int(item.hget("success_count", 0)) == 0
+            if int(item.get("error_count", 0)) > 0 and int(item.get("success_count", 0)) == 0
         ]
 
         if not len(data):
@@ -104,7 +95,7 @@ class IntegrationRequestBuffer:
         buffer_key = f"{self.integrationkey}:{now}"
         pipe = self.client.pipeline()
         pipe.hincrby(buffer_key, count + "_count", 1)
-        pipe.expire(buffer_key, KEY_EXPIRY, nx=True)
+        pipe.expire(buffer_key, KEY_EXPIRY)
         pipe.execute()
         pipe.reset()
 
