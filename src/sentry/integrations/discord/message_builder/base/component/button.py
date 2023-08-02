@@ -15,8 +15,8 @@ class DiscordButton(DiscordMessageComponent):
     # Note that buttons must be contained in an ActionRow!
     def __init__(
         self,
-        style: int,
         custom_id: str,
+        style: int = DiscordButtonStyle.SECONDARY,
         label: str | None = None,
         url: str | None = None,
         disabled: bool = False,

@@ -29,6 +29,15 @@ class DiscordRequestError(Exception):
 class DiscordRequestTypes:
     PING = 1
     COMMAND = 2
+    MESSAGE_COMPONENT = 3
+    MODAL_SUBMIT = 5
+
+
+class DiscordMessageComponentTypes:
+    ACTION_ROW = 1
+    BUTTON = 2
+    SELECT = 3
+    TEXT_INPUT = 4
 
 
 class DiscordRequest:
@@ -44,7 +53,7 @@ class DiscordRequest:
     def __init__(self, request: Request):
         self.request = request
         self._integration: RpcIntegration | None = None
-        self._data: Mapping[str, object] = {}
+        self._data: Mapping[str, object] = self.request.data
         self._identity: RpcIdentity | None = None
         self.user: RpcUser | None = None
 
@@ -54,24 +63,23 @@ class DiscordRequest:
 
     @property
     def data(self) -> Mapping[str, object]:
-        if not self._data:
-            self._validate_data()
-        return self._data
+        """This is the data object nested within request.data"""
+        return self._data.get("data") or {}  # type: ignore
 
     @property
     def guild_id(self) -> str | None:
-        guild_id = self.data.get("guild_id")
+        guild_id = self._data.get("guild_id")
         return str(guild_id) if guild_id else None
 
     @property
     def channel_id(self) -> str | None:
-        channel_id = self.data.get("channel_id")
+        channel_id = self._data.get("channel_id")
         return str(channel_id) if channel_id else None
 
     @property
     def user_id(self) -> str | None:
         try:
-            return self.data.get("member")["user"]["id"]  # type: ignore
+            return self._data.get("member")["user"]["id"]  # type: ignore
         except (AttributeError, TypeError):
             return None
 
@@ -87,11 +95,16 @@ class DiscordRequest:
             data["integration_id"] = self.integration.id
         if self.user_id:
             data["discord_user_id"] = self.user_id
+        if self.has_identity():
+            data["identity"] = self.get_identity_str()
+        if self.is_command():
+            data["command"] = self.get_command_name()
+        if self.is_message_component():
+            data["component_custom_id"] = self.get_component_custom_id()
 
         return {k: v for k, v in data.items() if v}
 
     def validate(self) -> None:
-        self._validate_data()
         self._log_request()
         self.authorize()
         self.validate_integration()
@@ -107,12 +120,6 @@ class DiscordRequest:
             return
 
         raise DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED)
-
-    def _validate_data(self) -> None:
-        try:
-            self._data = self.request.data
-        except (ValueError, TypeError):
-            raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
@@ -163,7 +170,26 @@ class DiscordRequest:
     def is_command(self) -> bool:
         return self._data.get("type", 0) == DiscordRequestTypes.COMMAND
 
+    def is_message_component(self) -> bool:
+        return self._data.get("type", 0) == DiscordRequestTypes.MESSAGE_COMPONENT
+
+    def is_modal_submit(self) -> bool:
+        return self._data.get("type", 0) == DiscordRequestTypes.MODAL_SUBMIT
+
     def get_command_name(self) -> str:
         if not self.is_command():
             return ""
-        return self._data.get("data")["name"]  # type: ignore
+        return self.data["name"]  # type: ignore
+
+    def get_component_custom_id(self) -> str:
+        if not self.is_message_component():
+            return ""
+        return self.data["custom_id"]  # type: ignore
+
+    def is_select_component(self) -> bool:
+        return self.data["component_type"] == DiscordMessageComponentTypes.SELECT
+
+    def get_selected_options(self) -> list[str]:
+        if not self.is_select_component():
+            return []
+        return self.data["values"]  # type: ignore

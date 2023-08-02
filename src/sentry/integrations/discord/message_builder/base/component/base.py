@@ -8,9 +8,6 @@ class DiscordMessageComponent:
     Child classes should override the constructor with necessary fields for
     the component type.
 
-    This class' build method should work for children also, The one exception
-    to this being the ActionRow component, which needs to build its children.
-
     https://discord.com/developers/docs/interactions/message-components#component-object
     """
 
