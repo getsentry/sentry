@@ -4,7 +4,6 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple, Typed
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
-from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Project,
@@ -13,9 +12,10 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.snuba.metrics.extraction import (
-    QUERY_HASH_KEY,
+    FieldParser,
     MetricSpec,
     OndemandMetricSpecBuilder,
+    QueryParser,
     RuleCondition,
     is_on_demand_snuba_query,
 )
@@ -99,22 +99,16 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> List[HashedMetricSpec]:
         if not is_on_demand_snuba_query(snuba_query):
             return []
 
-        builder = OndemandMetricSpecBuilder(field=snuba_query.aggregate, query=snuba_query.query)
-        on_demand_specs = builder.build_specs()
+        builder = OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
+
+        on_demand_specs = builder.build_specs(field=snuba_query.aggregate, query=snuba_query.query)
 
         hashed_metric_specs = []
         for on_demand_spec in on_demand_specs:
-            query_hash = on_demand_spec.query_hash()
-            metric_spec: MetricSpec = {
-                "category": DataCategory.TRANSACTION.api_name(),
-                "mri": on_demand_spec.mri,
-                "field": on_demand_spec.field,
-                "condition": on_demand_spec.condition(),
-                "tags": [{"key": QUERY_HASH_KEY, "value": query_hash}],
-            }
-
+            metric_spec = on_demand_spec.to_metric_spec()
+            # TODO: avoid computing two times the same hash.
             hashed_metric_specs.append(
-                HashedMetricSpec(metric_spec=metric_spec, query_hash=query_hash)
+                HashedMetricSpec(metric_spec=metric_spec, query_hash=on_demand_spec.query_hash())
             )
 
         return hashed_metric_specs

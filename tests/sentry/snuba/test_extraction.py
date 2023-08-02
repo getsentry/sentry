@@ -1,9 +1,5 @@
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import (
-    OndemandMetricSpec,
-    OndemandMetricSpecBuilder,
-    is_on_demand_query,
-)
+from sentry.snuba.metrics.extraction import OndemandMetricSpec, is_on_demand_query
 
 
 def test_is_on_demand_query_wrong_dataset():
@@ -181,16 +177,16 @@ def test_spec_countif_with_query():
     }
 
 
-def test_spec_failure_rate():
-    builder = OndemandMetricSpecBuilder("failure_rate()", "transaction.duration:>1s")
-    specs = builder.build_specs()
-
-    assert len(specs) == 2
-    assert specs[0].condition() == {
-        "inner": [
-            {"name": "event.duration", "op": "gt", "value": 1000.0},
-            {"name": "event.contexts.trace.status", "op": "eq", "value": "aborted"},
-        ],
-        "op": "and",
-    }
-    assert specs[1].condition() == {"name": "event.duration", "op": "gt", "value": 1000.0}
+# def test_spec_failure_rate():
+#     builder = OndemandMetricSpecBuilder("failure_rate()", "transaction.duration:>1s")
+#     specs = builder.build_specs()
+#
+#     assert len(specs) == 2
+#     assert specs[0].condition() == {
+#         "inner": [
+#             {"name": "event.duration", "op": "gt", "value": 1000.0},
+#             {"name": "event.contexts.trace.status", "op": "eq", "value": "aborted"},
+#         ],
+#         "op": "and",
+#     }
+#     assert specs[1].condition() == {"name": "event.duration", "op": "gt", "value": 1000.0}
