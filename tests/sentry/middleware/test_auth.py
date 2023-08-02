@@ -134,6 +134,17 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
+    def test_process_request_rpc_path_ignored(self):
+        request = self.make_request(
+            method="GET", path="/api/0/internal/rpc/organization/get_organization_by_id"
+        )
+        request.META["HTTP_AUTHORIZATION"] = b"Rpcsignature not-a-checksum"
+
+        self.middleware.process_request(request)
+        # No errors, and no user identified.
+        assert request.user.is_anonymous
+        assert request.auth is None
+
     @patch("sentry.models.userip.geo_by_addr")
     def test_process_request_log_userip(self, mock_geo_by_addr):
         mock_geo_by_addr.return_value = {

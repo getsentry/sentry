@@ -266,6 +266,17 @@ class DatabaseBackedAuthService(AuthService):
                 auth_provider.disable_scim()
             auth_provider.delete()
 
+    def update_provider_config(
+        self, organization_id: int, auth_provider_id: int, config: Mapping[str, Any]
+    ) -> None:
+        current_provider = AuthProvider.objects.filter(
+            organization_id=organization_id, id=auth_provider_id
+        ).first()
+        if current_provider is None:
+            return
+        current_provider.config = config
+        current_provider.save()
+
 
 class FakeRequestDict:
     d: Mapping[str, str | bytes | None]

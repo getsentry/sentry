@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
@@ -12,8 +13,10 @@ import StatusIndicator from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
 import type {ActivityType} from 'sentry/views/alerts/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
@@ -56,6 +59,10 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const curentTrigger = incident.alertRule.triggers.find(
     trigger => trigger.label === triggerLabel
   );
+  const timeWindow = getDuration(incident.alertRule.timeWindow * 60);
+  const alertName = capitalize(
+    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]
+  );
 
   return (
     <Fragment>
@@ -76,11 +83,29 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         </Link>
       </Cell>
       <Cell>
-        {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(incident.alertRule)]}{' '}
-        {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
-          ? t('above')
-          : t('below')}{' '}
-        {curentTrigger?.alertThreshold}
+        {incident.alertRule.comparisonDelta ? (
+          <Fragment>
+            {alertName} {curentTrigger?.alertThreshold}%
+            {t(
+              ' %s in %s compared to the ',
+              incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+                ? t('higher')
+                : t('lower'),
+              timeWindow
+            )}
+            {COMPARISON_DELTA_OPTIONS.find(
+              ({value}) => value === incident.alertRule.comparisonDelta
+            )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {alertName}{' '}
+            {incident.alertRule.thresholdType === AlertRuleThresholdType.ABOVE
+              ? t('above')
+              : t('below')}{' '}
+            {curentTrigger?.alertThreshold} {t('in')} {timeWindow}
+          </Fragment>
+        )}
       </Cell>
       <Cell>
         {activityDuration &&
