@@ -54,11 +54,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         assert relay is not None  # should be provided during Authentication
         response = {}
 
-        if request.relay_request_data.get("globalConfig"):
-            metrics.incr("relay.project_configs.global.fetched")
-            global_config = get_global_config()
-            response["global_config"] = global_config
-
         full_config_requested = request.relay_request_data.get("fullConfig")
 
         if full_config_requested and not relay.is_internal:
@@ -67,11 +62,23 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
+        if version == "4":
+            if request.relay_request_data.get("globalConfig"):
+                metrics.incr("relay.project_configs.global.fetched")
+                global_config = get_global_config()
+                response["global_config"] = global_config
+            update = self._post_or_schedule_by_key(request)
+            metrics.incr("relay.project_configs.post_v4.pending", amount=len(update["pending"]))
+            metrics.incr("relay.project_configs.post_v4.fetched", amount=len(update["configs"]))
+            response.update(update)
+
         if self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            response.update(self._post_or_schedule_by_key(request))
+            metrics.incr("relay.project_configs.post_v3.pending", amount=len(update["pending"]))
+            metrics.incr("relay.project_configs.post_v3.fetched", amount=len(update["configs"]))
+            response.update(update)
         elif version in ["2", "3"]:
             response["configs"] = self._post_by_key(
                 request=request,
@@ -141,8 +148,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
-        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
-        metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
 
     def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
