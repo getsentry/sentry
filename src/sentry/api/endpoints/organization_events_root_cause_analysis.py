@@ -18,7 +18,10 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEndpoint):
         root_cause_results = {}
 
         transaction_name = request.GET.get("transaction")
-        if not transaction_name:
+        project_id = request.GET.get("project")
+        if not transaction_name or not project_id:
+            # Project ID is required to ensure the events we query for are
+            # the same transaction
             return Response(status=400)
 
         return Response(status=200, data=root_cause_results)

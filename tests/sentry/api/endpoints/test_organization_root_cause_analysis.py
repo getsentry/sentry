@@ -23,12 +23,20 @@ class OrganizationRootCauseAnalysisTest(APITestCase):
 
     def test_can_call_endpoint(self):
         with self.feature(ROOT_CAUSE_FEATURE_FLAG):
-            response = self.client.get(self.url, format="json", data={"transaction": "foo"})
+            response = self.client.get(
+                self.url, format="json", data={"transaction": "foo", "project": "1"}
+            )
 
         assert response.status_code == 200, response.content
 
     def test_transaction_name_required(self):
         with self.feature(ROOT_CAUSE_FEATURE_FLAG):
             response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 400, response.content
+
+    def test_project_id_required(self):
+        with self.feature(ROOT_CAUSE_FEATURE_FLAG):
+            response = self.client.get(self.url, format="json", data={"transaction": "foo"})
 
         assert response.status_code == 400, response.content
