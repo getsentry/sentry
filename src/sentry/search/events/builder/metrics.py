@@ -134,8 +134,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def _get_on_demand_metrics_query(self, snuba_query: Query) -> Optional[MetricsQuery]:
         specs = self._on_demand_specs
-        if len(specs) > 0:
-            raise InvalidSearchQuery("Derived ondemand metrics are not currently supported")
+        if len(specs) > 1:
+            raise InvalidSearchQuery("Derived on demand metrics are not currently supported")
 
         spec = specs[0]
         # TimeseriesQueryBuilder specific parameters

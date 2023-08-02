@@ -309,6 +309,13 @@ def _is_standard_metrics_field(field: str) -> bool:
     return field in _STANDARD_METRIC_FIELDS
 
 
+def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+    if isinstance(value, dict):
+        return {key: _deep_sorted(value) for key, value in sorted(value.items())}
+    else:
+        return value
+
+
 class OndemandMetricSpecV2(NamedTuple):
     op: MetricOperationType
     metric_type: str
@@ -323,9 +330,10 @@ class OndemandMetricSpecV2(NamedTuple):
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
 
-        # TODO: Figure out how to support multiple fields and different but equivalent queries and improve hashing of
-        #  rule condition.
-        str_to_hash = f"{self.field};{str(self.rule_condition)}"
+        # We sort the entire rules dictionary in order to maximize the number of equal hashes.
+        sorted_rule_condition = _deep_sorted(self.rule_condition)
+        str_to_hash = f"{self.field};{str(sorted_rule_condition)}"
+
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def to_metric_spec(self) -> MetricSpec:
@@ -509,9 +517,11 @@ class FieldParsingResult(NamedTuple):
 
 class FieldParser(OndemandParser[str, FieldParsingResult]):
     def parse(self, value: str) -> Optional[FieldParsingResult]:
-        function, arguments, alias = fields.parse_function(value)
-
-        return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+        try:
+            function, arguments, alias = fields.parse_function(value)
+            return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+        except InvalidSearchQuery:
+            return None
 
 
 class QueryParsingResult(NamedTuple):
@@ -520,8 +530,11 @@ class QueryParsingResult(NamedTuple):
 
 class QueryParser(OndemandParser[str, QueryParsingResult]):
     def parse(self, value: str) -> Optional[QueryParsingResult]:
-        conditions = event_search.parse_search_query(value)
-        return QueryParsingResult(conditions=conditions)
+        try:
+            conditions = event_search.parse_search_query(value)
+            return QueryParsingResult(conditions=conditions)
+        except InvalidSearchQuery:
+            return None
 
 
 class OndemandMetricSpecBuilder:
@@ -574,7 +587,7 @@ class OndemandMetricSpecBuilder:
 
         return new_query
 
-    def _init_field(self, field: str) -> Tuple[str, str, Optional[str]]:
+    def _init_field(self, field: str) -> Tuple[MetricOperationType, str, Optional[str]]:
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {field}")
@@ -607,7 +620,8 @@ class OndemandMetricSpecBuilder:
 
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._query_parser.parse(query)
-        if not parsed_query.conditions:
+        # An on demand metric must have at least a condition, otherwise we can just use a classic metric.
+        if parsed_query is None or len(parsed_query.conditions) == 0:
             if count_if_rule_condition is None:
                 raise Exception("This query should not use on demand metrics")
 
