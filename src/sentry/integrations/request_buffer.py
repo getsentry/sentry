@@ -36,12 +36,13 @@ class IntegrationRequestBuffer:
         self.client = redis.redis_clusters.get(cluster_id)
         self.integration_key = key
         self.key_expiration_seconds = expiration_seconds
-        if "sentry-app" in key:
-            self.counts = ["success", "error", "timeout"]
-        else:
-            self.counts = ["success", "error", "fatal"]
+        self.counts = (
+            ["success", "error", "timeout"]
+            if "sentry-app" in key
+            else ["success", "error", "fatal"]
+        )
 
-    def record_exception_error(self, e: Exception):
+    def record_exception_error(self):
         self._add("error")
 
     def record_response_error(self, resp: Response):

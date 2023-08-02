@@ -361,7 +361,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: BaseApiResponse):
+    def record_response(self, response: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
@@ -385,7 +385,7 @@ class BaseApiClient(TrackResponseMixin):
             return
         try:
             buffer = IntegrationRequestBuffer(redis_key)
-            buffer.record_exception_error(error)
+            buffer.record_exception_error()
             if buffer.is_integration_broken():
                 self.disable_integration()
         except Exception:
