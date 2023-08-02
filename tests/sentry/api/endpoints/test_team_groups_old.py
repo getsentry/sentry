@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 

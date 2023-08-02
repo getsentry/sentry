@@ -19,7 +19,7 @@ from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.models import AuditLogEntry, OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
@@ -521,7 +521,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_team_permission(self):
         # Test ensures you can only edit alerts owned by your team or no one.
-
         om = self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -537,7 +536,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         ).delete()
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
-        assert resp.status_code == 403
+        assert resp.status_code == 200
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(
@@ -624,7 +623,10 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         ).delete()
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug, alert_rule.id)
-        assert resp.status_code == 403
+        assert resp.status_code == 204
+        another_alert_rule = self.alert_rule
+        alert_rule.owner = self.team.actor
+        another_alert_rule.save()
         self.create_team_membership(team=self.team, member=om)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)

@@ -40,7 +40,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_installed_for_organization(self, organization_id: int) -> QuerySet:
         return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
-    def get_by_api_token(self, token_id: str) -> QuerySet:
+    def get_by_api_token(self, token_id: int) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
     def get_projects(self, token: ApiToken) -> QuerySet[Project]:

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
