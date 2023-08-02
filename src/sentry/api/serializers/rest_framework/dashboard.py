@@ -534,15 +534,18 @@ class DashboardSerializer(DashboardDetailsSerializer):
 
 
 def schedule_update_project_configs(dashboard: Dashboard):
+    """
+    Schedule a task to update project configs for all projects of an organization when a dashboard is updated.
+    """
     org = dashboard.organization
     projects = org.project_set.all()
 
     on_demand_metrics = features.has("organizations:on-demand-metrics-extraction", org)
-    experimental_on_demand_metrics = features.has(
+    dashboard_on_demand_metrics = features.has(
         "organizations:on-demand-metrics-extraction-experimental", org
     )
 
-    if not projects or not on_demand_metrics or not experimental_on_demand_metrics:
+    if not projects or not on_demand_metrics or not dashboard_on_demand_metrics:
         return
 
     for project in projects:

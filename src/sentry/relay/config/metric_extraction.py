@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
 
-# Maximum number of custom metrics that can be extracted for alert rules with
+# Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
+# TODO: remove this, or enforce limits for alerts and widgets separately.
 _MAX_ON_DEMAND_METRICS = 100
 
 HashMetricSpec = Tuple[str, MetricSpec]
@@ -52,7 +53,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     This requires respective feature flags to be enabled. At the moment, metrics
     for the following models are extracted:
      - Performance alert rules with advanced filter expressions.
-     - Metrics widgets with advanced filter expressions.
+     - On-demand metrics widgets.
     """
 
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
@@ -96,7 +97,7 @@ def _get_widget_metric_specs(project: Project) -> List[HashMetricSpec]:
     ):
         return []
 
-    # fetch all queries of all metrics widgets of all dashboards of this organization
+    # fetch all queries of all on demand metrics widgets of this organization
     widget_queries = DashboardWidgetQuery.objects.filter(
         widget__dashboard__organization=project.organization,
         widget__widget_type=DashboardWidgetTypes.ON_DEMAND_METRICS,
