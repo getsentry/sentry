@@ -6,6 +6,10 @@ from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 
 
 class ConsolePresenter(OptionsPresenter):
+    """
+    Formats and outputs the changes made via sentry configoptions to the
+    Console, specifically Click and Logging.
+    """
 
     # These messages are produced more than once and referenced in tests.
     # This is the reason they are constants.

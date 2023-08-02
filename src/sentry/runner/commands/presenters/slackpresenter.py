@@ -8,6 +8,13 @@ from sentry.utils import json
 
 
 class SlackPresenter(OptionsPresenter):
+    """
+    Sends changes of runtime options made via sentry configoptions
+    to a webhook url in a truncated json format. The webhook url can
+    be configured to your liking, but for this use case it is ideally
+    integrated with Slack.
+    """
+
     def __init__(self) -> None:
         self.drifted_options: List[Tuple[str, str]] = []
         self.channel_updated_options: List[str] = []
