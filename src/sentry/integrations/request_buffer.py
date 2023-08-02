@@ -2,12 +2,14 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 
-from sentry.utils import json, redis
+from sentry.utils import redis
 
 BUFFER_SIZE = 30  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 IS_BROKEN_RANGE = 7  # 7 days
+
+VALID_KEYS = ["success", "error", "fatal"]
 
 
 class IntegrationRequestBuffer:
@@ -22,42 +24,26 @@ class IntegrationRequestBuffer:
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
 
-    def _convert_obj_to_dict(self, redis_object):
-        """
-        Convert the request string stored in Redis to a python dict
-        """
-        return json.loads(redis_object)
+    def add(self, count: str):
+        if count not in VALID_KEYS:
+            raise Exception("Requires a valid key param.")
 
-    def _get_all_from_buffer(self):
-        """
-        Get the list at the buffer key.
-        """
+        now = datetime.now().strftime("%Y-%m-%d")
+        buffer_key = f"{self.integrationkey}:{now}"
 
-        ret = []
-        now = datetime.now()
-        i = 0
-        buffer_key = f"{self.integrationkey}:{now.strftime('%Y-%m-%d')}"
-        while self.client.hgetall(buffer_key):
-            ret.append(self.client.hgetall(buffer_key))
-            cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
-            buffer_key = f"{self.integrationkey}:{cur}"
-            i += 1
+        pipe = self.client.pipeline()
+        pipe.hincrby(buffer_key, count + "_count", 1)
+        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.execute()
 
-        return ret
+    def record_error(self):
+        self.add("error")
 
-    def _get_broken_range_from_buffer(self):
-        """
-        Get the list at the buffer key in the broken range.
-        """
+    def record_success(self):
+        self.add("success")
 
-        ret = []
-        now = datetime.now()
-        for i in range(IS_BROKEN_RANGE):
-            cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
-            buffer_key = f"{self.integrationkey}:{cur}"
-            ret.append(self.client.hgetall(buffer_key))
-
-        return ret
+    def record_fatal(self):
+        self.add("fatal")
 
     def is_integration_broken(self):
         """
@@ -85,25 +71,40 @@ class IntegrationRequestBuffer:
 
         return True
 
-    def add(self, count: str):
-        VALID_KEYS = ["success", "error", "fatal"]
-        if count not in VALID_KEYS:
-            raise Exception("Requires a valid key param.")
+    def _get_all_from_buffer(self):
+        """
+        Get the list at the buffer key.
+        """
 
-        now = datetime.now().strftime("%Y-%m-%d")
+        now = datetime.now()
+        all_range = [
+            f"{self.integrationkey}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            for i in range(BUFFER_SIZE)
+        ]
 
-        buffer_key = f"{self.integrationkey}:{now}"
+        return self._get_range_buffers(all_range)
+
+    def _get_broken_range_from_buffer(self):
+        """
+        Get the list at the buffer key in the broken range.
+        """
+
+        now = datetime.now()
+        broken_range_keys = [
+            f"{self.integrationkey}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            for i in range(IS_BROKEN_RANGE)
+        ]
+
+        return self._get_range_buffers(broken_range_keys)
+
+    def _get_range_buffers(self, keys):
         pipe = self.client.pipeline()
-        pipe.hincrby(buffer_key, count + "_count", 1)
-        pipe.expire(buffer_key, KEY_EXPIRY)
-        pipe.execute()
-        pipe.reset()
+        ret = []
+        for key in keys:
+            pipe.hgetall(key)
+        response = pipe.execute()
+        for item in response:
+            if item:
+                ret.append(item)
 
-    def record_error(self):
-        self.add("error")
-
-    def record_success(self):
-        self.add("success")
-
-    def record_fatal(self):
-        self.add("fatal")
+        return ret
