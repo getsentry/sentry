@@ -594,7 +594,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         self.user = self.create_user("foobar@sentry.io")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.auth_provider = AuthProvider.objects.create(
+            self.auth_provider_inst = AuthProvider.objects.create(
                 provider=self.provider_name,
                 config=dummy_provider_config,
                 organization_id=self.organization.id,
@@ -629,9 +629,9 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         assert resp.status_code == 200
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            actual = AuthProvider.objects.get(id=self.auth_provider.id)
+            actual = AuthProvider.objects.get(id=self.auth_provider_inst.id)
             assert actual.config == expected_provider_config
-            assert actual.config != self.auth_provider.config
+            assert actual.config != self.auth_provider_inst.config
 
-            assert actual.provider == self.auth_provider.provider
-            assert actual.flags == self.auth_provider.flags
+            assert actual.provider == self.auth_provider_inst.provider
+            assert actual.flags == self.auth_provider_inst.flags
