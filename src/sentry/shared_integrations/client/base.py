@@ -361,7 +361,6 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-
     def record_request_error(self, resp: Response):
         redis_key = self._get_redis_key()
         random_value = randint(0, 99)
@@ -379,7 +378,6 @@ class BaseApiClient(TrackResponseMixin):
         except Exception:
             if random_value == 0:
                 self.logger.error("integration.disable_on_broken.init.fail", exc_info=True)
-    
 
     def record_request_success(self, resp: Response):
         redis_key = self._get_redis_key()

@@ -4,7 +4,6 @@ from django.conf import settings
 from redis.exceptions import WatchError
 from requests import Response
 
-
 from sentry.utils import redis
 
 BUFFER_SIZE = 30  # 30 days
@@ -57,10 +56,8 @@ class IntegrationRequestBuffer:
         """
         broken_range_days_counts = self._get_broken_range_from_buffer()
 
-
         days_fatal = []
         days_error = []
-
 
         for day_count in broken_range_days_counts:
             if int(day_count.get("fatal_count", 0)) > 0:
@@ -93,7 +90,6 @@ class IntegrationRequestBuffer:
 
         return True
 
-
     def _add(self, count: str):
         if count not in VALID_KEYS:
             raise Exception("Requires a valid key param.")
@@ -105,8 +101,6 @@ class IntegrationRequestBuffer:
         pipe.hincrby(buffer_key, count + "_count", 1)
         pipe.expire(buffer_key, self.key_expiration_seconds)
         pipe.execute()
-
-
 
     def record_exception_error(self, e: Exception):
         self.add("error")
@@ -124,12 +118,12 @@ class IntegrationRequestBuffer:
 
     def record_timeout(self):
         self.add("timeout")
-   
+
     def _get_all_from_buffer(self):
         """
         Get the list at the buffer key.
         """
-        
+
         now = datetime.now()
         all_range = [
             f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
