@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from django.db import router, transaction
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features, ratelimits, roles
 from sentry.api.base import region_silo_endpoint
@@ -12,12 +13,13 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthProvider,
@@ -42,14 +44,6 @@ ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
-MEMBER_ID_PARAM = OpenApiParameter(
-    name="member_id",
-    description="The member ID.",
-    required=True,
-    type=str,
-    location="path",
-)
-
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
@@ -70,8 +64,8 @@ class RelaxedMemberPermission(OrganizationPermission):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
+    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedMemberPermission]
-    public = {"GET", "DELETE"}
 
     def _get_member(
         self,
@@ -91,7 +85,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            OrganizationParams.MEMBER_ID,
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -120,26 +114,31 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             )
         )
 
-    # TODO:
-    # @extend_schema(
-    #     operation_id="Update a Organization Member's details",
-    #     parameters=[
-    #         GLOBAL_PARAMS.ORG_SLUG,
-    #         MEMBER_ID_PARAM,
-    #     ],
-    #     responses={
-    #         200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
-    #         401: RESPONSE_UNAUTHORIZED,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOTFOUND,
-    #     },
-    # )
+    @extend_schema(
+        operation_id="Update an Organization Member",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.MEMBER_ID,
+            OrganizationParams.ORG_ROLE,
+            OrganizationParams.TEAM_ROLES,
+        ],
+        request=OrganizationMemberSerializer,
+        responses={
+            200: OrganizationMemberWithRolesSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
     def put(
         self,
         request: Request,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
+        """
+        Update an organization member's details such as their organizaton role or team role.
+        """
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberSerializer(
             data=request.data,
@@ -151,7 +150,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(status=400)
+            raise ValidationError(serializer.errors)
 
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
@@ -296,7 +295,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            MEMBER_ID_PARAM,
+            OrganizationParams.MEMBER_ID,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
