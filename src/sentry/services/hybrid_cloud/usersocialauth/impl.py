@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud data models or service classes are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from typing import Callable, List, Optional
 
@@ -22,7 +25,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
     def get_many(self, *, filter: UserSocialAuthFilterArgs) -> List[RpcUserSocialAuth]:
         return self._FQ.get_many(filter=filter)
 
-    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> Optional[RpcUserSocialAuth]:
         auths = self.get_many(filter=filter)
         if len(auths) == 0:
             return None
