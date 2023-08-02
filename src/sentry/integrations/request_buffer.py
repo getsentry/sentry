@@ -73,9 +73,9 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        items = self._get()
+        items = self._get_broken_range_from_buffer()
 
-        data = [item for item in items if int(item.get("fatal_count", 0)) > 0]
+        data = [item for item in items if int(item.hget("fatal_count", 0)) > 0]
 
         if len(data) > 0:
             return True
@@ -83,7 +83,7 @@ class IntegrationRequestBuffer:
         data = [
             item
             for item in items
-            if int(item.get("error_count", 0)) > 0 and int(item.get("success_count", 0)) == 0
+            if int(item.hget("error_count", 0)) > 0 and int(item.hget("success_count", 0)) == 0
         ]
 
         if not len(data):
