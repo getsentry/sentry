@@ -63,6 +63,7 @@ def process_profile_task(
                 "organization_id": message_dict["organization_id"],
                 "project_id": message_dict["project_id"],
                 "received": message_dict["received"],
+                "sampled": message_dict.get("sampled", True),
             }
         )
 
