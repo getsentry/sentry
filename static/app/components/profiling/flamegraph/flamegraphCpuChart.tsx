@@ -79,13 +79,8 @@ export function FlamegraphCpuChart({
       );
       mat3.multiply(
         fromConfigView,
-        configViewToPhysicalSpaceTransform,
-        physicalSpaceToOffsetPhysicalSpaceTransform
-      );
-      mat3.multiply(
-        fromConfigView,
-        fromConfigView,
-        offsetPhysicalSpace.invertYTransform()
+        cpuChartCanvas.physicalSpace.invertYTransform(),
+        fromConfigView
       );
 
       cpuChartRenderer.draw(
