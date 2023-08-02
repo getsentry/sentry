@@ -4,19 +4,14 @@ import pytest
 
 from sentry.search.events.builder.metrics import MetricsQueryBuilder
 from sentry.sentry_metrics.client import generic_metrics_backend
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
-
-use_case_id = UseCaseID.TRANSACTIONS
-metric_name = "user"
-values = [2, 3]
-tags = {"a": "b"}
+from sentry.testutils.metrics_backend import GenericMetricsTestMixIn
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase):
+class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase, GenericMetricsTestMixIn):
     def setUp(self):
         super().setUp()
         self.projects = [self.project.id]
@@ -28,16 +23,16 @@ class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase):
         }
 
 
-class MetricsInterfaceTest(MetricsInterfaceTestCase):
-    def test(self):
+class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
+    def test_produce_metrics(self):
         generic_metrics_backend.set(
-            use_case_id,
+            self.use_case_id,
             self.organization.id,
             self.project.id,
-            metric_name,
-            values,
-            tags,
-            unit=None,
+            self.metric_name,
+            self.set_values,
+            self.tags,
+            self.unit,
         )
 
         query = MetricsQueryBuilder(

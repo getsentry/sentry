@@ -16,10 +16,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayl
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json, snuba
 
-# ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
-#     "ingest-metrics"
-# )
-
 _METRIC_TYPE_TO_ENTITY: Mapping[str, str] = {
     "c": "generic_metrics_counters",
     "s": "generic_metrics_sets",
@@ -218,7 +214,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
 
     def close(self) -> None:
         """
-            Calling this is required once we are done emitting metrics
-        using the current instance of the KafkaMetricsBackend
+        Calling this is not required and is mostly for usage in tests
         """
         pass

@@ -64,7 +64,6 @@ class GenericMetricsBackend(Service):
 
     def close(self) -> None:
         """
-        Calling this is required once we are done emitting metrics
-        using the current instance of the KafkaMetricsBackend.
+        Calling this is not required and is mostly for usage in tests
         """
         raise NotImplementedError()
