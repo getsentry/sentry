@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -172,6 +174,10 @@ function SetupInstructions({
     );
   }
 
+  function trimUrl(oldUrl: string): string {
+    return oldUrl.substring(0, oldUrl.indexOf('?'));
+  }
+
   const urlSnippet = `
       networkDetailAllowUrls: ['${url}'],`;
   const headersSnippet = `
@@ -212,12 +218,27 @@ function SetupInstructions({
         )}
       </p>
       {showSnippet === Output.URL_SKIPPED && url !== '[Filtered]' && (
-        <Alert type="warning">
-          {tct('Add [url] to your [field] list to start capturing data.', {
-            url: <code>{url}</code>,
-            field: <code>networkDetailAllowUrls</code>,
-          })}
-        </Alert>
+        <Fragment>
+          {tct(
+            'Add the following to your [field] list to start capturing data: [alert] ',
+            {
+              field: <code>networkDetailAllowUrls</code>,
+              alert: (
+                <NetworkAlert type="warning">
+                  <StyledCopyButton
+                    borderless
+                    iconSize="xs"
+                    size="xs"
+                    text={trimUrl(url)}
+                  />
+                  {tct('[url]', {
+                    url: <code>{trimUrl(url)}</code>,
+                  })}
+                </NetworkAlert>
+              ),
+            }
+          )}
+        </Fragment>
       )}
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert type="warning">
@@ -246,6 +267,21 @@ function SetupInstructions({
     </StyledInstructions>
   );
 }
+
+const StyledCopyButton = styled(CopyToClipboardButton)`
+  position: sticky;
+  display: fixed;
+  top: 0;
+  right: 0;
+  padding: ${space(0.25)};
+`;
+
+const NetworkAlert = styled(Alert)`
+  white-space: nowrap;
+  overflow: auto;
+  margin: ${space(0.5)} ${space(0.5)} ${space(2)} 0;
+  padding: ${space(0.75)};
+`;
 
 const NoMarginAlert = styled(Alert)`
   margin: 0;
