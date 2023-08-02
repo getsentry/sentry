@@ -129,7 +129,6 @@ class InstallationConfigView(PipelineView):
 
                 pipeline.bind_state("installation_data", form_data)
 
-                print("STEPPING")
                 return pipeline.next_step()
         else:
             form_1 = InstallationForm()
@@ -137,7 +136,7 @@ class InstallationConfigView(PipelineView):
         return render_to_response(
             template="sentry/integrations/opsgenie-config.html",
             context={
-                "next_url": f'{absolute_uri("/extensions/opsgenie/setup/")}?selectteams',
+                "next_url": f'{absolute_uri("/extensions/opsgenie/setup/")}?select_teams',
                 "form_1": form_1,
             },
             request=request,
@@ -166,10 +165,12 @@ class InstallationGuideView(PipelineView):
 
 class InstallationTeamSelectView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
-        print("HERE")
-        print("REQUEST DATA:", request.POST)
+        if "completed_installation_guide?goback" in request.GET:
+            pipeline.state.step_index = 1
+            return pipeline.current_step()
         og_teams = self.get_og_teams(pipeline)
-        if request.method == "POST":
+
+        if "teams" in request.POST:
             form_2 = TeamSelectForm(data=request.POST, team_list=og_teams)
             if form_2.is_valid():
                 form_data = form_2.cleaned_data
@@ -182,7 +183,10 @@ class InstallationTeamSelectView(PipelineView):
 
         return render_to_response(
             template="sentry/integrations/opsgenie-config.html",
-            context={"form_2": form_2},
+            context={
+                "form_2": form_2,
+                "prev_url": f'{absolute_uri("/extensions/opsgenie/setup/")}?completed_installation_guide',
+            },
             request=request,
         )
 
