@@ -1,13 +1,17 @@
 import hashlib
 import logging
 import re
+from abc import ABC, abstractmethod
 from typing import (
     Any,
     Dict,
+    Generic,
     List,
     Literal,
+    NamedTuple,
     Optional,
     Sequence,
+    Tuple,
     Type,
     TypedDict,
     TypeVar,
@@ -18,7 +22,8 @@ from typing import (
 from typing_extensions import NotRequired
 
 from sentry.api import event_search
-from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
+from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
@@ -146,6 +151,32 @@ CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+
+Variables = Dict[str, Any]
+
+
+# # TODO: implement definition of filters as a proper expression tree and use the field directly with the entity encoding,
+# #  since we know that at compile time.
+# # Derived metrics to their components.
+# _DERIVED_METRIC_TO_COMPONENTS: Dict[str, List[DerivedMetricComponent]] = {
+#     "failure_rate()": [
+#         DerivedMetricComponent(metric_type="c", conditions=),
+#         DerivedMetricComponent(metric_type="c"),
+#     ],
+#     # "apdex()": [
+#     #     # TODO: in some cases we want to extract LCP and in some DURATION, we need to implement logic to check this.
+#     #     DerivedMetricComponent(
+#     #         field="count(transaction.duration)", query="transaction.duration:<=T"
+#     #     ),  # satisfactory
+#     #     DerivedMetricComponent(
+#     #         field="count(transaction.duration)",
+#     #         query="transaction.duration:>T AND transaction.duration:<=4T",
+#     #     ),  # tolerable
+#     #     DerivedMetricComponent(
+#     #         field="count(transaction.duration)", query="transaction.duration:>4T"
+#     #     ),  # frustrated
+#     # ],
+# }
 
 
 class ComparingRuleCondition(TypedDict):
@@ -365,7 +396,7 @@ class OndemandMetricSpec:
             assert self._field_condition is not None, "This query should not use on demand metrics"
             return self._field_condition
 
-        condition = SearchQueryConverter(tokens).convert()
+        condition = SearchQueryConverter(tokens, {}).convert()
         if not self._field_condition:
             return condition
 
@@ -374,6 +405,331 @@ class OndemandMetricSpec:
 
         condition["inner"].append(self._field_condition)
         return condition
+
+
+class OndemandMetricSpecV2(NamedTuple):
+    metric_type: str
+    field: Optional[str]
+    rule_condition: RuleCondition
+
+    @property
+    def mri(self) -> str:
+        """The unique identifier of the on-demand metric."""
+        return f"{self.metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
+
+    def query_hash(self) -> str:
+        """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
+
+        # TODO: Figure out how to support multiple fields and different but equivalent queries and improve hashing of
+        #  rule condition.
+        str_to_hash = f"{self.field};{str(self.rule_condition)}"
+        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+
+    def to_metric_spec(self) -> MetricSpec:
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": self.mri,
+            "field": self.field,
+            "condition": self.rule_condition,
+            "tags": [{"key": QUERY_HASH_KEY, "value": self.query_hash()}],
+        }
+
+
+class DerivedMetricParams(NamedTuple):
+    params: Dict[str, Any]
+
+    def get_param(self, consumer: str, param_name: str):
+        param = self.params.get(param_name)
+        if param is None:
+            raise Exception(
+                f"Derived metric {consumer} requires parameter {param_name} but it was not supplied"
+            )
+
+        return param
+
+
+class DerivedMetricComponent(NamedTuple):
+    metric_type: str
+    field: Optional[str] = None
+    conditions: Sequence[QueryToken] = []
+
+    def merge_conditions(
+        self, upstream_conditions: Sequence[QueryToken]
+    ) -> "DerivedMetricComponent":
+        # TODO: implement better merging that can optimize the tree structure.
+        return DerivedMetricComponent(
+            metric_type=self.metric_type,
+            field=self.field,
+            conditions=self._merge_conditions(upstream_conditions),
+        )
+
+    def _merge_conditions(self, upstream_conditions: Sequence[QueryToken]) -> Sequence[QueryToken]:
+        local_len = len(self.conditions)
+        upstream_len = len(upstream_conditions)
+
+        if local_len == 0 and upstream_len == 0:
+            return []
+        elif local_len == 0 and upstream_len > 0:
+            return upstream_conditions
+        elif local_len > 0 and upstream_len == 0:
+            return self.conditions
+        else:
+            return [
+                ParenExpression(children=self.conditions),
+                "AND",
+                ParenExpression(children=upstream_conditions),
+            ]
+
+
+class DerivedMetric(ABC):
+    @abstractmethod
+    def get_derived_metric_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_components(self) -> List[DerivedMetricComponent]:
+        pass
+
+    @abstractmethod
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+        pass
+
+
+class FailureRate(DerivedMetric):
+    def get_derived_metric_name(self) -> str:
+        return "failure_rate()"
+
+    def get_components(self) -> List[DerivedMetricComponent]:
+        return [
+            DerivedMetricComponent(
+                metric_type="c",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.status"),
+                        operator="=",
+                        value=SearchValue(raw_value="aborted"),
+                    )
+                ],
+            ),
+            DerivedMetricComponent(
+                metric_type="c",
+            ),
+        ]
+
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+        return {}
+
+
+class Apdex(DerivedMetric):
+    def get_derived_metric_name(self) -> str:
+        return "apdex()"
+
+    def get_components(self) -> List[DerivedMetricComponent]:
+        return [
+            # Satisfactory.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator="<=",
+                        value=SearchValue(variable_name="t1"),
+                    )
+                ],
+            ),
+            # Tolerable.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator=">",
+                        value=SearchValue(variable_name="t1"),
+                    ),
+                    "AND",
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator="<=",
+                        value=SearchValue(variable_name="t2"),
+                    ),
+                ],
+            ),
+            # Frustrated.
+            DerivedMetricComponent(
+                metric_type="c",
+                field="transaction.duration",
+                conditions=[
+                    SearchFilter(
+                        key=SearchKey(name="transaction.duration"),
+                        operator=">",
+                        value=SearchValue(variable_name="t2"),
+                    )
+                ],
+            ),
+        ]
+
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+        t1 = derived_metric_params.get_param(self.get_derived_metric_name(), "t")
+        t2 = 4 * t1
+
+        return {"t1": t1, "t2": t2}
+
+
+# Dynamic mapping between derived metric field name and derived metric definition.
+_DERIVED_METRICS: Dict[str, DerivedMetric] = {
+    derived_metric.get_derived_metric_name(): derived_metric
+    for derived_metric in [FailureRate(), Apdex()]
+}
+
+
+Input = TypeVar("Input")
+Output = TypeVar("Output")
+
+
+class OndemandParser(ABC, Generic[Input, Output]):
+    @abstractmethod
+    def parse(self, value: Input) -> Optional[Output]:
+        pass
+
+
+class FieldParsingResult(NamedTuple):
+    function: str
+    arguments: List[str]
+    alias: str
+
+
+class FieldParser(OndemandParser[str, FieldParsingResult]):
+    def parse(self, value: str) -> Optional[FieldParsingResult]:
+        function, arguments, alias = fields.parse_function(value)
+
+        return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+
+class QueryParsingResult(NamedTuple):
+    conditions: Sequence[QueryToken]
+
+
+class QueryParser(OndemandParser[str, QueryParsingResult]):
+    def parse(self, value: str) -> Optional[QueryParsingResult]:
+        conditions = event_search.parse_search_query(value)
+        return QueryParsingResult(conditions=conditions)
+
+
+class OndemandMetricSpecBuilder:
+    def __init__(
+        self,
+        field_parser: OndemandParser[str, FieldParsingResult],
+        query_parser: OndemandParser[str, QueryParsingResult],
+    ):
+        self._field_parser = field_parser
+        self._query_parser = query_parser
+
+    def build_specs(
+        self, field: str, query: str, derived_metric_params: DerivedMetricParams
+    ) -> List[OndemandMetricSpecV2]:
+        if (derived_metric := _DERIVED_METRICS.get(field)) is not None:
+            # Since the field is used for indexing purpose only, we don't need it when handling a derived metric.
+            return self._handle_derived_metric(query, derived_metric, derived_metric_params)
+        else:
+            return self._handle_normal_metric(field, query)
+
+    def _handle_normal_metric(self, field: str, query: str) -> List[OndemandMetricSpecV2]:
+        # On-demand metrics are implicitly transaction metrics. Remove the
+        # filter from the query since it can't be translated to a RuleCondition.
+        query = re.sub(r"event\.type:transaction\s*", "", query)
+
+        metric_type, extracted_field = self._init_field(field)
+        rule_condition = self._init_query(field, query)
+
+        return [
+            OndemandMetricSpecV2(
+                metric_type=metric_type, field=extracted_field, rule_condition=rule_condition
+            )
+        ]
+
+    def _init_field(self, field: str) -> Tuple[str, Optional[str]]:
+        parsed_field = self._field_parser.parse(field)
+        if parsed_field is None:
+            raise Exception(f"Unable to parse the field {field}")
+        elif (
+            parsed_field.function not in _AGGREGATE_TO_METRIC_TYPE
+            and parsed_field.function not in _SEARCH_TO_METRIC_AGGREGATES
+        ):
+            raise Exception(f"Unsupported aggregate function {parsed_field.function}")
+
+        metric_type = _AGGREGATE_TO_METRIC_TYPE[parsed_field.function]
+        if metric_type != "c":
+            assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
+            return metric_type, _map_field_name(parsed_field.arguments[0])
+
+        return metric_type, None
+
+    def _init_query(self, field: str, query: str) -> RuleCondition:
+        # TODO: find a way to avoid double parsing of the field.
+        parsed_field = self._field_parser.parse(field)
+        if parsed_field is None:
+            raise Exception(f"Unable to parse the field {field}")
+
+        # We have to handle the special case for the "count_if" function, however it may be better to build some
+        # better abstracted code to handle third-party rule conditions injection.
+        count_if_rule_condition = None
+        if parsed_field.function == "count_if":
+            key, op, value = parsed_field.arguments
+            count_if_rule_condition = _convert_countif_filter(key, op, value)
+
+        # First step is to parse the query string into our internal AST format.
+        parsed_query = self._query_parser.parse(query)
+        if parsed_query is None:
+            if count_if_rule_condition is None:
+                raise Exception("This query should not use on demand metrics")
+
+            return count_if_rule_condition
+
+        # Second step is to generate the actual Relay rule that contains all rules nested.
+        rule_condition = SearchQueryConverter(parsed_query.conditions, {}).convert()
+        if not count_if_rule_condition:
+            return rule_condition
+
+        # In case we have a top level rule which is not an "and" we have to wrap it.
+        if rule_condition["op"] != "and":
+            return {"op": "and", "inner": [rule_condition, count_if_rule_condition]}
+
+        # In the other case, we can just flatten the conditions.
+        rule_condition["inner"].append(count_if_rule_condition)
+        return rule_condition
+
+    def _handle_derived_metric(
+        self, query: str, derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
+    ) -> List[OndemandMetricSpecV2]:
+        # First step is to parse the query into our internal AST format.
+        parsed_query = self._query_parser.parse(query)
+        if parsed_query is None:
+            raise Exception(f"Unable to parse the query {query}")
+
+        # Second step is to get each component and perform the query merging operation.
+        upstream_conditions = parsed_query.conditions
+        merged_components = []
+        for component in derived_metric.get_components():
+            merged_components.append(component.merge_conditions(upstream_conditions))
+
+        # Third step is to compute the on demand specs given the merged components.
+        on_demand_specs = []
+        for component in merged_components:
+            rule_condition = SearchQueryConverter(
+                component.conditions,
+                derived_metric.get_variables(derived_metric_params=derived_metric_params),
+            ).convert()
+            on_demand_specs.append(
+                OndemandMetricSpecV2(
+                    metric_type=component.metric_type,
+                    field=component.field,
+                    rule_condition=rule_condition,
+                )
+            )
+
+        return on_demand_specs
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
@@ -426,8 +782,10 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(self, tokens: Sequence[QueryToken], variables: Variables):
         self._tokens = tokens
+        # TODO: decide whether we want to inject variables in `convert` or keep them instance based.
+        self._variables = variables
         self._position = 0
 
     def convert(self) -> RuleCondition:
@@ -437,10 +795,11 @@ class SearchQueryConverter:
         This function can raise an exception if the token stream is structurally
         invalid or contains fields that are not supported by the rule engine.
         """
-
         condition = self._expr()
+
         if self._position < len(self._tokens):
             raise ValueError("Unexpected trailing tokens")
+
         return condition
 
     def _peek(self) -> Optional[QueryToken]:
@@ -498,7 +857,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._variables).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -509,7 +868,8 @@ class SearchQueryConverter:
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
 
-        value: Any = token.value.raw_value
+        # We propagate the filter in order to give as output a better error message with more context.
+        value: Any = self._eval_search_value(token, token.value)
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
@@ -533,3 +893,18 @@ class SearchQueryConverter:
             condition = {"op": "not", "inner": condition}
 
         return condition
+
+    def _eval_search_value(
+        self, search_filter: SearchFilter, search_value: SearchValue
+    ) -> Optional[Any]:
+        if search_value.variable_name is not None:
+            variable_name = search_value.variable_name
+            variable_value = self._variables.get(variable_name)
+            if variable_value is None:
+                raise Exception(
+                    f"Variable {variable_name} used in {search_filter} has no value set"
+                )
+
+            return variable_value
+        else:
+            return search_value.raw_value
