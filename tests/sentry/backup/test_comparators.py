@@ -50,7 +50,7 @@ def test_bad_comparator_only_one_side_existing():
     assert res
     assert res[0]
     assert res[0].on == id
-    assert res[0].kind == "DateUpdatedComparator"
+    assert res[0].kind == "UnexecutedDateUpdatedComparator"
     assert "left" in res[0].reason
     assert "my_date_field" in res[0].reason
 
@@ -58,7 +58,7 @@ def test_bad_comparator_only_one_side_existing():
     assert res
     assert res[0]
     assert res[0].on == id
-    assert res[0].kind == "DateUpdatedComparator"
+    assert res[0].kind == "UnexecutedDateUpdatedComparator"
     assert "right" in res[0].reason
     assert "my_date_field" in res[0].reason
 

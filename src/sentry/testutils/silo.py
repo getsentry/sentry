@@ -211,9 +211,34 @@ class SiloModeTestDecorator:
 
 
 all_silo_test = SiloModeTestDecorator(SiloMode.CONTROL, SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass in CONTROL, REGION and MONOLITH modes.
+"""
+
 no_silo_test = SiloModeTestDecorator()
+"""
+Apply to test functions/classes to indicate that tests are
+free of silo mode logic and hybrid cloud service usage.
+"""
+
 control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to CONTROL.
+
+When the stable=True parameter is provided tests will be
+run twice as both CONTROL and MONOLITH modes.
+"""
+
 region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+"""
+Apply to test functions/classes to indicate that tests are
+expected to pass with the current silo mode set to REGION.
+
+When the stable=True parameter is provided tests will be
+run twice as both REGION and MONOLITH modes.
+"""
 
 
 @contextmanager
