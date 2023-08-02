@@ -755,7 +755,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
+        `/organizations/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
