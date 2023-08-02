@@ -162,14 +162,15 @@ class IntegrationRepositoryProvider:
                 integration_id=integration_id,
                 external_id=external_id,
             )
-            repo = repositories[0] if repositories else None
-            if repo:
-                for field_name, field_value in repo_update_params.items():
-                    setattr(repo, field_name, field_value)
-                repository_service.update_repository(
-                    organization_id=organization.id,
-                    update=repo,
-                )
+            if repositories:
+                # We anticipate to only update one repository, but we update any duplicates as well.
+                for repo in repositories:
+                    for field_name, field_value in repo_update_params.items():
+                        setattr(repo, field_name, field_value)
+                    repository_service.update_repository(
+                        organization_id=organization.id,
+                        update=repo,
+                    )
 
             raise RepoExistsError
 
