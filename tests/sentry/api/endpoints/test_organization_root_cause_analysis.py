@@ -44,6 +44,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction": "foo"},
+            org_id=self.org.id,
+            project_id=self.project.id,
             value=1,
         )
 
