@@ -35,12 +35,12 @@ __all__ = (
     "Function",
     "InvalidMetricsQuery",
     "MetricQueryScope",
+    "MetricRange",
     "parse_mri",
     "ParsedMRI",
     "SeriesQuery",
     "SeriesResult",
     "VariableMap",
-    "MetricRange",
 )
 
 

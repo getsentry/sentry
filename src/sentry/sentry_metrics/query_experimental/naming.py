@@ -1,5 +1,28 @@
 """
 Name translations between public API names and MRIs.
+
+To register a public name for translation to an MRI or internal tag name, use
+``register_public_name`` in the initialization of your module. Queries using
+these names must provide ``public=True`` to ``get_series``.
+
+Example::
+
+    from sentry.sentry_metrics.query_experimental import get_series, Q, register_public_name
+
+    # Global registration of public names.
+    register_public_name("transaction.duration", "d:transactions/duration@millisecond")
+
+    def load_my_metrics():
+        query = (
+            Q()
+            # Build a query and add scoping, time range, ...
+            .expr("avg(transaction.duration)")
+            # Add scoping, time range, ...
+            .build()
+        )
+
+        # Query the series from the public namespace
+        return get_series(query, public=True)
 """
 
 from dataclasses import replace
@@ -7,7 +30,7 @@ from typing import Dict, Optional
 
 from .pipeline import QueryLayer
 from .transform import QueryTransform
-from .types import MetricName, SeriesQuery, SeriesResult, Tag, parse_mri
+from .types import GroupKey, MetricName, SeriesQuery, SeriesResult, Tag
 
 # TODO: Support dynamic lookup for measurements
 
@@ -32,7 +55,6 @@ class NameRegistry:
         if public in self._public_to_internal or internal in self._internal_to_public:
             raise ValueError(f"Name {public} or MRI {internal} already registered")
 
-        parse_mri(internal)
         self._public_to_internal[public] = internal
         self._internal_to_public[internal] = public
 
@@ -97,7 +119,14 @@ def map_result_names(result: SeriesResult, registry: Optional[NameRegistry] = No
     if registry is None:
         registry = _REGISTRY
 
-    raise NotImplementedError()
+    tags = {registry.get_public(k): v for k, v in result.tags.items()}
+    groups = {_group_to_public(k, registry): v for k, v in result.groups.items()}
+
+    return SeriesResult(
+        tags=tags,
+        intervals=result.intervals,
+        groups=groups,
+    )
 
 
 class NameTransform(QueryTransform):
@@ -113,3 +142,10 @@ class NameTransform(QueryTransform):
 
     def _visit_tag(self, tag: Tag) -> Tag:
         return replace(tag, name=self.registry.get_internal(tag.name))
+
+
+def _group_to_public(bucket: GroupKey, registry: NameRegistry) -> GroupKey:
+    """
+    Convert a bucket key to a public metric name.
+    """
+    return frozenset((registry.get_public(k), v) for k, v in bucket)

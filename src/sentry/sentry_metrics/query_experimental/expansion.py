@@ -1,5 +1,38 @@
 """
 Expansion for derived metrics in query expressions.
+
+To register a derived metric, use ``register_derived_metric``. Expressions can
+be provided in MQL synatx for brevity. Derived metrics can be used in queries
+like any other metric and behave like the expression would in their place. This
+means:
+
+- If the derived metric applies filters but no aggregation, it has the same type
+  as the inner metric. When querying the derived metric, an aggregation must be
+  used like in the outer metric.
+- If the derived metric applies an aggregation, it has an evaluated type and
+  cannot be aggregated again.
+
+Derived metrics registered globally are expanded automatically by
+``get_series``.
+
+Example::
+
+    from sentry.sentry_metrics.query_experimental import get_series, Q, register_derived_metric
+
+    # Global registration of derived metrics
+    register_derived_metric("e:usecase/derived@none", 'sum(`c:usecase/metric@none`{tag="value"})')
+
+    def load_my_metrics():
+        query = (
+            Q()
+            # Query the derived metric, which will expand internally
+            .expr("`e:usecase/derived@none`")
+            # Add scoping, time range, ...
+            .build()
+        )
+
+        # Query the series from the public namespace
+        return get_series(query)
 """
 
 from typing import Dict, Optional, Union

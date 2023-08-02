@@ -1,8 +1,8 @@
 from .builder import E, Q
-from .expansion import ExpansionLayer
+from .expansion import ExpansionLayer, register_derived_metric
 from .indexes import IndexLayer
 from .metadata import ValidationLayer
-from .naming import NamingLayer
+from .naming import NamingLayer, register_public_name
 from .optimization import MergeFiltersLayer
 from .pipeline import QueryPipeline
 from .timeframe import TimeframeLayer
@@ -11,9 +11,11 @@ from .types import SeriesQuery, SeriesResult
 __all__ = (
     "E",
     "get_series",
+    "Q",
+    "register_derived_metric",
+    "register_public_name",
     "SeriesQuery",
     "SeriesResult",
-    "Q",
 )
 
 

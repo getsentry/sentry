@@ -5,6 +5,7 @@ import pytest
 
 from sentry.sentry_metrics.query_experimental import get_series
 from sentry.sentry_metrics.query_experimental.expansion import ExpressionRegistry
+from sentry.sentry_metrics.query_experimental.naming import NameRegistry
 from sentry.sentry_metrics.query_experimental.types import (
     Filter,
     Function,
@@ -257,7 +258,7 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
         "sentry.sentry_metrics.query_experimental.expansion._REGISTRY",
         new_callable=ExpressionRegistry,
     )
-    def test_expansion(self, registry):
+    def test_expansion(self, registry: ExpressionRegistry):
         MRI_DURATION = "d:transactions/duration@millisecond"
         MRI_FAILURE_RATE = "e:transactions/failure_rate@none"
         OK_STATUSES = ("ok", "cancelled", "unknown")
@@ -307,11 +308,55 @@ class MetricsQueryTest(BaseMetricsLayerTestCase, TestCase):
             (self.now, 0.25),
         ]
 
+    @mock.patch(
+        "sentry.sentry_metrics.query_experimental.naming._REGISTRY",
+        new_callable=NameRegistry,
+    )
+    def test_public_names(self, registry: NameRegistry):
+        MRI = "d:transactions/duration@millisecond"
+        VALUES = [
+            (self.now + timedelta(hours=0), 100.0, "a"),
+            (self.now + timedelta(hours=1), 120.0, "a"),
+            (self.now + timedelta(hours=2), 80.0, "a"),
+            (self.now + timedelta(hours=3), 100.0, "b"),
+        ]
+
+        for ts, value, tx in VALUES:
+            self.store_metric(
+                org_id=1,
+                project_id=1,
+                type="distribution",
+                name=MRI,
+                tags={"transaction.status": tx},  # NB: internal name with prefix
+                timestamp=int(ts.timestamp()),
+                value=value,
+                use_case_id=UseCaseID.TRANSACTIONS,
+            )
+
+        registry.register(MRI, "transaction.duration")
+        registry.register("transaction.status", "status")
+
+        query = SeriesQuery(
+            scope=MetricQueryScope(org_id=1, project_ids=[1]),
+            range=MetricRange.start_at(self.now, hours=4, interval=3600),
+            expressions=[Function("avg", [MetricName("transaction.duration")])],
+            groups=[Tag("status")],
+        )
+
+        result = get_series(query, public=True)
+        groups = sorted(result.iter_groups(), key=lambda g: g["status"])
+        assert groups == [{"status": "a"}, {"status": "b"}]
+        assert list(result.iter_series(tags={"status": "b"})) == [
+            (self.now + timedelta(hours=0), None),
+            (self.now + timedelta(hours=1), None),
+            (self.now + timedelta(hours=2), None),
+            (self.now + timedelta(hours=3), 100.0),
+        ]
+
 
 # TODO: Test missing tag
 # TODO: Test missing tag value
 # TODO: Test reverse tag mapping on sessions
-# TODO: Test name mapping
 # TODO: Test measurement lookup
 # TODO: Test with indexing values
 # TODO: Test cycles in MRIs
