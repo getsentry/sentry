@@ -32,11 +32,11 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-def generate_mock_response(*args, region_url: str, non_region_url: str, **kwargs):
+def generate_mock_response(*, method: str, region_url: str, non_region_url: str, **kwargs):
     if SiloMode.get_current_mode() == SiloMode.REGION:
-        responses.add(*args, url=region_url, **kwargs)
+        responses.add(method=method, url=region_url, **kwargs)
     else:
-        responses.add(*args, url=non_region_url, **kwargs)
+        responses.add(method=method, url=non_region_url, **kwargs)
 
 
 def assert_response_calls(expected_region_response, expected_non_region_response):
@@ -202,14 +202,14 @@ class VstsIssueSyncTest(VstsIssueBase):
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
-            responses.PATCH,
+            method=responses.PATCH,
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
             region_url=f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}",
             non_region_url=f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
         )
         generate_mock_response(
-            responses.GET,
+            method=responses.GET,
             body=GET_USERS_RESPONSE,
             content_type="application/json",
             region_url="http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
@@ -250,14 +250,14 @@ class VstsIssueSyncTest(VstsIssueBase):
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
-            responses.PATCH,
+            method=responses.PATCH,
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
             region_url=f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}",
             non_region_url=f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
         )
         generate_mock_response(
-            responses.GET,
+            method=responses.GET,
             json={
                 "value": [
                     {"mailAddress": "example1@example.com"},
@@ -270,7 +270,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             non_region_url="https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
         )
         generate_mock_response(
-            responses.GET,
+            method=responses.GET,
             match=[query_string_matcher("continuationToken=continuation-token")],
             body=GET_USERS_RESPONSE,
             content_type="application/json",
