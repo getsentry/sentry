@@ -81,8 +81,9 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
     if (field === 'transaction') {
       let prefix = '';
-      if (dataRow['http.method']) {
-        prefix = `${dataRow['http.method']} `;
+      const method = dataRow['http.method'];
+      if (method && !(dataRow.transaction as string).startsWith(method as string)) {
+        prefix = `${method} `;
       }
 
       return (
