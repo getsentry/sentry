@@ -415,7 +415,18 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.test_post_simple()
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_team_admin(self):
+    def test_post_team_admin__success(self):
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        self.test_post_simple()
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__missing_access(self):
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -442,18 +453,9 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
 
         assert not registration.validate_action.called
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
-            status_code=status.HTTP_201_CREATED,
+            status_code=status.HTTP_403_FORBIDDEN,
             method="POST",
             **data,
         )
-        # Database reflects changes
-        assert registration.validate_action.called
-        notif_action = NotificationAction.objects.get(id=response.data.get("id"))
-        assert response.data == serialize(notif_action)
-        # Relation table has been updated
-        notif_action_projects = NotificationActionProject.objects.filter(action_id=notif_action.id)
-
-        # team admin does not create notification actions for projects they don't have access to via a team
-        assert len(notif_action_projects) == len(self.projects)

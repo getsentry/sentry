@@ -81,22 +81,29 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
-        projects = self.get_projects(request, organization)
-
+        # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
-            if (
-                projects
-                and not all(
-                    [
-                        request.access.has_project_scope(project, "project:write")
-                        for project in projects
-                    ]
+            # check if user has access to create notification actions for all requested projects
+            requested_projects = request.data.get("projects")
+            projects = self.get_projects(request, organization)
+            project_slugs = [project.slug for project in projects]
+            missing_access_projects = set(requested_projects).difference(set(project_slugs))
+
+            if missing_access_projects:
+                raise PermissionDenied(
+                    detail="You do not have permission to create notification actions for projects "
+                    + str(list(missing_access_projects))
                 )
-            ) or not projects:
+            # team admins will have project:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "project:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
                 raise PermissionDenied
 
         serializer = NotificationActionSerializer(
-            context={"access": request.access, "organization": organization, "projects": projects},
+            context={"access": request.access, "organization": organization},
             data=request.data,
         )
         if not serializer.is_valid():

@@ -40,16 +40,14 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         # projects where the user has project membership
         projects = self.get_projects(request, organization)
 
+        # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
-            if (
-                projects
-                and not all(
-                    [
-                        request.access.has_project_scope(project, "project:write")
-                        for project in projects
-                    ]
-                )
-            ) or not projects:
+            # team admins will have project:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "project:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
                 raise PermissionDenied
 
         try:
