@@ -2,7 +2,7 @@ import uuid
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin

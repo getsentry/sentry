@@ -176,8 +176,8 @@ def handle_owner_assignment(job):
                 ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
             )
+            from sentry.models.projectownership import ProjectOwnership
 
             event = job["event"]
             project, group = event.project, event.group
@@ -991,7 +991,7 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.models import ProjectOwnership
+    from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
     try:

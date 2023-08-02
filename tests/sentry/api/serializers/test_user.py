@@ -2,7 +2,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.models import Authenticator, AuthIdentity, AuthProvider, UserEmail, UserPermission
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 

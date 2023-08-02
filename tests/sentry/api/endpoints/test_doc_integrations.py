@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.serializers.base import serialize
 from sentry.models import DocIntegration, IntegrationFeature
 from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 

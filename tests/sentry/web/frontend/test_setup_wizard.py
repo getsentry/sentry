@@ -6,7 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models.apitoken import ApiToken
 from sentry.models.projectkey import ProjectKey
-from sentry.testutils import PermissionTestCase
+from sentry.testutils.cases import PermissionTestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -125,7 +125,7 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
         assert (
-            resp.url
+            resp.headers["Location"]
             == "https://sentry.io/signup/?next=http%3A%2F%2Ftestserver%2Faccount%2Fsettings%2Fwizard%2Fxyz%2F&test=other"
         )
 
@@ -136,4 +136,4 @@ class SetupWizard(PermissionTestCase):
         resp = self.client.get(url)
 
         assert resp.status_code == 302
-        assert resp.url == "/auth/login/"
+        assert resp.headers["Location"] == "/auth/login/"
