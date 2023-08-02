@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
@@ -49,7 +49,10 @@ def check_broken(sentryapp: SentryApp, org_id: str):
             notify_disable(org, sentryapp.name, redis_key)
 
 
-def record_timeout(sentryapp: SentryApp, org_id: str, e: Exception):
+def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
+    """
+    Record a Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
+    """
     if sentryapp.is_published:
         return
     redis_key = sentryapp._get_redis_key(org_id)
