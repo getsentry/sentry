@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -128,7 +129,7 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        assert (buffer._get()[0]["error_count"]) == 2
+        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
         assert buffer.is_integration_broken() is False
 
     @responses.activate
@@ -199,9 +200,23 @@ class SlackClientDisable(TestCase):
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
         now = datetime.now() - timedelta(hours=1)
-        for i in reversed(range(32)):
+        for i in reversed(range(30)):
             with freeze_time(now - timedelta(days=i)):
-                buffer.add("error")
+                buffer._add("error")
+
+        buffer_expired = IntegrationRequestBuffer(client._get_redis_key(), 1)
+        with freeze_time(now - timedelta(days=30)):
+            buffer_expired.record_error()
+        with freeze_time(now - timedelta(days=31)):
+            buffer_expired.record_error()
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
-        assert len(buffer._get_all_from_buffer(buffer.integrationkey)) == 30
+        time.sleep(1)
+        resp = buffer._get_range_buffers(
+            [
+                f"{client._get_redis_key()}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+                for i in range(32)
+            ]
+        )
+        assert len(resp) == 32
+        assert len([item for item in resp if item]) == 30
