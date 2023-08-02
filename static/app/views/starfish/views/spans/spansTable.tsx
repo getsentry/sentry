@@ -193,7 +193,7 @@ function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
     return 'URL Request';
   }
   if (moduleName === ModuleName.DB) {
-    return 'Database Query';
+    return 'Query Description';
   }
   if (spanCategory === 'cache') {
     return 'Cache Query';
