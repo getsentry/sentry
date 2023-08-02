@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Callable
 
 from mypy.nodes import ARG_POS, TypeInfo
-from mypy.plugin import FunctionSigContext, MethodSigContext, Plugin
+from mypy.plugin import ClassDefContext, FunctionSigContext, MethodSigContext, Plugin
+from mypy.plugins.common import add_attribute_to_class
 from mypy.types import AnyType, CallableType, FunctionLike, Instance, TypeOfAny
 
 
@@ -69,6 +70,12 @@ def field_descriptor_no_overloads(ctx: MethodSigContext) -> FunctionLike:
         return signature
 
 
+def _adjust_http_request_members(ctx: ClassDefContext) -> None:
+    if ctx.cls.name == "HttpRequest":
+        # added by csp.middleware.CSPMiddleware
+        add_attribute_to_class(ctx.api, ctx.cls, "csp_nonce", ctx.api.named_type("builtins.str"))
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_signature_hook(
         self, fullname: str
@@ -95,6 +102,13 @@ class SentryMypyPlugin(Plugin):
 
         if fieldinfo.node in clsinfo.node.mro:
             return field_descriptor_no_overloads
+        else:
+            return None
+
+    def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
+        # XXX: this is a hack -- I don't know if there's a better callback to modify a class
+        if fullname == "io.BytesIO":
+            return _adjust_http_request_members
         else:
             return None
 

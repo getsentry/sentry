@@ -1121,7 +1121,6 @@ module = [
     "tests.sentry.tasks.test_sentry_apps",
     "tests.sentry.tasks.test_servicehooks",
     "tests.sentry.tasks.test_store",
-    "tests.sentry.templatetags.test_sentry_assets",
     "tests.sentry.test_stacktraces",
     "tests.sentry.web.test_client_config",
     "tests.snuba.rules.conditions.test_event_frequency",
