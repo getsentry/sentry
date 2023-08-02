@@ -397,6 +397,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
+                    "http_error_count",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(TransactionMRI.HTTP_ERROR_COUNT.value), alias
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "http_error_rate",
+                    snql_metric_layer=lambda args, alias: AliasedExpression(
+                        Column(TransactionMRI.HTTP_ERROR_RATE.value), alias
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
                     "histogram",
                     required_args=[fields.MetricArg("column")],
                     snql_metric_layer=self._resolve_histogram_function,

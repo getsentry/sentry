@@ -3,6 +3,7 @@ from typing import List, Optional, Sequence, Set
 from snuba_sdk import Column, Function
 
 from sentry.api.utils import InvalidParams
+from sentry.search.events import constants
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -316,6 +317,41 @@ def failure_count_transaction(org_id, metric_ids, alias=None):
         ],
         metric_ids=metric_ids,
         alias=alias,
+    )
+
+
+def http_error_count_transaction(org_id, metric_ids, alias=None):
+    statuses = [
+        resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, status)
+        for status in constants.HTTP_SERVER_ERROR_STATUS
+    ]
+    base_condition = Function(
+        "in",
+        [
+            Column(
+                name=resolve_tag_key(
+                    UseCaseID.TRANSACTIONS,
+                    org_id,
+                    TransactionTagsKey.TRANSACTION_HTTP_STATUS_CODE.value,
+                )
+            ),
+            list(status for status in statuses if status is not None),
+        ],
+    )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    base_condition,
+                    Function("in", [Column("metric_id"), list(metric_ids)]),
+                ],
+            ),
+        ],
+        alias,
     )
 
 
