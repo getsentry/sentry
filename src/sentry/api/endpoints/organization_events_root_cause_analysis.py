@@ -27,14 +27,16 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         params = self.get_snuba_params(request, organization)
 
-        # How do we check if 1, this transaction exists, and 2, if it's even a transaction?
-        # We can query for the transaction and count the number of events returned.
-        # query = f"event.type:transaction transaction:{transaction_name} project:{project_id}"
         transaction_count_query = metrics_query(
-            "count()",
+            ["count()"],
             f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
             params,
+            referrer="api.organization-events-root-cause-analysis",
         )
-        breakpoint()
 
+        if transaction_count_query["data"][0]["count"] == 0:
+            return Response(status=400, data="Transaction not found")
+
+        # TODO: This is only a temporary stub for surfacing RCA data
+        root_cause_results["transaction_count"] = transaction_count_query["data"][0]["count"]
         return Response(status=200, data=root_cause_results)
