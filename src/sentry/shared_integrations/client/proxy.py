@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Mapping
-from urllib.parse import urljoin, urlparse
+from urllib.parse import ParseResult, urljoin, urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -123,7 +123,14 @@ class IntegrationProxyClient(ApiClient):
         if not prepared_request.url.startswith(base_url):
             parsed = urlparse(prepared_request.url)
             proxy_path = parsed.path
-            base_url = parsed._replace(path="", params="", query="", fragment="").geturl()
+            base_url = ParseResult(
+                scheme=parsed.scheme,
+                netloc=parsed.netloc,
+                path="",
+                params="",
+                query="",
+                fragment="",
+            ).geturl()
             base_url = base_url.rstrip("/")
 
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
