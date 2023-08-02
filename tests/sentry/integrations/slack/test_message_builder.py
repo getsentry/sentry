@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Mapping
 from unittest.mock import patch
 
@@ -18,8 +18,14 @@ from sentry.integrations.slack.message_builder.issues import (
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models import Group, Team, User
+from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.cases import (
+    PerformanceIssueTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+    TestCase,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -228,24 +234,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
-    def test_build_replay_issue(self):
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "level": "error",
-                "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
-            },
-            project_id=self.project.id,
-        )
-        with self.feature(
-            ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
-        ):
-            attachments = SlackIssuesMessageBuilder(event.group, event).build()
-        assert (
-            attachments["text"]
-            == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-        )
-
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
         could happen in that case (it is optional). It also creates a performance group that won't
@@ -264,6 +252,37 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert (
             SlackIssuesMessageBuilder(group, None).build()["text"]
             == "&lt;https://example.com/|*Click Here*&gt;"
+        )
+
+
+class BuildGroupAttachmentReplaysTest(SnubaTestCase, ReplaysSnubaTestCase):
+    def test_build_replay_issue(self):
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
+        self.project.flags.has_replays = True
+        self.project.save()
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "contexts": {"replay": {"replay_id": replay1_id}},
+            },
+            project_id=self.project.id,
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.now() - timedelta(seconds=60),
+                self.project.id,
+                replay1_id,
+            )
+        )
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
+        ):
+            attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert (
+            attachments["text"]
+            == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
         )
 
 

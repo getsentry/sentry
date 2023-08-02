@@ -647,6 +647,7 @@ class Group(Model):
                 f"issue.id:[{self.id}]",
                 return_ids=False,
             )
+
             has_replays = counts.get(self.id, 0) > 0
             metrics.incr(
                 "group.has_replays.replay_count_query",
@@ -658,6 +659,7 @@ class Group(Model):
         cache.set(f"has_replays:{self.id}", has_replays, 6000)
 
         metrics.incr("group.has_replays")
+
         return has_replays
 
     def get_status(self):
