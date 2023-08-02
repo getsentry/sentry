@@ -1690,10 +1690,6 @@ function buildRoutes() {
           component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
         />
       </Route>
-      <Route
-        path="definitions/"
-        component={make(() => import('sentry/views/starfish/views/definitionsView'))}
-      />
       <Route path="spans/">
         <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
         <Route
