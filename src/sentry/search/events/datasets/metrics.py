@@ -266,7 +266,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -284,7 +283,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -302,7 +300,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -320,7 +317,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -338,7 +334,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -440,7 +435,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
-                    is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
