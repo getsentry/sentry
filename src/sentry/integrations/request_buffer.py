@@ -19,7 +19,7 @@ class IntegrationRequestBuffer:
     """
 
     def __init__(self, key):
-        self.integrationkey = key
+        self.integration_key = key
 
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
@@ -29,7 +29,7 @@ class IntegrationRequestBuffer:
             raise Exception("Requires a valid key param.")
 
         now = datetime.now().strftime("%Y-%m-%d")
-        buffer_key = f"{self.integrationkey}:{now}"
+        buffer_key = f"{self.integration_key}:{now}"
 
         pipe = self.client.pipeline()
         pipe.hincrby(buffer_key, count + "_count", 1)
@@ -78,7 +78,7 @@ class IntegrationRequestBuffer:
 
         now = datetime.now()
         all_range = [
-            f"{self.integrationkey}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
             for i in range(BUFFER_SIZE)
         ]
 
@@ -91,7 +91,7 @@ class IntegrationRequestBuffer:
 
         now = datetime.now()
         broken_range_keys = [
-            f"{self.integrationkey}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
+            f"{self.integration_key}:{(now - timedelta(days=i)).strftime('%Y-%m-%d')}"
             for i in range(IS_BROKEN_RANGE)
         ]
 
@@ -104,7 +104,6 @@ class IntegrationRequestBuffer:
             pipe.hgetall(key)
         response = pipe.execute()
         for item in response:
-            if item:
-                ret.append(item)
+            ret.append(item)
 
         return ret
