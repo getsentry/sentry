@@ -29,22 +29,37 @@ def validate(
     findings = ComparatorFindings([])
     exp_models = {}
     act_models = {}
-    for model in expect:
-        id = InstanceID(model["model"], model["pk"])
-        exp_models[id] = model
 
     # Because we may be scrubbing data from the objects as we compare them, we may (optionally) make
     # deep copies to start to avoid potentially mangling the input data.
     expect = deepcopy(expect)
     actual = deepcopy(actual)
 
-    # Ensure that the actual JSON contains no duplicates - we assume that the expected JSON did not.
+    # Ensure that the actual JSON contains no duplicates.
+    exp_dupes = set()
+    for model in expect:
+        id = InstanceID(model["model"], model["pk"])
+        if id in exp_models and id not in exp_dupes:
+            findings.append(
+                ComparatorFinding("DuplicateEntry", id, "Duplicate entry in expected output")
+            )
+            exp_dupes.add(id)
+        else:
+            exp_models[id] = model
+    act_dupes = set()
     for model in actual:
         id = InstanceID(model["model"], model["pk"])
-        if id in act_models:
-            findings.append(ComparatorFinding("DuplicateEntry", id))
+        if id in act_models and id not in act_dupes:
+            findings.append(
+                ComparatorFinding("DuplicateEntry", id, "Duplicate entry in actual output")
+            )
+            act_dupes.add(id)
         else:
             act_models[id] = model
+
+    # If there are duplicate entries, something is seriously wrong, so abort ASAP.
+    if not findings.empty():
+        return findings
 
     # Report unexpected and missing entries in the actual JSON.
     extra = sorted(act_models.keys() - exp_models.keys())

@@ -55,17 +55,17 @@ class JSONScrubbingComparator(ABC):
             if f not in left["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind=self.get_kind(),
+                        kind="Unexecuted" + self.get_kind(),
                         on=on,
-                        reason=f"the left {f} value on `{on}` was missing",
+                        reason=f"the left `{f}` value was missing",
                     )
                 )
             if f not in right["fields"]:
                 findings.append(
                     ComparatorFinding(
-                        kind=self.get_kind(),
+                        kind="Unexecuted" + self.get_kind(),
                         on=on,
-                        reason=f"the right {f} value on `{on}` was missing",
+                        reason=f"the right `{f}` value was missing",
                     )
                 )
         return findings
@@ -214,11 +214,12 @@ class HashObfuscatingComparator(ObfuscatingComparator):
     def truncate(self, data: list[str]) -> list[str]:
         truncated = []
         for d in data:
-            if len(d) >= 16:
+            length = len(d)
+            if length >= 16:
                 truncated.append(f"{d[:3]}...{d[-3:]}")
-            elif len(d) >= 8:
+            elif length >= 8:
                 truncated.append(f"{d[:1]}...{d[-1:]}")
-            elif len(d):
+            else:
                 truncated.append("...")
         return truncated
 
