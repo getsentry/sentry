@@ -170,23 +170,40 @@ class RuleProcessor:
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
 
-        self.logger.info("apply_rule", extra={"rule_id": rule.id})
+        logging_details = {
+            "rule_id": rule.id,
+            "group_id": self.group.id,
+            "event_id": self.event.event_id,
+            "is_new": self.is_new,
+            "is_regression": self.is_regression,
+            "has_reappeared": self.has_reappeared,
+            "new_group_environment": self.is_new_group_environment,
+        }
+
+        self.logger.info(
+            "apply_rule",
+            extra={**logging_details},
+        )
         try:
             environment = self.event.get_environment()
             self.logger.info(
-                "apply_rule got environment", extra={"environment": environment, "rule_id": rule.id}
+                "apply_rule got environment",
+                extra={**logging_details},
             )
         except Environment.DoesNotExist:
-            self.logger.info("apply_rule environment does not exist", extra={"rule_id": rule.id})
+            self.logger.info(
+                "apply_rule environment does not exist",
+                extra={**logging_details},
+            )
             return
 
         if rule.environment_id is not None and environment.id != rule.environment_id:
             self.logger.info(
                 "apply_rule environment does not match",
                 extra={
-                    "rule_id": rule.id,
+                    **logging_details,
                     "rule_environment_id": rule.environment_id,
-                    "event_environment_id": environment.id,
+                    -"event_environment_id": environment.id,
                 },
             )
             return
@@ -197,9 +214,9 @@ class RuleProcessor:
             self.logger.info(
                 "apply_rule skipping rule because of last_active",
                 extra={
-                    "rule_id": rule.id,
+                    **logging_details,
                     "last_active": status.last_active,
-                    "freq_offset": freq_offset,
+                    -"freq_offset": freq_offset,
                 },
             )
             return
@@ -233,7 +250,8 @@ class RuleProcessor:
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     self.logger.info(
-                        "apply_rule invalid predicate_func", extra={"rule_id": rule.id}
+                        "apply_rule invalid predicate_func",
+                        extra={**logging_details},
                     )
                     return
             else:
@@ -252,7 +270,10 @@ class RuleProcessor:
         )
 
         if not updated:
-            self.logger.info("apply_rule not updated", extra={"rule_id": rule.id})
+            self.logger.info(
+                "apply_rule not updated",
+                extra={**logging_details},
+            )
             return
 
         if randrange(10) == 0:
