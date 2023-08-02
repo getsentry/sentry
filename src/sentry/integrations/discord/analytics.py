@@ -11,24 +11,14 @@ class DiscordIntegrationNotificationSent(analytics.Event):
     )
 
 
-class DiscordIntegrationCommandInteractionReceived:
+class DiscordIntegrationCommandInteractionReceived(analytics.Event):
     type = "integrations.discord.command_interaction"
 
-    attributes = analytics.Attribute("command_name")
+    attributes = (analytics.Attribute("command_name"),)
 
 
-class IntegrationIdentityLinked(analytics.Event):
-    type = "integrations.identity_linked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("actor_id"),
-        analytics.Attribute("actor_type"),
-    )
-
-
-class IntegrationIdentityUnlinked(analytics.Event):
-    type = "integrations.identity_unlinked"
+class DiscordIntegrationIdentityLinked(analytics.Event):
+    type = "integrations.discord.identity_linked"
 
     attributes = (
         analytics.Attribute("provider"),
@@ -37,10 +27,20 @@ class IntegrationIdentityUnlinked(analytics.Event):
     )
 
 
-class DiscordIntegrationMessageInteractionReceived:
+class DiscordIntegrationIdentityUnlinked(analytics.Event):
+    type = "integrations.discord.identity_unlinked"
+
+    attributes = (
+        analytics.Attribute("provider"),
+        analytics.Attribute("actor_id"),
+        analytics.Attribute("actor_type"),
+    )
+
+
+class DiscordIntegrationMessageInteractionReceived(analytics.Event):
     type = "integrations.discord.message_interaction"
 
-    attributes = analytics.Attribute("custom_id")
+    attributes = (analytics.Attribute("custom_id"),)
 
 
 class DiscordIntegrationAssign(analytics.Event):
@@ -57,3 +57,12 @@ class DiscordIntegrationStatus(analytics.Event):
         analytics.Attribute("user_id"),
         analytics.Attribute("status"),
     )
+
+
+analytics.register(DiscordIntegrationNotificationSent)
+analytics.register(DiscordIntegrationCommandInteractionReceived)
+analytics.register(DiscordIntegrationIdentityLinked)
+analytics.register(DiscordIntegrationIdentityUnlinked)
+analytics.register(DiscordIntegrationMessageInteractionReceived)
+analytics.register(DiscordIntegrationAssign)
+analytics.register(DiscordIntegrationStatus)

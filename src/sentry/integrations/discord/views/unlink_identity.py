@@ -62,7 +62,7 @@ class DiscordUnlinkIdentityView(BaseView):
             raise Http404
 
         analytics.record(
-            "integrations.identity_unlinked",
+            "integrations.discord.identity_unlinked",
             provider="discord",
             actor_id=request.user.id,
             actor_type=ActorType.USER,
