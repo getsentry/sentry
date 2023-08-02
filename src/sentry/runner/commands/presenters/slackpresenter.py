@@ -16,6 +16,30 @@ class SlackPresenter(OptionsPresenter):
         self.unset_options: List[str] = []
         self.error_options: List[Tuple[str, str]] = []
 
+    @staticmethod
+    def is_slack_enabled():
+        if SLACK_WEBHOOK_URL == "":
+            return False
+
+        try:
+            payload = {
+                "drifted_options": [],
+                "channel_updated_options": [],
+                "updated_options": [],
+                "set_options": [],
+                "unset_options": [],
+                "error_options": [],
+            }
+
+            response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+            if response.status_code == 200:
+                return True
+
+            return False
+
+        except Exception:
+            return False
+
     def flush(self) -> None:
         json_data = {
             "drifted_options": [
@@ -57,29 +81,4 @@ class SlackPresenter(OptionsPresenter):
 
     def send_to_webhook(self, json_data: dict) -> None:
         headers = {"Content-Type": "application/json"}
-
-        if self.check_slack_webhook_config():
-            requests.post(SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers)
-
-    def check_slack_webhook_config(self):
-        if SLACK_WEBHOOK_URL == "":
-            return False
-
-        try:
-            payload = {
-                "drifted_options": [],
-                "channel_updated_options": [],
-                "updated_options": [],
-                "set_options": [],
-                "unset_options": [],
-                "error_options": [],
-            }
-
-            response = requests.post(SLACK_WEBHOOK_URL, json=payload)
-            if response.status_code == 200:
-                return True
-
-            return False
-
-        except Exception:
-            return False
+        requests.post(SLACK_WEBHOOK_URL, data=json.dumps(json_data), headers=headers)

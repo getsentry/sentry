@@ -114,11 +114,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
     to apply changes is UpdateChannel.AUTOMATOR.
     """
 
-    import logging
-
     from sentry import options
-
-    logger = logging.getLogger("sentry.options_automator")
 
     ctx.obj["dry_run"] = dry_run
 
@@ -144,17 +140,12 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
                 drifted_options.add(key)
         except options.UnknownOption:
             invalid_options.add(key)
-            logger.error(
-                "Option %s is not registered. and cannot be updated.",
-                key,
-            )
+            presenter_delegator.unregistered(key)
 
         opt = options.lookup_key(key)
         if not opt.type.test(value):
             invalid_options.add(key)
-            logger.error(
-                "Option %s has invalid type. got %s, expected %s.", key, type(value), opt.type
-            )
+            presenter_delegator.invalid_type(key, type(value), opt.type)
 
     ctx.obj["invalid_options"] = invalid_options
     ctx.obj["drifted_options"] = drifted_options
@@ -198,8 +189,8 @@ def patch(ctx) -> None:
                 presenter_delegator.error(
                     key, "Updated failed. Check db connection, option type, and option spelling."
                 )
-            presenter_delegator.flush()
-            raise
+                presenter_delegator.flush()
+                raise
 
     if invalid_options:
         status = "update_failed"
@@ -275,9 +266,9 @@ def sync(ctx):
                                     opt.name,
                                     "Updated failed. Check db connection, option type, and option spelling.",
                                 )
+                                presenter_delegator.flush()
+                                raise
 
-                            presenter_delegator.flush()
-                            raise
                         presenter_delegator.unset(opt.name)
                     else:
                         presenter_delegator.drift(opt.name, None)

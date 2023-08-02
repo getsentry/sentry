@@ -17,6 +17,8 @@ class ConsolePresenter(OptionsPresenter):
     UNSET_MSG = "[UNSET] Option %s unset."
     DRY_RUN_MSG = "!!! Dry-run flag on. No update will be performed."
     ERROR_MSG = "Invalid option. %s cannot be updated. Reason %s"
+    UNREGISTERED_OPTION_ERROR = "Option %s is not registered. and cannot be updated."
+    INVALID_TYPE_ERROR = "Option %s has invalid type. got %s, expected %s."
 
     def __init__(self) -> None:
         self.drifted_options: List[Tuple[str, str]] = []
@@ -25,6 +27,8 @@ class ConsolePresenter(OptionsPresenter):
         self.set_options: List[Tuple[str, str]] = []
         self.unset_options: List[str] = []
         self.error_options: List[Tuple[str, str]] = []
+        self.unregistered_options: List[str] = []
+        self.invalid_type_options: List[Tuple[str, str]] = []
 
     def flush(self) -> None:
         import logging
@@ -56,6 +60,14 @@ class ConsolePresenter(OptionsPresenter):
         for key, reason in self.error_options:
             click.echo(self.ERROR_MSG % (key, reason))
 
+        for key in self.unregistered_options:
+            click.echo(self.UNREGISTERED_OPTION_ERROR % key)
+            logger.error(self.UNREGISTERED_OPTION_ERROR, key)
+
+        for key, got_type, expected_type in self.invalid_type_options:
+            click.echo(self.INVALID_TYPE_ERROR % (key, got_type, expected_type))
+            logger.error(self.INVALID_TYPE_ERROR, key, got_type, expected_type)
+
     def set(self, key: str, value: str) -> None:
         self.set_options.append((key, value))
 
@@ -73,3 +85,14 @@ class ConsolePresenter(OptionsPresenter):
 
     def error(self, key: str, not_writable_reason: str) -> None:
         self.error_options.append((key, not_writable_reason))
+
+    def unregistered(self, key: str):
+        self.unregistered_options.append(key)
+
+    def invalid_type(
+        self,
+        key: str,
+        got_type: str,
+        expected_type: str,
+    ):
+        self.invalid_type_options.append((key, got_type, expected_type))
