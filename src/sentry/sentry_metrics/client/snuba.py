@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Sequence, Union
 
 import urllib3
@@ -27,7 +27,7 @@ _METRIC_TYPE_TO_ENTITY: Mapping[str, str] = {
 }
 
 
-_broker_timestamp = datetime.now() - datetime.timedelta(seconds=5)
+_broker_timestamp = datetime.now() - timedelta(seconds=5)
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
@@ -182,21 +182,29 @@ class SnubaMetricsBackend(GenericMetricsBackend):
             # decode bytes into json
             json_payloads.append(payload.value.decode("utf-8"))
 
-        return json_payloads
+        deserialized_payloads = []
+        for payload in json_payloads:
+            new_p = json.loads(payload)
+            deserialized_payloads.append(new_p)
+
+        return deserialized_payloads
 
     def __build_and_send_request(self, metric):
         metric_type = metric["type"]
         headers = {}
         entity = _METRIC_TYPE_TO_ENTITY[metric_type]
 
-        json_payloads = self.__build_payload(metric)
-        payload = json_payloads[0]
+        deserialized_payloads = self.__build_payload(metric)
+        payload = deserialized_payloads[0]
+        data = (2, "insert") + (payload,)
+
+        serialized_data = json.dumps(data)
 
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
                 f"/tests/{entity}/eventstream",
-                body=payload,
+                body=serialized_data,
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
