@@ -52,19 +52,19 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
-        data = {"args": {}, "meta": {}}
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
-        data = {"args": {}, "meta": {}}
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_no_body(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data = {"args": {}, "meta": {}}
+        data: Dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -73,7 +73,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_invalid_args_syntax(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data = {"args": [], "meta": {}}
+        data: Dict[str, Any] = {"args": [], "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
