@@ -16,7 +16,7 @@ from sentry.sentry_metrics.query_experimental.types import (
     Tag,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.testutils import BaseMetricsLayerTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
