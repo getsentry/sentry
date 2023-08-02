@@ -1,7 +1,6 @@
 from typing import List, Union
 
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,9 +17,6 @@ from sentry.api.helpers.actionable_items_helper import (
     priority_ranking,
 )
 from sentry.api.helpers.source_map_helper import source_map_debug
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import EventParams, GlobalParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import EventError, Organization, Project, SourceMapProcessingIssue
 
 
@@ -35,28 +31,10 @@ class SourceMapProcessingResponse(TypedDict):
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Events"])
 class ActionableItemsEndpoint(ProjectEndpoint):
-    public = {"GET"}
-
     def has_feature(self, organization: Organization, request: Request):
         return features.has("organizations:actionable-items", organization, actor=request.user)
 
-    @extend_schema(
-        operation_id="Debug issues related to source maps and event errors for a given event",
-        parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            EventParams.EVENT_ID,
-        ],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer("SourceMapDebug", SourceMapProcessingResponse),
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-    )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
