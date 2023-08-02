@@ -84,7 +84,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
             # check if user has access to create notification actions for all requested projects
-            requested_projects = request.data.get("projects")
+            requested_projects = request.data.get("projects", [])
             projects = self.get_projects(request, organization)
             project_slugs = [project.slug for project in projects]
             missing_access_projects = set(requested_projects).difference(set(project_slugs))
