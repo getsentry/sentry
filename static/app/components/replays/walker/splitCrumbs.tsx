@@ -5,12 +5,11 @@ import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem
 import TextOverflow from 'sentry/components/textOverflow';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 
-type MaybeOnClickHandler = null | ((frame: Crumb | ReplayFrame) => void);
+type MaybeOnClickHandler = null | ((frame: ReplayFrame) => void);
 
 function splitCrumbs({
   frames,
