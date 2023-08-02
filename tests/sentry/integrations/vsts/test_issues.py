@@ -39,6 +39,18 @@ def generate_mock_response(*args, region_url: str, non_region_url: str, **kwargs
         responses.add(*args, url=non_region_url, **kwargs)
 
 
+def assert_response_calls(expected_region_response, expected_non_region_response):
+    assert len(expected_region_response) == len(expected_non_region_response)
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        for index, url in enumerate(expected_region_response):
+            assert responses.calls[index].request.url == url
+            assert responses.calls[index].response.status_code == 200
+    else:
+        for index, url in enumerate(expected_non_region_response):
+            assert responses.calls[index].request.url == url
+            assert responses.calls[index].response.status_code == 200
+
+
 class VstsIssueBase(TestCase):
     @cached_property
     def request(self):
@@ -214,30 +226,16 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         self.integration.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 2
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert (
-                responses.calls[0].request.url
-                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users"
-            )
-            assert responses.calls[0].response.status_code == 200
-            assert (
-                responses.calls[1].request.url
-                == "http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/%d"
-                % vsts_work_item_id
-            )
-            assert responses.calls[1].response.status_code == 200
-        else:
-            assert (
-                responses.calls[0].request.url
-                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
-            )
-            assert responses.calls[0].response.status_code == 200
-            assert (
-                responses.calls[1].request.url
-                == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-                % vsts_work_item_id
-            )
-            assert responses.calls[1].response.status_code == 200
+        assert_response_calls(
+            expected_region_response=[
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
+                f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}",
+            ],
+            expected_non_region_response=[
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+                f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            ],
+        )
 
         request_body = json.loads(responses.calls[1].request.body)
         assert len(request_body) == 1
@@ -290,42 +288,19 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         self.integration.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 3
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert (
-                responses.calls[0].request.url
-                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users"
-            )
-            assert responses.calls[0].response.status_code == 200
+        assert_response_calls(
+            expected_region_response=[
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users",
+                "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users?continuationToken=continuation-token",
+                f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}",
+            ],
+            expected_non_region_response=[
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
+                "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token",
+                f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            ],
+        )
 
-            assert (
-                responses.calls[1].request.url
-                == "http://controlserver/api/0/internal/integration-proxy/_apis/graph/users?continuationToken=continuation-token"
-            )
-            assert responses.calls[1].response.status_code == 200
-
-            assert (
-                responses.calls[2].request.url
-                == f"http://controlserver/api/0/internal/integration-proxy/_apis/wit/workitems/{vsts_work_item_id}"
-            )
-            assert responses.calls[2].response.status_code == 200
-        else:
-            assert (
-                responses.calls[0].request.url
-                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users"
-            )
-            assert responses.calls[0].response.status_code == 200
-
-            assert (
-                responses.calls[1].request.url
-                == "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token"
-            )
-            assert responses.calls[1].response.status_code == 200
-
-            assert (
-                responses.calls[2].request.url
-                == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
-            )
-            assert responses.calls[2].response.status_code == 200
         request_body = json.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
