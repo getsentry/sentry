@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
@@ -23,6 +24,7 @@ class DiscordMessageEmbed:
         color: int | None = None,
         footer: DiscordMessageEmbedFooter | None = None,
         fields: Iterable[DiscordMessageEmbedField] | None = None,
+        timestamp: datetime | None = None,
     ) -> None:
         self.title = title
         self.description = description
@@ -30,6 +32,7 @@ class DiscordMessageEmbed:
         self.color = color
         self.footer = footer
         self.fields = fields
+        self.timestamp = timestamp
 
     def build(self) -> dict[str, object]:
         attributes = vars(self).items()
@@ -40,5 +43,8 @@ class DiscordMessageEmbed:
 
         if self.fields is not None:
             embed["fields"] = [field.build() for field in self.fields]
+
+        if self.timestamp is not None:
+            embed["timestamp"] = self.timestamp.isoformat()
 
         return embed
