@@ -148,8 +148,8 @@ class IndexerBatch:
                 if self.__input_codec:
                     self.__input_codec.validate(parsed_payload)
             except ValidationError:
-                if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
-                    raise
+                # if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
+                #     raise
 
                 # For now while this is still experimental, those errors are
                 # not supposed to be fatal.
