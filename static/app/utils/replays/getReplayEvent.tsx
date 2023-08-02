@@ -1,31 +1,30 @@
-import sortedIndexBy from 'lodash/sortedIndexBy';
-
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {ReplaySpan} from 'sentry/views/replays/types';
 
-export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
-  itemLookup,
-  items,
-  targetTimestampMs,
+export function getPrevReplayFrame({
+  frames,
+  targetOffsetMs,
+  allowExact = false,
 }: {
-  items: T[];
-  targetTimestampMs: number;
-  itemLookup?: number[][];
+  frames: ReplayFrame[];
+  targetOffsetMs: number;
+  allowExact?: boolean;
 }) {
-  if (!itemLookup || !itemLookup.length) {
-    return undefined;
-  }
-
-  const index = sortedIndexBy(itemLookup, [targetTimestampMs], o => o[0]);
-  if (index !== undefined && index > 0) {
-    const ts = itemLookup[Math.min(index, itemLookup.length - 1)][0];
-    return items[
-      itemLookup[ts === targetTimestampMs ? index : Math.max(0, index - 1)][1]
-    ];
-  }
-
-  return undefined;
+  return frames.reduce<ReplayFrame | undefined>((found, item) => {
+    if (
+      item.offsetMs > targetOffsetMs ||
+      (!allowExact && item.offsetMs === targetOffsetMs)
+    ) {
+      return found;
+    }
+    if (
+      (allowExact && item.offsetMs === targetOffsetMs) ||
+      !found ||
+      item.offsetMs > found.offsetMs
+    ) {
+      return item;
+    }
+    return found;
+  }, undefined);
 }
 
 export function getNextReplayFrame({
@@ -44,7 +43,11 @@ export function getNextReplayFrame({
     ) {
       return found;
     }
-    if (!found || item.timestampMs < found.timestampMs) {
+    if (
+      (allowExact && item.offsetMs === targetOffsetMs) ||
+      !found ||
+      item.offsetMs < found.offsetMs
+    ) {
       return item;
     }
     return found;
