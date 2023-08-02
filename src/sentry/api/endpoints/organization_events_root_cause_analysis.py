@@ -27,12 +27,13 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         params = self.get_snuba_params(request, organization)
 
-        transaction_count_query = metrics_query(
-            ["count()"],
-            f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
-            params,
-            referrer="api.organization-events-root-cause-analysis",
-        )
+        with self.handle_query_errors():
+            transaction_count_query = metrics_query(
+                ["count()"],
+                f"event.type:transaction transaction:{transaction_name} project_id:{project_id}",
+                params,
+                referrer="api.organization-events-root-cause-analysis",
+            )
 
         if transaction_count_query["data"][0]["count"] == 0:
             return Response(status=400, data="Transaction not found")
