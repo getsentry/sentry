@@ -1639,9 +1639,6 @@ SENTRY_FEATURES = {
     "organizations:device-class-synthesis": False,
     # Enable the product selection feature in the getting started docs, regardless of the organization's strategy
     "organizations:getting-started-doc-with-product-selection": False,
-    # Enable a new behavior for deleting the freshly created project,
-    # if the user clicks on the back button in the onboarding for new orgs
-    "organizations:onboarding-project-deletion-on-back-click": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable OpenAI suggestions in the issue details page
@@ -1690,6 +1687,8 @@ SENTRY_FEATURES = {
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
     "projects:discard-groups": False,
+    # Extract spans from transactions in Relay, and forward them via Kafka.
+    "projects:extract-standalone-spans": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,

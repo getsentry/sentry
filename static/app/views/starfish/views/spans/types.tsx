@@ -24,7 +24,7 @@ export const DataTitles: Record<DataKey, string> = {
   p50p95: t('Duration (P50, P95)'),
   p50: t('Duration (P50)'),
   p95: t('Duration (P95)'),
-  avg: t('Average Duration'),
+  avg: t('Avg Duration'),
   duration: t('Duration'),
   errorCount: t('5XX Responses'),
   throughput: t('Throughput'),
@@ -51,11 +51,19 @@ export const getTooltip = (
 
 export const getThroughputTitle = (spanOp?: string) => {
   if (spanOp?.startsWith('db')) {
-    return t('Queries');
+    return t('Queries Per Min');
   }
   if (defined(spanOp)) {
     return t('Requests');
   }
+  return '--';
+};
+
+export const getDurationChartTitle = (spanOp?: string) => {
+  if (spanOp) {
+    return t('Average Duration');
+  }
+
   return '--';
 };
 
