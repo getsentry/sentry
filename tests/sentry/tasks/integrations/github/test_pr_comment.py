@@ -365,9 +365,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
         assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -417,9 +415,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -477,7 +473,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.issue_locked_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -507,7 +505,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.rate_limited_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "rate_limited_error"}
+        )
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
