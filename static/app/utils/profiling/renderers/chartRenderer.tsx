@@ -45,11 +45,12 @@ export class FlamegraphChartRenderer {
 
     this.context.beginPath();
     this.context.stroke();
-    this.context.lineWidth = 1 * window.devicePixelRatio;
 
     // @TODO draw series
     for (let i = 0; i < this.chart.series.length; i++) {
-      this.context.strokeStyle = this.theme.COLORS.SELECTED_FRAME_BORDER_COLOR;
+      this.context.lineWidth = 1 * window.devicePixelRatio;
+      this.context.fillStyle = this.chart.series[i].fillColor;
+      this.context.strokeStyle = this.chart.series[i].lineColor;
       this.context.beginPath();
       this.context.lineCap = 'round';
       const serie = this.chart.series[i];
@@ -70,9 +71,11 @@ export class FlamegraphChartRenderer {
         }
       }
 
-      this.context.fillStyle = 'rgba(0, 0, 255, 0.2)';
-      this.context.stroke();
-      this.context.fill();
+      if (this.chart.series[i].type === 'line') {
+        this.context.stroke();
+      } else {
+        this.context.fill();
+      }
     }
   }
 }

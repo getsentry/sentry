@@ -1,9 +1,14 @@
+import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
+import {colorComponentsToRGBA} from './colors/utils';
 import {makeFormatter} from './units/units';
 
 interface Series {
+  fillColor: string;
+  lineColor: string;
   points: {x: number; y: number}[];
+  type: 'line' | 'area';
 }
 
 export class FlamegraphChart {
@@ -18,12 +23,27 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
-  static Empty = new FlamegraphChart(Rect.Empty(), {unit: 'percent', values: []});
+  static Empty = new FlamegraphChart(Rect.Empty(), {unit: 'percent', values: []}, [
+    [0, 0, 0, 0],
+  ]);
 
-  constructor(configSpace: Rect, measurement: Profiling.Measurement) {
+  constructor(
+    configSpace: Rect,
+    measurement: Profiling.Measurement,
+    colors: ColorChannels[]
+  ) {
     this.series = new Array<Series>();
 
+    if (!measurement || !measurement.values.length) {
+      this.formatter = makeFormatter('percent');
+      this.configSpace = configSpace.clone();
+      return;
+    }
+
     this.series[0] = {
+      type: 'area',
+      lineColor: colorComponentsToRGBA(colors[0]),
+      fillColor: colorComponentsToRGBA(colors[0]),
       points: new Array(measurement.values.length),
     };
 

@@ -304,9 +304,15 @@ function Flamegraph(): ReactElement {
       profileGroup.measurements?.cpu_usage_0 ?? {
         unit: 'percentage',
         values: [],
-      }
+      },
+      flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
-  }, [profileGroup.measurements?.cpu_usage_0, flamegraph.configSpace, hasCPUChart]);
+  }, [
+    profileGroup.measurements?.cpu_usage_0,
+    flamegraph.configSpace,
+    flamegraphTheme,
+    hasCPUChart,
+  ]);
 
   const flamegraphCanvas = useMemo(() => {
     if (!flamegraphCanvasRef) {
