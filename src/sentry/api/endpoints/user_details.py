@@ -155,7 +155,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
         :param string theme: UI theme, either "light", "dark", or "system"
-        :param string default_issue_event: Event displayed by default: "recommended", "latest" or "oldest"
+        :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
         if not request.access.has_permission("users.admin"):
