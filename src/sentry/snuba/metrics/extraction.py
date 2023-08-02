@@ -148,6 +148,7 @@ CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+
 Variables = Dict[str, Any]
 
 
@@ -425,6 +426,19 @@ class OndemandMetricSpecV2(NamedTuple):
         }
 
 
+class DerivedMetricParams(NamedTuple):
+    params: Dict[str, Any]
+
+    def get_param(self, consumer: str, param_name: str):
+        param = self.params.get(param_name)
+        if param is None:
+            raise Exception(
+                f"Derived metric {consumer} requires parameter {param_name} but it was not supplied"
+            )
+
+        return param
+
+
 class DerivedMetricComponent(NamedTuple):
     metric_type: str
     field: Optional[str] = None
@@ -468,7 +482,7 @@ class DerivedMetric(ABC):
         pass
 
     @abstractmethod
-    def get_variables(self) -> Variables:
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
         pass
 
 
@@ -493,7 +507,7 @@ class FailureRate(DerivedMetric):
             ),
         ]
 
-    def get_variables(self) -> Variables:
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
         return {}
 
 
@@ -547,8 +561,8 @@ class Apdex(DerivedMetric):
             ),
         ]
 
-    def get_variables(self) -> Variables:
-        t1 = 2
+    def get_variables(self, derived_metric_params: DerivedMetricParams) -> Variables:
+        t1 = derived_metric_params.get_param(self.get_derived_metric_name(), "t")
         t2 = 4 * t1
 
         return {"t1": t1, "t2": t2}
@@ -603,10 +617,12 @@ class OndemandMetricSpecBuilder:
         self._field_parser = field_parser
         self._query_parser = query_parser
 
-    def build_specs(self, field: str, query: str) -> List[OndemandMetricSpecV2]:
+    def build_specs(
+        self, field: str, query: str, derived_metric_params: DerivedMetricParams
+    ) -> List[OndemandMetricSpecV2]:
         if (derived_metric := _DERIVED_METRICS.get(field)) is not None:
             # Since the field is used for indexing purpose only, we don't need it when handling a derived metric.
-            return self._handle_derived_metric(query, derived_metric)
+            return self._handle_derived_metric(query, derived_metric, derived_metric_params)
         else:
             return self._handle_normal_metric(field, query)
 
@@ -676,7 +692,7 @@ class OndemandMetricSpecBuilder:
         return rule_condition
 
     def _handle_derived_metric(
-        self, query: str, derived_metric: DerivedMetric
+        self, query: str, derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
     ) -> List[OndemandMetricSpecV2]:
         # First step is to parse the query into our internal AST format.
         parsed_query = self._query_parser.parse(query)
@@ -693,7 +709,8 @@ class OndemandMetricSpecBuilder:
         on_demand_specs = []
         for component in merged_components:
             rule_condition = SearchQueryConverter(
-                component.conditions, derived_metric.get_variables()
+                component.conditions,
+                derived_metric.get_variables(derived_metric_params=derived_metric_params),
             ).convert()
             on_demand_specs.append(
                 OndemandMetricSpecV2(

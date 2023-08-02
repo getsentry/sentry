@@ -2,6 +2,7 @@ import pytest
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
+    DerivedMetricParams,
     FieldParser,
     OndemandMetricSpec,
     OndemandMetricSpecBuilder,
@@ -208,12 +209,15 @@ def test_spec_failure_rate(on_demand_spec_builder):
 
 
 def test_spec_apdex(on_demand_spec_builder):
-    specs = on_demand_spec_builder.build_specs(field="apdex()", query="release:a")
+    t = 10
+    specs = on_demand_spec_builder.build_specs(
+        field="apdex()", query="release:a", derived_metric_params=DerivedMetricParams({"t": t})
+    )
 
     assert len(specs) == 3
     assert specs[0].rule_condition == {
         "inner": [
-            {"name": "event.duration", "op": "lte", "value": 2},
+            {"name": "event.duration", "op": "lte", "value": t},
             {"name": "event.release", "op": "eq", "value": "a"},
         ],
         "op": "and",
@@ -222,8 +226,8 @@ def test_spec_apdex(on_demand_spec_builder):
         "inner": [
             {
                 "inner": [
-                    {"name": "event.duration", "op": "gt", "value": 2},
-                    {"name": "event.duration", "op": "lte", "value": 8},
+                    {"name": "event.duration", "op": "gt", "value": t},
+                    {"name": "event.duration", "op": "lte", "value": t * 4},
                 ],
                 "op": "and",
             },
@@ -233,7 +237,7 @@ def test_spec_apdex(on_demand_spec_builder):
     }
     assert specs[2].rule_condition == {
         "inner": [
-            {"name": "event.duration", "op": "gt", "value": 8},
+            {"name": "event.duration", "op": "gt", "value": t * 4},
             {"name": "event.release", "op": "eq", "value": "a"},
         ],
         "op": "and",

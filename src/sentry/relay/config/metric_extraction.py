@@ -12,6 +12,7 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.snuba.metrics.extraction import (
+    DerivedMetricParams,
     FieldParser,
     MetricSpec,
     OndemandMetricSpecBuilder,
@@ -101,7 +102,11 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> List[HashedMetricSpec]:
 
         builder = OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
 
-        on_demand_specs = builder.build_specs(field=snuba_query.aggregate, query=snuba_query.query)
+        on_demand_specs = builder.build_specs(
+            field=snuba_query.aggregate,
+            query=snuba_query.query,
+            derived_metric_params=DerivedMetricParams({"t": 10}),
+        )
 
         hashed_metric_specs = []
         for on_demand_spec in on_demand_specs:
