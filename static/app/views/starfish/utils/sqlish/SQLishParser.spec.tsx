@@ -10,6 +10,7 @@ describe('SQLishParser', function () {
       'SELECT *;', // Wildcards
       'WHERE age = 10;', // Equality
       'WHERE age != 10;', // Inequality
+      'total / time', // Division
       'WHERE age > 10 AND age < 20;', // Comparison
       "WHERE$1 ILIKE ' % ' || 'text'", // Conditionals
       'SELECT id, name;', // Column lists
