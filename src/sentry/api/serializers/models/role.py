@@ -1,4 +1,4 @@
-from typing import Any, Collection, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -12,7 +12,7 @@ class RoleSerializerResponse(TypedDict, total=False):
     id: str
     name: str
     desc: str
-    scopes: Collection[str]
+    scopes: List[str]
     is_global: bool
     allowed: bool
     isAllowed: bool
@@ -45,7 +45,7 @@ class RoleSerializer(Serializer):
             "id": str(obj.id),
             "name": obj.name,
             "desc": obj.desc,
-            "scopes": obj.scopes,
+            "scopes": list(obj.scopes),
             "allowed": obj in allowed_roles,  # backward compatibility
             "isAllowed": obj in allowed_roles,
             "isRetired": is_retired_role,
