@@ -297,7 +297,6 @@ module = [
     "sentry.api.endpoints.project_transfer",
     "sentry.api.endpoints.project_user_stats",
     "sentry.api.endpoints.prompts_activity",
-    "sentry.api.endpoints.rpc",
     "sentry.api.endpoints.rule_snooze",
     "sentry.api.endpoints.setup_wizard",
     "sentry.api.endpoints.shared_group_details",
