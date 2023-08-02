@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, ScheduledDeletion
+from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -431,8 +431,9 @@ class DeleteMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.PENDING_DELETION
         # Slug should update on deletion
         assert monitor.slug != old_slug
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(object_id=monitor.id, model_name="Monitor").exists()
+        assert RegionScheduledDeletion.objects.filter(
+            object_id=monitor.id, model_name="Monitor"
+        ).exists()
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -455,8 +456,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
@@ -478,15 +478,13 @@ class DeleteMonitorTest(MonitorTestCase):
 
         monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
         assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
         assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
-        # ScheduledDeletion only available in control silo
-        assert ScheduledDeletion.objects.filter(
+        assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
 
