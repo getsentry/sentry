@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from base64 import b64encode
 from datetime import datetime, timedelta
 from typing import Any
@@ -988,8 +989,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
+        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
+        for email in outbox:
+            assert invite_url_regex.search(
+                email.body
+            ), f"No invite URL found in 2FA invite email body to: {email.to}"
 
     def assert_has_correct_audit_log(
         self, acting_user: User, target_user: User, organization: Organization

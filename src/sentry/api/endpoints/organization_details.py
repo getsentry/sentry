@@ -1,7 +1,7 @@
 import logging
 from copy import copy
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TypedDict
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
@@ -670,7 +670,8 @@ def update_tracked_data(model):
         model.__data = UNSAVED
 
 
-class DeleteConfirmationArgs(TypedDict):
+@dataclass
+class DeleteConfirmationArgs:
     username: str
     ip_address: str
     deletion_datetime: datetime

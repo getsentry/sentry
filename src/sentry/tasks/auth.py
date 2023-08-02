@@ -71,12 +71,12 @@ class OrganizationComplianceTask(abc.ABC):
     log_label = ""
 
     @abc.abstractmethod
-    def is_compliant(self, member: OrganizationMember) -> bool:
+    def is_compliant(self, user: RpcUser) -> bool:
         """Check whether a member complies with the new requirement."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
@@ -85,11 +85,7 @@ class OrganizationComplianceTask(abc.ABC):
     ):
         actor = user_service.get_user(user_id=actor_id) if actor_id else None
 
-        def remove_member(org_member: OrganizationMember):
-            user = user_service.get_user(user_id=org_member.user_id)
-            if user is None:
-                return
-
+        def remove_member(org_member: OrganizationMember, user: RpcUser):
             logging_data = {
                 "organization_id": org_id,
                 "user_id": user.id,
@@ -118,22 +114,31 @@ class OrganizationComplianceTask(abc.ABC):
                     target_object=org_id,
                     target_user_id=user.id,
                 )
-
+                # Refresh the org member to ensure we always properly generate an invite link
+                org_member.refresh_from_db()
                 org = Organization.objects.get_from_cache(id=org_id)
-                self.call_to_action(org, user, member)
+                self.call_to_action(org, user, org_member)
 
-        for member in OrganizationMember.objects.filter(
+        org_members = OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
-        ):
-            if not self.is_compliant(member):
-                remove_member(member)
+        )
+        rpc_users = user_service.get_many(
+            filter=dict(user_ids=(member.user_id for member in org_members))
+        )
+        rpc_users_dict = {user.id: user for user in rpc_users}
+        for member in org_members:
+            user = rpc_users_dict.get(member.user_id, None)
+            if user is None:
+                continue
+
+            if not self.is_compliant(user):
+                remove_member(org_member=member, user=user)
 
 
 class TwoFactorComplianceTask(OrganizationComplianceTask):
     log_label = "2FA"
 
-    def is_compliant(self, member: OrganizationMember) -> bool:
-        user = user_service.get_user(user_id=member.user_id)
+    def is_compliant(self, user: RpcUser) -> bool:
         if user:
             return user.has_2fa()
         return False
@@ -170,8 +175,7 @@ def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, i
 class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
-    def is_compliant(self, member: OrganizationMember) -> bool:
-        user = user_service.get_user(id=member.user_id)
+    def is_compliant(self, user: RpcUser) -> bool:
         if user:
             return UserEmail.objects.get_primary_email(user).is_verified
         return False
