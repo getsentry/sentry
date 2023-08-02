@@ -57,8 +57,10 @@ class CheckinMessage(TypedDict):
     project_id: str
     sdk: str
 
+
 class CheckinTrace(TypedDict):
     trace_id: str
+
 
 class CheckinContexts(TypedDict):
     trace: NotRequired[CheckinTrace]
