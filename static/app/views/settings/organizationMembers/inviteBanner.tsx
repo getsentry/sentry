@@ -1,12 +1,15 @@
 import {useCallback, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {InviteMissingMembersModal} from 'sentry/components/modals/inviteMissingMembersModal';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconInfo, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -58,7 +61,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     };
   });
 
-  if (!showBanner) {
+  if (!showBanner || !missingMembers?.users) {
     return null;
   }
 
@@ -77,7 +80,7 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
     },
   ];
 
-  const cards = missingMembers.users.slice(0, 4).map(member => (
+  const cards = missingMembers.users.slice(0, 5).map(member => (
     <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
       <MemberCardContent>
         <MemberCardContentRow>
@@ -126,7 +129,16 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
         size="sm"
         priority="primary"
         // TODO(cathy): open up invite modal
-        // onClick={}
+        onClick={() => {
+          openModal(modalProps => (
+            <InviteMissingMembersModal
+              {...modalProps}
+              organization={organization}
+              missingMembers={missingMembers}
+              onSendInvite={onSendInvite}
+            />
+          ));
+        }}
         data-test-id="view-all-missing-members"
       >
         {t('View All')}
@@ -153,7 +165,19 @@ export function InviteBanner({missingMembers, onSendInvite, organization}: Props
             priority="primary"
             size="xs"
             // TODO(cathy): open up invite modal
-            // onClick={}
+            onClick={() => {
+              openModal(
+                modalProps => (
+                  <InviteMissingMembersModal
+                    {...modalProps}
+                    organization={organization}
+                    missingMembers={missingMembers}
+                    onSendInvite={onSendInvite}
+                  />
+                ),
+                {modalCss}
+              );
+            }}
             data-test-id="view-all-missing-members"
           >
             {t('View All')}
@@ -201,7 +225,7 @@ const CardTitle = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const Subtitle = styled('div')`
+export const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
@@ -241,7 +265,7 @@ const MemberCardContent = styled('div')`
   width: 75%;
 `;
 
-const MemberCardContentRow = styled('div')`
+export const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -251,10 +275,15 @@ const MemberCardContentRow = styled('div')`
   margin-bottom: ${space(0.25)};
 `;
 
-const StyledExternalLink = styled(ExternalLink)`
+export const StyledExternalLink = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const SeeMoreContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+export const modalCss = css`
+  min-width: 868px;
+  padding: 20px 30px !important;
 `;
