@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import functools
+import io
 import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
@@ -332,10 +333,54 @@ def find_blob_range(replay_id: str, segment_id: int) -> Optional[FilePartModel]:
 
 def download_range(blob_range: FilePartModel) -> bytes:
     """Return the bytes contained in a blob range."""
-    kek = settings.REPLAYS_KEK
-    dek = base64.b64decode(blob_range.dek)
-
     store = get_storage(storage._make_storage_options())
-    encrypted_file = store.read_range(blob_range.filename, blob_range.start, blob_range.end)
-    decrypted_file = envelope_decrypt(kek, dek, encrypted_file)
-    return decompress(decrypted_file)
+    result = store.read_range(blob_range.filename, blob_range.start, blob_range.end)
+
+    # The blob-range is not guaranteed to be encrypted. If the row contains a value in the DEK
+    # column then we know we need to decrypt the file before returning it to the user.
+    if blob_range.dek:
+        # KEK is hard-coded for now as an environment variable. This could be managed by a key
+        # management service.
+        kek = settings.REPLAYS_KEK
+        dek = base64.b64decode(blob_range.dek)
+        return decompress(envelope_decrypt(kek, dek, result))
+    else:
+        return decompress(result)
+
+
+def delete_filepart(filepart: FilePartModel) -> bytes:
+    """Delete all references to the filepart.
+
+    This function will work regardless of whether the filepart is encrypted or not. The range
+    considers the length of the encrypted output. The replaced bytes do not need to be encrypted
+    because the metadata row will not exist at the end of this operation.
+    """
+    # Store the values necessary to delete the byte-range from the filepart.
+    filename = filepart.filename
+    start = filepart.start
+    end = filepart.end
+
+    # Eagerly delete the filepart from the database. This prevents concurrent access between the
+    # successful zeroing of the range and the deletion of the row.
+    filepart.delete()
+
+    # Objects in the blob storage service are immutable.  The blob is downloaded in full.
+    store = get_storage(storage._make_storage_options())
+    blob = store.get(filename)
+
+    # Replace the bytes within the filepart model's range with null bytes. The length is the
+    # difference of the start and end byte plus one. We add one to make the range inclusive.
+    new_blob = _overwrite_range(blob, start=start, length=end - start + 1)
+
+    # Push blob-data to a filepath that already exists causes it to be overwritten. This operation
+    # resets the TTL.
+    store.save(filename, new_blob)
+
+
+def _overwrite_range(blob_data: bytes, start: int, length: int) -> io.BytesIO:
+    """Replace every byte within a contiguous range with null bytes."""
+    blob_data = io.BytesIO(blob_data)
+    blob_data.seek(start)
+    blob_data.write(b"\x00" * length)
+    blob_data.seek(0)
+    return blob_data
