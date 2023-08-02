@@ -25,10 +25,10 @@ const model = {
 };
 
 export const chart = {
-  getModel: jest.fn(() => ({option: model})),
+  getModel: jest.fn(() => ({...model})),
 };
 
-export const mockZoomRange = (startValue, endValue) => {
+export const mockZoomRange = (startValue: number, endValue: number) => {
   chart.getModel.mockImplementation(() => ({
     ...model,
     _payload: {
