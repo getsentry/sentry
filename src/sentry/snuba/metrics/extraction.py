@@ -408,6 +408,7 @@ class OndemandMetricSpec:
 
 
 class OndemandMetricSpecV2(NamedTuple):
+    op: str
     metric_type: str
     field: Optional[str]
     rule_condition: RuleCondition
@@ -640,8 +641,7 @@ class OndemandMetricSpecBuilder:
             if derived_metric_params is None:
                 derived_metric_params = DerivedMetricParams.empty()
 
-            # Since the field is used for indexing purpose only, we don't need it when handling a derived metric.
-            return self._handle_derived_metric(query, derived_metric, derived_metric_params)
+            return self._handle_derived_metric(field, query, derived_metric, derived_metric_params)
         else:
             return self._handle_normal_metric(field, query)
 
@@ -649,16 +649,17 @@ class OndemandMetricSpecBuilder:
         # We need to clean up the query from unnecessary filters.
         query = self._cleanup_query(query)
 
-        metric_type, extracted_field = self._init_field(field)
+        op, metric_type, extracted_field = self._init_field(field)
         rule_condition = self._init_query(field, query)
 
         return [
             OndemandMetricSpecV2(
-                metric_type=metric_type, field=extracted_field, rule_condition=rule_condition
+                op=op, metric_type=metric_type, field=extracted_field, rule_condition=rule_condition
             )
         ]
 
-    def _cleanup_query(self, query: str) -> str:
+    @staticmethod
+    def _cleanup_query(query: str) -> str:
         regexes = [r"event\.type:transaction\s*", r"project:[\w\"]+\s*"]
 
         new_query = query
@@ -667,7 +668,7 @@ class OndemandMetricSpecBuilder:
 
         return new_query
 
-    def _init_field(self, field: str) -> Tuple[str, Optional[str]]:
+    def _init_field(self, field: str) -> Tuple[str, str, Optional[str]]:
         parsed_field = self._field_parser.parse(field)
         if parsed_field is None:
             raise Exception(f"Unable to parse the field {field}")
@@ -677,12 +678,13 @@ class OndemandMetricSpecBuilder:
         ):
             raise Exception(f"Unsupported aggregate function {parsed_field.function}")
 
+        op = _SEARCH_TO_METRIC_AGGREGATES[parsed_field.function]
         metric_type = _AGGREGATE_TO_METRIC_TYPE[parsed_field.function]
         if metric_type != "c":
             assert len(parsed_field.arguments) == 1, "Only one parameter is supported"
-            return metric_type, _map_field_name(parsed_field.arguments[0])
+            return op, metric_type, _map_field_name(parsed_field.arguments[0])
 
-        return metric_type, None
+        return op, metric_type, None
 
     def _init_query(self, field: str, query: str) -> RuleCondition:
         # TODO: find a way to avoid double parsing of the field.
@@ -699,7 +701,7 @@ class OndemandMetricSpecBuilder:
 
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._query_parser.parse(query)
-        if parsed_query is None:
+        if not parsed_query.conditions:
             if count_if_rule_condition is None:
                 raise Exception("This query should not use on demand metrics")
 
@@ -719,7 +721,11 @@ class OndemandMetricSpecBuilder:
         return rule_condition
 
     def _handle_derived_metric(
-        self, query: str, derived_metric: DerivedMetric, derived_metric_params: DerivedMetricParams
+        self,
+        field: str,
+        query: str,
+        derived_metric: DerivedMetric,
+        derived_metric_params: DerivedMetricParams,
     ) -> List[OndemandMetricSpecV2]:
         # First step is to parse the query into our internal AST format.
         parsed_query = self._query_parser.parse(query)
@@ -739,8 +745,13 @@ class OndemandMetricSpecBuilder:
                 component.conditions,
                 derived_metric.get_variables(derived_metric_params=derived_metric_params),
             ).convert()
+
+            # We use the derived metric field as operation for each component, however the right implementation would
+            # be to specify in the derived component what are the operations that we expect to do on the extracted
+            # metric but this can be done later on when we will find a proper usage for the `op` field in the spec.
             on_demand_specs.append(
                 OndemandMetricSpecV2(
+                    op=field,
                     metric_type=component.metric_type,
                     field=component.field,
                     rule_condition=rule_condition,
