@@ -85,7 +85,7 @@ class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
     stacktraceOrder: int  # TODO enum/literal
-    eventNavDefault: str
+    defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
 
@@ -202,7 +202,7 @@ class UserSerializer(Serializer):
                 "theme": options.get("theme") or "light",
                 "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
-                "eventNavDefault": options.get("event_nav_default") or "recommended",
+                "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
             }
