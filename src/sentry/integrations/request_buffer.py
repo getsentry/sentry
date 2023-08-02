@@ -24,26 +24,14 @@ class IntegrationRequestBuffer:
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
 
-    def add(self, count: str):
-        if count not in VALID_KEYS:
-            raise Exception("Requires a valid key param.")
-
-        now = datetime.now().strftime("%Y-%m-%d")
-        buffer_key = f"{self.integration_key}:{now}"
-
-        pipe = self.client.pipeline()
-        pipe.hincrby(buffer_key, count + "_count", 1)
-        pipe.expire(buffer_key, KEY_EXPIRY)
-        pipe.execute()
-
     def record_error(self):
-        self.add("error")
+        self._add("error")
 
     def record_success(self):
-        self.add("success")
+        self._add("success")
 
     def record_fatal(self):
-        self.add("fatal")
+        self._add("fatal")
 
     def is_integration_broken(self):
         """
@@ -74,6 +62,18 @@ class IntegrationRequestBuffer:
             return False
 
         return True
+
+    def _add(self, count: str):
+        if count not in VALID_KEYS:
+            raise Exception("Requires a valid key param.")
+
+        now = datetime.now().strftime("%Y-%m-%d")
+        buffer_key = f"{self.integration_key}:{now}"
+
+        pipe = self.client.pipeline()
+        pipe.hincrby(buffer_key, count + "_count", 1)
+        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.execute()
 
     def _get_all_from_buffer(self):
         """
