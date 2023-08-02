@@ -62,22 +62,23 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "4":
-            if request.relay_request_data.get("globalConfig"):
-                metrics.incr("relay.project_configs.global.fetched")
-                global_config = get_global_config()
-                response["global_config"] = global_config
-            update = self._post_or_schedule_by_key(request)
-            metrics.incr("relay.project_configs.post_v4.pending", amount=len(update["pending"]))
-            metrics.incr("relay.project_configs.post_v4.fetched", amount=len(update["configs"]))
-            response.update(update)
-
-        if self._should_use_v3(version, request):
+        if self._should_use_v3_or_v4(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
-            metrics.incr("relay.project_configs.post_v3.pending", amount=len(update["pending"]))
-            metrics.incr("relay.project_configs.post_v3.fetched", amount=len(update["configs"]))
+            update = self._post_or_schedule_by_key(request)
+            if version == "4":
+                metrics.incr("relay.project_configs.post_v4.pending", amount=len(update["pending"]))
+                metrics.incr("relay.project_configs.post_v4.fetched", amount=len(update["configs"]))
+
+                if request.relay_request_data.get("global"):
+                    metrics.incr("relay.project_configs.global.fetched")
+                    global_config = get_global_config()
+                    response["global"] = global_config
+            elif version == "3":
+                metrics.incr("relay.project_configs.post_v3.pending", amount=len(update["pending"]))
+                metrics.incr("relay.project_configs.post_v3.fetched", amount=len(update["configs"]))
+
             response.update(update)
         elif version in ["2", "3"]:
             response["configs"] = self._post_by_key(
@@ -94,34 +95,38 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_use_v3(self, version, request):
+    def _should_use_v3_or_v4(self, version, request):
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
         is_full_config = request.relay_request_data.get("fullConfig")
         set_tag("relay_full_config", is_full_config)
 
-        use_v3 = True
+        use_v3_or_v4 = True
         reason = "version"
 
-        if version != "3":
-            use_v3 = False
+        if version not in ["3", "4"]:
+            use_v3_or_v4 = False
             reason = "version"
         elif not is_full_config:
             # The v3 implementation can't handle partial configs. Relay by
             # default request full configs and the amount of partial configs
             # should be low, so we handle them per request instead of
             # considering them v3.
-            use_v3 = False
+            use_v3_or_v4 = False
             reason = "fullConfig"
             version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
-            use_v3 = False
+            use_v3_or_v4 = False
             reason = "noCache"
             version = "2"  # Downgrade to 2 for reporting metrics
 
-        set_tag("relay_use_v3", use_v3)
-        set_tag("relay_use_v3_rejected", reason)
+        if version == "3":
+            set_tag("relay_use_v3", use_v3_or_v4)
+            set_tag("relay_use_v3_rejected", reason)
+        elif version == "4":
+            set_tag("relay_use_v4", use_v3_or_v4)
+            set_tag("relay_use_v4_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
@@ -134,7 +139,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 tags={"version": version, "reason": reason},
             )
 
-        return use_v3
+        return use_v3_or_v4
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
