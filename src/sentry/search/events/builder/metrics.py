@@ -40,7 +40,12 @@ from sentry.search.events.types import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    OndemandMetricSpecBuilder,
+    OndemandMetricSpecV2,
+    is_on_demand_query,
+)
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
@@ -79,14 +84,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if granularity is not None:
             self._granularity = granularity
 
-        self._on_demand_spec = self._resolve_on_demand_spec(
+        self._on_demand_specs = self._resolve_on_demand_specs(
             dataset,
             kwargs.get("selected_columns", []),
             kwargs.get("query", ""),
             kwargs.get("on_demand_metrics_enabled", False),
         )
 
-        self.use_on_demand_metrics = self._on_demand_spec is not None
+        self.use_on_demand_metrics = len(self._on_demand_specs) > 0
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -103,32 +108,36 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-    def _resolve_on_demand_spec(
+    def _resolve_on_demand_specs(
         self,
         dataset: Optional[Dataset],
         selected_cols: List[Optional[str]],
         query: str,
         on_demand_metrics_enabled: bool,
-    ) -> Optional[OndemandMetricSpec]:
+    ) -> List[OndemandMetricSpecV2]:
         if not on_demand_metrics_enabled:
-            return None
+            return []
 
         field = selected_cols[0] if selected_cols else None
         if not field:
-            return None
+            return []
 
         if not is_on_demand_query(dataset, field, query):
-            return None
+            return []
 
         try:
-            return OndemandMetricSpec(field, query)
+            builder = OndemandMetricSpecBuilder.default()
+            return builder.build_specs(field=field, query=query)
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            return None
+            return []
 
     def _get_on_demand_metrics_query(self, snuba_query: Query) -> Optional[MetricsQuery]:
-        spec = self._on_demand_spec
+        specs = self._on_demand_specs
+        if len(specs) > 0:
+            raise InvalidSearchQuery("Derived ondemand metrics are not currently supported")
 
+        spec = specs[0]
         # TimeseriesQueryBuilder specific parameters
         if isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)

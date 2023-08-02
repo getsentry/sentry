@@ -408,7 +408,7 @@ class OndemandMetricSpec:
 
 
 class OndemandMetricSpecV2(NamedTuple):
-    op: str
+    op: MetricOperationType
     metric_type: str
     field: Optional[str]
     rule_condition: RuleCondition
@@ -630,6 +630,10 @@ class OndemandMetricSpecBuilder:
     ):
         self._field_parser = field_parser
         self._query_parser = query_parser
+
+    @staticmethod
+    def default() -> "OndemandMetricSpecBuilder":
+        return OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
 
     def build_specs(
         self,

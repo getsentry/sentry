@@ -13,10 +13,8 @@ from sentry.models import (
 )
 from sentry.snuba.metrics.extraction import (
     DerivedMetricParams,
-    FieldParser,
     MetricSpec,
     OndemandMetricSpecBuilder,
-    QueryParser,
     RuleCondition,
     is_on_demand_snuba_query,
 )
@@ -100,8 +98,7 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> List[HashedMetricSpec]:
         if not is_on_demand_snuba_query(snuba_query):
             return []
 
-        builder = OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
-
+        builder = OndemandMetricSpecBuilder.default()
         on_demand_specs = builder.build_specs(
             field=snuba_query.aggregate,
             query=snuba_query.query,
