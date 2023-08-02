@@ -269,18 +269,14 @@ function SetupInstructions({
 }
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
-  position: sticky;
-  display: fixed;
-  top: 0;
-  right: 0;
-  padding: ${space(0.25)};
+  float: right;
+  margin-top: ${space(0)};
 `;
 
 const NetworkAlert = styled(Alert)`
-  white-space: nowrap;
-  overflow: auto;
+  overflow-wrap: break-word;
   margin: ${space(0.5)} ${space(0.5)} ${space(2)} 0;
-  padding: ${space(0.75)};
+  padding: ${space(1)};
 `;
 
 const NoMarginAlert = styled(Alert)`
