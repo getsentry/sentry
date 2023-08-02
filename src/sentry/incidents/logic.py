@@ -1339,7 +1339,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
     use_async_lookup=False,
     input_channel_id=None,
     integrations=None,
-) -> tuple(str, str):
+) -> tuple[str, str]:
     from sentry.integrations.opsgenie.client import OpsgenieClient
     from sentry.integrations.opsgenie.utils import get_team
 
