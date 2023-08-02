@@ -16,7 +16,7 @@ from sentry.shared_integrations.exceptions import ApiError
 
 INVALID_TEAM = 1
 INVALID_KEY = 2
-VALID = 3
+VALID_TEAM = 3
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -55,7 +55,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
         self.fields["team"].choices = teams
         self.fields["team"].widget.choices = self.fields["team"].choices
 
-    def _team_is_valid(
+    def _get_team_status(
         self,
         team_id: str | None,
         integration: RpcIntegration | None,
@@ -82,7 +82,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
         except ApiError:
             return INVALID_KEY
 
-        return VALID
+        return VALID_TEAM
 
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
         params = {
@@ -97,7 +97,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
             organization_id=self.org_id,
         )
 
-        team_status = self._team_is_valid(
+        team_status = self._get_team_status(
             team_id=team_id, integration=integration, org_integration=org_integration
         )
         if team_status == INVALID_TEAM:

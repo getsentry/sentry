@@ -1650,8 +1650,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
         resp_data = {
             "result": "Integration [sentry] is valid",
-            "took": 0.093,
-            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(
             responses.POST,

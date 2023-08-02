@@ -37,8 +37,8 @@ class OpsgenieClientTest(APITestCase):
 
         resp_data = {
             "result": "Integration [sentry] is valid",
-            "took": 0.093,
-            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(
             responses.POST, url=f"{client.base_url}/integrations/authenticate", json=resp_data
@@ -51,8 +51,8 @@ class OpsgenieClientTest(APITestCase):
     def test_send_notification(self):
         resp_data = {
             "result": "Request will be processed",
-            "took": 0.302,
-            "requestId": "43a29c5c-3dbf-4fa4-9c26-f4f71023e120",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(responses.POST, url="https://api.opsgenie.com/v2/alerts", json=resp_data)
 

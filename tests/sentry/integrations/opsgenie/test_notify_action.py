@@ -111,8 +111,8 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     def test_valid_team_selected(self):
         resp_data = {
             "result": "Integration [sentry] is valid",
-            "took": 0.093,
-            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(
             responses.POST,
@@ -143,8 +143,8 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         resp_data = {
             "result": "Integration [sentry] is valid",
-            "took": 0.093,
-            "requestId": "a0199601-0245-4ed9-b7d7-0752e2f4824b",
+            "took": 1,
+            "requestId": "hello-world",
         }
         responses.add(
             responses.POST,
@@ -193,8 +193,8 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     def test_bad_integration_key(self):
         resp_data = {
             "message": "API Key does not belong to a [sentry] integration.",
-            "took": 0.001,
-            "requestId": "fe435ce4-4ef2-43c7-b0eb-dc70840ebd42",
+            "took": 1,
+            "requestId": "goodbye-world",
         }
         responses.add(
             responses.POST,
