@@ -69,10 +69,10 @@ def run_detection() -> None:
     max_retries=0,
 )
 def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
-    for project_id in project_ids:
-        if not options.get("statistical_detectors.enable"):
-            return
+    if not options.get("statistical_detectors.enable"):
+        return
 
+    for project_id in project_ids:
         query_transactions(project_id)
 
 
@@ -82,11 +82,10 @@ def detect_regressed_transactions(project_ids: List[int], **kwargs) -> None:
     max_retries=0,
 )
 def detect_regressed_functions(project_ids: List[int], start: datetime, **kwargs) -> None:
+    if not options.get("statistical_detectors.enable"):
+        return
 
     for project in Project.objects.filter(id__in=project_ids):
-        if not options.get("statistical_detectors.enable"):
-            return
-
         try:
             query_functions(project, start)
         except Exception as e:
