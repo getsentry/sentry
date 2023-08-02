@@ -104,7 +104,7 @@ class IntegrationRequestBuffer:
         buffer_key = f"{self.integrationkey}:{now}"
         pipe = self.client.pipeline()
         pipe.hincrby(buffer_key, count + "_count", 1)
-        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.expire(buffer_key, KEY_EXPIRY, nx=True)
         pipe.execute()
         pipe.reset()
 
