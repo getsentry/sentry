@@ -105,22 +105,18 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         prompts_activity = find_prompts_activity(
             organization.id, project.id, request.user.id, features
         )
+        prompts_activity = {prompt.feature: prompt.data for prompt in prompts_activity}
 
-        prompt_features = [prompt.feature for prompt in prompts_activity]
+        prompt_features = prompts_activity.keys()
 
         for action in actions:
             action["dismissed"] = False
             if action["type"] in prompt_features:
-                prompt = prompts_activity.filter(feature=action["type"]).first()
-                dismissed = prompt.data["dismissed_ts"]
+                dismissed = prompts_activity[action["type"]]["dismissed_ts"]
                 # Check if dismissed within the last week
                 if dismissed and timezone.now().timestamp() < int(dismissed) + 60 * 60 * 24 * 7:
                     action["dismissed"] = True
-                else:
-                    # if dismissed more than a week ago, delete the prompts activity
-                    prompt.delete()
 
-        # Currently 25 is the highest priority, so we set the default to 26
         priority_get = lambda x: priority_ranking.get(x["type"], 26)
         sorted_errors = sorted(actions, key=priority_get)
 

@@ -1,33 +1,40 @@
 from sentry.models import EventError, PromptsActivity, SourceMapProcessingIssue
 
+
+class ActionPriority:
+    HIGH = 1
+    MEDIUM = 2
+    LOW = 3
+
+
 fileNameBlocklist = ["@webkit-masked-url"]
 
 priority_ranking = {
-    EventError.INVALID_DATA: 19,
-    EventError.INVALID_ATTRIBUTE: 20,
-    EventError.VALUE_TOO_LONG: 11,
-    EventError.FUTURE_TIMESTAMP: 12,
-    EventError.PAST_TIMESTAMP: 13,
-    EventError.CLOCK_DRIFT: 14,
-    EventError.INVALID_ENVIRONMENT: 15,
-    EventError.SECURITY_VIOLATION: 16,
-    EventError.RESTRICTED_IP: 17,
-    EventError.FETCH_GENERIC_ERROR: 18,
-    EventError.JS_MISSING_SOURCES_CONTENT: 10,
-    EventError.JS_SCRAPING_DISABLED: 9,
-    EventError.NATIVE_BAD_DSYM: 21,
-    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: 22,
-    EventError.NATIVE_MISSING_DSYM: 23,
-    EventError.PROGUARD_MISSING_MAPPING: 24,
-    EventError.PROGUARD_MISSING_LINENO: 25,
-    SourceMapProcessingIssue.MISSING_RELEASE: 1,
-    SourceMapProcessingIssue.MISSING_SOURCEMAPS: 2,
-    SourceMapProcessingIssue.URL_NOT_VALID: 3,
-    SourceMapProcessingIssue.NO_URL_MATCH: 4,
-    SourceMapProcessingIssue.PARTIAL_MATCH: 5,
-    SourceMapProcessingIssue.DIST_MISMATCH: 6,
-    SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND: 7,
-    SourceMapProcessingIssue.DEBUG_ID_NO_SOURCEMAPS: 8,
+    EventError.INVALID_DATA: ActionPriority.LOW,
+    EventError.INVALID_ATTRIBUTE: ActionPriority.LOW,
+    EventError.VALUE_TOO_LONG: ActionPriority.LOW,
+    EventError.FUTURE_TIMESTAMP: ActionPriority.LOW,
+    EventError.PAST_TIMESTAMP: ActionPriority.LOW,
+    EventError.CLOCK_DRIFT: ActionPriority.LOW,
+    EventError.INVALID_ENVIRONMENT: ActionPriority.LOW,
+    EventError.SECURITY_VIOLATION: ActionPriority.LOW,
+    EventError.RESTRICTED_IP: ActionPriority.LOW,
+    EventError.FETCH_GENERIC_ERROR: ActionPriority.LOW,
+    EventError.JS_MISSING_SOURCES_CONTENT: ActionPriority.MEDIUM,
+    EventError.JS_SCRAPING_DISABLED: ActionPriority.MEDIUM,
+    EventError.NATIVE_BAD_DSYM: ActionPriority.LOW,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: ActionPriority.LOW,
+    EventError.NATIVE_MISSING_DSYM: ActionPriority.LOW,
+    EventError.PROGUARD_MISSING_MAPPING: ActionPriority.LOW,
+    EventError.PROGUARD_MISSING_LINENO: ActionPriority.LOW,
+    SourceMapProcessingIssue.MISSING_RELEASE: ActionPriority.HIGH,
+    SourceMapProcessingIssue.MISSING_SOURCEMAPS: ActionPriority.HIGH,
+    SourceMapProcessingIssue.URL_NOT_VALID: ActionPriority.HIGH,
+    SourceMapProcessingIssue.NO_URL_MATCH: ActionPriority.HIGH,
+    SourceMapProcessingIssue.PARTIAL_MATCH: ActionPriority.HIGH,
+    SourceMapProcessingIssue.DIST_MISMATCH: ActionPriority.HIGH,
+    SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND: ActionPriority.HIGH,
+    SourceMapProcessingIssue.DEBUG_ID_NO_SOURCEMAPS: ActionPriority.HIGH,
 }
 
 errors_to_hide = [
