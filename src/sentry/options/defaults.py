@@ -1103,7 +1103,7 @@ register(
     "performance.issues.compressed_assets.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.compressed_assets.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.compressed_assets.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.consecutive_db.problem-creation",
@@ -1117,7 +1117,7 @@ register(
     "performance.issues.consecutive_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.consecutive_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.consecutive_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.n_plus_one_db.problem-detection",
@@ -1161,7 +1161,7 @@ register(
 )
 register(
     "performance.issues.n_plus_one_api_calls.ga-rollout",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1176,7 +1176,7 @@ register(
     "performance.issues.slow_db_query.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.slow_db_query.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.slow_db_query.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.render_blocking_assets.problem-creation",
@@ -1195,7 +1195,7 @@ register(
 )
 register(
     "performance.issues.render_blocking_assets.ga-rollout",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1210,7 +1210,7 @@ register(
     "performance.issues.m_n_plus_one_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "performance.issues.m_n_plus_one_db.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.m_n_plus_one_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
     "performance.issues.http_overhead.problem-creation",
