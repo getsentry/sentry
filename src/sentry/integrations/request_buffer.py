@@ -52,21 +52,20 @@ class IntegrationRequestBuffer:
         """
         broken_range_days_counts = self._get_broken_range_from_buffer()
 
-        days_fatal = [
-            day_count
-            for day_count in broken_range_days_counts
-            if int(day_count.get("fatal_count", 0)) > 0
-        ]
+        days_fatal = []
+        days_error = []
+
+        for day_count in broken_range_days_counts:
+            if int(day_count.get("fatal_count", 0)) > 0:
+                days_fatal.append(day_count)
+            elif (
+                int(day_count.get("error_count", 0)) > 0
+                and int(day_count.get("success_count", 0)) == 0
+            ):
+                days_error.append(day_count)
 
         if len(days_fatal) > 0:
             return True
-
-        days_error = [
-            day_count
-            for day_count in broken_range_days_counts
-            if int(day_count.get("error_count", 0)) > 0
-            and int(day_count.get("success_count", 0)) == 0
-        ]
 
         if not len(days_error):
             return False
