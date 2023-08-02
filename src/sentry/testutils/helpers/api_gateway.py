@@ -116,9 +116,9 @@ def provision_middleware():
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
     _REGION = Region(
-        name="region1",
+        name="region",
         snowflake_id=1,
-        address="http://region1.testserver",
+        address="http://region.internal.sentry.io",
         category=RegionCategory.MULTI_TENANT,
     )
 

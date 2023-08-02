@@ -18,6 +18,7 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -65,7 +66,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   > = {
     [ModuleName.ALL]: [
       {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
-      {title: DataTitles.avg, Comp: DurationChart},
+      {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
