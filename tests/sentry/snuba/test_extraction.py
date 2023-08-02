@@ -1,5 +1,18 @@
+import pytest
+
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import OndemandMetricSpec, is_on_demand_query
+from sentry.snuba.metrics.extraction import (
+    FieldParser,
+    OndemandMetricSpec,
+    OndemandMetricSpecBuilder,
+    QueryParser,
+    is_on_demand_query,
+)
+
+
+@pytest.fixture
+def on_demand_spec_builder():
+    return OndemandMetricSpecBuilder(field_parser=FieldParser(), query_parser=QueryParser())
 
 
 def test_is_on_demand_query_wrong_dataset():
@@ -157,12 +170,13 @@ def test_spec_countif():
     }
 
 
-def test_spec_countif_with_query():
-    spec = OndemandMetricSpec(
-        "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
+def test_spec_countif_with_query(on_demand_spec_builder):
+    specs = on_demand_spec_builder.build_specs(
+        field="count_if(transaction.duration,equals,300)", query="release:a OR transaction.op:b"
     )
 
-    assert spec.condition() == {
+    assert len(specs) == 1
+    assert specs[0].rule_condition == {
         "op": "and",
         "inner": [
             {
@@ -177,16 +191,17 @@ def test_spec_countif_with_query():
     }
 
 
-# def test_spec_failure_rate():
-#     builder = OndemandMetricSpecBuilder("failure_rate()", "transaction.duration:>1s")
-#     specs = builder.build_specs()
-#
-#     assert len(specs) == 2
-#     assert specs[0].condition() == {
-#         "inner": [
-#             {"name": "event.duration", "op": "gt", "value": 1000.0},
-#             {"name": "event.contexts.trace.status", "op": "eq", "value": "aborted"},
-#         ],
-#         "op": "and",
-#     }
-#     assert specs[1].condition() == {"name": "event.duration", "op": "gt", "value": 1000.0}
+def test_spec_failure_rate(on_demand_spec_builder):
+    specs = on_demand_spec_builder.build_specs(
+        field="failure_rate()", query="transaction.duration:>1s"
+    )
+
+    assert len(specs) == 2
+    assert specs[0].rule_condition == {
+        "inner": [
+            {"name": "event.contexts.trace.status", "op": "eq", "value": "aborted"},
+            {"name": "event.duration", "op": "gt", "value": 1000.0},
+        ],
+        "op": "and",
+    }
+    assert specs[1].rule_condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
