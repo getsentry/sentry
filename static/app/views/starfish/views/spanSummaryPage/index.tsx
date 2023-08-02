@@ -5,8 +5,6 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +28,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useFullSpanDescription} from 'sentry/views/starfish/queries/useFullSpanDescription';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {
   SpanSummaryQueryFilters,
   useSpanMetrics,
@@ -65,7 +63,7 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const {data: fullSpanDescription} = useFullSpanDescription(groupId);
+  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const queryFilter: SpanSummaryQueryFilters = endpoint
     ? {transactionName: endpoint, 'transaction.method': endpointMethod}
@@ -230,27 +228,16 @@ function SpanSummaryPage({params, location}: Props) {
                 </BlockContainer>
 
                 {span?.[SpanMetricsFields.SPAN_DESCRIPTION] && (
-                  <BlockContainer>
-                    <Block>
-                      <Panel>
-                        <DescriptionPanelBody>
-                          <DescriptionContainer>
-                            <DescriptionTitle>
-                              {spanDescriptionCardTitle}
-                            </DescriptionTitle>
-                            <SpanDescription
-                              span={{
-                                ...span,
-                                [SpanMetricsFields.SPAN_DESCRIPTION]:
-                                  fullSpanDescription ??
-                                  spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
-                              }}
-                            />
-                          </DescriptionContainer>
-                        </DescriptionPanelBody>
-                      </Panel>
-                    </Block>
-                  </BlockContainer>
+                  <DescriptionContainer>
+                    <SpanDescription
+                      span={{
+                        ...span,
+                        [SpanMetricsFields.SPAN_DESCRIPTION]:
+                          fullSpan?.description ??
+                          spanMetrics?.[SpanMetricsFields.SPAN_DESCRIPTION],
+                      }}
+                    />
+                  </DescriptionContainer>
                 )}
 
                 <BlockContainer>
@@ -395,13 +382,9 @@ export const BlockContainer = styled('div')`
 
 const DescriptionContainer = styled('div')`
   width: 100%;
-  padding: ${space(1)};
+  margin-bottom: ${space(4)};
   font-size: 1rem;
   line-height: 1.2;
-`;
-
-const DescriptionPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
 `;
 
 const BlockWrapper = styled('div')`
@@ -409,12 +392,6 @@ const BlockWrapper = styled('div')`
   flex: 1;
   min-width: 0;
   word-break: break-word;
-`;
-
-const DescriptionTitle = styled('h4')`
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.2;
 `;
 
 export default SpanSummaryPage;

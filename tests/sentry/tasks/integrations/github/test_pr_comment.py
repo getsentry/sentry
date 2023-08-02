@@ -10,7 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import CommentType, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -364,9 +364,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -383,6 +382,16 @@ class TestCommentWorkflow(GithubCommentTestCase):
             created_at=timezone.now() - timedelta(hours=1),
             updated_at=timezone.now() - timedelta(hours=1),
             group_ids=[1, 2, 3, 4],
+        )
+
+        # An Open PR comment should not affect the rest of the test as the filter should ignore it.
+        PullRequestComment.objects.create(
+            external_id=2,
+            pull_request_id=self.pr.id,
+            created_at=timezone.now() - timedelta(hours=1),
+            updated_at=timezone.now() - timedelta(hours=1),
+            group_ids=[],
+            comment_type=CommentType.OPEN_PR,
         )
 
         responses.add(
@@ -406,9 +415,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
-        )
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -466,7 +473,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.issue_locked_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -496,7 +505,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         github_comment_workflow(self.pr.id, self.project.id)
         assert cache.get(self.cache_key) is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.rate_limited_error")
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "rate_limited_error"}
+        )
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
