@@ -173,15 +173,12 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     const {organization} = this.props;
 
     try {
-      const data = await this.api.requestPromise(
-        `/organizations/${organization.slug}/members/`,
-        {
-          method: 'POST',
-          data: {email},
-        }
-      );
+      await this.api.requestPromise(`/organizations/${organization.slug}/members/`, {
+        method: 'POST',
+        data: {email},
+      });
       addSuccessMessage(tct('Sent invite to [email]', {email}));
-      this.setState({members: [...this.state.members, data]});
+      this.fetchMembersList();
       this.setState(state => ({
         missingMembers: state.missingMembers.map(integrationMissingMembers => ({
           ...integrationMissingMembers,
@@ -190,6 +187,23 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       }));
     } catch {
       addErrorMessage(t('Error sending invite'));
+    }
+  };
+
+  fetchMembersList = async () => {
+    const {organization} = this.props;
+
+    try {
+      const data = await this.api.requestPromise(
+        `/organizations/${organization.slug}/members/`,
+        {
+          method: 'GET',
+          data: {paginate: true},
+        }
+      );
+      this.setState({members: data});
+    } catch {
+      addErrorMessage(t('Error fetching members'));
     }
   };
 

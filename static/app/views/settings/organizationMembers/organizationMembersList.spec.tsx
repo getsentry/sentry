@@ -626,6 +626,18 @@ describe('OrganizationMembersList', function () {
       expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
     });
 
+    it('does not render banner if no missing members', function () {
+      const org = TestStubs.Organization({
+        features: ['integrations-gh-invite'],
+      });
+
+      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
+        context: TestStubs.routerContext([{organization: org}]),
+      });
+
+      expect(screen.queryByTestId('invite-banner')).not.toBeInTheDocument();
+    });
+
     it('does not render banner if lacking org:write', function () {
       const org = TestStubs.Organization({
         features: ['integrations-gh-invite'],

@@ -15,7 +15,12 @@ type Props = {
 };
 
 export function InviteBanner({missingMembers, onSendInvite}: Props) {
+  // NOTE: this is currently used for Github only
   // TODO(cathy): include snoozing, docs link
+
+  if (!missingMembers?.users) {
+    return null;
+  }
 
   const cards = missingMembers?.users.slice(0, 5).map(member => (
     <MemberCard key={member.userId} data-test-id={`member-card-${member.userId}`}>
