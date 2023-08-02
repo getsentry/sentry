@@ -53,10 +53,9 @@ class IntegrationRequestBuffer:
         ret = []
         now = datetime.now()
         for i in reversed(range(IS_BROKEN_RANGE)):
-            with freeze_time(now - timedelta(days=i)):
-                cur = datetime.now().strftime("%Y-%m-%d")
-                buffer_key = self.integrationkey + cur
-                ret.append(self.client.hgetall(buffer_key))
+            cur = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            buffer_key = f"{self.integrationkey}:{cur}"
+            ret.append(self.client.hgetall(buffer_key))
 
         return ret
 
@@ -102,7 +101,7 @@ class IntegrationRequestBuffer:
 
         now = datetime.now().strftime("%Y-%m-%d")
 
-        buffer_key = self.integrationkey + now
+        buffer_key = f"{self.integrationkey}:{now}"
         pipe = self.client.pipeline()
         pipe.hincrby(buffer_key, count + "_count", 1)
         pipe.expire(buffer_key, KEY_EXPIRY)
