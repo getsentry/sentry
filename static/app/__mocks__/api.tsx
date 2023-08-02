@@ -78,7 +78,7 @@ afterEach(() => {
     Client.errors = {};
   }
 
-  // All mocks are reset between tests
+  // Mock responses are removed between tests
   MockApiClient.clearMockResponses();
 });
 
