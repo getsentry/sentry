@@ -4,7 +4,7 @@ from django.conf import settings
 
 from sentry.utils import redis
 
-BUFFER_SIZE = 30  # 30 days
+BUFFER_SIZE = 32  # 30 days
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 BROKEN_RANGE_DAYS = 7  # 7 days
@@ -18,11 +18,11 @@ class IntegrationRequestBuffer:
     This should store the aggregate counts of each type for last 30 days for each integration
     """
 
-    def __init__(self, key):
-        self.integration_key = key
-
+    def __init__(self, key, expiration_seconds=KEY_EXPIRY):
         cluster_id = settings.SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
+        self.integration_key = key
+        self.key_expiration_seconds = expiration_seconds
 
     def record_error(self):
         self._add("error")
@@ -72,7 +72,7 @@ class IntegrationRequestBuffer:
 
         pipe = self.client.pipeline()
         pipe.hincrby(buffer_key, count + "_count", 1)
-        pipe.expire(buffer_key, KEY_EXPIRY)
+        pipe.expire(buffer_key, self.key_expiration_seconds)
         pipe.execute()
 
     def _get_all_from_buffer(self):
