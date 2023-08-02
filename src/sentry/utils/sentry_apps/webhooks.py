@@ -51,7 +51,7 @@ def check_broken(sentryapp: SentryApp, org_id: str):
 
 def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
     """
-    Record a Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
+    Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """
     if sentryapp.is_published:
         return
@@ -59,7 +59,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
     if not len(redis_key):
         return
     buffer = IntegrationRequestBuffer(redis_key)
-    buffer.record_timeout(e)
+    buffer.record_timeout()
     check_broken(sentryapp, org_id)
 
 
