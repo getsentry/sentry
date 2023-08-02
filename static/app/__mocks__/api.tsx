@@ -77,6 +77,9 @@ afterEach(() => {
     }
     Client.errors = {};
   }
+
+  // Mock responses are removed between tests
+  Client.clearMockResponses();
 });
 
 class Client implements ApiNamespace.Client {
