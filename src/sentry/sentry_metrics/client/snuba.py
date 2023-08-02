@@ -174,24 +174,25 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         # index message via the MessageProcessor
         new_batch = self._message_processor.process_messages(outer_message=outer_message)
 
-        json_payloads = []
+        json_payloads: Sequence[str] = []
         for message in new_batch:
             payload = message.payload
             if type(payload) == RoutingPayload:
                 payload = payload.routing_message
             # decode bytes into json
+            assert type(payload) == KafkaPayload
             json_payloads.append(payload.value.decode("utf-8"))
 
-        deserialized_payloads = []
+        deserialized_payloads: Sequence[json.JSONData] = []
         for payload in json_payloads:
-            new_p = json.loads(payload)
-            deserialized_payloads.append(new_p)
+            deserialized_p = json.loads(payload)
+            deserialized_payloads.append(deserialized_p)
 
         return deserialized_payloads
 
     def __build_and_send_request(self, metric):
         metric_type = metric["type"]
-        headers = {}
+        headers: Mapping[str, Any] = {}
         entity = _METRIC_TYPE_TO_ENTITY[metric_type]
 
         deserialized_payloads = self.__build_payload(metric)
