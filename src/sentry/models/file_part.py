@@ -9,7 +9,7 @@ class FilePartModel(Model):
     __include_in_export__ = False
 
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
-    dek = models.CharField(max_length=64)
+    dek = models.CharField(max_length=64, null=True)
     end = models.IntegerField()
     filename = models.CharField(max_length=32)
     key = models.CharField(max_length=64, db_index=True)
