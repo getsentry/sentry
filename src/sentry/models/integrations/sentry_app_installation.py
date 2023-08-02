@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.models import ApiToken, Project, SentryAppComponent, is_api_token_auth
+    from sentry.models import ApiToken, Project, SentryAppComponent
 
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 
@@ -45,7 +45,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
     def get_projects(self, token: ApiToken | AuthenticatedToken) -> QuerySet[Project]:
-        from sentry.models.project import Project
+        from sentry.models import Project, is_api_token_auth
 
         if not is_api_token_auth(token) or token.organization_id is None:
             return Project.objects.none()
