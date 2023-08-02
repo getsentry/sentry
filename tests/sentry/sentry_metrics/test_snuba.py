@@ -37,7 +37,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
 
         query = MetricsQueryBuilder(
             self.params,
-            query="",
+            query=f"project:{self.project.slug}",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[
                 "count_unique(user)",

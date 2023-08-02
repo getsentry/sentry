@@ -11,11 +11,10 @@ from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
 from sentry.testutils.metrics_backend import GenericMetricsTestMixIn
 from sentry.utils import json
 
-generic_metrics_backend = KafkaMetricsBackend()
-
 
 class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
     def test_produce_metrics(self) -> None:
+        generic_metrics_backend = KafkaMetricsBackend()
         # For testing, we are calling close() here because we
         # are swapping out the KafkaProducer
         # with a LocalProducer, but regardless,

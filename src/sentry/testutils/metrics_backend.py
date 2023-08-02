@@ -9,7 +9,7 @@ class GenericMetricsTestMixIn:
     use_case_id = UseCaseID.TRANSACTIONS
     org_id = 2
     project_id = 1
-    metric_name = "my_metric"
+    metric_name = "user"
     set_values = [5, 3]
     counter_value = 5
     dist_values = [5, 3]
