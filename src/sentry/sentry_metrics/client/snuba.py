@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 from django.core.cache import cache
 
@@ -46,7 +46,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -75,7 +75,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -105,7 +105,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        tags: Mapping[str, str],
+        tags: Dict[str, str],
         unit: Optional[str],
     ) -> None:
 

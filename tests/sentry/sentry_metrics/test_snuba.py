@@ -2,7 +2,6 @@ import pytest
 from snuba_sdk import Limit, Offset
 
 from sentry.sentry_metrics.client import generic_metrics_backend
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.query import MetricField
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
@@ -23,7 +22,6 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_simple(self):
-
         generic_metrics_backend.distribution(
             self.use_case_id,
             self.organization.id,
@@ -55,7 +53,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
             [self.test_project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseID.TRANSACTIONS,
+            use_case_id=self.use_case_id,
         )
         groups = data["groups"]
         assert len(groups) == 1
