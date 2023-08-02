@@ -95,11 +95,11 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                with transaction.atomic(router.db_for_write(type(option))):
+                with transaction.atomic(router.db_for_write(options.default_store.model)):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)
                     else:
-                        options.set(k, v)
+                        options.set(k, v, channel=options.UpdateChannel.APPLICATION)
 
                     logger.info(
                         "options.update",
@@ -123,5 +123,9 @@ class SystemOptionsEndpoint(Endpoint):
                 )
         # TODO(dcramer): this has nothing to do with configuring options and
         # should not be set here
-        options.set("sentry:version-configured", sentry.get_version())
+        options.set(
+            "sentry:version-configured",
+            sentry.get_version(),
+            channel=options.UpdateChannel.APPLICATION,
+        )
         return Response(status=200)

@@ -12,13 +12,14 @@ type Props = {
   name: string;
   version: undefined | string;
   className?: string;
+  showVersion?: boolean;
 };
 
 const LazyContextIcon = lazy(
   () => import('sentry/components/events/contextSummary/contextIcon')
 );
 
-const ContextIcon = styled(({className, name, version}: Props) => {
+const ContextIcon = styled(({className, name, version, showVersion}: Props) => {
   const icon = generateIconName(name, version);
 
   const title = (
@@ -34,7 +35,7 @@ const ContextIcon = styled(({className, name, version}: Props) => {
       <Suspense fallback={<LoadingMask />}>
         <LazyContextIcon name={icon} size="sm" />
       </Suspense>
-      {version ? version : null}
+      {showVersion ? (version ? version : null) : undefined}
     </Tooltip>
   );
 })`

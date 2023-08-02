@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -181,7 +181,7 @@ def get_metric_conditional_tagging_rules(
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
 
-    rules.extend(_HISTOGRAM_OUTLIER_RULES)
+    rules.extend(HISTOGRAM_OUTLIER_RULES)
 
     return rules
 
@@ -198,10 +198,10 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     # The frustration threshold is always four times the threshold
                     # (see https://docs.sentry.io/product/performance/metrics/#apdex)
-                    "value": cast(int, threshold.threshold) * 4,
+                    "value": threshold.threshold * 4,
                 },
                 *extra_conditions,
             ],
@@ -216,7 +216,7 @@ def _threshold_to_rules(
             "inner": [
                 {
                     "op": "gt",
-                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[cast(int, threshold.metric)],
+                    "name": _TRANSACTION_METRICS_TO_RULE_FIELD[threshold.metric],
                     "value": threshold.threshold,
                 },
                 *extra_conditions,
@@ -771,4 +771,4 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
-_HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
+HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)

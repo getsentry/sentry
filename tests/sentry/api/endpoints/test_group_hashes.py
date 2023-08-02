@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import GroupHash
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -80,6 +80,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         # Merge the events
         eventstream = SnubaEventStream()
         state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        assert state is not None
 
         eventstream.end_merge(state)
 

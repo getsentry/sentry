@@ -18,7 +18,7 @@ from sentry.db.models.fields import JSONField
 
 
 class TypesClass:
-    TYPES = []
+    TYPES: list[tuple[int, str]]
 
     @classmethod
     def as_choices(cls):
@@ -59,7 +59,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
     STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
-    WORLD_MAP = 5
     BIG_NUMBER = 6
     TOP_N = 7
     TYPES = [
@@ -68,7 +67,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
-        (WORLD_MAP, "world_map"),
         (BIG_NUMBER, "big_number"),
         (TOP_N, "top_n"),
     ]

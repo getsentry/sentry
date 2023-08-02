@@ -1,8 +1,9 @@
 from unittest import mock
 
+from sentry import options
 from sentry.killswitches import KillswitchInfo
 from sentry.runner.commands.killswitches import killswitches
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 OPTION = "store.load-shed-group-creation-projects"
 
@@ -123,7 +124,11 @@ class KillswitchesTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
 
         assert mock_set.mock_calls == [
-            mock.call("relay.drop-transaction-metrics", [{"project_id": "42"}])
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": "42"}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
         ]
 
         assert mock_schedule.mock_calls == [
@@ -144,7 +149,11 @@ class KillswitchesTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
 
         assert mock_set.mock_calls == [
-            mock.call("relay.drop-transaction-metrics", [{"project_id": None}])
+            mock.call(
+                "relay.drop-transaction-metrics",
+                [{"project_id": None}],
+                channel=options.UpdateChannel.KILLSWITCH,
+            )
         ]
 
         # All organisations should have been invalidated:

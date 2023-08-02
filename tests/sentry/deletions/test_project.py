@@ -30,7 +30,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.tasks.deletion.scheduled import run_deletion
-from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -156,6 +156,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
         group_seen = GroupSeen.objects.create(group=group, project=project, user_id=self.user.id)
 

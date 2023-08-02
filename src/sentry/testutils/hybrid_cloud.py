@@ -162,7 +162,7 @@ class SimulatedTransactionWatermarks(threading.local):
         self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
     ) -> int:
         if connection is None:
-            connection = transaction.get_connection(using)
+            connection = transaction.get_connection(using or "default")
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
 
     def connections_above_watermark(self) -> Set[str]:
@@ -323,7 +323,7 @@ def simulate_on_commit(request: Any):
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
     transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
-    transaction.on_commit = new_atomic_on_commit
+    transaction.on_commit = new_atomic_on_commit  # type: ignore[assignment]
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
     try:
         yield

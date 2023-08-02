@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import (
     get_path,

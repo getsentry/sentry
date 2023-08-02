@@ -1,11 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 from typing import Any, Callable, Dict, List, Optional
 
 import sentry_sdk
 from django.conf import settings
-from django.utils import timezone
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing, reprocessing2

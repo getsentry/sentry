@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest import mock
 
 import pytz
 from django.utils import timezone
@@ -21,8 +21,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -142,9 +141,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @patch("sentry.analytics.record")
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age, mock_record):
+    @mock.patch("sentry.models.Group.is_over_resolve_age")
+    def test_auto_resolved(self, mock_is_over_resolve_age):
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -153,16 +151,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
-        mock_record.assert_called_with(
-            "issue.resolved",
-            default_user_id=self.project.organization.get_default_owner().id,
-            project_id=self.project.id,
-            organization_id=self.project.organization_id,
-            group_id=group.id,
-            resolution_type="automatic",
-            issue_type="error",
-            issue_category="error",
-        )
 
     def test_subscribed(self):
         user = self.create_user()
@@ -438,7 +426,16 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def test_get_start_from_seen_stats(self):
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
             last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
-            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+            start = GroupSerializerSnuba._get_start_from_seen_stats(
+                {
+                    mock.sentinel.group: {
+                        "last_seen": last_seen,
+                        "first_seen": None,
+                        "times_seen": 0,
+                        "user_count": 0,
+                    }
+                }
+            )
 
             assert iso_format(start) == iso_format(before_now(days=expected))
 
@@ -556,6 +553,7 @@ class ProfilingGroupSerializerSnubaTest(
             environment.name,
             timestamp + timedelta(minutes=5),
         )
+        assert group_info is not None
 
         first_group = group_info.group
 

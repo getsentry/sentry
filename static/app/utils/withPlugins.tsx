@@ -25,7 +25,7 @@ type State = {
 function withPlugins<P extends WithPluginProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithPlugins extends Component<Omit<P, keyof 'plugins'> & WithPluginProps, State> {
+  class WithPlugins extends Component<Omit<P, 'plugins'> & WithPluginProps, State> {
     static displayName = `withPlugins(${getDisplayName(WrappedComponent)})`;
     state = {plugins: [], loading: true};
 

@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
@@ -452,6 +452,7 @@ class AuthHelperTest(TestCase):
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
         helper.initialize()
         assert helper.is_valid()
 

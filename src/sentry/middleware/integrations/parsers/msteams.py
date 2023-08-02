@@ -30,8 +30,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         return None
 
     def get_response(self) -> HttpResponse:
-        view_class = self.match.func.view_class  # type: ignore
-        if view_class not in self.region_view_classes:
+        if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()

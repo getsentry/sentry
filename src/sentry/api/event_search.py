@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from collections import namedtuple
 from dataclasses import asdict, dataclass, field
@@ -466,7 +468,7 @@ class SearchConfig:
     free_text_key = "message"
 
     @classmethod
-    def create_from(cls, search_config: "SearchConfig", **overrides):
+    def create_from(cls, search_config: SearchConfig, **overrides):
         config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
@@ -1136,7 +1138,7 @@ default_config = SearchConfig(
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> Sequence[SearchFilter]:
+) -> list[SearchFilter]:
     if config is None:
         config = default_config
 

@@ -93,7 +93,7 @@ export const getDefaultWidgets = () => {
     {
       id: 'lcp-country',
       title: t('LCP by Country'),
-      description: t('Density map showing page load times by country.'),
+      description: t('Table showing page load times by country.'),
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.DISCOVER,
       interval: '5m',

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -34,11 +35,14 @@ from sentry.models.groupowner import GroupOwner
 from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
+    SnubaSearchBackendBase,
 )
 from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
-from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -49,6 +53,10 @@ def date_to_query_format(date):
 
 
 class SharedSnubaTest(TestCase, SnubaTestCase):
+    @property
+    def backend(self) -> SnubaSearchBackendBase:
+        raise NotImplementedError(self)
+
     def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
         projects = projects if projects is not None else [self.project]
@@ -812,6 +820,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         group1_first_seen = GroupEnvironment.objects.get(
             environment=self.environments["production"], group=self.group1
         ).first_seen
+        assert group1_first_seen is not None
 
         results = self.make_query(
             environments=[self.environments["production"]],
@@ -2406,7 +2415,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
             if key == "error.handled":
-                val = 1
+                val: Any = 1
             elif key in issue_search_config.numeric_keys:
                 val = "123"
             elif key in issue_search_config.date_keys:
@@ -2926,6 +2935,7 @@ class EventsPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         profile_group_1 = group_info.group
 
         agg_kwargs = {
@@ -3215,7 +3225,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             ]
         ):
             result = snuba.raw_query(
-                dataset=snuba.Dataset.IssuePlatform,
+                dataset=Dataset.IssuePlatform,
                 start=self.base_datetime - timedelta(hours=1),
                 end=self.base_datetime + timedelta(hours=1),
                 selected_columns=[
@@ -3356,6 +3366,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=1).isoformat(),
             },
         )
+        assert group_info is not None
         self.profile_group_1 = group_info.group
 
         event_id_2 = uuid.uuid4().hex
@@ -3375,6 +3386,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 "received": before_now(minutes=2).isoformat(),
             },
         )
+        assert group_info is not None
         self.profile_group_2 = group_info.group
 
         event_id_3 = uuid.uuid4().hex
@@ -3469,6 +3481,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                         "received": before_now(minutes=1).isoformat(),
                     },
                 )
+                assert group_info is not None
 
             results = self.make_query(search_filter_query="issue.category:performance my_tag:2")
             assert list(results) == []

@@ -40,14 +40,14 @@ export const useSpanSamples = (options: Options) => {
 
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
-    `transaction:${transactionName}`,
+    `transaction:"${transactionName}"`,
     `transaction.method:${transactionMethod}`,
   ]);
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    {group: groupId},
+    groupId,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
@@ -55,7 +55,9 @@ export const useSpanSamples = (options: Options) => {
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
 
-  const enabled = Boolean(groupId && transactionName && !isLoadingSeries);
+  const enabled = Boolean(
+    groupId && transactionName && !isLoadingSeries && pageFilter.isReady
+  );
 
   const result = useQuery<SpanSample[]>({
     queryKey: [
@@ -75,6 +77,7 @@ export const useSpanSamples = (options: Options) => {
           firstBound: maxYValue * (1 / 3),
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
+          project: pageFilter.selection.projects,
           query: query.formatString(),
         })}`
       );

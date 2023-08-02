@@ -1,13 +1,14 @@
-from datetime import datetime, timedelta
+from __future__ import annotations
 
-import pytz
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sentry import audit_log
 from sentry.models import Rule
 from sentry.models.actor import ActorTuple
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
@@ -21,7 +22,7 @@ class BaseRuleSnoozeTest(APITestCase):
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]
         )
-        self.until = datetime.now(pytz.UTC) + timedelta(days=10)
+        self.until = datetime.now(timezone.utc) + timedelta(days=10)
         self.login_as(user=self.user)
 
 
@@ -89,6 +90,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.issue_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_issue_alert_everyone_until(self):
@@ -114,6 +116,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.issue_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_issue_alert_user_then_everyone(self):
@@ -130,7 +133,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         ).exists()
         assert response.status_code == 201
 
-        everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
+        everyone_until = datetime.now(timezone.utc) + timedelta(days=1)
         data = {"target": "everyone", "until": everyone_until}
         response = self.get_response(
             self.organization.slug,
@@ -145,7 +148,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_mute_issue_alert_everyone_then_user(self):
         """Test that an issue alert can be muted for everyone and then a user can mute the same alert for themselves"""
-        everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
+        everyone_until = datetime.now(timezone.utc) + timedelta(days=1)
         data = {"target": "everyone", "until": everyone_until}
         response = self.get_response(
             self.organization.slug,
@@ -172,7 +175,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_edit_issue_alert_mute(self):
         """Test that we throw an error if an issue alert rule has already been muted by a user"""
-        data = {"target": "me"}
+        data: dict[str, Any] = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
@@ -388,6 +391,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.metric_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_metric_alert_everyone_until(self):
@@ -413,6 +417,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
             organization_id=self.organization.id,
             target_object_id=self.metric_alert_rule.id,
         )
+        assert event is not None
         assert event.actor_user_id == self.user.id
 
     def test_mute_metric_alert_user_then_everyone(self):
@@ -429,7 +434,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         ).exists()
         assert response.status_code == 201
 
-        everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
+        everyone_until = datetime.now(timezone.utc) + timedelta(days=1)
         data = {"target": "everyone", "until": everyone_until}
         response = self.get_response(
             self.organization.slug,
@@ -444,7 +449,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_mute_metric_alert_everyone_then_user(self):
         """Test that a metric alert can be muted for everyone and then a user can mute the same alert for themselves"""
-        everyone_until = datetime.now(pytz.UTC) + timedelta(days=1)
+        everyone_until = datetime.now(timezone.utc) + timedelta(days=1)
         data = {"target": "everyone", "until": everyone_until}
         response = self.get_response(
             self.organization.slug,
@@ -471,7 +476,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
 
     def test_edit_metric_alert_mute(self):
         """Test that we throw an error if a metric alert rule has already been muted by a user"""
-        data = {"target": "me"}
+        data: dict[str, Any] = {"target": "me"}
         response = self.get_response(
             self.organization.slug,
             self.project.slug,

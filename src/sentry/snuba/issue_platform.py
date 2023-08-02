@@ -109,6 +109,7 @@ def timeseries_query(
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

@@ -213,6 +213,13 @@ describe('utils/tokenizeSearch', function () {
       );
     });
 
+    it('adds individual values to query object', function () {
+      const results = new MutableSearch([]);
+
+      results.addFilterValue('e', 'e1*e2\\e3');
+      expect(results.formatString()).toEqual('e:"e1\\*e2\\e3"');
+    });
+
     it('add text searches to query object', function () {
       const results = new MutableSearch(['a:a']);
 

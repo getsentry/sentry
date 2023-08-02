@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 from django.utils import timezone
 
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models import Group, Project
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 
 
 class BulkDeleteQueryTest(TestCase):
@@ -52,7 +54,7 @@ class BulkDeleteQueryIteratorTestCase(TransactionTestCase):
             days=0,
         ).iterator(1)
 
-        results = set()
+        results: set[int] = set()
         for chunk in iterator:
             results.update(chunk)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from datetime import datetime, timedelta
 from typing import Dict, List, Set, Tuple
 
@@ -9,6 +10,7 @@ from django.db import router
 from django.db.models import Count
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
     ArtifactBundle,
@@ -16,6 +18,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
+    FlatFileIndexState,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
@@ -99,6 +102,7 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
+@sentry_sdk.tracing.trace
 def _index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
@@ -168,6 +172,35 @@ def _index_urls_in_bundle(
 # ===== Renewal of Artifact Bundles =====
 
 
+@sentry_sdk.tracing.trace
+def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: List[str]):
+    if options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate") <= random.random():
+        return
+
+    artifact_bundle_ids = []
+    for download_id in used_download_ids:
+        # the `download_id` is in a `artifact_bundle/$ID` format
+        split = download_id.split("/")
+        if len(split) < 2:
+            continue
+        ty, ty_id, *_rest = split
+        if ty != "artifact_bundle":
+            continue
+        artifact_bundle_ids.append(ty_id)
+
+    # FIXME: This function is being called for every processed event, so ideally
+    # we would heavily debounce this and avoid doing such a query directly.
+
+    used_artifact_bundles = {
+        id: date_added
+        for id, date_added in ArtifactBundle.objects.filter(
+            projectartifactbundle__project_id=project_id, id__in=artifact_bundle_ids
+        ).values_list("id", "date_added")
+    }
+
+    maybe_renew_artifact_bundles(used_artifact_bundles)
+
+
 def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
@@ -183,6 +216,7 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
             renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
 
 
+@sentry_sdk.tracing.trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
     metrics.incr("artifact_bundle_renewal.need_renewal")
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
@@ -193,6 +227,7 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ReleaseArtifactBundle),
             router.db_for_write(DebugIdArtifactBundle),
             router.db_for_write(ArtifactBundleIndex),
+            router.db_for_write(FlatFileIndexState),
         )
     ):
         # We check again for the date_added condition in order to achieve consistency, this is done because
@@ -212,6 +247,9 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
             ArtifactBundleIndex.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            FlatFileIndexState.objects.filter(
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
 

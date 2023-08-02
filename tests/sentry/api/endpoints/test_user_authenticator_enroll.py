@@ -10,7 +10,7 @@ from sentry import audit_log
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.silo import SiloMode, unguarded_write
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -276,6 +276,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.require_2fa_for_organization()
         self.assertFalse(self.user.has_2fa())
 
+    @assume_test_silo_mode(SiloMode.REGION)
     def require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         self.assertTrue(self.organization.flags.require_2fa.is_set)

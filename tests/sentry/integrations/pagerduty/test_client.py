@@ -12,7 +12,7 @@ from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.models import Integration, PagerDutyService
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -49,6 +49,8 @@ class PagerDutyProxyClientTest(APITestCase):
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
@@ -149,6 +151,8 @@ class PagerDutyProxyApiClientTest(APITestCase):
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))

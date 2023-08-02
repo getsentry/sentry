@@ -29,7 +29,6 @@ from sentry.models import (
     OrganizationMemberTeam,
     Project,
     ProjectOption,
-    ProjectOwnership,
     Repository,
     Rule,
     User,
@@ -37,6 +36,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -48,8 +48,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.testutils import TestCase
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
