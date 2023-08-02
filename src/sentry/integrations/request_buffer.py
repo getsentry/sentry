@@ -50,10 +50,12 @@ class IntegrationRequestBuffer:
         Integration is broken if we have 7 consecutive days of errors and no successes OR have a fatal error
 
         """
-        broken_day_range = self._get_broken_range_from_buffer()
+        broken_range_days_counts = self._get_broken_range_from_buffer()
 
         days_fatal = [
-            day_count for day_count in broken_day_range if int(day_count.get("fatal_count", 0)) > 0
+            day_count
+            for day_count in broken_range_days_counts
+            if int(day_count.get("fatal_count", 0)) > 0
         ]
 
         if len(days_fatal) > 0:
@@ -61,7 +63,7 @@ class IntegrationRequestBuffer:
 
         days_error = [
             day_count
-            for day_count in broken_day_range
+            for day_count in broken_range_days_counts
             if int(day_count.get("error_count", 0)) > 0
             and int(day_count.get("success_count", 0)) == 0
         ]
