@@ -81,10 +81,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 
     if (field === 'transaction') {
       const method = dataRow['http.method'];
-      const prefix =
+      const endpointName =
         method && !dataRow.transaction.toString().startsWith(method.toString())
-          ? `${method} `
-          : '';
+          ? `${method} ${dataRow.transaction}`
+          : dataRow.transaction;
 
       return (
         <Link
@@ -106,8 +106,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             });
           }}
         >
-          {prefix}
-          {dataRow.transaction}
+          {endpointName}
         </Link>
       );
     }
